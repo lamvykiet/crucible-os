@@ -18,6 +18,7 @@ model User {
   Transaction Transaction[]
   Category    Category[]
   Budget      Budget[]
+  Debt        Debt[]
   Material    Material[]
   DictionaryItem DictionaryItem[]
   Flashcard      Flashcard[]
@@ -191,4 +192,23 @@ model Flashcard {
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model Debt {
+  id              String   @id @default(uuid())
+  name            String
+  type            String   // Mortgage, Auto Loan, Personal, Credit Card, etc.
+  startDate       DateTime
+  dueDate         DateTime?
+  principal       Int
+  remaining       Int
+  monthlyPayment  Int
+  interestRate    Float
+  status          String   @default("active") // active | settled
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

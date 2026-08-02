@@ -36,28 +36,57 @@ export async function GET(req: Request) {
 
     const userId = user.id;
 
-    // Currently we just fetch everything to calculate total debts since there is no 'Debt' model
-    // Just find all 'Debt' / 'Loan' transactions.
-    // If they represent taking a loan (Income-like) vs paying a loan (Expense-like), we'd need more logic.
-    // For now, assume this is a placeholder that will return 0 since there's no data.
-    
-    const txs = await prisma.transaction.findMany({
-      where: { 
-        userId,
-        type: { in: ['Debt', 'Loan', 'debt', 'loan'] }
-      },
+    const debts = await prisma.debt.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
     });
 
-    // Chưa có model Debt nên các con số này còn bằng 0. Khai báo kiểu tường
-    // minh thay vì để mảng rỗng suy ra `any[]` — bằng không TypeScript sẽ báo
-    // lỗi implicit any và build hỏng.
-    const totalOutstanding = 0;
-    const monthlyPayment = 0;
-    const principalPaid = 0;
-    const active = 0;
-    const settled = 0;
+    let totalOutstanding = 0;
+    let monthlyPayment = 0;
+    let principalPaid = 0;
+    let active = 0;
+    let settled = 0;
     const dueThisMonth: DueEntry[] = [];
     const debtsList: DebtEntry[] = [];
+
+    debts.forEach(d => {
+      totalOutstanding += d.remaining;
+      monthlyPayment += d.monthlyPayment;
+      principalPaid += (d.principal - d.remaining);
+      
+      if (d.status === 'active') active++;
+      else settled++;
+
+      // Check if due this month
+      if (d.dueDate) {
+        const dueDate = new Date(d.dueDate);
+        if (dueDate.getUTCFullYear() === year && dueDate.getUTCMonth() === monthNum - 1) {
+          dueThisMonth.push({
+            id: d.id,
+            name: d.name,
+            dueDay: dueDate.getUTCDate(),
+            amount: d.monthlyPayment
+          });
+        }
+      }
+
+      debtsList.push({
+        id: d.id,
+        name: d.name,
+        startDate: d.startDate.toISOString().split('T')[0],
+        principal: d.principal,
+        remaining: d.remaining,
+        monthlyPayment: d.monthlyPayment,
+        interestRate: d.interestRate,
+        dueDate: d.dueDate ? d.dueDate.toISOString().split('T')[0] : 'N/A',
+        remainingMonths: d.monthlyPayment > 0 ? Math.ceil(d.remaining / d.monthlyPayment) : 0,
+        paidPercentage: d.principal > 0 ? Math.round(((d.principal - d.remaining) / d.principal) * 100) : 0,
+        type: d.type,
+      } as any);
+    });
+
+    // Sort due dates
+    dueThisMonth.sort((a, b) => a.dueDay - b.dueDay);
 
     return NextResponse.json({
       success: true,
@@ -69,7 +98,7 @@ export async function GET(req: Request) {
         settled,
         dueThisMonth,
         debtsList,
-        hasData: txs.length > 0,
+        hasData: debts.length > 0,
       }
     });
   } catch (error) {
