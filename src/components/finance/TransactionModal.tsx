@@ -9,23 +9,40 @@ interface TransactionModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   defaultType?: "Expense" | "Income" | "Transfer";
+  initialData?: any;
 }
 
-export default function TransactionModal({ isOpen, onClose, onSuccess, defaultType = "Expense" }: TransactionModalProps) {
+export default function TransactionModal({ isOpen, onClose, onSuccess, defaultType = "Expense", initialData }: TransactionModalProps) {
   const { t } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().slice(0, 10),
-    supplier: "",
+    date: initialData?.date || new Date().toISOString().slice(0, 10),
+    supplier: initialData?.supplier || "",
     type: defaultType,
     categoryGroup: "Food & Dining",
     subGroup: "",
-    amount: "",
+    amount: initialData?.totalAmount?.toString() || "",
     paymentMethod: "cash",
-    notes: ""
+    notes: initialData?.items ? JSON.stringify(initialData.items) : ""
   });
+
+  // Reset form when initialData changes or modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        date: initialData?.date || new Date().toISOString().slice(0, 10),
+        supplier: initialData?.supplier || "",
+        type: defaultType,
+        categoryGroup: "Food & Dining",
+        subGroup: "",
+        amount: initialData?.totalAmount?.toString() || "",
+        paymentMethod: "cash",
+        notes: initialData?.items ? JSON.stringify(initialData.items) : ""
+      });
+    }
+  }, [isOpen, initialData, defaultType]);
 
   if (!isOpen) return null;
 

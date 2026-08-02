@@ -12,7 +12,8 @@ import {
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import TransactionModal from "./TransactionModal";
-import { Plus } from "lucide-react";
+import ScanInvoiceModal from "./ScanInvoiceModal";
+import { Plus, Receipt } from "lucide-react";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,
@@ -73,6 +74,9 @@ export default function DashboardTab() {
   const [apiMessage, setApiMessage] = useState<string | null>(null);
   const [data, setData] = useState<DashboardData>(EMPTY);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [scannedData, setScannedData] = useState<any>(null);
+  const [transactionType, setTransactionType] = useState<"Expense" | "Income" | "Transfer">("Expense");
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -149,19 +153,51 @@ export default function DashboardTab() {
           <div className="flex flex-wrap items-center gap-3">
             <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
             <button 
-              onClick={() => setIsTransactionModalOpen(true)}
-              className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm"
+              onClick={() => {
+                setTransactionType("Income");
+                setIsTransactionModalOpen(true);
+              }}
+              className="c-btn bg-[var(--color-success)] hover:bg-[var(--color-success-tint)] hover:text-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
             >
-              <Plus size={16} /> {t("Add Transaction", "Thêm giao dịch")}
+              <Plus size={16} /> {t("Add Income", "Thu nhập")}
+            </button>
+            <button 
+              onClick={() => {
+                setTransactionType("Expense");
+                setIsTransactionModalOpen(true);
+              }}
+              className="c-btn bg-[#66c2c2] hover:bg-[var(--color-info)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+            >
+              <Plus size={16} /> {t("Add Expense", "Chi phí")}
+            </button>
+            <button 
+              onClick={() => setIsScanModalOpen(true)}
+              className="c-btn bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-2)] text-[var(--color-text)] rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+            >
+              <Receipt size={16} className="text-[var(--color-success)]" /> {t("Scan Invoice", "Quét hóa đơn")}
             </button>
           </div>
         </div>
         
         <TransactionModal 
           isOpen={isTransactionModalOpen}
-          onClose={() => setIsTransactionModalOpen(false)}
+          onClose={() => {
+            setIsTransactionModalOpen(false);
+            setScannedData(null);
+          }}
           onSuccess={() => setRefreshKey(prev => prev + 1)}
-          defaultType="Expense"
+          defaultType={transactionType}
+          initialData={scannedData}
+        />
+        <ScanInvoiceModal 
+          isOpen={isScanModalOpen} 
+          onClose={() => setIsScanModalOpen(false)} 
+          onSuccess={(data) => {
+            setScannedData(data);
+            setTransactionType("Expense");
+            setIsScanModalOpen(false);
+            setIsTransactionModalOpen(true);
+          }} 
         />
         
         <div className="flex flex-col items-center justify-center h-80 gap-4 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm">
@@ -232,19 +268,51 @@ export default function DashboardTab() {
         <div className="flex flex-wrap items-center gap-3">
           <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
           <button 
-            onClick={() => setIsTransactionModalOpen(true)}
-            className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm"
+            onClick={() => {
+              setTransactionType("Income");
+              setIsTransactionModalOpen(true);
+            }}
+            className="c-btn bg-[var(--color-success)] hover:bg-[var(--color-success-tint)] hover:text-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
           >
-            <Plus size={16} /> {t("Add Transaction", "Thêm giao dịch")}
+            <Plus size={16} /> {t("Add Income", "Thu nhập")}
+          </button>
+          <button 
+            onClick={() => {
+              setTransactionType("Expense");
+              setIsTransactionModalOpen(true);
+            }}
+            className="c-btn bg-[#66c2c2] hover:bg-[var(--color-info)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+          >
+            <Plus size={16} /> {t("Add Expense", "Chi phí")}
+          </button>
+          <button 
+            onClick={() => setIsScanModalOpen(true)}
+            className="c-btn bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-2)] text-[var(--color-text)] rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+          >
+            <Receipt size={16} className="text-[var(--color-success)]" /> {t("Scan Invoice", "Quét hóa đơn")}
           </button>
         </div>
       </div>
 
       <TransactionModal 
         isOpen={isTransactionModalOpen}
-        onClose={() => setIsTransactionModalOpen(false)}
+        onClose={() => {
+          setIsTransactionModalOpen(false);
+          setScannedData(null);
+        }}
         onSuccess={() => setRefreshKey(prev => prev + 1)}
-        defaultType="Expense"
+        defaultType={transactionType}
+        initialData={scannedData}
+      />
+      <ScanInvoiceModal 
+        isOpen={isScanModalOpen} 
+        onClose={() => setIsScanModalOpen(false)} 
+        onSuccess={(data) => {
+          setScannedData(data);
+          setTransactionType("Expense");
+          setIsScanModalOpen(false);
+          setIsTransactionModalOpen(true);
+        }} 
       />
 
       {/* Main Cards Row 1 */}

@@ -7,6 +7,7 @@ import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import { useState, useEffect } from "react";
 import { CalendarX } from "lucide-react";
 import TransactionModal from "./TransactionModal";
+import ScanInvoiceModal from "./ScanInvoiceModal";
 
 interface CategorySlice { name: string; amount: number }
 interface SeriesPoint { name: string; amount: number }
@@ -51,6 +52,8 @@ export default function ExpenseTab() {
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [timeRange, setTimeRange] = useState<"day" | "month" | "year">("month");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [scannedData, setScannedData] = useState<any>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -112,15 +115,32 @@ export default function ExpenseTab() {
             <Plus size={16} /> {t("Add Expense", "Thêm chi tiêu")}
           </button>
           <button 
+            onClick={() => setIsScanModalOpen(true)}
             className="c-btn bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-2)] text-[var(--color-text)] rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
-            title={t("Coming soon", "Sắp ra mắt")}
           >
             <Receipt size={16} className="text-[var(--color-success)]" /> {t("Scan Invoice", "Quét hóa đơn")}
           </button>
         </div>
       </div>
 
-      <TransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={() => setRefreshKey(k => k + 1)} />
+      <TransactionModal 
+        isOpen={isModalOpen} 
+        onClose={() => {
+          setIsModalOpen(false);
+          setScannedData(null);
+        }} 
+        onSuccess={() => setRefreshKey(k => k + 1)} 
+        initialData={scannedData}
+      />
+      <ScanInvoiceModal 
+        isOpen={isScanModalOpen} 
+        onClose={() => setIsScanModalOpen(false)} 
+        onSuccess={(data) => {
+          setScannedData(data);
+          setIsScanModalOpen(false);
+          setIsModalOpen(true);
+        }} 
+      />
 
       {/* Main Cards Row */}
       {isLoading ? (

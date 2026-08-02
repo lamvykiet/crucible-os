@@ -1,0 +1,4 @@
+name,type,startDate,dueDate,principal,remaining,monthlyPayment,interestRate,status
+Mua ô tô Vinfast VF8,Auto Loan,2026-01-01,2030-01-01,800000000,650000000,15000000,8.5,active
+Vay tiêu dùng FE,Personal Loan,2025-10-01,2026-10-01,50000000,20000000,4000000,15.0,active
+Thẻ tín dụng VIB,Credit Card,2024-05-15,2027-05-15,100000000,0,5000000,0,settled
