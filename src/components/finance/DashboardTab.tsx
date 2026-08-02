@@ -13,7 +13,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import TransactionModal from "./TransactionModal";
 import ScanInvoiceModal from "./ScanInvoiceModal";
-import { Plus, Receipt } from "lucide-react";
+import { Plus } from "lucide-react";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,

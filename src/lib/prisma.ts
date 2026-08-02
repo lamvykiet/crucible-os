@@ -16,7 +16,7 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    datasourceUrl: process.env.DATABASE_URL,
+    datasourceUrl: process.env.DATABASE_URL?.replace("db.xqysclaarffkeyhicbtx.supabase.co:5432", "aws-0-ap-southeast-1.pooler.supabase.com:6543").replace("?pgbouncer=true", "") + "?pgbouncer=true",
     log:
       process.env.NODE_ENV === "development"
         ? ["warn", "error"]
