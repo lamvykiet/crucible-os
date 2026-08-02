@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { SchemaType, Schema } from "@google/generative-ai";
 import { genAI, GEMINI_VISION_MODEL } from "@/lib/gemini";
 import { requireUser } from "@/lib/auth";
+import { getDriveClient, INVOICE_ROOT_FOLDER_ID, getOrCreateFolderIds, uploadToDrive, moveFile } from "@/lib/drive";
 
 // Hoá đơn chụp bằng điện thoại hiếm khi vượt 10MB. Chặn sớm để không nạp cả
 // file khổng lồ vào RAM rồi mới base64 hoá.
@@ -41,29 +42,48 @@ export async function POST(req: NextRequest) {
 
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File | null;
+    const files = formData.getAll("file") as File[];
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      return NextResponse.json(
-        { error: `File vượt quá ${MAX_FILE_BYTES / 1024 / 1024}MB` },
-        { status: 413 }
-      );
-    }
-    if (file.type && !ALLOWED_MIME.includes(file.type)) {
-      return NextResponse.json(
-        { error: `Định dạng không hỗ trợ: ${file.type}` },
-        { status: 415 }
-      );
+    if (files.length === 0) {
+      return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const drive = getDriveClient();
+    const folderIds = await getOrCreateFolderIds(drive, INVOICE_ROOT_FOLDER_ID);
 
-    // In a full implementation, we'd also upload this buffer to Google Drive here
-    // and get back the driveFileId to save in the database.
+    const driveFileIds: string[] = [];
+    const imageParts = [];
+
+    for (const file of files) {
+      if (file.size > MAX_FILE_BYTES) {
+        return NextResponse.json(
+          { error: `File vượt quá ${MAX_FILE_BYTES / 1024 / 1024}MB` },
+          { status: 413 }
+        );
+      }
+      if (file.type && !ALLOWED_MIME.includes(file.type)) {
+        return NextResponse.json(
+          { error: `Định dạng không hỗ trợ: ${file.type}` },
+          { status: 415 }
+        );
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // Upload to Incoming
+      const driveFileId = await uploadToDrive(drive, buffer, file.type, file.name, folderIds.INCOMING);
+      if (driveFileId) {
+        driveFileIds.push(driveFileId);
+      }
+
+      imageParts.push({
+        inlineData: {
+          data: buffer.toString("base64"),
+          mimeType: file.type
+        }
+      });
+    }
 
     const model = genAI.getGenerativeModel({
       model: GEMINI_VISION_MODEL,
@@ -73,22 +93,23 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    const prompt = "Analyze this receipt and extract the line items and totals. Convert all monetary values to numbers without currency symbols.";
+    const prompt = `Analyze these receipt images (they may belong to a single long receipt). Extract the line items and totals. 
+    IMPORTANT: The currency is Vietnamese Dong (VND). Do NOT include decimals in any monetary values. 
+    Dots (.) and commas (,) in amounts are thousands separators, NOT decimal points. For example, '139.900' or '139,900' must be extracted as the integer 139900.
+    Convert all monetary values to integers.`;
     
-    const image = {
-      inlineData: {
-        data: buffer.toString("base64"),
-        mimeType: file.type
-      }
-    };
-
-    const result = await model.generateContent([prompt, image]);
+    const result = await model.generateContent([prompt, ...imageParts]);
     const responseText = result.response.text();
     
     // Parse the JSON strictly
     const data = JSON.parse(responseText);
     
-    return NextResponse.json({ data });
+    // Move to Review
+    for (const id of driveFileIds) {
+      await moveFile(drive, id, folderIds.INCOMING, folderIds.REVIEW);
+    }
+
+    return NextResponse.json({ data, driveFileIds });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("OCR Error:", error);

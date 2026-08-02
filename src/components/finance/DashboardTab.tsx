@@ -13,7 +13,8 @@ import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import TransactionModal from "./TransactionModal";
 import ScanInvoiceModal from "./ScanInvoiceModal";
-import { Plus } from "lucide-react";
+import ReviewQueueModal from "./ReviewQueueModal";
+import { Plus, ListTodo } from "lucide-react";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,
@@ -78,6 +79,8 @@ export default function DashboardTab() {
   const [scannedData, setScannedData] = useState<any>(null);
   const [transactionType, setTransactionType] = useState<"Expense" | "Income" | "Transfer">("Expense");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [isReviewQueueOpen, setIsReviewQueueOpen] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -92,6 +95,15 @@ export default function DashboardTab() {
           signal: controller.signal,
         });
         const result = await res.json().catch(() => null);
+
+        // Also fetch pending count
+        try {
+          const pendingRes = await fetch("/api/drive/pending-count", { signal: controller.signal });
+          const pendingResult = await pendingRes.json();
+          if (pendingResult.success) {
+            setPendingCount(pendingResult.count);
+          }
+        } catch(e) {}
 
         if (!res.ok || !result?.success) {
           setErrorCode("api");
@@ -176,6 +188,14 @@ export default function DashboardTab() {
             >
               <Receipt size={16} className="text-[var(--color-success)]" /> {t("Scan Invoice", "Quét hóa đơn")}
             </button>
+            {pendingCount > 0 && (
+              <button 
+                onClick={() => setIsReviewQueueOpen(true)}
+                className="c-btn bg-[var(--color-warning)] hover:bg-[var(--color-warning-tint)] hover:text-[var(--color-warning)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+              >
+                <ListTodo size={16} /> {t(`Duyệt tự động (${pendingCount})`, `Auto Process (${pendingCount})`)}
+              </button>
+            )}
           </div>
         </div>
         
@@ -192,12 +212,17 @@ export default function DashboardTab() {
         <ScanInvoiceModal 
           isOpen={isScanModalOpen} 
           onClose={() => setIsScanModalOpen(false)} 
-          onSuccess={(data) => {
-            setScannedData(data);
-            setTransactionType("Expense");
+          onSuccess={() => {
             setIsScanModalOpen(false);
-            setIsTransactionModalOpen(true);
+            setRefreshKey(prev => prev + 1);
           }} 
+        />
+        <ReviewQueueModal
+          isOpen={isReviewQueueOpen}
+          onClose={() => {
+            setIsReviewQueueOpen(false);
+            setRefreshKey(prev => prev + 1);
+          }}
         />
         
         <div className="flex flex-col items-center justify-center h-80 gap-4 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm">
@@ -291,6 +316,14 @@ export default function DashboardTab() {
           >
             <Receipt size={16} className="text-[var(--color-success)]" /> {t("Scan Invoice", "Quét hóa đơn")}
           </button>
+          {pendingCount > 0 && (
+            <button 
+              onClick={() => setIsReviewQueueOpen(true)}
+              className="c-btn bg-[var(--color-warning)] hover:bg-[var(--color-warning-tint)] hover:text-[var(--color-warning)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+            >
+              <ListTodo size={16} /> {t(`Duyệt tự động (${pendingCount})`, `Auto Process (${pendingCount})`)}
+            </button>
+          )}
         </div>
       </div>
 
@@ -307,12 +340,17 @@ export default function DashboardTab() {
       <ScanInvoiceModal 
         isOpen={isScanModalOpen} 
         onClose={() => setIsScanModalOpen(false)} 
-        onSuccess={(data) => {
-          setScannedData(data);
-          setTransactionType("Expense");
+        onSuccess={() => {
           setIsScanModalOpen(false);
-          setIsTransactionModalOpen(true);
+          setRefreshKey(prev => prev + 1);
         }} 
+      />
+      <ReviewQueueModal
+        isOpen={isReviewQueueOpen}
+        onClose={() => {
+          setIsReviewQueueOpen(false);
+          setRefreshKey(prev => prev + 1);
+        }}
       />
 
       {/* Main Cards Row 1 */}

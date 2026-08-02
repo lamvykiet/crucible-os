@@ -135,10 +135,9 @@ export default function ExpenseTab() {
       <ScanInvoiceModal 
         isOpen={isScanModalOpen} 
         onClose={() => setIsScanModalOpen(false)} 
-        onSuccess={(data) => {
-          setScannedData(data);
+        onSuccess={() => {
           setIsScanModalOpen(false);
-          setIsModalOpen(true);
+          setRefreshKey(k => k + 1);
         }} 
       />
 
