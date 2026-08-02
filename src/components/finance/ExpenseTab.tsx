@@ -51,6 +51,7 @@ export default function ExpenseTab() {
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [timeRange, setTimeRange] = useState<"day" | "month" | "year">("month");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState<ExpenseData>(EMPTY);
@@ -76,7 +77,7 @@ export default function ExpenseTab() {
     };
     load();
     return () => controller.abort();
-  }, [selectedMonth]);
+  }, [selectedMonth, refreshKey]);
 
   const {
     totals, categoryBreakdowns, avgDailyExpense, eomForecast, categoriesCount,
@@ -119,7 +120,7 @@ export default function ExpenseTab() {
         </div>
       </div>
 
-      <TransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <TransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={() => setRefreshKey(k => k + 1)} />
 
       {/* Main Cards Row */}
       {isLoading ? (
