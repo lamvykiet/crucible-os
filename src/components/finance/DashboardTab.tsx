@@ -11,6 +11,8 @@ import {
 } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
+import TransactionModal from "./TransactionModal";
+import { Plus } from "lucide-react";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,
@@ -67,12 +69,11 @@ export default function DashboardTab() {
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
 
   const [isLoading, setIsLoading] = useState(true);
-  // Lưu mã lỗi chứ không lưu chuỗi đã dịch: `t` được tạo mới ở mỗi lần render
-  // của LanguageProvider, nên đưa nó vào dependency array sẽ khiến effect chạy
-  // lại sau mỗi setState — thành vòng lặp fetch vô hạn.
   const [errorCode, setErrorCode] = useState<"api" | "network" | null>(null);
   const [apiMessage, setApiMessage] = useState<string | null>(null);
   const [data, setData] = useState<DashboardData>(EMPTY);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -105,10 +106,8 @@ export default function DashboardTab() {
     };
 
     fetchDashboardData();
-    // Huỷ request cũ khi người dùng đổi tháng liên tục, tránh kết quả về trễ
-    // của tháng trước ghi đè lên tháng đang xem.
     return () => controller.abort();
-  }, [selectedMonth]);
+  }, [selectedMonth, refreshKey]);
 
   const {
     monthlyIncome, monthlyExpense, netCashFlow, savingsRate,
@@ -147,8 +146,23 @@ export default function DashboardTab() {
           <h3 className="text-xl font-bold text-[var(--color-text)] flex items-center gap-2">
             Dashboard <span className="text-sm font-normal text-[var(--color-text-muted)] ml-2">Tổng quan tài chính</span>
           </h3>
-          <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+          <div className="flex flex-wrap items-center gap-3">
+            <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+            <button 
+              onClick={() => setIsTransactionModalOpen(true)}
+              className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm"
+            >
+              <Plus size={16} /> {t("Add Transaction", "Thêm giao dịch")}
+            </button>
+          </div>
         </div>
+        
+        <TransactionModal 
+          isOpen={isTransactionModalOpen}
+          onClose={() => setIsTransactionModalOpen(false)}
+          onSuccess={() => setRefreshKey(prev => prev + 1)}
+          defaultType="Expense"
+        />
         
         <div className="flex flex-col items-center justify-center h-80 gap-4 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm">
           <div className="w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center">
@@ -215,8 +229,23 @@ export default function DashboardTab() {
         <h3 className="text-xl font-bold text-[var(--color-text)] flex items-center gap-2">
           Dashboard <span className="text-sm font-normal text-[var(--color-text-muted)] ml-2">Tổng quan tài chính</span>
         </h3>
-        <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+        <div className="flex flex-wrap items-center gap-3">
+          <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+          <button 
+            onClick={() => setIsTransactionModalOpen(true)}
+            className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm"
+          >
+            <Plus size={16} /> {t("Add Transaction", "Thêm giao dịch")}
+          </button>
+        </div>
       </div>
+
+      <TransactionModal 
+        isOpen={isTransactionModalOpen}
+        onClose={() => setIsTransactionModalOpen(false)}
+        onSuccess={() => setRefreshKey(prev => prev + 1)}
+        defaultType="Expense"
+      />
 
       {/* Main Cards Row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

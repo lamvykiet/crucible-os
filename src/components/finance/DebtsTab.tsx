@@ -5,6 +5,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import { useState, useEffect } from "react";
 import { CalendarX } from "lucide-react";
+import DebtModal from "./DebtModal";
 
 interface DebtInfo {
   id: string;
@@ -54,9 +55,12 @@ const formatVND = (amount: number) => new Intl.NumberFormat("vi-VN").format(amou
 export default function DebtsTab() {
   const { t } = useLanguage();
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState<DebtsData>(EMPTY);
+  
+  const [isDebtModalOpen, setIsDebtModalOpen] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -79,7 +83,7 @@ export default function DebtsTab() {
     };
     load();
     return () => controller.abort();
-  }, [selectedMonth]);
+  }, [selectedMonth, refreshKey]);
 
   const {
     totalOutstanding, monthlyPayment, principalPaid, active, settled,
@@ -96,11 +100,20 @@ export default function DebtsTab() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-          <button className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm">
+          <button 
+            onClick={() => setIsDebtModalOpen(true)}
+            className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm"
+          >
             <Plus size={16} /> {t("Add Debt", "Thêm khoản nợ")}
           </button>
         </div>
       </div>
+
+      <DebtModal 
+        isOpen={isDebtModalOpen} 
+        onClose={() => setIsDebtModalOpen(false)} 
+        onSuccess={() => setRefreshKey(prev => prev + 1)} 
+      />
 
       {/* Main Cards Row */}
       {!hasData && !isLoading ? (

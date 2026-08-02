@@ -8,9 +8,10 @@ interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  defaultType?: "Expense" | "Income" | "Transfer";
 }
 
-export default function TransactionModal({ isOpen, onClose, onSuccess }: TransactionModalProps) {
+export default function TransactionModal({ isOpen, onClose, onSuccess, defaultType = "Expense" }: TransactionModalProps) {
   const { t } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -18,7 +19,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess }: Transac
   const [formData, setFormData] = useState({
     date: new Date().toISOString().slice(0, 10),
     supplier: "",
-    type: "Expense",
+    type: defaultType,
     categoryGroup: "Food & Dining",
     subGroup: "",
     amount: "",
@@ -55,7 +56,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess }: Transac
         setFormData({
           date: new Date().toISOString().slice(0, 10),
           supplier: "",
-          type: "Expense",
+          type: defaultType,
           categoryGroup: "Food & Dining",
           subGroup: "",
           amount: "",

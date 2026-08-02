@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
+import TransactionModal from "./TransactionModal";
 
 // Toàn bộ số liệu đến từ /api/finance/income.
 // Trước đây tab này chạy trên 4 mảng hardcode và cả tên công ty ("SHINHAN
@@ -55,6 +56,8 @@ export default function IncomeTab() {
   const [errorCode, setErrorCode] = useState<"api" | "network" | null>(null);
   const [apiMessage, setApiMessage] = useState<string | null>(null);
   const [data, setData] = useState<IncomeData>(EMPTY);
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -88,7 +91,7 @@ export default function IncomeTab() {
 
     load();
     return () => controller.abort();
-  }, [selectedMonth]);
+  }, [selectedMonth, refreshKey]);
 
   const {
     year, monthlyIncome, monthlySeries, annualTotals, yearTotal, prevYearTotal,
@@ -132,12 +135,22 @@ export default function IncomeTab() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-            <button className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm">
+            <button 
+              onClick={() => setIsIncomeModalOpen(true)}
+              className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm"
+            >
               <Plus size={16} /> {t("Add Income", "Thêm thu nhập")}
             </button>
           </div>
         </div>
         
+        <TransactionModal 
+          isOpen={isIncomeModalOpen}
+          onClose={() => setIsIncomeModalOpen(false)}
+          onSuccess={() => setRefreshKey(prev => prev + 1)}
+          defaultType="Income"
+        />
+
         <div className="flex flex-col items-center justify-center h-80 gap-4 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm">
           <div className="w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center">
             <CalendarX size={32} />
@@ -165,11 +178,21 @@ export default function IncomeTab() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-          <button className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm">
+          <button 
+            onClick={() => setIsIncomeModalOpen(true)}
+            className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm"
+          >
             <Plus size={16} /> {t("Add Income", "Thêm thu nhập")}
           </button>
         </div>
       </div>
+
+      <TransactionModal 
+        isOpen={isIncomeModalOpen}
+        onClose={() => setIsIncomeModalOpen(false)}
+        onSuccess={() => setRefreshKey(prev => prev + 1)}
+        defaultType="Income"
+      />
 
       {/* Main Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

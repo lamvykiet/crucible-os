@@ -106,3 +106,37 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: false, error: "Server Error" }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  const { user, response } = await requireUser();
+  if (!user) return response;
+
+  try {
+    const body = await req.json();
+    const { name, type, startDate, dueDate, principal, remaining, monthlyPayment, interestRate, status } = body;
+
+    if (!name || !type || principal === undefined) {
+      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+    }
+
+    const debt = await prisma.debt.create({
+      data: {
+        userId: user.id,
+        name,
+        type,
+        startDate: new Date(startDate || new Date()),
+        dueDate: dueDate ? new Date(dueDate) : null,
+        principal: Number(principal),
+        remaining: remaining !== undefined ? Number(remaining) : Number(principal),
+        monthlyPayment: Number(monthlyPayment || 0),
+        interestRate: Number(interestRate || 0),
+        status: status || 'active'
+      }
+    });
+
+    return NextResponse.json({ success: true, data: debt });
+  } catch (error) {
+    console.error("Failed to create debt:", error);
+    return NextResponse.json({ success: false, error: "Server Error" }, { status: 500 });
+  }
+}
