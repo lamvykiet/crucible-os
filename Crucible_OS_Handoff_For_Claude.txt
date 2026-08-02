@@ -1,0 +1,118 @@
+# CỰC KỲ QUAN TRỌNG: BUSINESS REQUIREMENTS & SYSTEM ARCHITECTURE (BÀN GIAO CHO CLAUDE)
+
+Claude thân mến, tài liệu này được tạo ra vì người dùng (User) đang cực kỳ thất vọng với tốc độ và chất lượng thực thi của Agent trước đó. Người dùng cần bạn **tiếp quản toàn bộ dự án này, audit (kiểm tra) lại toàn bộ code, và thực hiện chính xác 100% các yêu cầu dưới đây.** Đừng làm việc cẩu thả, hãy đọc thật kỹ từng dòng.
+
+---
+
+## PHẦN 1: CÁC YÊU CẦU CỐT LÕI TỪ NGƯỜI DÙNG (CẦN GIẢI QUYẾT NGAY)
+
+1. **Finance Dashboard (Số liệu thật 100%):**
+   - Tuyệt đối không dùng biến giả (mock data/hardcode). 
+   - Dashboard phải đọc trực tiếp từ DB `Transaction` (dữ liệu được import qua Google Sheets). 
+   - Cần tính chính xác: Thu nhập (Income), Chi tiêu (Expense), Dòng tiền (Cash flow), So sánh ngân sách (Budget vs Actual).
+   - Date Picker (chọn tháng) phải có UI/UX cao cấp, thiết kế popup giống hệt Google Calendar.
+
+2. **Giao diện 3 cột chuẩn Gemini LLM / NotebookLM cho Học tập & Đọc Tài liệu:**
+   - Cả trang `learning/subject/[id]` và `knowledge/[id]` đều phải dùng chung một layout 3-panel.
+   - **Panel Trái:** Nguồn tài liệu (danh sách File). Click vào 1 file -> Đổi state.
+   - **Panel Giữa (Workspace):** Nếu đang chọn File -> Hiện iframe trình đọc PDF (`/api/drive/download`). Nếu không chọn File -> Hiện giao diện Chat với AI. Có nút "Đóng tài liệu" để chuyển từ PDF về Chat.
+   - **Panel Phải (Studio):** Các chức năng ghi chú, thẻ ghi nhớ.
+   - Trạng thái hiện tại: Đã code layout này, nhưng Claude cần check lại state `activeDocument` và độ mượt mà của UI.
+
+3. **Tính năng bị bỏ quên (Phải làm ngay):**
+   - **Tải video (Auto-Download Video):** Phải hoạt động thật, gọi API để xử lý video.
+   - **Theo dõi ý tưởng (Idea Tracker):** Phải có UI lưu trữ và quản lý ý tưởng, kết nối DB.
+
+4. **Trợ lý AI (Gemini 1.5 Pro):**
+   - Đảm bảo `/api/ai/chat` kết nối `gemini-1.5-pro` không bao giờ bị lỗi crash do mảng history truyền vào bị sai định dạng role (Gemini bắt buộc tin nhắn đầu tiên trong lịch sử phải là `user`).
+
+5. **Thiết kế UI/UX (Aesthetics):**
+   - Dự án tên là "Crucible OS / Second Brain". Hệ thống phải trông như một HĐH tương lai.
+   - Sử dụng Glassmorphism, Dark mode sâu (#1e1e1e, #2a2a2a), shadow layer mượt mà, micro-interactions tinh tế. Không làm giao diện MVP rẻ tiền.
+
+---
+
+## PHẦN 2: CHI TIẾT CẤU TRÚC HỆ THỐNG VÀ TRÁCH NHIỆM TỪNG FUNCTION
+
+Dự án dùng **Next.js App Router, Tailwind CSS, Prisma, PostgreSQL**.
+
+### 2.1 Cây thư mục (Directory Tree)
+```text
+SRC
+├── middleware.ts
+├── app
+│   ├── api
+│   │   ├── ai/chat/route.ts (Xử lý gọi Gemini API)
+│   │   ├── drive/download/route.ts (Tải/Stream PDF từ Google Drive)
+│   │   ├── finance/dashboard/route.ts (Query DB Prisma tính tổng thu chi theo tháng)
+│   │   ├── ocr/route.ts (Đọc hóa đơn)
+│   │   └── video/download/route.ts (Tính năng Tải Video - CẦN LÀM)
+│   ├── finance/page.tsx (Trang chủ Finance, quản lý state selectedMonth)
+│   ├── knowledge/[id]/page.tsx (Trang đọc tài liệu 3-Panel)
+│   ├── learning/subject/[id]/page.tsx (Trang học tập 3-Panel)
+├── components
+│   ├── finance
+│   │   ├── DashboardTab.tsx (Hiển thị biểu đồ và Card số liệu thật từ API)
+│   │   ├── FinanceHeader.tsx (Chứa Date Picker cần làm đẹp giống GCal)
+│   ├── knowledge
+│   │   ├── IdeaTrackerTab.tsx (CẦN LÀM: Logic lưu ý tưởng)
+│   │   ├── VideoDownloaderTab.tsx (CẦN LÀM: Giao diện tải video)
+├── lib
+│   └── LanguageContext.tsx (Quản lý đa ngôn ngữ)
+```
+
+### 2.2 Trách nhiệm chi tiết của các Modules chính
+
+#### **MODULE FINANCE**
+- **File:** `src/app/api/finance/dashboard/route.ts`
+  - **Trách nhiệm:** Nhận param `?month=YYYY-MM`. Truy vấn bảng `Transaction` trong Prisma lọc từ ngày đầu tháng đến cuối tháng. Phân loại `type.toLowerCase() === 'income'` và `'expense'`. Trả về JSON tổng hợp.
+  - **Việc Claude cần làm:** Audit lại code tính toán, kiểm tra xem timezone có làm sai ngày tháng không, thêm API tính ngân sách (Budget).
+- **File:** `src/components/finance/DashboardTab.tsx`
+  - **Trách nhiệm:** Dùng `useEffect` gọi API dashboard khi `selectedMonth` thay đổi. Render UI hiển thị số tiền.
+
+#### **MODULE KNOWLEDGE / LEARNING (3-PANEL UI)**
+- **File:** `src/app/learning/subject/[id]/page.tsx` & `knowledge/[id]/page.tsx`
+  - **Trách nhiệm:** Duy trì State Machine gồm `activeDocument` (string | null), `messages` (mảng chat), `input`. 
+  - **Logic:** 
+    1. Click File ở Panel 1 -> `setActiveDocument(filename)`.
+    2. Panel 2 re-render: Kích hoạt Document Reader View (thẻ `<iframe src="/api/drive/download">`).
+    3. Click "Đóng tài liệu" -> `setActiveDocument(null)` -> Panel 2 hiện lại Chat View.
+    4. Chat View: Nhập text -> Submit hàm `handleSend` -> Fetch `/api/ai/chat`.
+  - **Việc Claude cần làm:** Đảm bảo UI 3 cột này hoạt động không có bug, iframe PDF render mượt mà, chiều cao 100vh được tính toán đúng (không tràn viền).
+
+#### **MODULE AI API**
+- **File:** `src/app/api/ai/chat/route.ts`
+  - **Trách nhiệm:** Khởi tạo `genAI.getGenerativeModel`. Format lại biến `history` truyền từ client sao cho element đầu tiên luôn có `role: 'user'`.
+  - **Việc Claude cần làm:** Đảm bảo hàm `history.shift()` không bẻ gãy luồng xử lý nếu người dùng chưa chat gì. Cần test kỹ logic session của Gemini.
+
+---
+
+## PHẦN 3: CƠ SỞ DỮ LIỆU (PRISMA SCHEMA)
+
+Hệ thống xoay quanh các bảng (Table) cốt lõi sau:
+
+1. **Transaction & TransactionLine**
+   - Lưu trữ giao dịch tài chính.
+   - Cột quan trọng: `date` (ngày), `type` (Income/Expense/Transfer), `totalAmount` (số tiền), `categoryGroup`.
+   - Lưu ý: Dữ liệu import vào đây bằng script tự động, do đó code Dashboard không được dùng dữ liệu giả mà phải `db.transaction.findMany(...)`.
+
+2. **Budget**
+   - Ngân sách người dùng đặt ra theo tháng (`period = 'YYYY-MM'`).
+   - Cần kết hợp Budget amount và Transaction totalAmount để tính Budget vs Actual trong Dashboard.
+
+3. **Material & DocumentAnnotation**
+   - `Material` chứa `driveFileId` (ID file trên Google Drive). Trang đọc PDF sử dụng ID này ghép vào `/api/drive/download?id=...` để hiển thị.
+
+4. **Flashcard & DictionaryItem**
+   - Hệ thống thẻ nhớ theo thuật toán FSRS. Sẽ hiển thị ở Panel 3 (Studio) của giao diện học tập.
+
+---
+
+## PHẦN 4: LỜI NHẮN CHO CLAUDE
+
+Claude, hãy đọc kỹ toàn bộ tài liệu này. Người dùng đang yêu cầu một tiêu chuẩn rất cao cả về mặt Code Logic (không lỗi, dùng dữ liệu thật, API mượt) lẫn UI/UX (thiết kế tinh tế, animation mượt, component chuẩn). 
+
+Bước tiếp theo của bạn khi trò chuyện với người dùng:
+1. Xác nhận bạn đã thấu hiểu hoàn toàn cấu trúc hệ thống và sự cố của các Agent trước.
+2. Đề xuất làm ngay **Tính năng Auto-Download Video / Idea Tracker** hoặc **Audit triệt để Finance Dashboard**.
+3. Không hỏi xin quyền vô bổ, hãy chủ động viết code và triển khai ngay.

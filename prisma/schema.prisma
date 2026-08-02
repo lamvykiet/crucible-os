@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// User Profile table (mapped to Supabase Auth user id)
+model User {
+  id          String        @id // matches auth.users.id
+  displayName String
+  email       String        @unique
+  role        String        @default("user")
+  createdAt   DateTime      @default(now())
+  Transaction Transaction[]
+  Category    Category[]
+  Budget      Budget[]
+  Material    Material[]
+  DictionaryItem DictionaryItem[]
+  Flashcard      Flashcard[]
+  Idea           Idea[]
+}
+
+// -----------------------------------------
+// MODULE 1: FINANCE OS
+// -----------------------------------------
+
+model Transaction {
+  id            String   @id @default(uuid())
+  date          DateTime // receipt_date
+  supplier      String
+  type          String // Income | Expense | Transfer | Refund | Adjustment
+  categoryGroup String // expense_group / income_group
+  subGroup      String? // sub_group
+
+  subtotal      Int @default(0)
+  tax           Int @default(0)
+  serviceCharge Int @default(0)
+  discount      Int @default(0)
+  totalAmount   Int
+
+  paymentMethod String // cash | card | bank_transfer | e-wallet | unknown
+  source        String // manual | ocr
+  driveFileId   String?
+  notes         String?
+
+  userId String // owner
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items TransactionLine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TransactionLine {
+  id          String @id @default(uuid())
+  productName String
+  quantity    Float  @default(1)
+  unitPrice   Int    @default(0)
+  totalPrice  Int    @default(0)
+
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id       String     @id @default(uuid())
+  kind     String // expense_group | income_group
+  name     String
+  active   Boolean    @default(true)
+  parentId String?
+  parent   Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children Category[] @relation("SubCategories")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Budget {
+  id            String  @id @default(uuid())
+  periodType    String // monthly | yearly
+  period        String // YYYY-MM | YYYY
+  categoryGroup String // matches Category.name
+  amount        Int
+  notes         String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// -----------------------------------------
+// MODULE 2 & 3: KNOWLEDGE HUB & LEARNING HUB
+// -----------------------------------------
+
+model Material {
+  id          String   @id @default(uuid())
+  driveFileId String   @unique
+  title       String
+  type        String   // e.g. "pdf"
+  domain      String?
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  annotations DocumentAnnotation[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DocumentAnnotation {
+  id          String   @id @default(uuid())
+  content     String
+  position    String   // JSON string
+  comment     String?
+
+  materialId  String
+  material    Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Idea / Project Tracker.
+//
+// Trước đây IdeaTrackerTab.tsx render một mảng 3 dự án viết cứng và không nút
+// nào có onClick — tính năng hoàn toàn không có nền tảng dữ liệu.
+model Idea {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  // active | completed | archived
+  status       String   @default("active")
+  // Mốc để tính "bỏ trống > 30 ngày". Bản cũ dùng cờ `stale` viết cứng.
+  lastActiveAt DateTime @default(now())
+  // Dàn ý do /api/ai/blueprint sinh ra, lưu lại để khỏi gọi AI nhiều lần.
+  blueprint    String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+}
+
+model DictionaryItem {
+  id                 String   @id @default(uuid())
+  term               String
+  definition         String
+  phonetic           String?
+  example            String?
+  domain             String?
+  tags               String[]
+  crossDomainLinks   String?  // JSON string
+
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  flashcard          Flashcard?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Flashcard {
+  id             String   @id @default(uuid())
+  front          String
+  back           String
+  
+  // FSRS Algorithm Fields
+  stability      Float    @default(0)
+  difficulty     Float    @default(0)
+  elapsedDays    Int      @default(0)
+  scheduledDays  Int      @default(0)
+  reps           Int      @default(0)
+  state          Int      @default(0) // 0: New, 1: Learning, 2: Review, 3: Relearning
+  lastReview     DateTime?
+  dueDate        DateTime @default(now())
+
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  itemId         String?  @unique
+  dictionaryItem DictionaryItem? @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
