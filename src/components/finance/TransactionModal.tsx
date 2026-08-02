@@ -69,12 +69,12 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
       setFormData({
         date: initialData?.date || new Date().toISOString().slice(0, 10),
         supplier: initialData?.supplier || "",
-        type: defaultType,
-        categoryGroup: "Food & Dining",
-        subGroup: "",
-        amount: initialData?.totalAmount?.toString() || "",
-        paymentMethod: "cash",
-        notes: initialData?.items ? JSON.stringify(initialData.items) : ""
+        type: initialData?.type || defaultType,
+        categoryGroup: initialData?.categoryGroup || (initialData?.type === "Income" ? INCOME_CATEGORIES[0] : initialData?.type === "Transfer" ? TRANSFER_CATEGORIES[0] : EXPENSE_CATEGORIES[0]),
+        subGroup: initialData?.subGroup || "",
+        amount: initialData?.totalAmount?.toString() || initialData?.amount?.toString() || "",
+        paymentMethod: initialData?.paymentMethod || "cash",
+        notes: initialData?.notes || (initialData?.items ? JSON.stringify(initialData.items) : "")
       });
     }
   }, [isOpen, initialData, defaultType]);
@@ -110,10 +110,14 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
 
     setIsSubmitting(true);
     try {
+      const isEditing = !!initialData?.id;
       const res = await fetch("/api/finance/transaction", {
-        method: "POST",
+        method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          id: initialData?.id
+        })
       });
       const data = await res.json();
       
@@ -125,7 +129,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
           date: new Date().toISOString().slice(0, 10),
           supplier: "",
           type: defaultType,
-          categoryGroup: "Food & Dining",
+          categoryGroup: defaultType === "Income" ? INCOME_CATEGORIES[0] : defaultType === "Transfer" ? TRANSFER_CATEGORIES[0] : EXPENSE_CATEGORIES[0],
           subGroup: "",
           amount: "",
           paymentMethod: "cash",
@@ -146,7 +150,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
       <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden flex flex-col">
         <div className="p-6 border-b border-[var(--color-border)] flex justify-between items-center">
           <h2 className="text-xl font-bold text-[var(--color-text)]" style={{fontFamily: 'var(--font-display)'}}>
-            {t("Thêm giao dịch thủ công", "Thêm giao dịch thủ công")}
+            {initialData?.id ? t("Chỉnh sửa giao dịch", "Edit transaction") : t("Thêm giao dịch thủ công", "Add manual transaction")}
           </h2>
           <button 
             onClick={onClose}

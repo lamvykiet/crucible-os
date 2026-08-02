@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Edit2, Trash2 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
+import TransactionModal from "./TransactionModal";
 
 interface Transaction {
   id: string;
@@ -24,29 +25,69 @@ export default function HistoryTab() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedTx, setSelectedTx] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  const loadTransactions = async (controller?: AbortController) => {
+    setIsLoading(true);
+    try {
+      const monthParam = selectedMonth || new Date().toISOString().slice(0, 7);
+      const res = await fetch(`/api/finance/history?month=${monthParam}&type=${typeFilter}`, { 
+        signal: controller?.signal 
+      });
+      const result = await res.json().catch(() => null);
+      if (res.ok && result?.success) {
+        setTransactions(result.data);
+      } else {
+        setTransactions([]);
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") setTransactions([]);
+    } finally {
+      if (!controller?.signal.aborted) setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const controller = new AbortController();
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        const monthParam = selectedMonth || new Date().toISOString().slice(0, 7);
-        const res = await fetch(`/api/finance/history?month=${monthParam}&type=${typeFilter}`, { signal: controller.signal });
-        const result = await res.json().catch(() => null);
-        if (res.ok && result?.success) {
-          setTransactions(result.data);
-        } else {
-          setTransactions([]);
-        }
-      } catch (err) {
-        if ((err as Error).name !== "AbortError") setTransactions([]);
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false);
-      }
-    };
-    load();
+    loadTransactions(controller);
     return () => controller.abort();
   }, [selectedMonth, typeFilter]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm(t("Bạn có chắc chắn muốn xóa giao dịch này không?", "Are you sure you want to delete this transaction?"))) return;
+    
+    setIsDeleting(id);
+    try {
+      const res = await fetch(`/api/finance/transaction?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setTransactions(prev => prev.filter(t => t.id !== id));
+      } else {
+        alert("Failed to delete transaction");
+      }
+    } catch (err) {
+      alert("Error deleting transaction");
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  const handleEdit = (tx: Transaction) => {
+    // Map history tx structure to modal structure
+    setSelectedTx({
+      id: tx.id,
+      date: tx.date,
+      type: tx.type,
+      supplier: tx.supplier,
+      amount: tx.amount, // Total amount
+      categoryGroup: tx.category,
+      notes: tx.note,
+      totalAmount: tx.amount
+    });
+    setEditModalOpen(true);
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in">
@@ -110,6 +151,7 @@ export default function HistoryTab() {
                   <th className="p-4 font-bold">{t("Category", "Danh mục")}</th>
                   <th className="p-4 font-bold">{t("Merchant/Source", "Đối tác/Nguồn")}</th>
                   <th className="p-4 font-bold text-right">{t("Amount", "Số tiền")}</th>
+                  <th className="p-4 font-bold text-right">{t("Actions", "Thao tác")}</th>
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-[var(--color-border)]">
@@ -135,6 +177,26 @@ export default function HistoryTab() {
                     }`}>
                       {tx.type.toLowerCase() === 'expense' ? '-' : '+'}{formatVND(tx.amount)}
                     </td>
+                    <td className="p-4 text-right whitespace-nowrap">
+                      <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => handleEdit(tx)}
+                          disabled={isDeleting === tx.id}
+                          className="p-1.5 text-[var(--color-info)] hover:bg-[var(--color-surface)] rounded-md transition-colors"
+                          title={t("Chỉnh sửa", "Edit")}
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(tx.id)}
+                          disabled={isDeleting === tx.id}
+                          className="p-1.5 text-[var(--color-error)] hover:bg-[var(--color-error-tint)] rounded-md transition-colors disabled:opacity-50"
+                          title={t("Xóa", "Delete")}
+                        >
+                          {isDeleting === tx.id ? <span className="animate-spin inline-block">⍥</span> : <Trash2 size={16} />}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -142,6 +204,14 @@ export default function HistoryTab() {
           </div>
         )}
       </div>
+
+      <TransactionModal 
+        isOpen={editModalOpen} 
+        onClose={() => setEditModalOpen(false)} 
+        onSuccess={() => loadTransactions()} 
+        defaultType={selectedTx?.type || "Expense"}
+        initialData={selectedTx}
+      />
     </div>
   );
 }
