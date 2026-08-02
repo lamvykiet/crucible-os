@@ -6,7 +6,6 @@ import IncomeTab from "@/components/finance/IncomeTab";
 import ExpenseTab from "@/components/finance/ExpenseTab";
 import DebtsTab from "@/components/finance/DebtsTab";
 import HistoryTab from "@/components/finance/HistoryTab";
-import FinanceHeader from "@/components/finance/FinanceHeader";
 
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -40,8 +39,7 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* Unified Header with Month Picker and Modal */}
-        <FinanceHeader activeTab={activeTab} />
+        {/* Unified Header with Month Picker and Modal (Removed) */}
       </div>
 
       {/* Tab Content */}

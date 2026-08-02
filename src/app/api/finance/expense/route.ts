@@ -32,8 +32,10 @@ export async function GET(req: Request) {
     const startDate = new Date(Date.UTC(year, monthNum - 1, 1));
     const endDate = new Date(Date.UTC(year, monthNum, 1));
     const ytdStart = new Date(Date.UTC(year, monthNum - 12, 1));
+    const yearStart = new Date(Date.UTC(year, 0, 1));
+    const yearEnd = new Date(Date.UTC(year + 1, 0, 1));
 
-    const [monthTx, ytdTx] = await Promise.all([
+    const [monthTx, ytdTx, yearTx] = await Promise.all([
       prisma.transaction.findMany({
         where: { userId, date: { gte: startDate, lt: endDate } },
         orderBy: { date: "asc" },
@@ -42,6 +44,10 @@ export async function GET(req: Request) {
         where: { userId, date: { gte: ytdStart, lt: endDate } },
         select: { date: true, type: true, totalAmount: true },
         orderBy: { date: "asc" },
+      }),
+      prisma.transaction.findMany({
+        where: { userId, date: { gte: yearStart, lt: yearEnd } },
+        select: { date: true, type: true, totalAmount: true, categoryGroup: true },
       }),
     ]);
 
@@ -125,19 +131,68 @@ export async function GET(req: Request) {
         category: t.categoryGroup || 'Other'
       }));
 
+    // --- Calculate Yearly Breakdown ---
+    let yearlyExpense = 0;
+    const yearCatMap = new Map<string, number>();
+    for (const t of yearTx) {
+      const b = classify(t.type);
+      if (b === "expense") {
+        yearlyExpense += t.totalAmount;
+        yearCatMap.set(t.categoryGroup || "Other", (yearCatMap.get(t.categoryGroup || "Other") || 0) + t.totalAmount);
+      } else if (b === "refund") {
+        yearlyExpense -= t.totalAmount;
+        yearCatMap.set(t.categoryGroup || "Other", (yearCatMap.get(t.categoryGroup || "Other") || 0) - t.totalAmount);
+      }
+    }
+    const yearlyCategoryBreakdown = [...yearCatMap.entries()]
+      .map(([name, amount]) => ({ name, amount }))
+      .filter((c) => c.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+
+    // --- Calculate Daily Breakdown (Today or Last Day of Month) ---
+    const targetDay = isCurrentMonth ? now.getUTCDate() : daysInMonth;
+    let dailyExpense = 0;
+    const dayCatMap = new Map<string, number>();
+    for (const t of monthTx) {
+      if (t.date.getUTCDate() === targetDay) {
+        const b = classify(t.type);
+        if (b === "expense") {
+          dailyExpense += t.totalAmount;
+          dayCatMap.set(t.categoryGroup || "Other", (dayCatMap.get(t.categoryGroup || "Other") || 0) + t.totalAmount);
+        } else if (b === "refund") {
+          dailyExpense -= t.totalAmount;
+          dayCatMap.set(t.categoryGroup || "Other", (dayCatMap.get(t.categoryGroup || "Other") || 0) - t.totalAmount);
+        }
+      }
+    }
+    const dailyCategoryBreakdown = [...dayCatMap.entries()]
+      .map(([name, amount]) => ({ name, amount }))
+      .filter((c) => c.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+
     return NextResponse.json({
       success: true,
       data: {
-        monthlyExpense,
+        totals: {
+          day: dailyExpense,
+          month: monthlyExpense,
+          year: yearlyExpense,
+        },
+        categoryBreakdowns: {
+          day: dailyCategoryBreakdown,
+          month: categoryBreakdown,
+          year: yearlyCategoryBreakdown,
+        },
+        monthlyExpense, // Keep for backward compatibility if needed temporarily
         avgDailyExpense,
         eomForecast,
         categoriesCount: categoryBreakdown.length,
-        categoryBreakdown,
+        categoryBreakdown, // Keep for backward compatibility
         dailySeries,
         monthlySeries,
         topMerchants,
         recentTransactions,
-        hasData: monthTx.length > 0,
+        hasData: monthTx.length > 0 || yearTx.length > 0,
       }
     });
   } catch (error) {
