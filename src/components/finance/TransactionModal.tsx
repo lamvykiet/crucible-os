@@ -12,6 +12,41 @@ interface TransactionModalProps {
   initialData?: any;
 }
 
+const EXPENSE_CATEGORIES = [
+  "Food & Dining",
+  "Shopping",
+  "Transport",
+  "Bills & Utilities",
+  "Entertainment",
+  "Health & Fitness",
+  "Other"
+];
+
+const INCOME_CATEGORIES = [
+  "Salary",
+  "Investment",
+  "Business",
+  "Gift",
+  "Other Income"
+];
+
+const TRANSFER_CATEGORIES = [
+  "Transfer Out",
+  "Transfer In"
+];
+
+const SUB_CATEGORIES: Record<string, string[]> = {
+  "Food & Dining": ["Breakfast", "Lunch", "Dinner", "Snacks"],
+  "Shopping": ["Clothing", "Electronics", "Groceries"],
+  "Transport": ["Fuel", "Taxi", "Public Transit"],
+  "Bills & Utilities": ["Electricity", "Water", "Internet", "Phone", "Rent"],
+  "Entertainment": ["Movies", "Games", "Subscription"],
+  "Health & Fitness": ["Medical", "Pharmacy", "Gym"],
+  "Salary": ["Base Salary", "Bonus", "Allowance"],
+  "Investment": ["Dividends", "Interest", "Capital Gains"],
+  "Business": ["Sales", "Services"],
+};
+
 export default function TransactionModal({ isOpen, onClose, onSuccess, defaultType = "Expense", initialData }: TransactionModalProps) {
   const { t } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,7 +82,23 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
   if (!isOpen) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "type") {
+      let defaultCat = EXPENSE_CATEGORIES[0];
+      if (value === "Income") defaultCat = INCOME_CATEGORIES[0];
+      else if (value === "Transfer") defaultCat = TRANSFER_CATEGORIES[0];
+      
+      setFormData({ 
+        ...formData, 
+        type: value as any, 
+        categoryGroup: defaultCat, 
+        subGroup: "" 
+      });
+    } else if (name === "categoryGroup") {
+      setFormData({ ...formData, categoryGroup: value, subGroup: "" });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleSubmit = async () => {
@@ -140,13 +191,9 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
               <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Nhóm chi tiêu", "Nhóm chi tiêu")}</label>
               <div className="relative">
                 <select name="categoryGroup" value={formData.categoryGroup} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)] appearance-none">
-                  <option value="Food & Dining">Food & Dining</option>
-                  <option value="Shopping">Shopping</option>
-                  <option value="Transport">Transport</option>
-                  <option value="Bills & Utilities">Bills & Utilities</option>
-                  <option value="Entertainment">Entertainment</option>
-                  <option value="Health & Fitness">Health & Fitness</option>
-                  <option value="Other">Other</option>
+                  {(formData.type === "Income" ? INCOME_CATEGORIES : formData.type === "Transfer" ? TRANSFER_CATEGORIES : EXPENSE_CATEGORIES).map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
                 </select>
                 <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
               </div>
@@ -158,10 +205,9 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
               <div className="relative">
                 <select name="subGroup" value={formData.subGroup} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)] appearance-none">
                   <option value="">— Không chọn —</option>
-                  <option value="Breakfast">Breakfast</option>
-                  <option value="Lunch">Lunch</option>
-                  <option value="Dinner">Dinner</option>
-                  <option value="Snacks">Snacks</option>
+                  {SUB_CATEGORIES[formData.categoryGroup]?.map(sub => (
+                    <option key={sub} value={sub}>{sub}</option>
+                  ))}
                 </select>
                 <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
               </div>
