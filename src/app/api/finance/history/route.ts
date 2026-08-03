@@ -38,7 +38,8 @@ export async function GET(req: Request) {
     const txs = await prisma.transaction.findMany({
       where: whereClause,
       orderBy: { date: "desc" },
-      take: 100, // Limit to 100 recent for now to prevent massive payloads
+      take: 100,
+      include: { items: true }
     });
 
     return NextResponse.json({
@@ -50,8 +51,8 @@ export async function GET(req: Request) {
         supplier: t.supplier || 'Unknown',
         amount: t.totalAmount,
         category: t.categoryGroup || 'Other',
-        // Cột trong schema tên là `notes` (số nhiều), không phải `note`.
-        note: t.notes || ''
+        note: t.notes || '',
+        items: t.items || []
       }))
     });
   } catch (error) {

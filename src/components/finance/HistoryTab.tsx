@@ -14,6 +14,7 @@ interface Transaction {
   amount: number;
   category: string;
   note: string;
+  items?: any[];
 }
 
 const formatVND = (amount: number) => new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
@@ -84,7 +85,8 @@ export default function HistoryTab() {
       amount: tx.amount, // Total amount
       categoryGroup: tx.category,
       notes: tx.note,
-      totalAmount: tx.amount
+      totalAmount: tx.amount,
+      items: tx.items
     });
     setEditModalOpen(true);
   };

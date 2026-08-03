@@ -60,8 +60,10 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
     subGroup: "",
     amount: initialData?.totalAmount?.toString() || "",
     paymentMethod: "cash",
-    notes: initialData?.items ? JSON.stringify(initialData.items) : ""
+    notes: initialData?.notes || ""
   });
+
+  const [items, setItems] = useState<any[]>(initialData?.items || []);
 
   // Reset form when initialData changes or modal opens
   React.useEffect(() => {
@@ -74,8 +76,9 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
         subGroup: initialData?.subGroup || "",
         amount: initialData?.totalAmount?.toString() || initialData?.amount?.toString() || "",
         paymentMethod: initialData?.paymentMethod || "cash",
-        notes: initialData?.notes || (initialData?.items ? JSON.stringify(initialData.items) : "")
+        notes: initialData?.notes || ""
       });
+      setItems(initialData?.items || []);
     }
   }, [isOpen, initialData, defaultType]);
 
@@ -116,6 +119,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          items: items,
           id: initialData?.id
         })
       });
@@ -135,6 +139,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
           paymentMethod: "cash",
           notes: ""
         });
+        setItems([]);
       } else {
         setError(data.error || "Có lỗi xảy ra");
       }
@@ -239,6 +244,81 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
             <div className="col-span-1 md:col-span-2 space-y-2">
                <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Ghi chú", "Ghi chú")}</label>
                <textarea name="notes" value={formData.notes} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)] min-h-[80px] resize-none"></textarea>
+            </div>
+          </div>
+
+          {/* Line Items Table */}
+          <div className="mt-6 border-t border-[var(--color-border)] pt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-bold text-[var(--color-text)]">Chi tiết món hàng</h3>
+              <button 
+                onClick={() => setItems([...items, { productName: "", quantity: 1, unitPrice: 0, totalPrice: 0 }])}
+                className="text-xs flex items-center gap-1 bg-[var(--color-surface-2)] px-3 py-1.5 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-border)] transition-colors text-[var(--color-text)]"
+              >
+                Thêm dòng
+              </button>
+            </div>
+            
+            <div className="border border-[var(--color-border)] rounded-xl overflow-hidden overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)] uppercase border-b border-[var(--color-border)]">
+                  <tr>
+                    <th className="px-3 py-3">Tên sản phẩm</th>
+                    <th className="px-3 py-3 w-16">SL</th>
+                    <th className="px-3 py-3 w-28">Đơn giá</th>
+                    <th className="px-3 py-3 w-32">Thành tiền</th>
+                    <th className="px-3 py-3 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, idx) => (
+                    <tr key={idx} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-2)]/50">
+                      <td className="px-2 py-2">
+                        <input type="text" value={item.productName} onChange={(e) => {
+                          const newItems = [...items];
+                          newItems[idx].productName = e.target.value;
+                          setItems(newItems);
+                        }} className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-info)] rounded outline-none text-[var(--color-text)]" />
+                      </td>
+                      <td className="px-2 py-2">
+                        <input type="number" value={item.quantity} onChange={(e) => {
+                          const newItems = [...items];
+                          newItems[idx].quantity = e.target.value;
+                          setItems(newItems);
+                        }} className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-info)] rounded outline-none text-[var(--color-text)]" />
+                      </td>
+                      <td className="px-2 py-2">
+                        <input type="number" value={item.unitPrice} onChange={(e) => {
+                          const newItems = [...items];
+                          newItems[idx].unitPrice = e.target.value;
+                          setItems(newItems);
+                        }} className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-info)] rounded outline-none text-[var(--color-text)]" />
+                      </td>
+                      <td className="px-2 py-2">
+                        <input type="number" value={item.totalPrice} onChange={(e) => {
+                          const newItems = [...items];
+                          newItems[idx].totalPrice = e.target.value;
+                          setItems(newItems);
+                        }} className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-info)] rounded outline-none text-[var(--color-text)]" />
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <button onClick={() => {
+                          const newItems = [...items];
+                          newItems.splice(idx, 1);
+                          setItems(newItems);
+                        }} className="text-[var(--color-text-muted)] hover:text-[var(--color-error)] p-1.5 rounded-lg hover:bg-[var(--color-error-tint)] transition-colors">
+                          <X size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {items.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="text-center py-6 text-[var(--color-text-faint)]">Không có dữ liệu mặt hàng</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
