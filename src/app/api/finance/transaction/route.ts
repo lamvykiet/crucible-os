@@ -17,9 +17,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
+    const transactionId = `RCP-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
     const transaction = await prisma.transaction.create({
       // ... creation logic unchanged
       data: {
+        id: transactionId,
         userId: user.id,
         date: new Date(date),
         supplier: supplier || "N/A",
@@ -36,7 +39,8 @@ export async function POST(req: Request) {
         driveFileId: driveFileIds ? (Array.isArray(driveFileIds) ? driveFileIds.join(",") : driveFileIds) : null,
         notes: notes || null,
         items: items && items.length > 0 ? {
-          create: items.map((item: any) => ({
+          create: items.map((item: any, idx: number) => ({
+            id: `ITM-${Date.now()}-${Math.floor(Math.random() * 10000) + idx}`,
             productName: item.productName,
             quantity: item.quantity ? Number(item.quantity) : 1,
             unitPrice: item.unitPrice ? Number(item.unitPrice) : 0,
@@ -98,10 +102,14 @@ export async function PUT(req: Request) {
       });
     }
 
+    const existing = await prisma.transaction.findUnique({ where: { id } });
+    if (!existing || existing.userId !== user.id) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+    }
+
     const transaction = await prisma.transaction.update({
       where: {
-        id: id,
-        userId: user.id // Ensure user owns it
+        id: id
       },
       data: {
         date: new Date(date),
@@ -120,7 +128,8 @@ export async function PUT(req: Request) {
         notes: notes || null,
         ...(items !== undefined && {
           items: {
-            create: items.map((item: any) => ({
+            create: items.map((item: any, idx: number) => ({
+              id: `ITM-${Date.now()}-${Math.floor(Math.random() * 10000) + idx}`,
               productName: item.productName,
               quantity: item.quantity ? Number(item.quantity) : 1,
               unitPrice: item.unitPrice ? Number(item.unitPrice) : 0,
@@ -153,10 +162,14 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ success: false, error: "Missing transaction ID" }, { status: 400 });
     }
 
+    const existing = await prisma.transaction.findUnique({ where: { id } });
+    if (!existing || existing.userId !== user.id) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+    }
+
     await prisma.transaction.delete({
       where: {
-        id: id,
-        userId: user.id // Ensure user owns it
+        id: id
       }
     });
 
