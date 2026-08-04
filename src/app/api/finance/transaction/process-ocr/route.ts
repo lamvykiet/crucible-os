@@ -68,12 +68,18 @@ export async function POST(req: Request) {
 
     // 3. Generate Sequence IDs
     // Find count of transactions today for this user to generate XXXX
+    const now = new Date();
+    // Using startOfDay and endOfDay in UTC to match how typical JS servers treat DB inserts, 
+    // or passing the user's timezone if possible. For simplicity, just bounding by the current 24-hr period using simple math.
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    
     const countToday = await prisma.transaction.count({
       where: {
         userId: user.id,
         createdAt: {
-          gte: new Date(new Date().setHours(0,0,0,0)),
-          lte: new Date(new Date().setHours(23,59,59,999)),
+          gte: startOfToday,
+          lte: endOfToday,
         }
       }
     });
