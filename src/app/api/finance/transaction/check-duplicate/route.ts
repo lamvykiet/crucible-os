@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     const duplicate = await prisma.transaction.findFirst({
       where: {
         userId: user.id,
-        supplier: supplier,
+        // Remove strict supplier check because OCR names might differ slightly (accents, casing)
         totalAmount: Number(totalAmount),
         date: {
           gte: startDate,

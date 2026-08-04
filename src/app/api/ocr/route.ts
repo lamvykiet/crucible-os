@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
   const { user, response } = await requireUser();
   if (!user) return response;
 
+  let driveFileIds: string[] = [];
+
   try {
     const formData = await req.formData();
     const files = formData.getAll("file") as File[];
@@ -51,7 +53,6 @@ export async function POST(req: NextRequest) {
     const drive = getDriveClient();
     const folderIds = await getOrCreateFolderIds(drive, INVOICE_ROOT_FOLDER_ID);
 
-    const driveFileIds: string[] = [];
     const imageParts = [];
 
     for (const file of files) {
@@ -103,16 +104,13 @@ export async function POST(req: NextRequest) {
     
     // Parse the JSON strictly
     const data = JSON.parse(responseText);
-    
-    // Move to Review
-    for (const id of driveFileIds) {
-      await moveFile(drive, id, folderIds.INCOMING, folderIds.REVIEW);
-    }
 
     return NextResponse.json({ data, driveFileIds });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("OCR Error:", error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Return driveFileIds if files were uploaded but Gemini failed
+    // This allows the frontend to know the files are safe in the drive queue
+    return NextResponse.json({ error: message, driveFileIds }, { status: 500 });
   }
 }

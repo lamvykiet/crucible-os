@@ -22,6 +22,6 @@ export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 
 // OCR hoá đơn chạy theo lô và không cần suy luận sâu — dùng bản flash rẻ hơn.
 export const GEMINI_VISION_MODEL =
-  process.env.GEMINI_VISION_MODEL || "gemini-2.5-flash";
+  process.env.GEMINI_VISION_MODEL || "gemini-3.6-flash";
 
 export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
