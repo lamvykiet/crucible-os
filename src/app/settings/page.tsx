@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
 import GeneralSettings from "@/components/settings/GeneralSettings";
 import FinanceSettings from "@/components/settings/FinanceSettings";
+import OcrRulesSettings from "@/components/settings/OcrRulesSettings";
 import KnowledgeSettings from "@/components/settings/KnowledgeSettings";
 import LearningSettings from "@/components/settings/LearningSettings";
 
@@ -14,6 +15,7 @@ export default function SettingsPage() {
   const tabs = [
     { id: "general", label: t("General", "Tổng Quan") },
     { id: "finance", label: t("Finance OS", "Tài Chính") },
+    { id: "ocr", label: t("OCR Rules", "Quy Tắc OCR") },
     { id: "knowledge", label: t("Knowledge Hub", "Kiến Thức") },
     { id: "learning", label: t("Learning Hub", "Học Tập") },
   ];
@@ -48,6 +50,7 @@ export default function SettingsPage() {
       <div className="animate-in fade-in duration-300 max-w-5xl mx-auto">
         {activeTab === "general" && <GeneralSettings />}
         {activeTab === "finance" && <FinanceSettings />}
+        {activeTab === "ocr" && <OcrRulesSettings />}
         {activeTab === "knowledge" && <KnowledgeSettings />}
         {activeTab === "learning" && <LearningSettings />}
       </div>

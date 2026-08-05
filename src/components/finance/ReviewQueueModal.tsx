@@ -41,6 +41,9 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
   const [errorFiles, setErrorFiles] = useState<any[]>([]);
   const [rescanning, setRescanning] = useState<string | null>(null);
 
+  // "Học" nhóm vừa chọn thành quy tắc cho nhà cung cấp này.
+  const [saveRule, setSaveRule] = useState(false);
+
   // Hộp thoại trùng lặp: giữ nguyên trên màn hình cho tới khi người dùng chọn
   // một trong ba hướng xử lý. Không có hành động nào chạy trước khi họ bấm.
   const [duplicate, setDuplicate] = useState<any>(null);
@@ -142,6 +145,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
       });
       setItems(d.items || []);
       setPreviewIds((d.driveFileIds || "").split(",").filter(Boolean));
+      setSaveRule(false);
     } catch {
       setError(t("Lỗi kết nối", "Connection error"));
     } finally {
@@ -206,7 +210,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
       const res = await fetch("/api/finance/transaction/process-ocr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draftId: activeDraft.id, formData, items, force }),
+        body: JSON.stringify({ draftId: activeDraft.id, formData, items, force, saveRule }),
       });
       const data = await res.json();
 
@@ -655,15 +659,32 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
               </div>
             </div>
 
-            <div className="p-4 border-t border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface-2)]">
-              <button
-                onClick={() => approve(false)}
-                disabled={busy || !!duplicate}
-                className="bg-[#66c2c2] hover:bg-[var(--color-success)] text-white px-6 py-2 rounded-xl font-bold text-sm shadow flex items-center gap-2 disabled:opacity-50"
-              >
-                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                {t("Duyệt & ghi vào sổ", "Approve & record")}
-              </button>
+            <div className="p-4 border-t border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface-2)] gap-4">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => approve(false)}
+                  disabled={busy || !!duplicate}
+                  className="bg-[#66c2c2] hover:bg-[var(--color-success)] text-white px-6 py-2 rounded-xl font-bold text-sm shadow flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                  {t("Duyệt & ghi vào sổ", "Approve & record")}
+                </button>
+
+                {formData.supplier && formData.categoryGroup && (
+                  <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={saveRule}
+                      onChange={(e) => setSaveRule(e.target.checked)}
+                      className="accent-[#66c2c2]"
+                    />
+                    {t(
+                      `Lần sau tự chọn "${formData.categoryGroup}" cho ${formData.supplier}`,
+                      `Always use "${formData.categoryGroup}" for ${formData.supplier}`
+                    )}
+                  </label>
+                )}
+              </div>
               <button
                 onClick={backToList}
                 disabled={busy}

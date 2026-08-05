@@ -107,20 +107,22 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
         throw err;
       }
 
-      const { data, driveFileIds: newIds, driveFileName: name } = result;
+      const { data, suggestion, driveFileIds: newIds, driveFileName: name } = result;
       setDriveFileIds(newIds || []);
       setDriveFileName(name || "");
 
-      // Gemini gợi ý nhóm chi tiêu cho từng dòng; chọn nhóm xuất hiện nhiều nhất
-      // và chỉ dùng nếu nó khớp một danh mục có thật của người dùng.
-      const suggested = pickSuggestedGroup(data.items || [], groupNames);
+      // Quy tắc phân loại của người dùng được ưu tiên tuyệt đối; gợi ý của
+      // Gemini chỉ dùng khi không quy tắc nào khớp, và cũng chỉ khi nó trỏ tới
+      // một danh mục có thật.
+      const suggested = suggestion?.categoryGroup || pickSuggestedGroup(data.items || [], groupNames);
 
       setFormData({
         ...EMPTY_FORM,
         date: str(data.date) || new Date().toISOString().slice(0, 10),
         supplier: str(data.supplier),
-        type: "Expense",
+        type: suggestion?.type || "Expense",
         categoryGroup: suggested || "",
+        subGroup: suggestion?.subGroup || "",
         subtotal: str(data.subtotal),
         tax: str(data.tax),
         serviceCharge: str(data.serviceCharge),
