@@ -1,145 +1,171 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { getDriveClient, moveFile, deleteFile, getOrCreateFolderIds, INVOICE_ROOT_FOLDER_ID } from "@/lib/drive";
+import {
+  getDriveClient,
+  moveFilesTo,
+  getOrCreateFolderIds,
+  INVOICE_ROOT_FOLDER_ID,
+} from "@/lib/drive";
+import { normalizeSupplier, utcDayRange, toVnd } from "@/lib/invoice";
 
+export const runtime = "nodejs";
+
+/**
+ * Bước 3: duyệt bản nháp → ghi chính thức vào `Transaction` + `TransactionLine`.
+ *
+ * Hai điểm khác hẳn bản cũ:
+ *
+ * 1. Không tự xoá gì cả. Bản cũ phát hiện trùng là gọi thẳng `files.delete` xoá
+ *    vĩnh viễn ảnh trên Drive — người dùng không kịp nhìn, không có đường lùi,
+ *    kể cả khi đó chỉ là hai lần mua giống nhau trong cùng một ngày. Nay route
+ *    này chỉ *báo cáo* trùng lặp rồi dừng; hành động do người dùng chọn
+ *    (`force: true` để vẫn ghi, hoặc `resolve-duplicate` để huỷ).
+ *
+ * 2. Dòng tổng, các dòng chi tiết và việc đổi trạng thái bản nháp nằm chung một
+ *    `$transaction`. Bản cũ tạo `Transaction` trước rồi mới tạo items; lỗi giữa
+ *    chừng để lại một giao dịch không có chi tiết mà không ai biết.
+ */
 export async function POST(req: Request) {
   const { user, response } = await requireUser();
   if (!user) return response;
 
   try {
     const body = await req.json();
-    const { draftFileId, driveFileIds, formData, items } = body;
-    const { date, supplier, type, categoryGroup, subtotal, tax, discount, totalAmount } = formData;
+    const { draftId, formData, items, force } = body;
 
-    if (!date || !type || !totalAmount) {
-      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+    if (!draftId) {
+      return NextResponse.json({ success: false, error: "Thiếu draftId" }, { status: 400 });
+    }
+    if (!formData?.date || !formData?.type || !formData?.totalAmount) {
+      return NextResponse.json(
+        { success: false, error: "Thiếu ngày, loại giao dịch hoặc tổng tiền" },
+        { status: 400 }
+      );
     }
 
-    const drive = getDriveClient();
-    const folderIds = await getOrCreateFolderIds(drive, INVOICE_ROOT_FOLDER_ID);
-
-    // 1. Move to Processing temporarily (as requested by user)
-    const idsArray = Array.isArray(driveFileIds) ? driveFileIds : [driveFileIds];
-    for (const fileId of idsArray) {
-      try {
-        const fileMeta = await drive.files.get({ fileId, fields: "parents" });
-        if (fileMeta.data.parents && fileMeta.data.parents.length > 0) {
-          await moveFile(drive, fileId, fileMeta.data.parents[0], folderIds.PROCESSING);
-        }
-      } catch (e) {
-        console.error("Failed to move to processing:", e);
-      }
+    const draft = await prisma.draftReceipt.findUnique({ where: { id: draftId } });
+    if (!draft || draft.userId !== user.id) {
+      return NextResponse.json({ success: false, error: "Không tìm thấy bản nháp" }, { status: 404 });
+    }
+    if (draft.status !== "Pending") {
+      return NextResponse.json(
+        { success: false, error: "Bản nháp này đã được xử lý rồi" },
+        { status: 409 }
+      );
     }
 
-    // 2. Check duplicate (Date + Total Amount exactly matching for this user)
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
+    const totalAmount = toVnd(formData.totalAmount);
+    if (totalAmount === null) {
+      return NextResponse.json({ success: false, error: "Tổng tiền không hợp lệ" }, { status: 400 });
+    }
 
-    const duplicate = await prisma.transaction.findFirst({
-      where: {
-        userId: user.id,
-        totalAmount: Number(totalAmount),
-        date: {
-          gte: startDate,
-          lte: endDate,
-        },
-      }
-    });
-
-    if (duplicate) {
-      // User requirement: if duplicate, delete image and processing data -> end.
-      for (const fileId of idsArray) {
-        await deleteFile(drive, fileId);
-      }
-      if (draftFileId) {
-        await deleteFile(drive, draftFileId); // Delete the JSON draft too
-      }
-      
-      return NextResponse.json({ 
-        success: false, 
-        isDuplicate: true, 
-        duplicateData: duplicate,
-        message: "Phát hiện trùng lặp. Đã tự động xóa file tải lên." 
+    // --- Kiểm tra trùng lặp: ngày hoá đơn + nhà cung cấp + tổng tiền ---------
+    // Lọc thô ở DB theo ngày và số tiền, rồi so tên nhà cung cấp đã chuẩn hoá ở
+    // tầng ứng dụng (Postgres không có sẵn hàm bỏ dấu tiếng Việt). Số bản ghi
+    // lọt qua bộ lọc thô luôn rất nhỏ.
+    if (!force) {
+      const { start, end } = utcDayRange(formData.date);
+      const sameDayAndAmount = await prisma.transaction.findMany({
+        where: { userId: user.id, totalAmount, date: { gte: start, lte: end } },
+        include: { items: true },
       });
+
+      const target = normalizeSupplier(formData.supplier);
+      const duplicate = sameDayAndAmount.find((t) => normalizeSupplier(t.supplier) === target);
+
+      if (duplicate) {
+        return NextResponse.json({
+          success: false,
+          isDuplicate: true,
+          duplicate: {
+            id: duplicate.id,
+            date: duplicate.date,
+            supplier: duplicate.supplier,
+            totalAmount: duplicate.totalAmount,
+            categoryGroup: duplicate.categoryGroup,
+            itemCount: duplicate.items.length,
+          },
+        });
+      }
     }
 
-    // 3. Generate Sequence IDs
-    // Find count of transactions today for this user to generate XXXX
-    const now = new Date();
-    // Using startOfDay and endOfDay in UTC to match how typical JS servers treat DB inserts, 
-    // or passing the user's timezone if possible. For simplicity, just bounding by the current 24-hr period using simple math.
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    
-    const countToday = await prisma.transaction.count({
-      where: {
-        userId: user.id,
-        createdAt: {
-          gte: startOfToday,
-          lte: endOfToday,
-        }
-      }
-    });
-    
-    // Format timestamp part (we use current unix timestamp as requested)
-    const timestamp = Date.now().toString();
-    const seqTransaction = String(countToday + 1).padStart(4, '0');
-    const transactionId = `RCP-${timestamp}-${seqTransaction}`;
+    // --- Ghi chính thức ------------------------------------------------------
+    const timestamp = Date.now();
+    const { start: todayStart, end: todayEnd } = utcDayRange(new Date());
 
-    // 4. Save to Database
-    const transaction = await prisma.transaction.create({
-      data: {
-        id: transactionId,
-        userId: user.id,
-        date: new Date(date),
-        supplier: supplier || "N/A",
-        type: type,
-        categoryGroup: categoryGroup || "Other",
-        subtotal: subtotal ? Number(subtotal) : Number(totalAmount),
-        tax: tax ? Number(tax) : 0,
-        discount: discount ? Number(discount) : 0,
-        totalAmount: Number(totalAmount),
-        paymentMethod: "cash",
-        source: "ocr",
-        driveFileId: idsArray.join(","),
-        items: items && items.length > 0 ? {
-          create: items.map((item: any, idx: number) => {
-            const seqItem = String(idx + 1).padStart(4, '0');
-            return {
-              id: `ITM-${timestamp}-${seqItem}`,
-              productName: item.productName,
-              quantity: item.quantity ? Number(item.quantity) : 1,
-              unitPrice: item.unitPrice ? Number(item.unitPrice) : 0,
-              totalPrice: item.totalPrice ? Number(item.totalPrice) : 0
-            };
-          })
-        } : undefined
-      }
+    const transaction = await prisma.$transaction(async (tx) => {
+      const countToday = await tx.transaction.count({
+        where: { userId: user.id, createdAt: { gte: todayStart, lte: todayEnd } },
+      });
+
+      const transactionId = `RCP-${timestamp}-${String(countToday + 1).padStart(4, "0")}`;
+      const lines = Array.isArray(items) ? items : [];
+
+      const created = await tx.transaction.create({
+        data: {
+          id: transactionId,
+          userId: user.id,
+          date: new Date(formData.date),
+          supplier: formData.supplier || "N/A",
+          type: formData.type,
+          categoryGroup: formData.categoryGroup || "Other",
+          subGroup: formData.subGroup || null,
+          subtotal: toVnd(formData.subtotal) ?? totalAmount,
+          tax: toVnd(formData.tax) ?? 0,
+          // serviceCharge, subGroup, notes và paymentMethod trước đây bị bỏ rơi:
+          // route cũ không đọc chúng khỏi formData và gán cứng paymentMethod="cash".
+          serviceCharge: toVnd(formData.serviceCharge) ?? 0,
+          discount: toVnd(formData.discount) ?? 0,
+          totalAmount,
+          paymentMethod: formData.paymentMethod || "unknown",
+          source: "ocr",
+          driveFileId: draft.driveFileIds,
+          notes: formData.notes || null,
+          items:
+            lines.length > 0
+              ? {
+                  create: lines.map((item: any, idx: number) => ({
+                    id: `ITM-${timestamp}-${String(idx + 1).padStart(4, "0")}`,
+                    productName: item.productName || "",
+                    quantity: Number(item.quantity) || 0,
+                    unitPrice: toVnd(item.unitPrice) ?? 0,
+                    totalPrice: toVnd(item.totalPrice) ?? 0,
+                  })),
+                }
+              : undefined,
+        },
+        include: { items: true },
+      });
+
+      await tx.draftReceipt.update({
+        where: { id: draft.id },
+        data: { status: "Approved", reviewedAt: new Date(), transactionId: created.id },
+      });
+
+      return created;
     });
 
-    // 5. Move to Approved
-    for (const fileId of idsArray) {
+    // Ảnh sang Approved_Invoices. Việc này nằm NGOÀI `$transaction` vì Drive
+    // không rollback được — nếu hỏng thì dữ liệu vẫn đúng, chỉ là ảnh còn nằm ở
+    // Review_Invoices và người dùng có thể tự dời.
+    const fileIds = draft.driveFileIds.split(",").filter(Boolean);
+    let filesMoved = true;
+    if (fileIds.length > 0) {
       try {
-        const fileMeta = await drive.files.get({ fileId, fields: "parents" });
-        if (fileMeta.data.parents && fileMeta.data.parents.length > 0) {
-          await moveFile(drive, fileId, fileMeta.data.parents[0], folderIds.APPROVED);
-        }
-      } catch (e) {
-        console.error("Failed to move to approved:", e);
+        const drive = getDriveClient();
+        const folderIds = await getOrCreateFolderIds(drive, INVOICE_ROOT_FOLDER_ID);
+        await moveFilesTo(drive, fileIds, folderIds.APPROVED);
+      } catch (error) {
+        console.error("Approve: đã ghi DB nhưng không chuyển được ảnh:", error);
+        filesMoved = false;
       }
     }
-    
-    // Delete the temporary draft JSON file now that it's processed
-    if (draftFileId) {
-      await deleteFile(drive, draftFileId);
-    }
 
-    return NextResponse.json({ success: true, data: transaction });
+    return NextResponse.json({ success: true, data: transaction, filesMoved });
   } catch (error) {
     console.error("Failed to process OCR transaction:", error);
-    return NextResponse.json({ success: false, error: "Server Error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Server Error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

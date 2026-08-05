@@ -1,46 +1,35 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { getDriveClient, INVOICE_ROOT_FOLDER_ID, getOrCreateFolderIds, listFilesInFolder } from "@/lib/drive";
 
-export async function GET(req: Request) {
+export const dynamic = "force-dynamic";
+
+/**
+ * Hàng đợi hoá đơn chờ duyệt.
+ *
+ * Bản cũ liệt kê thư mục Drive rồi tải từng file `draft_*.json` về để parse:
+ * mỗi lần mở hàng đợi là N+1 lượt gọi Drive API, và vì Drive dùng chung một tài
+ * khoản nên mọi người dùng đều thấy bản nháp của nhau. Giờ chỉ là một câu truy
+ * vấn có lọc `userId`.
+ */
+export async function GET() {
   const { user, response } = await requireUser();
   if (!user) return response;
 
   try {
-    const drive = getDriveClient();
-    const folderIds = await getOrCreateFolderIds(drive, INVOICE_ROOT_FOLDER_ID);
-    
-    const files = await listFilesInFolder(drive, folderIds.REVIEW);
-    const jsonFiles = files.filter(f => f.name?.startsWith("draft_") && f.name?.endsWith(".json"));
-
-    const drafts = [];
-
-    for (const file of jsonFiles) {
-      if (!file.id) continue;
-      try {
-        const fileRes = await drive.files.get({
-          fileId: file.id,
-          alt: "media"
-        }, { responseType: 'stream' });
-
-        const chunks: Buffer[] = [];
-        for await (const chunk of fileRes.data as any) {
-          chunks.push(Buffer.from(chunk));
-        }
-        const jsonString = Buffer.concat(chunks).toString("utf-8");
-        const draftData = JSON.parse(jsonString);
-        drafts.push({
-          draftFileId: file.id,
-          data: draftData
-        });
-      } catch (e) {
-        console.error("Failed to read draft file", file.name, e);
-      }
-    }
+    const drafts = await prisma.draftReceipt.findMany({
+      where: { userId: user.id, status: "Pending" },
+      include: { items: true },
+      orderBy: { createdAt: "asc" },
+    });
 
     return NextResponse.json({ success: true, count: drafts.length, drafts });
-  } catch (error: any) {
+  } catch (error) {
     console.error("List drafts error:", error);
-    return NextResponse.json({ error: error.message || "Failed to list drafts" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Không đọc được hàng đợi";
+    return NextResponse.json(
+      { success: false, error: message, count: 0, drafts: [] },
+      { status: 500 }
+    );
   }
 }
