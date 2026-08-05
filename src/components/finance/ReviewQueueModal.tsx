@@ -1,338 +1,600 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Loader2, FileText, Check, AlertCircle, Trash2, Plus, Play } from "lucide-react";
+import { X, Loader2, FileText, Check, AlertCircle, Trash2, Plus, ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useCategories } from "@/lib/useCategories";
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 
 interface ReviewQueueModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const EXPENSE_CATEGORIES = [
-  "Food & Dining",
-  "Shopping",
-  "Transport",
-  "Bills & Utilities",
-  "Entertainment",
-  "Health & Fitness",
-  "Other"
-];
+interface LineItem {
+  productName: string;
+  quantity: number | string;
+  unitPrice: number | string;
+  totalPrice: number | string;
+}
 
-const INCOME_CATEGORIES = ["Salary", "Investment", "Business", "Gift", "Other Income"];
-const TRANSFER_CATEGORIES = ["Transfer Out", "Transfer In"];
+const inputClass =
+  "w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm";
+const labelClass = "block text-xs font-bold text-[var(--color-info)] mb-1 uppercase";
+
+const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
+const toDateInput = (v: string | null) => (v ? new Date(v).toISOString().slice(0, 10) : "");
 
 export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalProps) {
   const { t } = useLanguage();
   const [queue, setQueue] = useState<any[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(-1);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
 
-  // Form State for current item
-  const [draftFileId, setDraftFileId] = useState("");
+  const [activeDraft, setActiveDraft] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
-  const [items, setItems] = useState<any[]>([]);
-  const [driveFileIds, setDriveFileIds] = useState<string[]>([]);
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [items, setItems] = useState<LineItem[]>([]);
+  const [previewIds, setPreviewIds] = useState<string[]>([]);
+
+  // Hộp thoại trùng lặp: giữ nguyên trên màn hình cho tới khi người dùng chọn
+  // một trong ba hướng xử lý. Không có hành động nào chạy trước khi họ bấm.
+  const [duplicate, setDuplicate] = useState<any>(null);
+  const [resolving, setResolving] = useState<"delete" | "trash" | "force" | null>(null);
+
+  const { groupNames, subGroupsOf } = useCategories(formData.type);
 
   useEffect(() => {
     if (isOpen) {
       fetchQueue();
     } else {
       setQueue([]);
-      setCurrentIndex(-1);
+      setActiveDraft(null);
+      setDuplicate(null);
+      setError("");
     }
   }, [isOpen]);
 
   const fetchQueue = async () => {
+    setIsLoading(true);
     try {
       const res = await fetch("/api/finance/transaction/drafts");
       const data = await res.json();
-      if (data.success) {
-        setQueue(data.drafts || []);
-      }
-    } catch (e) {
-      console.error(e);
+      if (data.success) setQueue(data.drafts || []);
+      else setError(data.error || t("Không đọc được hàng đợi", "Failed to load the queue"));
+    } catch {
+      setError(t("Lỗi kết nối", "Connection error"));
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const processNext = async () => {
-    if (queue.length === 0) return;
-    const nextItem = queue[0];
-    
-    setIsProcessing(true);
+  /** Mở một bản nháp: ảnh chuyển Incoming → Review rồi mới hiện form duyệt. */
+  const openDraft = async (draft: any) => {
     setError("");
-    
-    // Drafts contain the previously confirmed data
-    const draftData = nextItem.data;
-    setDraftFileId(nextItem.draftFileId);
-    setDriveFileIds(draftData.driveFileIds || []);
-    setFormData(draftData.formData || {});
-    setItems(draftData.items || []);
-    
-    if (draftData.driveFileIds && draftData.driveFileIds.length > 0) {
-      setPreviewUrl(`/api/drive/download?id=${draftData.driveFileIds[0]}`);
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/finance/transaction/draft/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draftId: draft.id }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setError(data.error || t("Không mở được hóa đơn", "Could not open the receipt"));
+        return;
+      }
+
+      const d = data.draft;
+      setActiveDraft(d);
+      setFormData({
+        date: toDateInput(d.date),
+        supplier: str(d.supplier),
+        type: d.type || "Expense",
+        categoryGroup: str(d.categoryGroup),
+        subGroup: str(d.subGroup),
+        subtotal: str(d.subtotal),
+        tax: str(d.tax),
+        serviceCharge: str(d.serviceCharge),
+        discount: str(d.discount),
+        totalAmount: str(d.totalAmount),
+        paymentMethod: d.paymentMethod || "unknown",
+        notes: str(d.notes),
+      });
+      setItems(d.items || []);
+      setPreviewIds((d.driveFileIds || "").split(",").filter(Boolean));
+    } catch {
+      setError(t("Lỗi kết nối", "Connection error"));
+    } finally {
+      setIsLoading(false);
     }
-    
-    setCurrentIndex(0);
-    setIsProcessing(false);
   };
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const backToList = () => {
+    setActiveDraft(null);
+    setDuplicate(null);
+    setError("");
+  };
+
+  const handleFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData((prev: any) => ({ ...prev, [name]: value }));
+    setFormData((prev: any) =>
+      name === "type"
+        ? { ...prev, type: value, categoryGroup: "", subGroup: "" }
+        : name === "categoryGroup"
+          ? { ...prev, categoryGroup: value, subGroup: "" }
+          : { ...prev, [name]: value }
+    );
   };
 
-  const handleItemChange = (idx: number, field: string, value: string) => {
-    const newItems = [...items];
-    newItems[idx] = { ...newItems[idx], [field]: value };
-    setItems(newItems);
+  const handleItemChange = (index: number, field: keyof LineItem, value: string) => {
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        const next = { ...item, [field]: value };
+        if (field === "quantity" || field === "unitPrice") {
+          const qty = Number(field === "quantity" ? value : item.quantity) || 0;
+          const price = Number(field === "unitPrice" ? value : item.unitPrice) || 0;
+          next.totalPrice = Math.round(qty * price);
+        }
+        return next;
+      })
+    );
   };
 
-  const handleAddItem = () => {
-    setItems([...items, { productName: "", quantity: 1, unitPrice: 0, totalPrice: 0 }]);
-  };
+  const handleAddItem = () =>
+    setItems((prev) => [...prev, { productName: "", quantity: 1, unitPrice: 0, totalPrice: 0 }]);
 
-  const handleRemoveItem = (idx: number) => {
-    const newItems = [...items];
-    newItems.splice(idx, 1);
-    setItems(newItems);
-  };
+  const handleRemoveItem = (index: number) => setItems((prev) => prev.filter((_, i) => i !== index));
 
-  const handleSubmit = async () => {
+  /** Duyệt: ghi Transaction + TransactionLine. `force` bỏ qua kiểm tra trùng. */
+  const approve = async (force = false) => {
     if (!formData.totalAmount || isNaN(Number(formData.totalAmount))) {
-      setError("Vui lòng nhập tổng tiền hợp lệ");
+      setError(t("Vui lòng nhập tổng tiền hợp lệ", "Please enter a valid total"));
+      return;
+    }
+    if (!formData.date) {
+      setError(t("Vui lòng nhập ngày hóa đơn", "Please enter the receipt date"));
       return;
     }
 
-    setIsSubmitting(true);
+    force ? setResolving("force") : setIsSubmitting(true);
+    setError("");
+
     try {
-      const payload = { draftFileId, formData, items, driveFileIds };
       const res = await fetch("/api/finance/transaction/process-ocr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ draftId: activeDraft.id, formData, items, force }),
       });
       const data = await res.json();
-      
-      if (res.ok && data.success) {
-        // Success. Pop queue and process next
-        const remaining = queue.slice(1);
-        setQueue(remaining);
-        setDuplicateWarning(null);
-        setCurrentIndex(-1);
-        if (remaining.length === 0) onClose();
+
+      if (data.success) {
+        finishDraft(activeDraft.id);
       } else if (data.isDuplicate) {
-        // Duplicate detected by backend. Backend already deleted the files.
-        setDuplicateWarning(data.message || "Phát hiện trùng lặp. Đã tự động xóa file tải lên.");
+        setDuplicate(data.duplicate);
       } else {
-        setError(data.error || "Có lỗi xảy ra");
+        setError(data.error || t("Có lỗi xảy ra", "Something went wrong"));
       }
-    } catch (err) {
-      setError("Lỗi kết nối");
+    } catch {
+      setError(t("Lỗi kết nối", "Connection error"));
     } finally {
       setIsSubmitting(false);
+      setResolving(null);
     }
   };
 
-  const closeDuplicateWarning = () => {
-    // Since backend already deleted it, we just remove it from queue and go back to list
-    const remaining = queue.slice(1);
+  /** Hai hướng huỷ khi trùng: xoá hẳn ảnh, hoặc cất ảnh vào thùng rác. */
+  const resolveDuplicate = async (action: "delete" | "trash") => {
+    setResolving(action);
+    setError("");
+    try {
+      const res = await fetch("/api/finance/transaction/resolve-duplicate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draftId: activeDraft.id, action }),
+      });
+      const data = await res.json();
+      if (data.success) finishDraft(activeDraft.id);
+      else setError(data.error || t("Không xử lý được", "Could not complete the action"));
+    } catch {
+      setError(t("Lỗi kết nối", "Connection error"));
+    } finally {
+      setResolving(null);
+    }
+  };
+
+  const finishDraft = (draftId: string) => {
+    const remaining = queue.filter((q) => q.id !== draftId);
     setQueue(remaining);
-    setDuplicateWarning(null);
-    setCurrentIndex(-1);
+    setDuplicate(null);
+    setActiveDraft(null);
     if (remaining.length === 0) onClose();
   };
 
   if (!isOpen) return null;
 
+  const busy = isSubmitting || resolving !== null;
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
-      <div className={`bg-[var(--color-surface)] rounded-3xl w-full ${currentIndex >= 0 ? "max-w-6xl h-[90vh]" : "max-w-xl"} shadow-xl overflow-hidden flex flex-col transition-all duration-300`}>
+      <div
+        className={`bg-[var(--color-surface)] rounded-3xl w-full ${
+          activeDraft ? "max-w-6xl h-[90vh]" : "max-w-xl"
+        } shadow-xl overflow-hidden flex flex-col transition-all duration-300`}
+      >
         <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center">
-          <h2 className="text-xl font-bold text-[var(--color-text)]" style={{fontFamily: 'var(--font-display)'}}>
-            {t("Duyệt hóa đơn tự động", "Batch Process OCR")}
+          <h2
+            className="text-xl font-bold text-[var(--color-text)]"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            {t("Duyệt hóa đơn", "Review Invoices")}
           </h2>
-          <button onClick={onClose} disabled={isProcessing || isSubmitting} className="text-[var(--color-text-faint)] hover:text-[var(--color-error)]">
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="text-[var(--color-text-faint)] hover:text-[var(--color-error)] disabled:opacity-50"
+          >
             <X size={20} />
           </button>
         </div>
 
-        {currentIndex === -1 ? (
-          // List View
+        {!activeDraft ? (
+          /* --- Danh sách chờ duyệt --------------------------------------- */
           <div className="p-6 overflow-y-auto">
-            {error && <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">{error}</div>}
-            
-            <div className="flex justify-between items-center mb-6">
-              <p className="text-sm text-[var(--color-text-muted)]">
-                Có <strong>{queue.length}</strong> hóa đơn đang chờ xử lý.
-              </p>
-              <button 
-                onClick={processNext} 
-                disabled={queue.length === 0 || isProcessing}
-                className="bg-[#66c2c2] hover:bg-[var(--color-success)] text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 transition-colors"
-              >
-                {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-                {t("Bắt đầu duyệt", "Start Processing")}
-              </button>
-            </div>
+            {error && (
+              <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
+                {error}
+              </div>
+            )}
+
+            <p className="text-sm text-[var(--color-text-muted)] mb-6">
+              {t("Có", "There are")} <strong>{queue.length}</strong>{" "}
+              {t("hóa đơn đang chờ duyệt.", "receipts waiting for review.")}
+            </p>
+
+            {isLoading && (
+              <div className="flex justify-center py-6 text-[var(--color-info)]">
+                <Loader2 size={24} className="animate-spin" />
+              </div>
+            )}
 
             <div className="space-y-3">
-              {queue.map((q, i) => (
-                <div key={q.draftFileId} className="flex items-center gap-4 bg-[var(--color-surface-2)] p-4 rounded-xl border border-[var(--color-border)]">
+              {queue.map((draft) => (
+                <button
+                  key={draft.id}
+                  onClick={() => openDraft(draft)}
+                  disabled={isLoading}
+                  className="w-full text-left flex items-center gap-4 bg-[var(--color-surface-2)] p-4 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-info)] transition-colors disabled:opacity-50"
+                >
                   <div className="w-10 h-10 bg-[var(--color-info-tint)] text-[var(--color-info)] rounded-lg flex items-center justify-center flex-none">
                     <FileText size={20} />
                   </div>
                   <div className="flex-1 truncate">
-                    <p className="font-bold text-sm text-[var(--color-text)] truncate">{q.data.formData?.supplier || "Hóa đơn mới"}</p>
-                    <p className="text-xs text-[var(--color-text-faint)]">{new Date(q.data.formData?.date || Date.now()).toLocaleDateString()}</p>
+                    <p className="font-bold text-sm text-[var(--color-text)] truncate">
+                      {draft.supplier || t("Hóa đơn mới", "New receipt")}
+                    </p>
+                    <p className="text-xs text-[var(--color-text-faint)]">
+                      {draft.date ? new Date(draft.date).toLocaleDateString("vi-VN") : "—"} ·{" "}
+                      {draft.items?.length || 0} {t("dòng", "lines")}
+                    </p>
                   </div>
-                </div>
+                  <div className="text-sm font-bold text-[var(--color-text)] flex-none">
+                    {draft.totalAmount ? `${draft.totalAmount.toLocaleString("vi-VN")} đ` : "—"}
+                  </div>
+                </button>
               ))}
-              {queue.length === 0 && (
-                <div className="text-center text-[var(--color-text-faint)] py-10">Không còn hóa đơn nào trong hàng đợi.</div>
+
+              {!isLoading && queue.length === 0 && (
+                <div className="text-center text-[var(--color-text-faint)] py-10">
+                  {t("Không còn hóa đơn nào trong hàng đợi.", "The queue is empty.")}
+                </div>
               )}
             </div>
           </div>
         ) : (
-          // Review View (3 Columns)
+          /* --- Màn hình duyệt chi tiết ----------------------------------- */
           <div className="flex flex-col flex-1 overflow-hidden relative">
-            {duplicateWarning && (
+            {duplicate && (
               <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                <div className="bg-[var(--color-surface)] rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95">
-                  <div className="flex items-center gap-3 text-[var(--color-error)] mb-4">
+                <div className="bg-[var(--color-surface)] rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95">
+                  <div className="flex items-center gap-3 text-[var(--color-warning)] mb-4">
                     <AlertCircle size={24} />
-                    <h3 className="font-bold text-lg">{t("Đã hủy hóa đơn", "Scan Rejected")}</h3>
+                    <h3 className="font-bold text-lg">
+                      {t("Phát hiện trùng lặp", "Duplicate detected")}
+                    </h3>
                   </div>
-                  <p className="text-sm text-[var(--color-text)] mb-6 text-center">
-                    {duplicateWarning}
+                  <p className="text-sm text-[var(--color-text)] mb-2">
+                    {t(
+                      "Đã có một giao dịch cùng ngày, cùng nhà cung cấp và cùng số tiền:",
+                      "A transaction with the same date, supplier and amount already exists:"
+                    )}
                   </p>
-                  <button onClick={closeDuplicateWarning} className="w-full bg-[var(--color-surface-2)] text-[var(--color-text)] py-2 rounded-xl font-bold text-sm hover:bg-[var(--color-border)]">
-                    {t("Đóng", "Close")}
-                  </button>
+                  <div className="bg-[var(--color-surface-2)] p-3 rounded-xl mb-6 text-sm">
+                    <div>
+                      <strong>{t("Nhà cung cấp:", "Supplier:")}</strong> {duplicate.supplier}
+                    </div>
+                    <div>
+                      <strong>{t("Ngày:", "Date:")}</strong>{" "}
+                      {new Date(duplicate.date).toLocaleDateString("vi-VN")}
+                    </div>
+                    <div>
+                      <strong>{t("Tổng tiền:", "Total:")}</strong>{" "}
+                      {duplicate.totalAmount.toLocaleString("vi-VN")} đ
+                    </div>
+                    <div className="text-[var(--color-text-muted)] text-xs mt-1">
+                      {duplicate.categoryGroup} · {duplicate.itemCount} {t("dòng", "lines")} ·{" "}
+                      {duplicate.id}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => approve(true)}
+                      disabled={resolving !== null}
+                      className="w-full bg-[#66c2c2] hover:bg-[var(--color-success)] text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {resolving === "force" ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                      {t("Đây là 2 hóa đơn khác nhau — vẫn ghi", "Two different receipts — record it")}
+                    </button>
+                    <button
+                      onClick={() => resolveDuplicate("trash")}
+                      disabled={resolving !== null}
+                      className="w-full bg-[var(--color-surface-2)] text-[var(--color-text)] py-2.5 rounded-xl font-bold text-sm hover:bg-[var(--color-border)] flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {resolving === "trash" && <Loader2 size={16} className="animate-spin" />}
+                      {t("Đưa ảnh vào thùng rác + xóa giao dịch vừa tạo", "Move image to trash + delete the new transaction")}
+                    </button>
+                    <button
+                      onClick={() => resolveDuplicate("delete")}
+                      disabled={resolving !== null}
+                      className="w-full bg-[var(--color-error)] text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {resolving === "delete" && <Loader2 size={16} className="animate-spin" />}
+                      {t("Xóa luôn ảnh + giao dịch vừa tạo", "Delete image + the new transaction")}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
             <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
-              {/* Column 1: Preview */}
-              <div className="w-full md:w-1/3 bg-[var(--color-surface-2)] border-r border-[var(--color-border)] flex items-center justify-center p-4 overflow-hidden">
-                <img src={previewUrl} className="max-w-full max-h-full object-contain rounded-lg shadow-sm border border-[var(--color-border)]" alt="Receipt Preview" />
+              {/* Cột 1: ảnh */}
+              <div className="w-full md:w-1/3 bg-[var(--color-surface-2)] border-r border-[var(--color-border)] overflow-y-auto p-4 flex flex-col gap-4">
+                <h3 className="text-sm font-bold text-[var(--color-text)]">
+                  {t("Ảnh hóa đơn", "Receipt Images")}
+                </h3>
+                {previewIds.map((id) => (
+                  <img
+                    key={id}
+                    src={`/api/drive/download?id=${id}`}
+                    className="w-full rounded-lg shadow-sm border border-[var(--color-border)]"
+                    alt="Receipt"
+                  />
+                ))}
               </div>
 
-              {/* Column 2: Form Info */}
+              {/* Cột 2: thông tin chung */}
               <div className="w-full md:w-1/3 bg-[var(--color-surface)] border-r border-[var(--color-border)] overflow-y-auto p-6 flex flex-col">
-                  {error && <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">{error}</div>}
-                  
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-bold text-[var(--color-text)]">{t("Thông tin chung", "General Info")}</h3>
-                    <span className="text-xs bg-[var(--color-info-tint)] text-[var(--color-info)] px-2 py-1 rounded-full font-bold">
-                      Hóa đơn 1/{queue.length}
-                    </span>
+                {error && (
+                  <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
+                    {error}
                   </div>
-                  
-                  <div className="flex flex-col gap-4">
-                     <div>
-                       <label className="block text-xs font-bold text-[var(--color-info)] mb-1 uppercase">Ngày hóa đơn</label>
-                       <input type="date" name="date" value={formData.date || ""} onChange={handleFormChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm" />
-                     </div>
-                     <div>
-                       <label className="block text-xs font-bold text-[var(--color-info)] mb-1 uppercase">Nhà cung cấp</label>
-                       <input type="text" name="supplier" value={formData.supplier || ""} onChange={handleFormChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm" />
-                     </div>
-                     <div className="grid grid-cols-2 gap-2">
-                       <div>
-                         <label className="block text-xs font-bold text-[var(--color-info)] mb-1 uppercase">Loại</label>
-                         <select name="type" value={formData.type || "Expense"} onChange={handleFormChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm">
-                           <option value="Expense">Expense</option>
-                           <option value="Income">Income</option>
-                           <option value="Transfer">Transfer</option>
-                         </select>
-                       </div>
-                       <div>
-                         <label className="block text-xs font-bold text-[var(--color-info)] mb-1 uppercase">Nhóm</label>
-                         <select name="categoryGroup" value={formData.categoryGroup || "Other"} onChange={handleFormChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm">
-                           {(formData.type === "Income" ? INCOME_CATEGORIES : formData.type === "Transfer" ? TRANSFER_CATEGORIES : EXPENSE_CATEGORIES).map(c => <option key={c} value={c}>{c}</option>)}
-                         </select>
-                       </div>
-                     </div>
-                     <div className="grid grid-cols-2 gap-2">
-                       <div>
-                         <label className="block text-xs font-bold text-[var(--color-info)] mb-1 uppercase">Tạm tính</label>
-                         <input type="number" name="subtotal" value={formData.subtotal || ""} onChange={handleFormChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm" />
-                       </div>
-                       <div>
-                         <label className="block text-xs font-bold text-[var(--color-info)] mb-1 uppercase">Thuế</label>
-                         <input type="number" name="tax" value={formData.tax || ""} onChange={handleFormChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm" />
-                       </div>
-                     </div>
-                     <div className="grid grid-cols-2 gap-2">
-                       <div>
-                         <label className="block text-xs font-bold text-[var(--color-info)] mb-1 uppercase">Giảm giá</label>
-                         <input type="number" name="discount" value={formData.discount || ""} onChange={handleFormChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm" />
-                       </div>
-                       <div>
-                         <label className="block text-xs font-bold text-[var(--color-info)] mb-1 uppercase">Tổng tiền</label>
-                         <input type="number" name="totalAmount" value={formData.totalAmount || ""} onChange={handleFormChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm font-bold text-lg" />
-                       </div>
-                     </div>
+                )}
+
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-sm font-bold text-[var(--color-text)]">
+                    {t("Thông tin chung", "General Info")}
+                  </h3>
+                  <span className="text-xs bg-[var(--color-info-tint)] text-[var(--color-info)] px-2 py-1 rounded-full font-bold">
+                    {t("Còn", "Left")} {queue.length}
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <label className={labelClass}>{t("Ngày hóa đơn", "Date")}</label>
+                    <input type="date" name="date" value={formData.date || ""} onChange={handleFormChange} className={inputClass} />
                   </div>
+                  <div>
+                    <label className={labelClass}>{t("Nhà cung cấp", "Supplier")}</label>
+                    <input type="text" name="supplier" value={formData.supplier || ""} onChange={handleFormChange} className={inputClass} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className={labelClass}>{t("Loại", "Type")}</label>
+                      <select name="type" value={formData.type || "Expense"} onChange={handleFormChange} className={inputClass}>
+                        <option value="Expense">Expense</option>
+                        <option value="Income">Income</option>
+                        <option value="Transfer">Transfer</option>
+                        <option value="Refund">Refund</option>
+                        <option value="Adjustment">Adjustment</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>{t("Nhóm", "Category")}</label>
+                      <select name="categoryGroup" value={formData.categoryGroup || ""} onChange={handleFormChange} className={inputClass}>
+                        <option value="">{t("— Chọn nhóm —", "— Select —")}</option>
+                        {groupNames.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className={labelClass}>{t("Nhóm phụ", "Sub-group")}</label>
+                      <input
+                        type="text"
+                        name="subGroup"
+                        list="review-subgroups"
+                        value={formData.subGroup || ""}
+                        onChange={handleFormChange}
+                        className={inputClass}
+                      />
+                      <datalist id="review-subgroups">
+                        {subGroupsOf(formData.categoryGroup || "").map((s) => (
+                          <option key={s} value={s} />
+                        ))}
+                      </datalist>
+                    </div>
+                    <div>
+                      <label className={labelClass}>{t("Thanh toán", "Payment")}</label>
+                      <select name="paymentMethod" value={formData.paymentMethod || "unknown"} onChange={handleFormChange} className={inputClass}>
+                        {PAYMENT_METHODS.map((m) => (
+                          <option key={m} value={m}>
+                            {t(PAYMENT_METHOD_LABELS[m], m)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className={labelClass}>{t("Tạm tính", "Subtotal")}</label>
+                      <input type="number" name="subtotal" value={formData.subtotal || ""} onChange={handleFormChange} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>{t("Thuế", "Tax")}</label>
+                      <input type="number" name="tax" value={formData.tax || ""} onChange={handleFormChange} className={inputClass} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className={labelClass}>{t("Phí dịch vụ", "Service charge")}</label>
+                      <input type="number" name="serviceCharge" value={formData.serviceCharge || ""} onChange={handleFormChange} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>{t("Giảm giá", "Discount")}</label>
+                      <input type="number" name="discount" value={formData.discount || ""} onChange={handleFormChange} className={inputClass} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>{t("Tổng tiền", "Total")}</label>
+                    <input
+                      type="number"
+                      name="totalAmount"
+                      value={formData.totalAmount || ""}
+                      onChange={handleFormChange}
+                      className={`${inputClass} font-bold text-lg`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>{t("Ghi chú", "Notes")}</label>
+                    <textarea name="notes" value={formData.notes || ""} onChange={handleFormChange} rows={2} className={inputClass} />
+                  </div>
+                </div>
               </div>
 
-              {/* Column 3: Line Items */}
+              {/* Cột 3: chi tiết món hàng */}
               <div className="w-full md:w-1/3 bg-[var(--color-surface)] overflow-y-auto p-6 flex flex-col">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-bold text-[var(--color-text)]">Chi tiết món hàng</h3>
-                    <button onClick={handleAddItem} className="text-xs flex items-center gap-1 bg-[var(--color-surface-2)] px-2 py-1 rounded border border-[var(--color-border)] hover:bg-[var(--color-border)]">
-                      <Plus size={14} /> Thêm dòng
-                    </button>
-                  </div>
-                  
-                  <div className="border border-[var(--color-border)] rounded-xl overflow-hidden overflow-x-auto flex-1">
-                    <table className="w-full text-sm text-left">
-                      <thead className="text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)] uppercase border-b border-[var(--color-border)]">
-                        <tr>
-                          <th className="px-3 py-2">Mặt hàng</th>
-                          <th className="px-3 py-2 w-16">SL</th>
-                          <th className="px-3 py-2 w-28">Đơn giá</th>
-                          <th className="px-3 py-2 w-10"></th>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-sm font-bold text-[var(--color-text)]">
+                    {t("Chi tiết món hàng", "Line Items")}
+                  </h3>
+                  <button
+                    onClick={handleAddItem}
+                    className="text-xs flex items-center gap-1 bg-[var(--color-surface-2)] px-2 py-1 rounded border border-[var(--color-border)] hover:bg-[var(--color-border)]"
+                  >
+                    <Plus size={14} /> {t("Thêm dòng", "Add row")}
+                  </button>
+                </div>
+
+                <div className="border border-[var(--color-border)] rounded-xl overflow-hidden overflow-x-auto flex-1">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)] uppercase border-b border-[var(--color-border)]">
+                      <tr>
+                        <th className="px-3 py-2">{t("Mặt hàng", "Item")}</th>
+                        <th className="px-3 py-2 w-14">{t("SL", "Qty")}</th>
+                        <th className="px-3 py-2 w-24">{t("Đơn giá", "Price")}</th>
+                        <th className="px-3 py-2 w-24">{t("Thành tiền", "Amount")}</th>
+                        <th className="px-3 py-2 w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, idx) => (
+                        <tr key={idx} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-2)]/50">
+                          <td className="px-2 py-2">
+                            <input
+                              type="text"
+                              value={item.productName}
+                              onChange={(e) => handleItemChange(idx, "productName", e.target.value)}
+                              className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded"
+                            />
+                          </td>
+                          <td className="px-2 py-2">
+                            <input
+                              type="number"
+                              value={item.quantity}
+                              onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
+                              className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded text-center"
+                            />
+                          </td>
+                          <td className="px-2 py-2">
+                            <input
+                              type="number"
+                              value={item.unitPrice}
+                              onChange={(e) => handleItemChange(idx, "unitPrice", e.target.value)}
+                              className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded text-right"
+                            />
+                          </td>
+                          <td className="px-2 py-2">
+                            <input
+                              type="number"
+                              value={item.totalPrice}
+                              onChange={(e) => handleItemChange(idx, "totalPrice", e.target.value)}
+                              className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded text-right"
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <button
+                              onClick={() => handleRemoveItem(idx)}
+                              className="text-[var(--color-text-muted)] hover:text-[var(--color-error)] p-1"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {items.map((item, idx) => (
-                          <tr key={idx} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-2)]/50">
-                            <td className="px-2 py-2"><input type="text" value={item.productName} onChange={(e) => handleItemChange(idx, "productName", e.target.value)} className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded" placeholder="Tên SP" /></td>
-                            <td className="px-2 py-2"><input type="number" value={item.quantity} onChange={(e) => handleItemChange(idx, "quantity", e.target.value)} className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded text-center" /></td>
-                            <td className="px-2 py-2"><input type="number" value={item.unitPrice} onChange={(e) => handleItemChange(idx, "unitPrice", e.target.value)} className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded text-right" /></td>
-                            <td className="px-2 py-2 text-center">
-                              <button onClick={() => handleRemoveItem(idx)} className="text-[var(--color-text-muted)] hover:text-[var(--color-error)] p-1"><Trash2 size={16} /></button>
-                            </td>
-                          </tr>
-                        ))}
-                        {items.length === 0 && (
-                          <tr>
-                            <td colSpan={4} className="text-center py-4 text-[var(--color-text-faint)]">Không có dữ liệu mặt hàng</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                      {items.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="text-center py-4 text-[var(--color-text-faint)]">
+                            {t("Không có dữ liệu mặt hàng", "No line items")}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
             <div className="p-4 border-t border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface-2)]">
-               <div className="flex items-center gap-2">
-                 <button onClick={handleSubmit} disabled={isSubmitting || !!duplicateWarning} className="bg-[#66c2c2] hover:bg-[var(--color-success)] text-white px-6 py-2 rounded-xl font-bold text-sm shadow flex items-center gap-2 disabled:opacity-50">
-                   {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                   {t("Xét duyệt (Approve)", "Approve")}
-                 </button>
-               </div>
-               <button onClick={() => setCurrentIndex(-1)} disabled={isSubmitting} className="text-sm font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
-                 Về danh sách
-               </button>
+              <button
+                onClick={() => approve(false)}
+                disabled={busy || !!duplicate}
+                className="bg-[#66c2c2] hover:bg-[var(--color-success)] text-white px-6 py-2 rounded-xl font-bold text-sm shadow flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                {t("Duyệt & ghi vào sổ", "Approve & record")}
+              </button>
+              <button
+                onClick={backToList}
+                disabled={busy}
+                className="text-sm font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text)] flex items-center gap-1 disabled:opacity-50"
+              >
+                <ArrowLeft size={14} /> {t("Về danh sách", "Back to list")}
+              </button>
             </div>
           </div>
         )}

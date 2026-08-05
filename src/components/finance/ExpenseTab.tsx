@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { CalendarX } from "lucide-react";
 import TransactionModal from "./TransactionModal";
 import ScanInvoiceModal from "./ScanInvoiceModal";
+import PendingReviewButton from "./PendingReviewButton";
 
 interface CategorySlice { name: string; amount: number }
 interface SeriesPoint { name: string; amount: number }
@@ -120,6 +121,7 @@ export default function ExpenseTab() {
           >
             <Receipt size={16} className="text-[var(--color-success)]" /> {t("Scan Invoice", "Quét hóa đơn")}
           </button>
+          <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(k => k + 1)} />
         </div>
       </div>
 

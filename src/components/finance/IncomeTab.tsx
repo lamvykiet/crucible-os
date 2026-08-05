@@ -11,6 +11,7 @@ import {
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import TransactionModal from "./TransactionModal";
+import PendingReviewButton from "./PendingReviewButton";
 
 // Toàn bộ số liệu đến từ /api/finance/income.
 // Trước đây tab này chạy trên 4 mảng hardcode và cả tên công ty ("SHINHAN
@@ -141,6 +142,7 @@ export default function IncomeTab() {
             >
               <Plus size={16} /> {t("Add Income", "Thêm thu nhập")}
             </button>
+            <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
           </div>
         </div>
         
@@ -184,6 +186,7 @@ export default function IncomeTab() {
           >
             <Plus size={16} /> {t("Add Income", "Thêm thu nhập")}
           </button>
+          <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
         </div>
       </div>
 
