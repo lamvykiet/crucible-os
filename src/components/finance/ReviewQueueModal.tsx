@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Loader2, FileText, Check, AlertCircle, Trash2, Plus, ArrowLeft } from "lucide-react";
+import { X, Loader2, FileText, Check, AlertCircle, Trash2, Plus, ArrowLeft, RefreshCw } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
@@ -37,6 +37,10 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
   const [items, setItems] = useState<LineItem[]>([]);
   const [previewIds, setPreviewIds] = useState<string[]>([]);
 
+  // Hoá đơn Gemini đọc hỏng, đang nằm ở Error_Invoices chờ quét lại.
+  const [errorFiles, setErrorFiles] = useState<any[]>([]);
+  const [rescanning, setRescanning] = useState<string | null>(null);
+
   // Hộp thoại trùng lặp: giữ nguyên trên màn hình cho tới khi người dùng chọn
   // một trong ba hướng xử lý. Không có hành động nào chạy trước khi họ bấm.
   const [duplicate, setDuplicate] = useState<any>(null);
@@ -47,6 +51,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
   useEffect(() => {
     if (isOpen) {
       fetchQueue();
+      fetchErrorFiles();
     } else {
       setQueue([]);
       setActiveDraft(null);
@@ -66,6 +71,40 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
       setError(t("Lỗi kết nối", "Connection error"));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchErrorFiles = async () => {
+    try {
+      const res = await fetch("/api/ocr/from-drive");
+      const data = await res.json();
+      if (data.success) setErrorFiles(data.files || []);
+    } catch {
+      // Danh sách phụ; hỏng thì ẩn đi.
+    }
+  };
+
+  /** Quét lại một ảnh hỏng: OCR lại rồi đưa trở vào hàng đợi chờ duyệt. */
+  const rescan = async (fileId: string) => {
+    setRescanning(fileId);
+    setError("");
+    try {
+      const res = await fetch("/api/ocr/from-drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setErrorFiles((prev) => prev.filter((f) => f.id !== fileId));
+        fetchQueue();
+      } else {
+        setError(data.error || t("Quét lại thất bại", "Rescan failed"));
+      }
+    } catch {
+      setError(t("Lỗi kết nối", "Connection error"));
+    } finally {
+      setRescanning(null);
     }
   };
 
@@ -293,6 +332,43 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                 </div>
               )}
             </div>
+
+            {errorFiles.length > 0 && (
+              <div className="mt-8 pt-6 border-t border-[var(--color-border)]">
+                <h3 className="text-sm font-bold text-[var(--color-error)] mb-1">
+                  {t("Hóa đơn quét lỗi", "Failed scans")} ({errorFiles.length})
+                </h3>
+                <p className="text-xs text-[var(--color-text-muted)] mb-4">
+                  {t(
+                    "Những ảnh này Gemini đọc không thành công. Bấm quét lại để đưa về hàng đợi.",
+                    "Gemini could not read these images. Rescan to put them back in the queue."
+                  )}
+                </p>
+                <div className="space-y-2">
+                  {errorFiles.map((f) => (
+                    <div
+                      key={f.id}
+                      className="flex items-center gap-3 bg-[var(--color-surface-2)] p-3 rounded-xl border border-[var(--color-border)]"
+                    >
+                      <FileText size={16} className="text-[var(--color-error)] flex-none" />
+                      <span className="flex-1 truncate text-sm text-[var(--color-text)]">{f.name}</span>
+                      <button
+                        onClick={() => rescan(f.id)}
+                        disabled={rescanning !== null}
+                        className="text-xs font-bold flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-border)] disabled:opacity-50"
+                      >
+                        {rescanning === f.id ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <RefreshCw size={14} />
+                        )}
+                        {t("Quét lại", "Rescan")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           /* --- Màn hình duyệt chi tiết ----------------------------------- */

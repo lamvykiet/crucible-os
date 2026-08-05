@@ -69,23 +69,23 @@ model TransactionLine {
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 }
 
-// Vung cho (staging) cua luong OCR hoa don.
+// Vùng chờ (staging) của luồng OCR hoá đơn.
 //
-// Ban cu ghi ban nhap thanh file `draft_<id>.json` trong thu muc Drive dung
-// chung: khong loc duoc theo nguoi dung, khong co trang thai, va moi lan mo
-// hang doi phai tai tung file ve de parse. Du an "So Chi Tieu" truoc day dung
-// hai sheet Draft_Receipts/Draft_Items co cot `status` — day la ban chuyen the
-// sang Postgres cua dung thiet ke do.
+// Bản cũ ghi bản nháp thành file `draft_<id>.json` trong thư mục Drive dùng
+// chung: không lọc được theo người dùng, không có trạng thái, và mỗi lần mở
+// hàng đợi phải tải từng file về để parse. Dự án "Sổ Chi Tiêu" trước đây dùng
+// hai sheet Draft_Receipts/Draft_Items có cột `status` — đây là bản chuyển thể
+// sang Postgres của đúng thiết kế đó.
 //
-// Vong doi: Pending (vua OCR xong, anh nam o Incoming_Invoices)
-//        -> Approved (da ghi Transaction, anh sang Approved_Invoices)
-//        -> Rejected (nguoi dung bo, anh sang Trash_Invoices).
+// Vòng đời: Pending (vừa OCR xong, ảnh nằm ở Incoming_Invoices)
+//        -> Approved (đã ghi Transaction, ảnh sang Approved_Invoices)
+//        -> Rejected (người dùng bỏ, ảnh sang Trash_Invoices).
 model DraftReceipt {
   id     String @id @default(uuid())
   status String @default("Pending") // Pending | Approved | Rejected
 
-  // Moi truong OCR deu nullable: nguyen tac bat di bat dich cua luong cu la
-  // "doc khong ra thi de null, khong bao gio doan".
+  // Mọi trường OCR đều nullable: nguyên tắc bất di bất dịch của luồng cũ là
+  // "đọc không ra thì để null, không bao giờ đoán".
   date          DateTime?
   supplier      String?
   type          String    @default("Expense")
@@ -102,13 +102,13 @@ model DraftReceipt {
   language      String? // vi | en | mixed
   notes         String?
 
-  // Danh sach fileId tren Drive, phan tach bang dau phay (mot hoa don dai co
-  // the duoc chup thanh nhieu anh).
+  // Danh sách fileId trên Drive, phân tách bằng dấu phẩy (một hoá đơn dài có
+  // thể được chụp thành nhiều ảnh).
   driveFileIds  String
   driveFileName String?
 
-  // Giao dich duoc sinh ra khi duyet. Giu lai de nut "xoa giao dich vua tao"
-  // trong hop thoai trung lap biet phai xoa ban ghi nao.
+  // Giao dịch được sinh ra khi duyệt. Giữ lại để nút "xoá giao dịch vừa tạo"
+  // trong hộp thoại trùng lặp biết phải xoá bản ghi nào.
   transactionId String?
 
   userId String
@@ -130,8 +130,8 @@ model DraftItem {
   unitPrice   Int    @default(0)
   totalPrice  Int    @default(0)
 
-  // Gemini de xuat nhom chi tieu cho tung dong kem do tin cay. Chua dung de tu
-  // dong phan loai, nhung luu san de sau nay port Classification_Rules.
+  // Gemini đề xuất nhóm chi tiêu cho từng dòng kèm độ tin cậy. Chưa dùng để tự
+  // động phân loại, nhưng lưu sẵn để sau này port Classification_Rules.
   suggestedCategoryGroup String?
   confidence             Float?
 

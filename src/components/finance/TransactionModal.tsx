@@ -19,7 +19,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Danh muc lay tu bang Category thay cho ba mang viet cung truoc day.
+  // Danh mục lấy từ bảng Category, thay cho ba mảng viết cứng trước đây.
   const [typeForCategories, setTypeForCategories] = useState<string>(initialData?.type || defaultType);
   const { groupNames, subGroupsOf } = useCategories(typeForCategories);
 
@@ -59,8 +59,8 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (name === "type") {
-      // Doi loai giao dich thi nhom cu khong con thuoc danh sach nao — xoa di
-      // de khong luu nham nhom thu nhap vao mot khoan chi.
+      // Đổi loại giao dịch thì nhóm cũ không còn thuộc danh sách nào — xoá đi
+      // để không lưu nhầm nhóm thu nhập vào một khoản chi.
       setTypeForCategories(value);
       setFormData({
         ...formData,
