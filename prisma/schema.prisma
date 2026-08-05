@@ -24,6 +24,9 @@ model User {
   Flashcard      Flashcard[]
   Idea           Idea[]
   DraftReceipt   DraftReceipt[]
+  Vendor             Vendor[]
+  ClassificationRule ClassificationRule[]
+  OcrLog             OcrLog[]
 }
 
 // -----------------------------------------
@@ -139,6 +142,76 @@ model DraftItem {
   draft   DraftReceipt @relation(fields: [draftId], references: [id], onDelete: Cascade)
 
   @@index([draftId])
+}
+
+// Nhà cung cấp đã gặp, dựng dần từ các hoá đơn đã duyệt.
+//
+// `normalizedName` là tên đã bỏ dấu/hạ chữ thường (xem normalizeSupplier trong
+// src/lib/invoice.ts) — vừa dùng để chống trùng, vừa là khoá so khớp quy tắc.
+model Vendor {
+  id                   String  @id @default(uuid())
+  vendorName           String
+  normalizedName       String
+  defaultCategoryGroup String?
+  notes                String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, normalizedName])
+}
+
+// Quy tắc tự phân loại hoá đơn.
+//
+// Hệ "Sổ Chi Tiêu" chạy theo thứ tự: quy tắc trước, Gemini là phương án dự
+// phòng, và mỗi lần người dùng sửa tay có thể lưu lại thành quy tắc mới
+// (source = "learned"). Đây là bản chuyển thể của sheet Classification_Rules.
+model ClassificationRule {
+  id String @id @default(uuid())
+
+  // vendor | product_keyword | note_keyword
+  matchType String
+  // Luôn lưu ở dạng đã chuẩn hoá để so khớp không phụ thuộc dấu và chữ hoa.
+  matchValue String
+
+  transactionType String?
+  categoryGroup   String
+  subGroup        String?
+
+  // Số nhỏ được xét trước. Quy tắc học được đặt 50, quy tắc gõ tay mặc định 100,
+  // nên một lần sửa tay gần đây luôn thắng quy tắc chung chung cũ.
+  priority Int     @default(100)
+  active   Boolean @default(true)
+  source   String  @default("manual") // manual | learned
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, active, priority])
+}
+
+// Nhật ký OCR — trước đây mọi lỗi Gemini chỉ nằm trong console của server, nên
+// không có cách nào biết hoá đơn nào hỏng, hỏng vì sao, hay mất bao lâu.
+model OcrLog {
+  id        String   @id @default(uuid())
+  timestamp DateTime @default(now())
+
+  fileId     String?
+  fileName   String?
+  status     String // OK | ERROR | INFO
+  message    String
+  durationMs Int?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
 }
 
 model Category {

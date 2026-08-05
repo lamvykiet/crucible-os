@@ -9,6 +9,8 @@ import {
 } from "@/lib/drive";
 import { genAI, GEMINI_VISION_MODEL } from "@/lib/gemini";
 import { OCR_SCHEMA, OCR_PROMPT, toVnd } from "@/lib/invoice";
+import { classify, RULE_ORDER } from "@/lib/classify";
+import { logOcr } from "@/lib/ocrLog";
 
 export const runtime = "nodejs";
 
@@ -25,6 +27,8 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 export async function POST(req: NextRequest) {
   const { user, response } = await requireUser();
   if (!user) return response;
+
+  const startedAt = Date.now();
 
   try {
     const { fileId } = await req.json();
@@ -74,12 +78,20 @@ export async function POST(req: NextRequest) {
     // để route không kéo Prisma vào mọi lần dựng bundle.
     const { prisma } = await import("@/lib/prisma");
 
+    const rules = await prisma.classificationRule.findMany({
+      where: { userId: user.id, active: true },
+      orderBy: RULE_ORDER,
+    });
+    const suggestion = classify(rules, data);
+
     const draft = await prisma.draftReceipt.create({
       data: {
         status: "Pending",
         date: data.date ? new Date(data.date) : null,
         supplier: data.supplier || null,
-        type: "Expense",
+        type: suggestion.type || "Expense",
+        categoryGroup: suggestion.categoryGroup || null,
+        subGroup: suggestion.subGroup || null,
         subtotal: toVnd(data.subtotal),
         tax: toVnd(data.tax),
         serviceCharge: toVnd(data.serviceCharge),
@@ -106,10 +118,25 @@ export async function POST(req: NextRequest) {
 
     await moveFileTo(drive, fileId, folderIds.INCOMING);
 
+    await logOcr({
+      userId: user.id,
+      status: "OK",
+      message: `Quét lại thành công: ${data.supplier ?? "không đọc được tên"}`,
+      fileId,
+      fileName: file.name,
+      durationMs: Date.now() - startedAt,
+    });
+
     return NextResponse.json({ success: true, draftId: draft.id });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Lỗi không xác định";
     console.error("OCR from drive Error:", error);
+    await logOcr({
+      userId: user.id,
+      status: "ERROR",
+      message: `Quét lại thất bại: ${message}`,
+      durationMs: Date.now() - startedAt,
+    });
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

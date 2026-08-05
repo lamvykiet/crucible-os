@@ -8,6 +8,7 @@ import {
   getOrCreateFolderIds,
   INVOICE_ROOT_FOLDER_ID,
 } from "@/lib/drive";
+import { logOcr } from "@/lib/ocrLog";
 
 export const runtime = "nodejs";
 
@@ -73,6 +74,17 @@ export async function POST(req: Request) {
           data: { status: "Rejected", reviewedAt: new Date(), transactionId: null },
         });
       }
+    });
+
+    await logOcr({
+      userId: user.id,
+      status: "INFO",
+      message:
+        action === "delete"
+          ? `Trùng lặp: đã xoá vĩnh viễn ảnh của ${draft.supplier ?? "hoá đơn không tên"}`
+          : `Trùng lặp: đã chuyển ảnh của ${draft.supplier ?? "hoá đơn không tên"} vào Trash_Invoices`,
+      fileId: draft.driveFileIds,
+      fileName: draft.driveFileName,
     });
 
     return NextResponse.json({

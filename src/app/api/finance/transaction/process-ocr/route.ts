@@ -8,6 +8,8 @@ import {
   INVOICE_ROOT_FOLDER_ID,
 } from "@/lib/drive";
 import { normalizeSupplier, utcDayRange, toVnd } from "@/lib/invoice";
+import { LEARNED_RULE_PRIORITY } from "@/lib/classify";
+import { logOcr } from "@/lib/ocrLog";
 
 export const runtime = "nodejs";
 
@@ -32,7 +34,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { draftId, formData, items, force } = body;
+    const { draftId, formData, items, force, saveRule } = body;
 
     if (!draftId) {
       return NextResponse.json({ success: false, error: "Thiếu draftId" }, { status: 400 });
@@ -143,6 +145,45 @@ export async function POST(req: Request) {
         data: { status: "Approved", reviewedAt: new Date(), transactionId: created.id },
       });
 
+      // Danh bạ nhà cung cấp tự dựng dần từ hoá đơn đã duyệt — không bắt người
+      // dùng khai báo trước như một bảng danh mục riêng.
+      const normalized = normalizeSupplier(created.supplier);
+      if (normalized) {
+        await tx.vendor.upsert({
+          where: { userId_normalizedName: { userId: user.id, normalizedName: normalized } },
+          update: { vendorName: created.supplier, defaultCategoryGroup: created.categoryGroup },
+          create: {
+            vendorName: created.supplier,
+            normalizedName: normalized,
+            defaultCategoryGroup: created.categoryGroup,
+            userId: user.id,
+          },
+        });
+
+        // "Học" từ lần sửa tay này: lần sau gặp đúng nhà cung cấp đó, hoá đơn
+        // được điền sẵn nhóm mà không cần hỏi Gemini.
+        if (saveRule) {
+          const existing = await tx.classificationRule.findFirst({
+            where: { userId: user.id, matchType: "vendor", matchValue: normalized },
+          });
+          const ruleData = {
+            transactionType: created.type,
+            categoryGroup: created.categoryGroup,
+            subGroup: created.subGroup,
+            active: true,
+            source: "learned",
+            priority: LEARNED_RULE_PRIORITY,
+          };
+          if (existing) {
+            await tx.classificationRule.update({ where: { id: existing.id }, data: ruleData });
+          } else {
+            await tx.classificationRule.create({
+              data: { ...ruleData, matchType: "vendor", matchValue: normalized, userId: user.id },
+            });
+          }
+        }
+      }
+
       return created;
     });
 
@@ -161,6 +202,16 @@ export async function POST(req: Request) {
         filesMoved = false;
       }
     }
+
+    await logOcr({
+      userId: user.id,
+      status: "INFO",
+      message: `Đã duyệt ${transaction.id}: ${transaction.supplier} — ${transaction.totalAmount.toLocaleString("vi-VN")} đ${
+        force ? " (bỏ qua cảnh báo trùng)" : ""
+      }${saveRule ? " (đã lưu quy tắc)" : ""}`,
+      fileId: draft.driveFileIds,
+      fileName: draft.driveFileName,
+    });
 
     return NextResponse.json({ success: true, data: transaction, filesMoved });
   } catch (error) {

@@ -9,6 +9,9 @@ import {
   moveFilesTo,
 } from "@/lib/drive";
 import { OCR_SCHEMA, OCR_PROMPT } from "@/lib/invoice";
+import { prisma } from "@/lib/prisma";
+import { classify, RULE_ORDER } from "@/lib/classify";
+import { logOcr } from "@/lib/ocrLog";
 
 export const runtime = "nodejs";
 
@@ -23,7 +26,9 @@ export async function POST(req: NextRequest) {
   if (!user) return response;
 
   const driveFileIds: string[] = [];
+  const fileNames: string[] = [];
   let errorFolderId: string | null = null;
+  const startedAt = Date.now();
 
   try {
     const formData = await req.formData();
@@ -56,7 +61,6 @@ export async function POST(req: NextRequest) {
     errorFolderId = folderIds.ERROR;
 
     const imageParts = [];
-    const fileNames: string[] = [];
 
     for (const file of files) {
       const buffer = Buffer.from(await file.arrayBuffer());
@@ -83,8 +87,28 @@ export async function POST(req: NextRequest) {
     const result = await model.generateContent([OCR_PROMPT, ...imageParts]);
     const data = JSON.parse(result.response.text());
 
+    // Quy tắc trước, Gemini sau: nếu người dùng đã dạy hệ thống nhà cung cấp này
+    // thuộc nhóm nào thì dùng luôn, gợi ý của mô hình chỉ là phương án dự phòng.
+    const rules = await prisma.classificationRule.findMany({
+      where: { userId: user.id, active: true },
+      orderBy: RULE_ORDER,
+    });
+    const suggestion = classify(rules, data);
+
+    await logOcr({
+      userId: user.id,
+      status: "OK",
+      message: `Quét ${driveFileIds.length} ảnh: ${data.supplier ?? "không đọc được tên"} — ${
+        data.totalAmount ?? "không đọc được tổng"
+      }`,
+      fileId: driveFileIds.join(","),
+      fileName: fileNames.join(", "),
+      durationMs: Date.now() - startedAt,
+    });
+
     return NextResponse.json({
       data,
+      suggestion,
       driveFileIds,
       driveFileName: fileNames.join(", "),
     });
@@ -104,6 +128,15 @@ export async function POST(req: NextRequest) {
         console.error("OCR: không chuyển được ảnh lỗi sang Error_Invoices:", moveError);
       }
     }
+
+    await logOcr({
+      userId: user.id,
+      status: "ERROR",
+      message,
+      fileId: driveFileIds.join(","),
+      fileName: fileNames.join(", "),
+      durationMs: Date.now() - startedAt,
+    });
 
     return NextResponse.json({ error: message, driveFileIds, movedToError }, { status: 500 });
   }
