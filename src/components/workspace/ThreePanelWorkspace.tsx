@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useAiChat } from "@/lib/useAiChat";
+import StudioPanel from "./StudioPanel";
 
 /**
  * Bố cục 3 cột dùng chung cho cả /knowledge/[id] và /learning/subject/[id].
@@ -507,60 +508,8 @@ export default function ThreePanelWorkspace({
 
       {/* Panel 3: Studio */}
       <div className="w-[300px] flex-none flex flex-col gap-4">
-        {studio ?? <DefaultStudio />}
+        {studio ?? <StudioPanel fileId={activeDocument} fileName={activeName} />}
       </div>
-    </div>
-  );
-}
-
-function DefaultStudio() {
-  const { t } = useLanguage();
-
-  const tools = [
-    { key: "overview", label: t("Overview", "Tổng quan"), tint: "var(--color-info-tint)", fg: "var(--color-info)" },
-    { key: "slides", label: t("Presentation", "Bản trình bày"), tint: "var(--color-warning-tint)", fg: "var(--color-warning)" },
-    { key: "mindmap", label: t("Mind map", "Bản đồ tư duy"), tint: "var(--color-error-tint)", fg: "var(--color-error)" },
-    { key: "flashcards", label: t("Flashcards", "Thẻ ghi nhớ"), tint: "var(--color-success-tint)", fg: "var(--color-success)" },
-  ];
-
-  return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-4 flex-1 flex flex-col min-h-0 shadow-inner">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="font-bold tracking-wide">Studio</h3>
-        <button className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
-          <Grid size={16} />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        {tools.map((tool) => (
-          <button
-            key={tool.key}
-            className="bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] p-4 rounded-2xl flex flex-col items-start gap-3 group transition-all border border-transparent hover:border-[var(--color-border-strong)]"
-          >
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"
-              style={{ backgroundColor: tool.tint, color: tool.fg }}
-            >
-              <Grid size={20} />
-            </div>
-            <span className="text-xs font-semibold">{tool.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Bản cũ liệt kê sẵn hai "tài sản đã lưu" (Thu nhập cố định: Giải thích,
-          6:38 · 22 nguồn) như thể đã có nội dung. Chưa có backend cho phần này
-          nên hiển thị đúng trạng thái rỗng thay vì bịa dữ liệu. */}
-      <div className="flex-1 flex items-center justify-center text-center px-4">
-        <p className="text-xs text-[var(--color-text-faint)]">
-          {t("Saved notes will appear here.", "Ghi chú đã lưu sẽ hiện ở đây.")}
-        </p>
-      </div>
-
-      <button className="w-full mt-4 bg-[var(--color-primary)] text-[var(--color-on-primary)] font-bold py-3 rounded-xl text-sm flex justify-center gap-2 items-center hover:opacity-90 transition-opacity shadow-sm">
-        <Plus size={16} /> {t("Add note", "Thêm ghi chú")}
-      </button>
     </div>
   );
 }

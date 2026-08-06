@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, Search, Plus, ExternalLink } from "lucide-react";
+import { BookOpen, Search, Plus } from "lucide-react";
 
 export default function DictionaryPage() {
   const [search, setSearch] = useState("");

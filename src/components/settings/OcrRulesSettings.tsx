@@ -87,7 +87,6 @@ export default function OcrRulesSettings() {
 
   useEffect(() => {
     loadLogs(onlyErrors);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlyErrors]);
 
   const addRule = async () => {

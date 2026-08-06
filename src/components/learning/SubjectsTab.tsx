@@ -1,7 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/lib/LanguageContext";
-import { Layers, Palette, TrendingUp, BarChart3, Languages } from "lucide-react";
+import { Palette, TrendingUp, BarChart3, Languages } from "lucide-react";
 import Link from "next/link";
 
 export default function SubjectsTab() {

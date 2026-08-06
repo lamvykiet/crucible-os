@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, Plus, CreditCard, Clock, LineChart as LineChartIcon, Tag, Receipt, ChevronDown } from "lucide-react";
+import { Calendar, Plus, CreditCard, LineChart as LineChartIcon, Tag, Receipt, ChevronDown } from "lucide-react";
 import { BarChart, Bar, LineChart as RechartsLineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";

@@ -51,18 +51,6 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
 
   const { groupNames, subGroupsOf } = useCategories(formData.type);
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchQueue();
-      fetchErrorFiles();
-    } else {
-      setQueue([]);
-      setActiveDraft(null);
-      setDuplicate(null);
-      setError("");
-    }
-  }, [isOpen]);
-
   const fetchQueue = async () => {
     setIsLoading(true);
     try {
@@ -110,6 +98,22 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
       setRescanning(null);
     }
   };
+
+  // Đặt SAU fetchQueue/fetchErrorFiles: bản cũ gọi hai hàm này ở phía trên chỗ
+  // khai báo chúng, chạy được nhờ effect luôn chạy sau render nhưng vẫn là đọc
+  // biến trong vùng chết (TDZ) — đổi thứ tự khai báo một lần là hỏng.
+  useEffect(() => {
+    if (isOpen) {
+      fetchQueue();
+      fetchErrorFiles();
+    } else {
+      setQueue([]);
+      setActiveDraft(null);
+      setDuplicate(null);
+      setError("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   /** Mở một bản nháp: ảnh chuyển Incoming → Review rồi mới hiện form duyệt. */
   const openDraft = async (draft: any) => {
@@ -203,7 +207,8 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
       return;
     }
 
-    force ? setResolving("force") : setIsSubmitting(true);
+    if (force) setResolving("force");
+    else setIsSubmitting(true);
     setError("");
 
     try {

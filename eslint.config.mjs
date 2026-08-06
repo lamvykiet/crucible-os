@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Ổ USB dùng exFAT nên macOS rải file AppleDouble "._foo.ts" cạnh mọi file
+    // nguồn. Chúng là dữ liệu nhị phân, ESLint parse ra lỗi "Invalid character".
+    "**/._*",
   ]),
 ]);
 

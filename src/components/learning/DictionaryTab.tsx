@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, Search, Plus, Filter, Tag as TagIcon } from "lucide-react";
+import { Search, Plus, Filter, Tag as TagIcon } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 export default function DictionaryTab() {

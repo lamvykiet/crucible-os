@@ -1,3 +1,4 @@
+import { Readable } from "node:stream";
 import { google, drive_v3 } from "googleapis";
 
 export function getDriveClient() {
@@ -62,10 +63,7 @@ export async function getOrCreateFolderIds(drive: drive_v3.Drive, rootId: string
 }
 
 export async function uploadToDrive(drive: drive_v3.Drive, buffer: Buffer, mimeType: string, filename: string, folderId: string) {
-  const { Readable } = require('stream');
-  const stream = new Readable();
-  stream.push(buffer);
-  stream.push(null);
+  const stream = Readable.from(buffer);
 
   const res = await drive.files.create({
     requestBody: {
