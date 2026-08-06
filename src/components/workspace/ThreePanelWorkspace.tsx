@@ -77,6 +77,14 @@ export default function ThreePanelWorkspace({
   const [docContext, setDocContext] = useState<DocContext | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
 
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Tên tài liệu mở sẵn qua URL: nó có thể nằm trong thư mục con, tức không có
+  // trong danh sách nguồn của thư mục hiện tại. Bản cũ để tiêu đề trơ "Tài liệu".
+  const [initialFileName, setInitialFileName] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Danh sách nguồn lấy thật từ Google Drive. Bản cũ của trang learning hardcode
@@ -112,6 +120,32 @@ export default function ThreePanelWorkspace({
     [files, activeDocument]
   );
 
+  const activeName = activeFile?.name || docContext?.name || initialFileName || null;
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      if (folderId) body.append("folderId", folderId);
+
+      const res = await fetch("/api/knowledge/upload", { method: "POST", body });
+      const json = await res.json();
+      if (!json?.success) throw new Error(json?.error || `Lỗi ${res.status}`);
+
+      setFiles((prev) => [json.file as DriveFile, ...prev]);
+    } catch (err) {
+      setUploadError((err as Error).message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   // Trích nội dung tài liệu đang chọn. Kết quả được cache phía máy chủ nên đổi
   // qua đổi lại giữa các nguồn không gọi Gemini lại từ đầu.
   useEffect(() => {
@@ -133,6 +167,7 @@ export default function ThreePanelWorkspace({
       .then((res) => res.json())
       .then((json) => {
         if (controller.signal.aborted) return;
+        if (json?.name) setInitialFileName(json.name);
         setDocContext(
           json?.success
             ? {
@@ -221,9 +256,27 @@ export default function ThreePanelWorkspace({
             </span>
           </div>
 
-          <button className="w-full py-2.5 bg-transparent border border-[var(--color-border-strong)] text-[var(--color-text-muted)] rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mb-4 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-all">
-            <Plus size={16} /> {t("Add source", "Thêm nguồn")}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full py-2.5 bg-transparent border border-[var(--color-border-strong)] text-[var(--color-text-muted)] rounded-xl text-sm font-semibold flex items-center justify-center gap-2 mb-4 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-all disabled:opacity-50"
+          >
+            {uploading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+            {uploading ? t("Uploading...", "Đang tải lên...") : t("Add source", "Thêm nguồn")}
           </button>
+
+          {uploadError && (
+            <div className="mb-3 flex items-start gap-2 text-xs text-[var(--color-error)] p-2 rounded-lg bg-[var(--color-error-tint)]">
+              <AlertCircle size={14} className="mt-0.5 flex-none" />
+              <span>{uploadError}</span>
+            </div>
+          )}
 
           <div className="relative mb-4">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
@@ -310,7 +363,7 @@ export default function ThreePanelWorkspace({
                 <ArrowLeft size={16} />
               </button>
               <h3 className="font-bold tracking-wide truncate flex-1">
-                {activeFile?.name || t("Document", "Tài liệu")}
+                {activeName || t("Document", "Tài liệu")}
               </h3>
               <button
                 onClick={() => setViewerOpen(false)}
@@ -324,7 +377,7 @@ export default function ThreePanelWorkspace({
               <iframe
                 src={`/api/drive/download?id=${encodeURIComponent(activeDocument)}#toolbar=0`}
                 className="w-full h-full border-none"
-                title={activeFile?.name || "Document viewer"}
+                title={activeName || "Document viewer"}
               />
             </div>
           </div>
@@ -355,7 +408,7 @@ export default function ThreePanelWorkspace({
                     <BookOpen size={14} className="flex-none text-[var(--color-success)]" />
                     <span className="flex-1 truncate text-[var(--color-text)]">
                       {t("AI has read", "AI đã đọc")}{" "}
-                      <strong className="font-semibold">{docContext.name || activeFile?.name}</strong>{" "}
+                      <strong className="font-semibold">{activeName}</strong>{" "}
                       <span className="text-[var(--color-text-faint)]">
                         {docContext.mode === "text"
                           ? `(${docContext.chars.toLocaleString("vi-VN")} ${t("characters", "ký tự")})`

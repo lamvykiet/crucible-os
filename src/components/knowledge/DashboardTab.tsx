@@ -209,14 +209,16 @@ export default function DashboardTab({
               </div>
               <div>
                 <h3 className="text-lg font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-display)' }}>{t("Idea Tracker", "Quản Lý Ý Tưởng")}</h3>
-                <p className="text-[10px] text-[var(--color-text-muted)]">{t("Generate blueprints using Gemini or Claude", "Tạo bản thiết kế dùng Gemini hoặc Claude")}</p>
+                <p className="text-[10px] text-[var(--color-text-muted)]">{t("Generate blueprints with Gemini", "Tạo bản thiết kế bằng Gemini")}</p>
               </div>
             </div>
             
-            <div className="flex bg-[var(--color-surface-2)] rounded-full p-1">
-              <button className="px-4 py-1.5 rounded-full text-[10px] font-bold bg-[#bfb4aa] text-white flex items-center gap-1 shadow-sm"><Zap size={10} /> Gemini</button>
-              <button className="px-4 py-1.5 rounded-full text-[10px] font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text)] flex items-center gap-1"><BrainCircuit size={10} /> Claude</button>
-            </div>
+            {/* Bản cũ có cặp nút Gemini / Claude, cả hai đều không có onClick và
+                hệ thống không hề tích hợp Claude — chỉ còn lại một nhãn cho biết
+                thứ đang thật sự chạy. */}
+            <span className="c-chip text-[10px] py-1 flex items-center gap-1">
+              <Zap size={10} /> Gemini
+            </span>
           </div>
           
           <div className="space-y-4 flex-1 flex flex-col">

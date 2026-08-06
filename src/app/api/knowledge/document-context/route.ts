@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { google, drive_v3 } from "googleapis";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { driveClient, knowledgeRoots, isWithinAllowedFolder } from "@/lib/driveAccess";
 import { prepareDocument, canPrepare, usesGeminiFile, geminiFileStillValid } from "@/lib/documentText";
 
 export const runtime = "nodejs";
@@ -23,56 +23,6 @@ export const maxDuration = 60;
  * bất kỳ fileId nào cũng tải được nếu không chặn.
  */
 
-const MAX_PARENT_DEPTH = 10;
-
-function driveClient() {
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_DRIVE_CLIENT_ID,
-    process.env.GOOGLE_DRIVE_CLIENT_SECRET,
-    process.env.GOOGLE_DRIVE_REDIRECT_URI || "http://localhost:3000"
-  );
-  oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_DRIVE_REFRESH_TOKEN });
-  return google.drive({ version: "v3", auth: oauth2Client });
-}
-
-function allowedRoots(): string[] {
-  return [
-    process.env.GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID,
-    process.env.GOOGLE_DRIVE_VIDEO_FOLDER_ID,
-  ].filter((v): v is string => Boolean(v));
-}
-
-async function isWithinAllowedFolder(
-  drive: drive_v3.Drive,
-  fileId: string,
-  parents: string[] | undefined,
-  roots: string[]
-): Promise<boolean> {
-  if (roots.includes(fileId)) return true;
-
-  const seen = new Set<string>([fileId]);
-  let frontier = parents ?? [];
-
-  for (let depth = 0; depth < MAX_PARENT_DEPTH && frontier.length > 0; depth++) {
-    if (frontier.some((p) => roots.includes(p))) return true;
-
-    const next: string[] = [];
-    for (const parentId of frontier) {
-      if (seen.has(parentId)) continue;
-      seen.add(parentId);
-      try {
-        const meta = await drive.files.get({ fileId: parentId, fields: "id, parents" });
-        next.push(...(meta.data.parents ?? []));
-      } catch {
-        // Thư mục cha đã xoá hoặc mất quyền — bỏ qua nhánh này.
-      }
-    }
-    frontier = next;
-  }
-
-  return false;
-}
-
 export async function POST(req: Request) {
   const { user, response } = await requireUser();
   if (!user) return response;
@@ -83,7 +33,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Thiếu fileId" }, { status: 400 });
     }
 
-    const roots = allowedRoots();
+    const roots = knowledgeRoots();
     if (roots.length === 0) {
       return NextResponse.json({ success: false, error: "Chưa cấu hình thư mục Drive" }, { status: 500 });
     }

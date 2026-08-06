@@ -18,6 +18,15 @@ interface Breadcrumb {
   name: string;
 }
 
+/** Nhãn ngắn cho ô góc thẻ: PDF, DOCX, SHEET... thay cho chữ "PDF" gán cứng. */
+function fileKind(file: DriveFile): string {
+  const google = /application\/vnd\.google-apps\.(\w+)/.exec(file.mimeType);
+  if (google) return google[1].slice(0, 6);
+  const ext = /\.([a-z0-9]+)$/i.exec(file.name);
+  if (ext) return ext[1];
+  return (file.mimeType.split("/").pop() || "file").slice(0, 6);
+}
+
 export default function DocumentsTab() {
   const { t } = useLanguage();
   const [files, setFiles] = useState<DriveFile[]>([]);
@@ -138,7 +147,7 @@ export default function DocumentsTab() {
         <div className="flex flex-col items-center justify-center py-32 bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] border-dashed">
           <Folder className="mb-4 text-[var(--color-border-strong)] opacity-50" size={64} />
           <h3 className="text-xl font-bold mb-2 text-[var(--color-text)]" style={{fontFamily: 'var(--font-display)'}}>{t("Empty Folder", "Thư mục trống")}</h3>
-          <p className="text-[var(--color-text-muted)] text-sm">{t("No subfolders or PDF files found here.", "Chưa có thư mục con hoặc file PDF nào ở đây.")}</p>
+          <p className="text-[var(--color-text-muted)] text-sm">{t("No subfolders or documents found here.", "Chưa có thư mục con hoặc tài liệu nào ở đây.")}</p>
         </div>
       ) : (
         <div className="space-y-10">
@@ -173,7 +182,7 @@ export default function DocumentsTab() {
           {documentsList.length > 0 && (
             <div>
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-[var(--color-text-muted)]">
-                <FileText size={18} /> {t("PDF Documents", "Tài liệu PDF")}
+                <FileText size={18} /> {t("Documents", "Tài liệu")}
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 {documentsList.map((file) => (
@@ -190,11 +199,11 @@ export default function DocumentsTab() {
                       
                       <div className="p-4 flex-1 flex flex-col">
                         <h4 className="font-semibold text-[var(--color-text)] line-clamp-2 text-sm leading-snug mb-3 group-hover:text-[var(--color-accent)] transition-colors">
-                          {file.name.replace('.pdf', '')}
+                          {file.name.replace(/\.[a-z0-9]+$/i, "")}
                         </h4>
                         
                         <div className="mt-auto flex items-center justify-between text-[11px] text-[var(--color-text-faint)] font-medium">
-                          <span className="bg-[var(--color-surface-2)] px-2 py-1 rounded uppercase tracking-wider">PDF</span>
+                          <span className="bg-[var(--color-surface-2)] px-2 py-1 rounded uppercase tracking-wider">{fileKind(file)}</span>
                           <span>{new Date(file.modifiedTime).toLocaleDateString('vi-VN')}</span>
                         </div>
                       </div>

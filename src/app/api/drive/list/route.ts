@@ -27,13 +27,23 @@ export async function GET(request: Request) {
 
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    // Fetch PDF files and Folders
-    const query = `'${folderId}' in parents and (mimeType='application/pdf' or mimeType='application/vnd.google-apps.folder') and trashed=false`;
-    
+    // Bản cũ chỉ nhận PDF và thư mục, nên .docx, .xlsx, Google Docs, .md, ảnh
+    // trong thư mục Knowledge đều vô hình — dù /api/drive/download đã trả đúng
+    // Content-Type cho chúng và AI đọc được nội dung. Nay lấy mọi thứ trừ hai
+    // loại không phải tài liệu: Apps Script và shortcut.
+    const EXCLUDED = [
+      "application/vnd.google-apps.script",
+      "application/vnd.google-apps.shortcut",
+      "application/vnd.google-apps.form",
+    ];
+    const query =
+      `'${folderId}' in parents and trashed=false and ` +
+      EXCLUDED.map((m) => `mimeType != '${m}'`).join(" and ");
+
     const response = await drive.files.list({
       q: query,
-      fields: "files(id, name, mimeType, modifiedTime, webViewLink, thumbnailLink)",
-      pageSize: 100,
+      fields: "files(id, name, mimeType, size, modifiedTime, webViewLink, thumbnailLink)",
+      pageSize: 200,
       orderBy: "folder, modifiedTime desc", // Folders first, then by date
     });
 

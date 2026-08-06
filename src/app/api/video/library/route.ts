@@ -60,8 +60,11 @@ export async function GET() {
   const { user, response } = await requireUser();
   if (!user) return response;
 
-  const rootId =
-    process.env.GOOGLE_DRIVE_VIDEO_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID;
+  // KHÔNG fallback sang GOOGLE_DRIVE_FOLDER_ID: biến đó trỏ tới thư mục hoá đơn
+  // (Expense_OCR_System), nên khi chưa đặt biến video thì màn hình này lặng lẽ
+  // liệt kê Incoming_Invoices / Approved_Invoices như thể đó là các loại video.
+  // Thà báo "chưa cấu hình" còn hơn hiện dữ liệu của module khác.
+  const rootId = process.env.GOOGLE_DRIVE_VIDEO_FOLDER_ID;
 
   if (!rootId) {
     return NextResponse.json(
