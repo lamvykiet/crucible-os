@@ -38,6 +38,8 @@ export interface DriveFile {
   id: string;
   name: string;
   mimeType: string;
+  /** Thư mục cha trong cây nguồn, ví dụ "CFA / 6. Fixed Income". */
+  path?: string;
 }
 
 interface Props {
@@ -97,9 +99,11 @@ export default function ThreePanelWorkspace({
       setLoadingFiles(true);
       setFilesError(null);
       try {
+        // recursive=1: tài liệu thật nằm sâu vài cấp thư mục, và panel này vô
+        // hiệu hoá thư mục — không phẳng ra thì người dùng không chạm được file.
         const url = folderId
-          ? `/api/drive/list?folderId=${encodeURIComponent(folderId)}`
-          : "/api/drive/list";
+          ? `/api/drive/list?recursive=1&folderId=${encodeURIComponent(folderId)}`
+          : "/api/drive/list?recursive=1";
         const res = await fetch(url, { signal: controller.signal });
         const data = await res.json().catch(() => null);
         if (!res.ok) throw new Error(data?.error || `Lỗi ${res.status}`);
@@ -228,7 +232,9 @@ export default function ThreePanelWorkspace({
   const visibleFiles = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return files;
-    return files.filter((f) => f.name.toLowerCase().includes(q));
+    return files.filter(
+      (f) => f.name.toLowerCase().includes(q) || (f.path ?? "").toLowerCase().includes(q)
+    );
   }, [files, search]);
 
   return (
@@ -341,8 +347,15 @@ export default function ThreePanelWorkspace({
                   ) : (
                     <FileText size={14} className="text-[var(--color-error)] flex-none" />
                   )}
-                  <span className={`flex-1 truncate font-medium ${isActive ? "font-bold" : "text-[var(--color-text-muted)]"}`}>
-                    {file.name}
+                  <span className="flex-1 min-w-0">
+                    <span className={`block truncate font-medium ${isActive ? "font-bold" : "text-[var(--color-text-muted)]"}`}>
+                      {file.name}
+                    </span>
+                    {file.path && (
+                      <span className="block truncate text-[10px] text-[var(--color-text-faint)]">
+                        {file.path}
+                      </span>
+                    )}
                   </span>
                 </button>
               );

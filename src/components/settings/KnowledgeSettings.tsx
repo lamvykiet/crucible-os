@@ -1,78 +1,201 @@
 "use client";
 
-import { Save, Link as LinkIcon, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Info, Loader2, CheckCircle2, XCircle, ExternalLink, Folder, Sparkles, Copy, Check,
+} from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 
+interface FolderStatus {
+  env: string;
+  label: string;
+  required: boolean;
+  id: string | null;
+  name: string | null;
+  webViewLink?: string | null;
+  reachable: boolean;
+  error: string | null;
+}
+
+/**
+ * Trạng thái liên kết Google Drive.
+ *
+ * Bản cũ là hai ô nhập "ID thư mục" cùng nút "Lưu Cài đặt" không có `onClick`.
+ * Kể cả có handler cũng vô nghĩa: các ID này nằm trong biến môi trường, đọc lúc
+ * tiến trình khởi động — không thể sửa từ trình duyệt. Thay vì một biểu mẫu giả
+ * vờ lưu được, màn hình này nói thật đang cấu hình gì và có đọc được không.
+ */
 export default function KnowledgeSettings() {
   const { t } = useLanguage();
+
+  const [folders, setFolders] = useState<FolderStatus[]>([]);
+  const [gemini, setGemini] = useState<{ configured: boolean; model: string; visionModel: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch("/api/knowledge/config", { signal: controller.signal })
+      .then((res) => res.json())
+      .then((json) => {
+        if (controller.signal.aborted || !json?.success) return;
+        setFolders(json.folders);
+        setGemini(json.gemini);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  const copy = (value: string) => {
+    navigator.clipboard?.writeText(value);
+    setCopied(value);
+    setTimeout(() => setCopied(null), 1500);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in max-w-4xl">
       <div>
-        <h2 className="text-2xl font-bold text-[var(--color-text)] mb-1" style={{ fontFamily: 'var(--font-display)' }}>{t("Liên kết Drive API", "Liên kết Drive API")}</h2>
-        <p className="text-[var(--color-text-muted)] text-sm">{t("Cấu hình thư mục Google Drive cho Knowledge Hub và Finance OCR", "Cấu hình thư mục Google Drive cho Knowledge Hub và Finance OCR")}</p>
+        <h2
+          className="text-2xl font-bold text-[var(--color-text)] mb-1"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          {t("Drive & AI connection", "Kết nối Drive & AI")}
+        </h2>
+        <p className="text-[var(--color-text-muted)] text-sm">
+          {t(
+            "Read-only status of what the server is configured with.",
+            "Bảng trạng thái chỉ đọc, cho biết máy chủ đang được cấu hình những gì."
+          )}
+        </p>
       </div>
 
-      <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] shadow-sm p-6 space-y-6">
-        
-        {/* Instructions */}
-        <div className="bg-[var(--color-info-tint)] border-l-4 border-blue-500 p-4 rounded-r-lg text-sm text-blue-800">
-          <h4 className="font-bold flex items-center gap-2 mb-2">
-            <Info size={16} /> {t("Cách lấy ID Thư mục", "Cách lấy ID Thư mục")}
-          </h4>
-          <ol className="list-decimal list-inside space-y-1 ml-1">
-            <li>{t("Mở Google Drive trên trình duyệt.", "Mở Google Drive trên trình duyệt.")}</li>
-            <li>{t("Vào thư mục bạn muốn liên kết.", "Vào thư mục bạn muốn liên kết.")}</li>
-            <li>{t("Nhìn lên thanh địa chỉ (URL). Nó sẽ có dạng: https://drive.google.com/drive/folders/", "Nhìn lên thanh địa chỉ (URL). Nó sẽ có dạng: https://drive.google.com/drive/folders/")}<strong>1A2b3C4d5E6f7G8h9I0j</strong></li>
-            <li>{t("Copy chuỗi ID đó và dán vào ô bên dưới.", "Copy chuỗi ID đó và dán vào ô bên dưới.")}</li>
-          </ol>
-        </div>
-
-        <div className="space-y-5">
-          {/* Knowledge Hub Folder */}
-          <div>
-            <label className="block text-sm font-bold text-[var(--color-text)] mb-1">
-              {t("ID Thư mục Tài liệu (Knowledge Hub)", "ID Thư mục Tài liệu (Knowledge Hub)")}
-            </label>
-            <p className="text-xs text-[var(--color-text-muted)] mb-2">
-              {t("Thư mục này sẽ hiển thị trong phần Explorer của Knowledge Hub.", "Thư mục này sẽ hiển thị trong phần Explorer của Knowledge Hub.")}
-            </p>
-            <div className="relative">
-              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" size={18} />
-              <input 
-                type="text" 
-                placeholder="Ví dụ: 1A2b3C4d5E6f7G8h9I0j"
-                className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] focus:bg-[var(--color-surface)] transition-colors"
-                defaultValue={process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID || ""}
-              />
-            </div>
-          </div>
-
-          {/* Finance OCR Folder */}
-          <div>
-            <label className="block text-sm font-bold text-[var(--color-text)] mb-1">
-              {t("ID Thư mục Hóa đơn (Finance OCR)", "ID Thư mục Hóa đơn (Finance OCR)")}
-            </label>
-            <p className="text-xs text-[var(--color-text-muted)] mb-2">
-              {t("Ảnh hóa đơn tải lên thư mục này sẽ được xử lý bởi OCR cho Sổ chi tiêu.", "Ảnh hóa đơn tải lên thư mục này sẽ được xử lý bởi OCR cho Sổ chi tiêu.")}
-            </p>
-            <div className="relative">
-              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" size={18} />
-              <input 
-                type="text" 
-                placeholder="Ví dụ: 0Z9y8X7w6V5u4T3s2R1q"
-                className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] focus:bg-[var(--color-surface)] transition-colors"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="pt-4 border-t border-[var(--color-border)] flex justify-end">
-          <button className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-xl px-6 py-2.5 font-bold flex items-center gap-2 shadow-sm">
-            <Save size={18} /> {t("Lưu Cài đặt", "Lưu Cài đặt")}
-          </button>
-        </div>
+      <div className="bg-[var(--color-info-tint)] border-l-4 border-[var(--color-info)] p-4 rounded-r-lg text-sm">
+        <h4 className="font-bold flex items-center gap-2 mb-1 text-[var(--color-info)]">
+          <Info size={16} /> {t("How to change these", "Muốn đổi thì làm ở đâu")}
+        </h4>
+        <p className="text-[var(--color-text)]">
+          {t(
+            "These IDs live in environment variables, read when the server starts. Change them in .env for local runs, and in the Vercel project settings for production, then redeploy.",
+            "Các ID này nằm trong biến môi trường, đọc lúc máy chủ khởi động. Sửa trong .env khi chạy máy nhà, và trong phần cấu hình dự án trên Vercel cho bản chạy thật, rồi deploy lại."
+          )}
+        </p>
       </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12 text-[var(--color-info)]">
+          <Loader2 size={24} className="animate-spin" />
+        </div>
+      ) : (
+        <>
+          <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] shadow-sm divide-y divide-[var(--color-border)]">
+            {folders.map((f) => (
+              <div key={f.env} className="p-5 flex items-start gap-4">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center flex-none ${
+                    f.reachable
+                      ? "bg-[var(--color-success-tint)] text-[var(--color-success)]"
+                      : f.required
+                        ? "bg-[var(--color-error-tint)] text-[var(--color-error)]"
+                        : "bg-[var(--color-surface-2)] text-[var(--color-text-faint)]"
+                  }`}
+                >
+                  <Folder size={20} />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-sm text-[var(--color-text)]">{f.label}</h3>
+                    {f.reachable ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--color-success)]">
+                        <CheckCircle2 size={12} /> {t("Connected", "Đã kết nối")}
+                      </span>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center gap-1 text-[10px] font-bold ${
+                          f.required ? "text-[var(--color-error)]" : "text-[var(--color-text-faint)]"
+                        }`}
+                      >
+                        <XCircle size={12} /> {f.error}
+                      </span>
+                    )}
+                  </div>
+
+                  {f.name && <p className="text-sm text-[var(--color-text-muted)] mt-0.5">{f.name}</p>}
+
+                  <div className="flex items-center gap-2 mt-2">
+                    <code className="text-[11px] bg-[var(--color-surface-2)] px-2 py-1 rounded font-mono text-[var(--color-text-muted)]">
+                      {f.env}
+                    </code>
+                    {f.id && (
+                      <button
+                        onClick={() => copy(f.id!)}
+                        title={t("Copy folder ID", "Sao chép ID thư mục")}
+                        className="text-[var(--color-text-faint)] hover:text-[var(--color-text)]"
+                      >
+                        {copied === f.id ? (
+                          <Check size={13} className="text-[var(--color-success)]" />
+                        ) : (
+                          <Copy size={13} />
+                        )}
+                      </button>
+                    )}
+                    {f.webViewLink && (
+                      <a
+                        href={f.webViewLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[var(--color-text-faint)] hover:text-[var(--color-text)]"
+                        title={t("Open in Drive", "Mở trong Drive")}
+                      >
+                        <ExternalLink size={13} />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {gemini && (
+            <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] shadow-sm p-5 flex items-start gap-4">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center flex-none ${
+                  gemini.configured
+                    ? "bg-[var(--color-success-tint)] text-[var(--color-success)]"
+                    : "bg-[var(--color-error-tint)] text-[var(--color-error)]"
+                }`}
+              >
+                <Sparkles size={20} />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-sm text-[var(--color-text)]">Gemini API</h3>
+                  {gemini.configured ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--color-success)]">
+                      <CheckCircle2 size={12} /> {t("Key present", "Đã có khoá")}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--color-error)]">
+                      <XCircle size={12} /> {t("GEMINI_API_KEY missing", "Thiếu GEMINI_API_KEY")}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                  {t("Chat & Studio:", "Chat & Studio:")} <code className="font-mono">{gemini.model}</code>
+                  {" · "}
+                  {t("OCR & documents:", "OCR & tài liệu:")}{" "}
+                  <code className="font-mono">{gemini.visionModel}</code>
+                </p>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

@@ -27,6 +27,7 @@ model User {
   Vendor             Vendor[]
   ClassificationRule ClassificationRule[]
   OcrLog             OcrLog[]
+  ExamAttempt        ExamAttempt[]
 }
 
 // -----------------------------------------
@@ -212,6 +213,37 @@ model OcrLog {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, timestamp])
+}
+
+// Một lượt thi thử sinh ra từ một tài liệu.
+//
+// Tab Thi thử trước đây liệt kê ba đề viết cứng ("CFA Level 1 - Mock Exam A",
+// 135 phút, 90 câu) không hề tồn tại ở đâu, và nút Bắt đầu không có handler.
+// Đề giờ được sinh từ chính tài liệu người dùng đang học.
+//
+// Câu hỏi lưu nguyên cụm JSON thay vì tách bảng riêng: đề là ảnh chụp một lần,
+// không phải ngân hàng câu hỏi dùng lại — tách bảng chỉ thêm việc mà không thêm
+// khả năng nào.
+model ExamAttempt {
+  id String @id @default(uuid())
+
+  sourceFileId String
+  sourceName   String
+
+  questionCount Int
+  correctCount  Int  @default(0)
+  completed     Boolean @default(false)
+
+  /// JSON: [{ question, options[], correctIndex, explanation, chosenIndex }]
+  questions String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([userId, createdAt])
 }
 
 model Category {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { requireUser } from "@/lib/auth";
+import { listFilesRecursive } from "@/lib/driveAccess";
 
 export async function GET(request: Request) {
   const { user, response } = await requireUser();
@@ -26,6 +27,13 @@ export async function GET(request: Request) {
     });
 
     const drive = google.drive({ version: "v3", auth: oauth2Client });
+
+    // Panel Nguồn cần một danh sách phẳng của cả cây con; trình duyệt tài liệu
+    // thì vẫn muốn đi từng tầng một.
+    if (searchParams.get("recursive") === "1") {
+      const files = await listFilesRecursive(drive, folderId);
+      return NextResponse.json({ files });
+    }
 
     // Bản cũ chỉ nhận PDF và thư mục, nên .docx, .xlsx, Google Docs, .md, ảnh
     // trong thư mục Knowledge đều vô hình — dù /api/drive/download đã trả đúng
