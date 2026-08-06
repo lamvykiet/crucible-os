@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Search, Plus, FileText, Folder, Copy, ThumbsUp, ThumbsDown,
-  Grid, MoreVertical, Send, Loader2, AlertCircle,
+  Grid, MoreVertical, Send, Loader2, AlertCircle, BookOpen, Eye, X,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useAiChat } from "@/lib/useAiChat";
@@ -20,6 +20,18 @@ import { useAiChat } from "@/lib/useAiChat";
  * Màu lấy từ token thay vì hex cứng (#1e1e1e/#2a2a2a như bản cũ), nên khung này
  * đổi theo chế độ sáng/tối cùng phần còn lại của ứng dụng.
  */
+
+interface DocContext {
+  name: string;
+  /** "text" = nội dung đã trích; "file" = tệp nằm trên Gemini Files API. */
+  mode: "text" | "file" | null;
+  text: string;
+  chars: number;
+  fileUri: string | null;
+  fileMimeType: string | null;
+  ready: boolean;
+  reason: string | null;
+}
 
 export interface DriveFile {
   id: string;
@@ -55,7 +67,15 @@ export default function ThreePanelWorkspace({
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [filesError, setFilesError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  // `activeDocument` là NGUỒN đang được chọn — nó ở lại kể cả khi đóng trình xem.
+  // Bản cũ dùng chung một biến cho cả hai việc, nên bấm "Đóng tài liệu" là mất
+  // luôn ngữ cảnh, đúng lúc người dùng muốn quay ra hỏi AI về tài liệu vừa đọc.
   const [activeDocument, setActiveDocument] = useState<string | null>(initialDocumentId);
+  const [viewerOpen, setViewerOpen] = useState<boolean>(Boolean(initialDocumentId));
+
+  // Nội dung tài liệu đã trích, để gửi kèm câu hỏi cho AI.
+  const [docContext, setDocContext] = useState<DocContext | null>(null);
+  const [contextLoading, setContextLoading] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -92,12 +112,77 @@ export default function ThreePanelWorkspace({
     [files, activeDocument]
   );
 
+  // Trích nội dung tài liệu đang chọn. Kết quả được cache phía máy chủ nên đổi
+  // qua đổi lại giữa các nguồn không gọi Gemini lại từ đầu.
+  useEffect(() => {
+    if (!activeDocument) {
+      setDocContext(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setContextLoading(true);
+    setDocContext(null);
+
+    fetch("/api/knowledge/document-context", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileId: activeDocument }),
+      signal: controller.signal,
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        if (controller.signal.aborted) return;
+        setDocContext(
+          json?.success
+            ? {
+                name: json.name,
+                mode: json.mode ?? null,
+                text: json.text || "",
+                chars: json.chars || 0,
+                fileUri: json.fileUri ?? null,
+                fileMimeType: json.fileMimeType ?? null,
+                ready: Boolean(json.ready),
+                reason: json.reason ?? null,
+              }
+            : {
+                name: "", mode: null, text: "", chars: 0, fileUri: null, fileMimeType: null,
+                ready: false, reason: json?.error || "Không đọc được tài liệu",
+              }
+        );
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        setDocContext({
+          name: "", mode: null, text: "", chars: 0, fileUri: null, fileMimeType: null,
+          ready: false, reason: err.message,
+        });
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setContextLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [activeDocument]);
+
   const { messages, input, setInput, loading, send } = useAiChat({
     greeting: chatGreeting,
-    // Cho AI biết đang đọc tài liệu nào. Đây là dữ liệu, không phải mệnh lệnh —
-    // phía server bọc nó trong <document_context> và nói rõ điều đó với model.
-    getContext: () =>
-      activeFile ? `Người dùng đang mở tài liệu: "${activeFile.name}"` : "",
+    // Nội dung THẬT của tài liệu, không phải mỗi cái tên như bản cũ. Đây là dữ
+    // liệu chứ không phải mệnh lệnh — phía server bọc nó trong
+    // <document_context> và nói rõ điều đó với model.
+    getContext: () => {
+      if (!activeDocument) return "";
+      const title = docContext?.name || activeFile?.name || "";
+      if (docContext?.mode !== "text" || !docContext.text) {
+        return title ? `Tài liệu đang mở: "${title}"` : "";
+      }
+      return `Tài liệu đang mở: "${title}"\n\n${docContext.text}`;
+    },
+    // PDF/ảnh không đi qua contextText mà tham chiếu thẳng tệp trên Gemini.
+    getDocumentFile: () =>
+      docContext?.mode === "file" && docContext.fileUri
+        ? { fileUri: docContext.fileUri, mimeType: docContext.fileMimeType || "application/pdf" }
+        : null,
   });
 
   useEffect(() => {
@@ -182,7 +267,15 @@ export default function ThreePanelWorkspace({
                   key={file.id}
                   type="button"
                   disabled={isFolder}
-                  onClick={() => setActiveDocument(isActive ? null : file.id)}
+                  onClick={() => {
+                    if (isActive) {
+                      setActiveDocument(null);
+                      setViewerOpen(false);
+                    } else {
+                      setActiveDocument(file.id);
+                      setViewerOpen(true);
+                    }
+                  }}
                   className={`w-full text-left flex items-center gap-2 text-xs p-2 rounded-lg transition-colors group ${
                     isFolder
                       ? "opacity-60 cursor-default"
@@ -206,11 +299,11 @@ export default function ThreePanelWorkspace({
 
       {/* Panel 2: Workspace */}
       <div className="flex-1 min-w-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6 flex flex-col shadow-inner relative overflow-hidden">
-        {activeDocument ? (
+        {activeDocument && viewerOpen ? (
           <div className="flex flex-col h-full min-h-0">
             <div className="flex items-center gap-3 mb-4 border-b border-[var(--color-border)] pb-4">
               <button
-                onClick={() => setActiveDocument(null)}
+                onClick={() => setViewerOpen(false)}
                 aria-label={t("Close document", "Đóng tài liệu")}
                 className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors bg-[var(--color-surface-2)] p-1.5 rounded-lg"
               >
@@ -220,10 +313,10 @@ export default function ThreePanelWorkspace({
                 {activeFile?.name || t("Document", "Tài liệu")}
               </h3>
               <button
-                onClick={() => setActiveDocument(null)}
+                onClick={() => setViewerOpen(false)}
                 className="text-xs bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:opacity-90 px-3 py-1.5 rounded-lg transition-opacity whitespace-nowrap"
               >
-                {t("Close document", "Đóng tài liệu")}
+                {t("Chat about this", "Hỏi AI về tài liệu này")}
               </button>
             </div>
             {/* iframe thật, thay cho "Trình xem PDF mô phỏng" của bản cũ. */}
@@ -237,13 +330,64 @@ export default function ThreePanelWorkspace({
           </div>
         ) : (
           <>
-            <div className="flex justify-between items-center mb-6 border-b border-[var(--color-border)] pb-4">
+            <div className="flex justify-between items-center mb-4 border-b border-[var(--color-border)] pb-4">
               <h3 className="font-bold tracking-wide">{t("Conversation", "Cuộc trò chuyện")}</h3>
               <div className="flex gap-4 text-[var(--color-text-muted)]">
                 <button className="hover:text-[var(--color-text)] transition-colors"><Grid size={18} /></button>
                 <button className="hover:text-[var(--color-text)] transition-colors"><MoreVertical size={18} /></button>
               </div>
             </div>
+
+            {/* Trạng thái ngữ cảnh: nói thẳng AI đang thật sự cầm gì trong tay.
+                Không có dòng này thì người dùng không cách nào phân biệt "AI đã
+                đọc tài liệu" với "AI chỉ đoán từ tên file" — đúng hành vi cũ. */}
+            {activeDocument && (
+              <div className="mb-4 flex items-center gap-2 text-xs rounded-xl px-3 py-2 border border-[var(--color-border)] bg-[var(--color-surface-2)]">
+                {contextLoading ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin flex-none text-[var(--color-info)]" />
+                    <span className="text-[var(--color-text-muted)]">
+                      {t("Reading the document...", "Đang đọc nội dung tài liệu...")}
+                    </span>
+                  </>
+                ) : docContext?.ready ? (
+                  <>
+                    <BookOpen size={14} className="flex-none text-[var(--color-success)]" />
+                    <span className="flex-1 truncate text-[var(--color-text)]">
+                      {t("AI has read", "AI đã đọc")}{" "}
+                      <strong className="font-semibold">{docContext.name || activeFile?.name}</strong>{" "}
+                      <span className="text-[var(--color-text-faint)]">
+                        {docContext.mode === "text"
+                          ? `(${docContext.chars.toLocaleString("vi-VN")} ${t("characters", "ký tự")})`
+                          : t("(full file)", "(toàn bộ tệp)")}
+                      </span>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle size={14} className="flex-none text-[var(--color-warning)]" />
+                    <span className="flex-1 truncate text-[var(--color-text-muted)]">
+                      {docContext?.reason || t("Content unavailable", "Chưa đọc được nội dung")}
+                    </span>
+                  </>
+                )}
+
+                <button
+                  onClick={() => setViewerOpen(true)}
+                  title={t("Open viewer", "Mở trình xem")}
+                  className="flex-none text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded"
+                >
+                  <Eye size={14} />
+                </button>
+                <button
+                  onClick={() => setActiveDocument(null)}
+                  title={t("Remove from context", "Bỏ khỏi ngữ cảnh")}
+                  className="flex-none text-[var(--color-text-muted)] hover:text-[var(--color-error)] p-1 rounded"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
 
             <div className="flex-1 overflow-y-auto space-y-6 pr-4 min-h-0">
               {messages.map((msg, i) => (

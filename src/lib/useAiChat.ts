@@ -16,11 +16,18 @@ export interface ChatMessage {
  *
  * Đọc phản hồi dạng stream để chữ hiện dần thay vì đứng im chờ cả câu trả lời.
  */
+export interface DocumentFileRef {
+  fileUri: string;
+  mimeType: string;
+}
+
 export function useAiChat(options: {
   greeting: string;
   getContext?: () => string;
+  /** Tệp đã nằm trên Gemini Files API — dùng cho PDF và ảnh. */
+  getDocumentFile?: () => DocumentFileRef | null;
 }) {
-  const { greeting, getContext } = options;
+  const { greeting, getContext, getDocumentFile } = options;
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "model", content: greeting },
@@ -60,6 +67,7 @@ export function useAiChat(options: {
           body: JSON.stringify({
             messages: nextMessages,
             contextText: getContext?.() ?? "",
+            documentFile: getDocumentFile?.() ?? null,
           }),
           signal: controller.signal,
         });
@@ -130,7 +138,7 @@ export function useAiChat(options: {
         setLoading(false);
       }
     },
-    [input, loading, messages, getContext]
+    [input, loading, messages, getContext, getDocumentFile]
   );
 
   return { messages, input, setInput, loading, send };

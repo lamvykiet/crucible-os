@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# AppleDouble sinh ra khi ổ USB dùng exFAT
+._*
+.DS_Store

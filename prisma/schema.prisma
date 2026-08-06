@@ -243,12 +243,34 @@ model Budget {
 // MODULE 2 & 3: KNOWLEDGE HUB & LEARNING HUB
 // -----------------------------------------
 
+// Tài liệu trong Knowledge Hub, đồng thời là nơi cache văn bản đã trích ra.
+//
+// Bảng này trước đây hoàn toàn trống và không có chỗ nào ghi vào: module
+// Knowledge đọc thẳng từ Drive, còn khung chat chỉ gửi cho AI mỗi cái TÊN file.
+// Nay mỗi lần mở một tài liệu, nội dung được trích một lần rồi lưu ở đây, nên
+// những câu hỏi sau không phải tải lại file và không tốn thêm quota Gemini.
 model Material {
   id          String   @id @default(uuid())
   driveFileId String   @unique
   title       String
   type        String   // e.g. "pdf"
   domain      String?
+  mimeType    String?
+
+  // Văn bản đã trích (Google Docs/Sheets, .docx/.xlsx, .txt/.md). Cache hợp lệ
+  // khi `sourceModifiedAt` còn khớp `modifiedTime` bên Drive — file sửa trên
+  // Drive thì tự trích lại.
+  contentText      String?
+  contentChars     Int?
+  sourceModifiedAt DateTime?
+  contentFetchedAt DateTime?
+
+  // PDF và ảnh không chép ra text mà đẩy thẳng lên Gemini Files API: chép toàn
+  // văn một PDF 7,67 MB mất 260 giây, còn upload chỉ 2,8 giây. Gemini giữ tệp
+  // 48 giờ, hết hạn thì lần mở sau tự đẩy lại.
+  geminiFileUri       String?
+  geminiFileName      String?
+  geminiFileExpiresAt DateTime?
 
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
