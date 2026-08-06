@@ -45,3 +45,4 @@ next-env.d.ts
 # AppleDouble sinh ra khi ổ USB dùng exFAT
 ._*
 .DS_Store
+.claude/

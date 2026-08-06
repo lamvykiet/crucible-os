@@ -19,7 +19,9 @@ export default function Sidebar() {
   ];
 
   return (
-    <div className="w-64 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col">
+    /* Ẩn dưới md: điện thoại dùng MobileNav. `.c-sidebar` là lớp của design
+       system, rộng đúng 248px — bản cũ tự đặt w-64 (256px). */
+    <div className="c-sidebar hidden md:flex">
       <div className="h-16 flex items-center px-6 gap-3 mt-4">
         {/* bg-primary và text-[--color-on-primary] đều không phải class hợp lệ
             (thiếu var(), thiếu định nghĩa) — dùng token cho cả nền lẫn chữ. */}

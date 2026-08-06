@@ -365,3 +365,26 @@ a:hover { color: var(--color-primary-hover); text-decoration: underline; }
 
 /* Badge dot */
 .c-badge { display: inline-grid; place-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--color-accent); color: var(--color-on-primary); font: 700 11px/1 var(--font-body); }
+
+/* Ẩn thanh cuộn cho các dải cuộn ngang (thanh tab, dải thẻ lọc).
+   Class này được dùng ở trang Cài đặt từ trước nhưng chưa từng được định nghĩa,
+   nên thanh cuộn vẫn hiện và ăn mất chiều cao trên mobile. */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Khung shell theo bề ngang màn hình.
+   Quy định nằm ở đây chứ không phải bằng class tiện ích trên từng component:
+   `.c-sidebar { display:flex }` được khai báo SAU Tailwind nên luôn đè
+   `hidden md:flex`, sidebar vẫn hiện nguyên trên điện thoại. Đưa hành vi
+   responsive vào chính design system thì mọi nơi dùng `.c-sidebar` đều đúng. */
+@media (max-width: 767px) {
+  .c-sidebar { display: none; }
+}
+@media (min-width: 768px) {
+  .c-bottomnav { display: none; }
+}

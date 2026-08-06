@@ -16,7 +16,7 @@ export default function FinancePage() {
       <div className="flex flex-col">
         {/* Tabs Navigation (Centered) */}
         <div className="flex justify-center mb-8">
-          <div className="flex bg-[var(--color-surface)] rounded-full p-1 border border-[var(--color-border)] shadow-sm">
+          <div className="flex bg-[var(--color-surface)] rounded-full p-1 border border-[var(--color-border)] shadow-sm overflow-x-auto max-w-full hide-scrollbar">
             {[
               { id: "dashboard", label: "Dashboard" },
               { id: "income", label: "Income" },
@@ -27,7 +27,7 @@ export default function FinancePage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all uppercase tracking-wider ${
+                className={`px-5 md:px-8 py-2.5 rounded-full text-sm font-bold transition-all uppercase tracking-wider whitespace-nowrap ${
                   activeTab === tab.id
                     ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md"
                     : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"

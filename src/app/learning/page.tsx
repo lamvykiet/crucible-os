@@ -25,12 +25,12 @@ export default function LearningHubPage() {
         </h1>
         
         {/* Tabs Navigation */}
-        <div className="flex bg-[var(--color-surface)] rounded-full p-1 border border-[var(--color-border)] mb-8 shadow-sm">
+        <div className="flex bg-[var(--color-surface)] rounded-full p-1 border border-[var(--color-border)] mb-8 shadow-sm overflow-x-auto max-w-full hide-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all uppercase tracking-wider ${
+              className={`px-5 md:px-8 py-2.5 rounded-full text-sm font-bold transition-all uppercase tracking-wider whitespace-nowrap ${
                 activeTab === tab.id
                   ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md"
                   : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"

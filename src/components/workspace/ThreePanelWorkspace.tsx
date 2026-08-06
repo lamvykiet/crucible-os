@@ -76,6 +76,10 @@ export default function ThreePanelWorkspace({
   const [activeDocument, setActiveDocument] = useState<string | null>(initialDocumentId);
   const [viewerOpen, setViewerOpen] = useState<boolean>(Boolean(initialDocumentId));
 
+  // Trên điện thoại không thể xếp ba cột cạnh nhau (280 + 300 + nội dung > bề
+  // ngang máy), nên hiện từng khung một và cho chuyển bằng thanh chọn.
+  const [pane, setPane] = useState<"sources" | "work" | "studio">("work");
+
   // Nội dung tài liệu đã trích, để gửi kèm câu hỏi cho AI.
   const [docContext, setDocContext] = useState<DocContext | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
@@ -238,10 +242,36 @@ export default function ThreePanelWorkspace({
   }, [files, search]);
 
   return (
-    <div className="flex h-[calc(100dvh-6rem)] gap-4 animate-in fade-in -mx-4 -mt-4 bg-[var(--color-bg)] text-[var(--color-text)] rounded-3xl p-4 overflow-hidden border border-[var(--color-border)] shadow-2xl">
+    <div className="flex flex-col md:flex-row h-[calc(100dvh-11rem)] md:h-[calc(100dvh-6rem)] gap-3 md:gap-4 animate-in fade-in -mx-2 md:-mx-4 -mt-2 md:-mt-4 bg-[var(--color-bg)] text-[var(--color-text)] rounded-2xl md:rounded-3xl p-2 md:p-4 overflow-hidden border border-[var(--color-border)] shadow-2xl">
+
+      {/* Thanh chọn khung — chỉ có trên mobile */}
+      <div className="md:hidden flex gap-1 bg-[var(--color-surface-2)] p-1 rounded-xl flex-none">
+        {([
+          ["sources", t("Sources", "Nguồn")],
+          ["work", t("Workspace", "Làm việc")],
+          ["studio", "Studio"],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setPane(key)}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${
+              pane === key
+                ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                : "text-[var(--color-text-muted)]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
 
       {/* Panel 1: Nguồn */}
-      <div className="w-[280px] flex flex-col gap-4 flex-none">
+      <div
+        className={`w-full md:w-[280px] flex-col gap-4 flex-1 md:flex-none min-h-0 ${
+          pane === "sources" ? "flex" : "hidden md:flex"
+        }`}
+      >
         <div className="flex items-center gap-3 mb-2 px-2">
           <button
             onClick={onBack}
@@ -365,7 +395,11 @@ export default function ThreePanelWorkspace({
       </div>
 
       {/* Panel 2: Workspace */}
-      <div className="flex-1 min-w-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6 flex flex-col shadow-inner relative overflow-hidden">
+      <div
+        className={`flex-1 min-w-0 min-h-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-4 md:p-6 flex-col shadow-inner relative overflow-hidden ${
+          pane === "work" ? "flex" : "hidden md:flex"
+        }`}
+      >
         {activeDocument && viewerOpen ? (
           <div className="flex flex-col h-full min-h-0">
             <div className="flex items-center gap-3 mb-4 border-b border-[var(--color-border)] pb-4">
@@ -520,7 +554,11 @@ export default function ThreePanelWorkspace({
       </div>
 
       {/* Panel 3: Studio */}
-      <div className="w-[300px] flex-none flex flex-col gap-4">
+      <div
+        className={`w-full md:w-[300px] flex-1 md:flex-none flex-col gap-4 min-h-0 ${
+          pane === "studio" ? "flex" : "hidden md:flex"
+        }`}
+      >
         {studio ?? <StudioPanel fileId={activeDocument} fileName={activeName} />}
       </div>
     </div>

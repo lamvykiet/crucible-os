@@ -282,7 +282,7 @@ export default function DictionaryTab() {
       )}
 
       {tags.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 hide-scrollbar">
           <Filter size={16} className="text-[var(--color-text-faint)] flex-none" />
           <button
             onClick={() => setSelectedTag(null)}
