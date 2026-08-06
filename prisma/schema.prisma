@@ -28,6 +28,7 @@ model User {
   ClassificationRule ClassificationRule[]
   OcrLog             OcrLog[]
   ExamAttempt        ExamAttempt[]
+  VideoItem          VideoItem[]
 }
 
 // -----------------------------------------
@@ -244,6 +245,43 @@ model ExamAttempt {
   completedAt DateTime?
 
   @@index([userId, createdAt])
+}
+
+// Video lưu từ TikTok / Facebook / YouTube.
+//
+// Ứng dụng KHÔNG tự tải video: nó chạy trên Vercel, nơi hệ thống file chỉ đọc,
+// function bị giới hạn 60 giây và không cài được yt-dlp. Điện thoại tải qua một
+// Shortcut, rồi đẩy file lên `/api/video/upload`.
+//
+// Bảng này giữ phần mà Drive không giữ được: link gốc, nền tảng, và đề tài —
+// đúng ba thứ khiến một video lưu 6 tháng trước vẫn còn tra lại được.
+model VideoItem {
+  id String @id @default(uuid())
+
+  sourceUrl String
+  // tiktok | facebook | youtube | instagram | other
+  platform  String
+  topic     String
+  title     String?
+  note      String?
+
+  // pending: đã dán link, chờ Shortcut đẩy file lên
+  // saved:   file đã nằm trên Drive
+  status String @default("pending")
+
+  driveFileId   String?
+  driveFileName String?
+  sizeBytes     Int?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  savedAt   DateTime?
+
+  @@index([userId, status])
+  @@index([userId, topic])
 }
 
 model Category {
