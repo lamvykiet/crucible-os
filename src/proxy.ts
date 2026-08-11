@@ -6,10 +6,11 @@ import { NextResponse, type NextRequest } from 'next/server'
 // "middleware to proxy"). Runtime là nodejs và không cấu hình được.
 
 // Đường dẫn công khai, không cần đăng nhập.
-// `/api/video/upload` xác thực bằng VIDEO_UPLOAD_TOKEN chứ không bằng phiên
-// Supabase: Shortcut trên iPhone không đăng nhập được. Nếu để middleware chặn
-// thì Shortcut luôn nhận 401 và không bao giờ chạm tới handler.
-const PUBLIC_PATHS = ['/login', '/auth', '/api/video/upload']
+// `/api/video/upload` và `/api/video/pending` xác thực bằng VIDEO_UPLOAD_TOKEN
+// chứ không bằng phiên Supabase: Shortcut trên iPhone không đăng nhập được.
+// Nếu để middleware chặn thì Shortcut luôn nhận 401 và không bao giờ chạm tới
+// handler. Cả hai handler đều tự kiểm tra token, nên đây không phải mở toang.
+const PUBLIC_PATHS = ['/login', '/auth', '/api/video/upload', '/api/video/pending']
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some(
