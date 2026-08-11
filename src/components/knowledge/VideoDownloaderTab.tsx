@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Video, Loader2, AlertCircle, ExternalLink, Smartphone, ChevronDown,
   RotateCcw, Link as LinkIcon, Plus, Trash2, Clock, CheckCircle2, Copy,
+  CloudDownload,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 
@@ -58,6 +59,9 @@ export default function VideoDownloaderTab() {
   const [topic, setTopic] = useState("");
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
+  // Id đang được server tải; đủ để vô hiệu hoá đúng một dòng thay vì cả danh sách.
+  const [fetchingId, setFetchingId] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -112,6 +116,30 @@ export default function VideoDownloaderTab() {
   const remove = async (id: string) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
     await fetch(`/api/video/queue?id=${id}`, { method: "DELETE" }).catch(() => {});
+  };
+
+  /**
+   * Bảo server tải video về Drive luôn — không cần điện thoại, không cần
+   * Shortcut. Video quá lớn hoặc mạng chậm có thể chạm trần 60 giây của
+   * Vercel; lúc đó lỗi hiện ngay ở dòng đó và vẫn còn đường Shortcut.
+   */
+  const fetchNow = async (id: string) => {
+    setFetchingId(id);
+    setFetchError(null);
+    try {
+      const res = await fetch("/api/video/fetch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) throw new Error(json?.error || `Lỗi ${res.status}`);
+      reload();
+    } catch (err) {
+      setFetchError((err as Error).message);
+    } finally {
+      setFetchingId(null);
+    }
   };
 
   const pending = items.filter((i) => i.status === "pending");
@@ -250,12 +278,25 @@ export default function VideoDownloaderTab() {
                 {t("Waiting for the file", "Chờ file về")} ({pending.length})
               </h3>
               <p className="text-xs text-[var(--color-text-muted)] mb-4">
-                {t("Share these links to the Shortcut on your phone.",
-                   "Chia sẻ những link này sang Shortcut trên điện thoại.")}
+                {t("Hit Fetch now and the server brings the file in. Only if that fails do you need the Shortcut on your phone.",
+                   "Bấm Tải ngay là server tự mang file về. Chỉ khi nút đó lỗi mới cần đến Shortcut trên điện thoại.")}
               </p>
+              {fetchError && (
+                <div className="c-alert c-alert-error mb-4">
+                  <AlertCircle size={18} className="icon" />
+                  <span>{fetchError}</span>
+                </div>
+              )}
               <div className="space-y-2">
                 {pending.map((item) => (
-                  <VideoRow key={item.id} item={item} onDelete={remove} t={t} />
+                  <VideoRow
+                    key={item.id}
+                    item={item}
+                    onDelete={remove}
+                    onFetch={fetchNow}
+                    fetching={fetchingId === item.id}
+                    t={t}
+                  />
                 ))}
               </div>
             </section>
@@ -291,13 +332,17 @@ export default function VideoDownloaderTab() {
 }
 
 function VideoRow({
-  item, onDelete, t, card,
+  item, onDelete, onFetch, fetching, t, card,
 }: {
   item: VideoItem;
   onDelete: (id: string) => void;
+  onFetch?: (id: string) => void;
+  fetching?: boolean;
   t: (en: string, vi: string) => string;
   card?: boolean;
 }) {
+  // fdown.vn chỉ tải được hai nền tảng này; các mục khác vẫn phải lưu tay.
+  const canFetch = item.platform === "facebook" || item.platform === "tiktok";
   return (
     <div className={`${card ? "c-card flex flex-col gap-3" : "flex items-center gap-3 bg-[var(--color-surface-2)] p-3 rounded-xl border border-[var(--color-border)]"}`}>
       <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -340,6 +385,16 @@ function VideoRow({
         >
           <Copy size={12} />
         </button>
+        {onFetch && item.status === "pending" && canFetch && (
+          <button
+            onClick={() => onFetch(item.id)}
+            disabled={fetching}
+            className="c-btn c-btn-primary c-btn-sm ml-auto flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {fetching ? <Loader2 size={13} className="animate-spin" /> : <CloudDownload size={13} />}
+            {fetching ? t("Fetching...", "Đang tải...") : t("Fetch now", "Tải ngay")}
+          </button>
+        )}
         {item.driveFileId && (
           <a
             href={`https://drive.google.com/file/d/${item.driveFileId}/view`}
