@@ -285,9 +285,19 @@ model VideoItem {
 }
 
 model Category {
-  id       String     @id @default(uuid())
-  kind     String // expense_group | income_group
-  name     String
+  id   String @id @default(uuid())
+  kind String // expense_group | income_group
+
+  // `name` là tên CHUẨN: Transaction.categoryGroup, Budget.categoryGroup,
+  // Vendor.defaultCategoryGroup và ClassificationRule.categoryGroup đều khớp
+  // với nó bằng chuỗi. Đổi `name` là phải dời cả bốn bảng đó.
+  //
+  // Giữ tiếng Anh làm chuẩn vì process-ocr có fallback viết cứng "Other", và
+  // dữ liệu sẵn có đều dùng tên tiếng Anh.
+  name String
+  // Nhãn tiếng Việt, chỉ dùng để hiển thị. Rỗng thì giao diện lùi về `name`.
+  nameVi String?
+
   active   Boolean    @default(true)
   parentId String?
   parent   Category?  @relation("SubCategories", fields: [parentId], references: [id])

@@ -49,7 +49,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
   const [duplicate, setDuplicate] = useState<any>(null);
   const [resolving, setResolving] = useState<"delete" | "trash" | "force" | null>(null);
 
-  const { groupNames, subGroupsOf } = useCategories(formData.type);
+  const { groupNames, subGroupsOf, label } = useCategories(formData.type);
 
   const fetchQueue = async () => {
     setIsLoading(true);
@@ -505,7 +505,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                         <option value="">{t("— Chọn nhóm —", "— Select —")}</option>
                         {groupNames.map((c) => (
                           <option key={c} value={c}>
-                            {c}
+                            {label(c)}
                           </option>
                         ))}
                       </select>

@@ -32,6 +32,9 @@ export async function GET(req: Request) {
       orderBy: { name: "asc" },
     });
 
+    // `name` (tiếng Anh) là giá trị CHUẨN được lưu vào Transaction/Budget;
+    // `nameVi` chỉ để hiển thị. Trả cả hai để giao diện tự chọn theo ngôn ngữ,
+    // nhưng giá trị ghi xuống DB thì luôn là `name`.
     const byKind = (kind: string) => {
       const all = rows.filter((r) => r.kind === kind);
       return all
@@ -39,7 +42,10 @@ export async function GET(req: Request) {
         .map((parent) => ({
           id: parent.id,
           name: parent.name,
-          children: all.filter((c) => c.parentId === parent.id).map((c) => c.name),
+          nameVi: parent.nameVi,
+          children: all
+            .filter((c) => c.parentId === parent.id)
+            .map((c) => ({ id: c.id, name: c.name, nameVi: c.nameVi })),
         }));
     };
 
@@ -51,7 +57,8 @@ export async function GET(req: Request) {
         transactionTypes: rows.filter((r) => r.kind === "transaction_type").map((r) => r.name),
         // Dạng phẳng, kèm cờ active — dùng cho màn hình quản lý danh mục.
         all: rows.map((r) => ({
-          id: r.id, kind: r.kind, name: r.name, active: r.active, parentId: r.parentId,
+          id: r.id, kind: r.kind, name: r.name, nameVi: r.nameVi,
+          active: r.active, parentId: r.parentId,
         })),
       },
     });
@@ -69,8 +76,9 @@ export async function POST(req: Request) {
   if (!user) return response;
 
   try {
-    const { kind, name, parentId } = await req.json();
+    const { kind, name, nameVi, parentId } = await req.json();
     const cleaned = String(name ?? "").trim();
+    const cleanedVi = String(nameVi ?? "").trim() || null;
 
     if (!KINDS.includes(kind)) {
       return NextResponse.json({ success: false, error: "kind không hợp lệ" }, { status: 400 });
@@ -99,7 +107,7 @@ export async function POST(req: Request) {
     }
 
     const category = await prisma.category.create({
-      data: { kind, name: cleaned, parentId: parentId || null, userId: user.id },
+      data: { kind, name: cleaned, nameVi: cleanedVi, parentId: parentId || null, userId: user.id },
     });
 
     return NextResponse.json({ success: true, category });
@@ -110,25 +118,83 @@ export async function POST(req: Request) {
   }
 }
 
-/** Bật/tắt một danh mục. Tắt là cách "xoá" an toàn cho danh mục đang có dữ liệu. */
+/**
+ * Sửa một danh mục: bật/tắt, đổi nhãn tiếng Việt, hoặc đổi tên chuẩn.
+ *
+ * Tắt là cách "xoá" an toàn cho danh mục đang có dữ liệu.
+ *
+ * Đổi `name` là việc nguy hiểm: bốn bảng khớp với nó bằng chuỗi chứ không bằng
+ * khoá ngoại, nên đổi mỗi bảng Category sẽ để lại giao dịch trỏ tới một nhóm
+ * không còn tồn tại — dashboard đếm thiếu mà không báo lỗi. Vì vậy đổi tên
+ * được thực hiện trong một transaction, dời hết dữ liệu rồi mới đổi.
+ * Sửa `nameVi` thì vô hại: nó chỉ là nhãn hiển thị.
+ */
 export async function PATCH(req: Request) {
   const { user, response } = await requireUser();
   if (!user) return response;
 
   try {
-    const { id, active } = await req.json();
+    const { id, active, name, nameVi } = await req.json();
     if (!id) return NextResponse.json({ success: false, error: "Thiếu id" }, { status: 400 });
 
-    const result = await prisma.category.updateMany({
-      where: { id, userId: user.id },
-      data: { active: Boolean(active) },
-    });
-    if (result.count === 0) {
+    const current = await prisma.category.findFirst({ where: { id, userId: user.id } });
+    if (!current) {
       return NextResponse.json({ success: false, error: "Không tìm thấy danh mục" }, { status: 404 });
     }
+
+    const data: { active?: boolean; name?: string; nameVi?: string | null } = {};
+    if (active !== undefined) data.active = Boolean(active);
+    if (nameVi !== undefined) data.nameVi = String(nameVi ?? "").trim() || null;
+
+    const newName = name === undefined ? null : String(name).trim();
+    if (newName !== null && !newName) {
+      return NextResponse.json({ success: false, error: "Tên không được để trống" }, { status: 400 });
+    }
+
+    const renaming = newName !== null && newName !== current.name;
+    if (renaming) {
+      const duplicate = await prisma.category.findFirst({
+        where: {
+          userId: user.id, kind: current.kind, id: { not: id },
+          name: { equals: newName, mode: "insensitive" },
+        },
+      });
+      if (duplicate) {
+        return NextResponse.json({ success: false, error: `"${newName}" đã tồn tại` }, { status: 409 });
+      }
+      data.name = newName;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Dời dữ liệu trước, đổi tên sau: nếu bước sau hỏng thì transaction cuốn
+      // ngược lại toàn bộ, không để lại trạng thái nửa vời.
+      if (renaming && !current.parentId) {
+        const from = current.name;
+        await tx.transaction.updateMany({
+          where: { userId: user.id, categoryGroup: from }, data: { categoryGroup: newName },
+        });
+        await tx.budget.updateMany({
+          where: { userId: user.id, categoryGroup: from }, data: { categoryGroup: newName },
+        });
+        await tx.vendor.updateMany({
+          where: { defaultCategoryGroup: from }, data: { defaultCategoryGroup: newName },
+        });
+        await tx.classificationRule.updateMany({
+          where: { categoryGroup: from }, data: { categoryGroup: newName },
+        });
+      } else if (renaming) {
+        // Danh mục con nằm ở cột subGroup của Transaction.
+        await tx.transaction.updateMany({
+          where: { userId: user.id, subGroup: current.name }, data: { subGroup: newName },
+        });
+      }
+
+      await tx.category.update({ where: { id }, data });
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Toggle category error:", error);
+    console.error("Update category error:", error);
     return NextResponse.json({ success: false, error: "Server Error" }, { status: 500 });
   }
 }

@@ -21,7 +21,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
 
   // Danh mục lấy từ bảng Category, thay cho ba mảng viết cứng trước đây.
   const [typeForCategories, setTypeForCategories] = useState<string>(initialData?.type || defaultType);
-  const { groupNames, subGroupsOf } = useCategories(typeForCategories);
+  const { groupNames, subGroupsOf, label } = useCategories(typeForCategories);
 
   const [formData, setFormData] = useState({
     date: initialData?.date || new Date().toISOString().slice(0, 10),
@@ -173,7 +173,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                 <select name="categoryGroup" value={formData.categoryGroup} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)] appearance-none">
                   <option value="">{t("— Chọn nhóm —", "— Select —")}</option>
                   {groupNames.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat} value={cat}>{label(cat)}</option>
                   ))}
                 </select>
                 <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
@@ -187,7 +187,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                 <select name="subGroup" value={formData.subGroup} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)] appearance-none">
                   <option value="">— Không chọn —</option>
                   {subGroupsOf(formData.categoryGroup).map(sub => (
-                    <option key={sub} value={sub}>{sub}</option>
+                    <option key={sub} value={sub}>{label(sub)}</option>
                   ))}
                 </select>
                 <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />

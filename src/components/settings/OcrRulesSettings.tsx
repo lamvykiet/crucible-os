@@ -55,7 +55,7 @@ export default function OcrRulesSettings() {
     subGroup: "",
   });
 
-  const { groupNames, subGroupsOf } = useCategories(form.transactionType);
+  const { groupNames, subGroupsOf, label } = useCategories(form.transactionType);
 
   const loadRules = async () => {
     try {
@@ -222,7 +222,7 @@ export default function OcrRulesSettings() {
                   <option value="">{t("— Chọn —", "— Select —")}</option>
                   {groupNames.map((g) => (
                     <option key={g} value={g}>
-                      {g}
+                      {label(g)}
                     </option>
                   ))}
                 </select>
@@ -250,7 +250,7 @@ export default function OcrRulesSettings() {
                   <option value="">{t("— Không chọn —", "— None —")}</option>
                   {subGroupsOf(form.categoryGroup).map((sg) => (
                     <option key={sg} value={sg}>
-                      {sg}
+                      {label(sg)}
                     </option>
                   ))}
                 </select>

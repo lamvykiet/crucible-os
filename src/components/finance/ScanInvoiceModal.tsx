@@ -60,7 +60,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
   const [items, setItems] = useState<LineItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { groupNames, subGroupsOf } = useCategories(formData.type);
+  const { groupNames, subGroupsOf, label } = useCategories(formData.type);
 
   const resetState = () => {
     setStep("upload");
@@ -411,7 +411,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                         <option value="">{t("— Chọn nhóm —", "— Select —")}</option>
                         {groupNames.map((c) => (
                           <option key={c} value={c}>
-                            {c}
+                            {label(c)}
                           </option>
                         ))}
                       </select>
