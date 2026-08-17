@@ -365,3 +365,101 @@ a:hover { color: var(--color-primary-hover); text-decoration: underline; }
 
 /* Badge dot */
 .c-badge { display: inline-grid; place-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--color-accent); color: var(--color-on-primary); font: 700 11px/1 var(--font-body); }
+
+/* ============================================================
+ * App shell — responsive
+ *
+ * Bố cục cũ đặt cứng trong MainLayoutWrapper: flex + sidebar 256px + padding
+ * 32px/40px, không một breakpoint nào. Trên màn 375px sidebar chiếm 256px,
+ * nội dung chính còn chưa tới 80px.
+ *
+ * Nay:
+ *   ≥1024px — sidebar dính trái, nội dung padding rộng.
+ *   <1024px — sidebar ẩn, thay bằng top bar (brand + theme + ngôn ngữ, vì hai
+ *             nút đó chỉ tồn tại ở chân sidebar) và bottom nav 5 mục cố định đáy.
+ *
+ * Mốc là 1024px chứ không phải 768px, dù `md:` của Tailwind là 768px. Lý do đo
+ * được: ở 768px, sidebar 256px + padding 80px chỉ chừa 512px cho nội dung, nên
+ * lưới `md:grid-cols-4` (DashboardTab dùng) ép mỗi thẻ còn 94px trong khi số tiền
+ * bên trong cần 160px — thẻ tràn ra ngoài. Bỏ sidebar ở dải tablet trả lại đủ bề
+ * ngang để chính lưới đó vừa vặn.
+ * ============================================================ */
+
+.c-shell { display: flex; min-height: 100vh; min-height: 100dvh; }
+
+/* Mặc định (mobile-first) sidebar không tồn tại. */
+.c-shell-sidebar { display: none; }
+
+.c-shell-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.c-shell-topbar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: var(--space-3);
+  height: 56px; padding: 0 var(--space-4);
+  padding-top: env(safe-area-inset-top);
+  box-sizing: content-box;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.c-shell-topbar-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  min-width: 44px; min-height: 44px; padding: 0 10px;
+  border: none; background: none; cursor: pointer;
+  color: var(--color-text-muted); border-radius: var(--radius-md);
+}
+.c-shell-topbar-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
+
+.c-shell-main {
+  flex: 1; min-width: 0;
+  padding: var(--space-5) var(--space-4);
+  /* chừa chỗ cho bottom nav cố định + vùng an toàn dưới đáy iPhone */
+  padding-bottom: calc(76px + env(safe-area-inset-bottom) + var(--space-4));
+}
+
+.c-shell-bottomnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; }
+
+@media (min-width: 1024px) {
+  .c-shell-sidebar {
+    display: flex; flex-direction: column;
+    width: 256px; flex: none;
+    position: sticky; top: 0;
+    height: 100vh; height: 100dvh;
+    overflow-y: auto;
+  }
+  .c-shell-topbar, .c-shell-bottomnav { display: none; }
+  /* 32px ở dải 1024–1279: cộng thêm sidebar 256px thì padding 40px làm lưới 4–5
+     cột hụt chỗ. Từ 1280px trở lên mới nới ra. */
+  .c-shell-main { padding: var(--space-8) var(--space-8); }
+}
+
+@media (min-width: 1280px) {
+  .c-shell-main { padding: var(--space-8) var(--space-10); }
+}
+
+/* Cảm ứng nói chung (điện thoại + tablet): Safari trên iOS tự phóng to trang khi
+   focus vào ô nhập có cỡ chữ dưới 16px. */
+@media (max-width: 1023px) {
+  .c-input, .c-select, .c-textarea { font-size: 16px; }
+}
+
+/* Chỉ điện thoại. Tablet vẫn đủ rộng cho thang chữ và bảng nguyên bản. */
+@media (max-width: 767px) {
+  /* Thang chữ desktop quá lớn cho màn hẹp: h1 40px chiếm gần hai dòng trên 375px. */
+  :root {
+    --text-display: 600 clamp(30px, 8vw, 40px)/1.1 var(--font-display);
+    --text-h1: 600 28px/1.2 var(--font-display);
+    --text-h2: 600 22px/1.25 var(--font-display);
+    --text-h3: 600 18px/1.3 var(--font-display);
+    --text-stat: 600 24px/1.15 var(--font-display);
+  }
+
+  /* Bảng không co được thì cho cuộn ngang trong khung của nó, thay vì đẩy
+     toàn trang rộng ra. */
+  .c-table { display: block; overflow-x: auto; white-space: nowrap; }
+}
+
+/* Được dùng ở settings và các dải chip cuộn ngang nhưng chưa từng được định nghĩa. */
+.hide-scrollbar, .scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+.hide-scrollbar::-webkit-scrollbar, .scrollbar-hide::-webkit-scrollbar { display: none; }

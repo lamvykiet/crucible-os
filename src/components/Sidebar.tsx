@@ -2,24 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Settings, FileText, Database, GraduationCap, LayoutDashboard, Languages, Moon, Sun } from "lucide-react";
+import { Languages, Moon, Sun } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
+import { getNavItems, isNavActive } from "@/components/nav-items";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { language, setLanguage, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
 
-  const navItems = [
-    { name: t("Home", "Trang chủ"), href: "/", icon: LayoutDashboard },
-    { name: t("Knowledge Hub", "Knowledge Hub"), href: "/knowledge", icon: Database },
-    { name: t("Finance OS", "Sổ chi tiêu"), href: "/finance", icon: FileText },
-    { name: t("Learning Hub", "Learning Hub"), href: "/learning", icon: GraduationCap },
-  ];
+  // Mục cuối là Settings — sidebar để nó ở chân cùng nhóm theme/ngôn ngữ, còn
+  // bottom nav trên mobile xếp cả năm mục ngang hàng.
+  const allItems = getNavItems(t);
+  const navItems = allItems.slice(0, -1);
+  const settingsItem = allItems[allItems.length - 1];
+  const SettingsIcon = settingsItem.icon;
 
   return (
-    <div className="w-64 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col">
+    // .c-shell-sidebar lo bề ngang, display và sticky; dưới 1024px lớp này ẩn hẳn.
+    <div className="c-shell-sidebar bg-[var(--color-surface)] border-r border-[var(--color-border)]">
       <div className="h-16 flex items-center px-6 gap-3 mt-4">
         {/* bg-primary và text-[--color-on-primary] đều không phải class hợp lệ
             (thiếu var(), thiếu định nghĩa) — dùng token cho cả nền lẫn chữ. */}
@@ -32,8 +34,8 @@ export default function Sidebar() {
       <nav className="flex-1 px-4 py-8 space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-          
+          const isActive = isNavActive(pathname, item.href);
+
           return (
             <Link
               key={item.href}
@@ -79,11 +81,11 @@ export default function Sidebar() {
           </div>
           <span className="font-bold text-xs uppercase bg-[var(--color-surface-3)] px-2 py-0.5 rounded">{language}</span>
         </button>
-        <Link href="/settings" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium text-sm ${
-          pathname === '/settings' ? "bg-[var(--color-surface-2)] text-[var(--color-primary)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
+        <Link href={settingsItem.href} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium text-sm ${
+          isNavActive(pathname, settingsItem.href) ? "bg-[var(--color-surface-2)] text-[var(--color-primary)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
         }`}>
-          <Settings size={18} />
-          <span>{t("Settings", "Cài đặt")}</span>
+          <SettingsIcon size={18} />
+          <span>{settingsItem.name}</span>
         </Link>
       </div>
     </div>
