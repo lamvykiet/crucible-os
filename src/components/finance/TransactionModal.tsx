@@ -123,9 +123,9 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-[var(--color-border)] flex justify-between items-center">
-          <h2 className="text-xl font-bold text-[var(--color-text)]" style={{fontFamily: 'var(--font-display)'}}>
+      <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col">
+        <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-center gap-3">
+          <h2 className="c-modal-title text-[var(--color-text)]">
             {initialData?.id ? t("Chỉnh sửa giao dịch", "Edit transaction") : t("Thêm giao dịch thủ công", "Add manual transaction")}
           </h2>
           <button 
@@ -136,28 +136,28 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
           </button>
         </div>
         
-        <div className="p-6 overflow-y-auto max-h-[70vh]">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6">
           {error && <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">{error}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Date */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Ngày", "Ngày")}</label>
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Ngày", "Ngày")}</label>
               <div className="relative">
-                <input name="date" value={formData.date} onChange={handleChange} type="date" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)]" />
+                <input name="date" value={formData.date} onChange={handleChange} type="date" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
               </div>
             </div>
 
             {/* Payee / Source */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Nơi chi / nguồn thu", "Nơi chi / nguồn thu")}</label>
-              <input name="supplier" value={formData.supplier} onChange={handleChange} type="text" placeholder="VD: Coopmart, Lương tháng 7" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] focus:border-[var(--color-info)] rounded-xl px-4 py-2.5 text-sm focus:outline-none text-[var(--color-text)]" />
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Nơi chi / nguồn thu", "Nơi chi / nguồn thu")}</label>
+              <input name="supplier" value={formData.supplier} onChange={handleChange} type="text" placeholder="VD: Coopmart, Lương tháng 7" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] focus:border-[var(--color-accent)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none text-[var(--color-text)]" />
             </div>
 
             {/* Type */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Loại", "Loại")}</label>
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Loại", "Loại")}</label>
               <div className="relative">
-                <select name="type" value={formData.type} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)] appearance-none">
+                <select name="type" value={formData.type} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none">
                   <option value="Expense">Expense</option>
                   <option value="Income">Income</option>
                   <option value="Transfer">Transfer</option>
@@ -168,9 +168,9 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
 
             {/* Category */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Nhóm chi tiêu", "Nhóm chi tiêu")}</label>
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Nhóm chi tiêu", "Nhóm chi tiêu")}</label>
               <div className="relative">
-                <select name="categoryGroup" value={formData.categoryGroup} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)] appearance-none">
+                <select name="categoryGroup" value={formData.categoryGroup} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none">
                   <option value="">{t("— Chọn nhóm —", "— Select —")}</option>
                   {groupNames.map(cat => (
                     <option key={cat} value={cat}>{label(cat)}</option>
@@ -182,9 +182,9 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
 
             {/* Subcategory */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Danh mục con", "Danh mục con")}</label>
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Danh mục con", "Danh mục con")}</label>
               <div className="relative">
-                <select name="subGroup" value={formData.subGroup} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)] appearance-none">
+                <select name="subGroup" value={formData.subGroup} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none">
                   <option value="">— Không chọn —</option>
                   {subGroupsOf(formData.categoryGroup).map(sub => (
                     <option key={sub} value={sub}>{label(sub)}</option>
@@ -196,15 +196,15 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
 
             {/* Amount */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Số tiền (VND)", "Số tiền (VND)")}</label>
-              <input name="amount" value={formData.amount} onChange={handleChange} type="number" placeholder="125000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)]" />
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Số tiền (VND)", "Số tiền (VND)")}</label>
+              <input name="amount" value={formData.amount} onChange={handleChange} type="number" placeholder="125000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
             </div>
 
             {/* Payment Method */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Thanh toán", "Thanh toán")}</label>
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Thanh toán", "Thanh toán")}</label>
               <div className="relative">
-                <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)] appearance-none">
+                <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none">
                   {PAYMENT_METHODS.map(m => (
                     <option key={m} value={m}>{t(PAYMENT_METHOD_LABELS[m], m)}</option>
                   ))}
@@ -214,8 +214,8 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
             </div>
             
             <div className="col-span-1 md:col-span-2 space-y-2">
-               <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Ghi chú", "Ghi chú")}</label>
-               <textarea name="notes" value={formData.notes} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)] min-h-[80px] resize-none"></textarea>
+               <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Ghi chú", "Ghi chú")}</label>
+               <textarea name="notes" value={formData.notes} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] min-h-[80px] resize-none"></textarea>
             </div>
           </div>
 
@@ -250,28 +250,28 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                           const newItems = [...items];
                           newItems[idx].productName = e.target.value;
                           setItems(newItems);
-                        }} className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-info)] rounded outline-none text-[var(--color-text)]" />
+                        }} className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-accent)] rounded outline-none text-[var(--color-text)]" />
                       </td>
                       <td className="px-2 py-2">
                         <input type="number" value={item.quantity} onChange={(e) => {
                           const newItems = [...items];
                           newItems[idx].quantity = e.target.value;
                           setItems(newItems);
-                        }} className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-info)] rounded outline-none text-[var(--color-text)]" />
+                        }} className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-accent)] rounded outline-none text-[var(--color-text)]" />
                       </td>
                       <td className="px-2 py-2">
                         <input type="number" value={item.unitPrice} onChange={(e) => {
                           const newItems = [...items];
                           newItems[idx].unitPrice = e.target.value;
                           setItems(newItems);
-                        }} className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-info)] rounded outline-none text-[var(--color-text)]" />
+                        }} className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-accent)] rounded outline-none text-[var(--color-text)]" />
                       </td>
                       <td className="px-2 py-2">
                         <input type="number" value={item.totalPrice} onChange={(e) => {
                           const newItems = [...items];
                           newItems[idx].totalPrice = e.target.value;
                           setItems(newItems);
-                        }} className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-info)] rounded outline-none text-[var(--color-text)]" />
+                        }} className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-accent)] rounded outline-none text-[var(--color-text)]" />
                       </td>
                       <td className="px-2 py-2 text-center">
                         <button onClick={() => {
@@ -295,7 +295,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
           </div>
         </div>
 
-        <div className="p-6 border-t border-[var(--color-border)] flex items-center gap-4 bg-[var(--color-surface-2)]">
+        <div className="shrink-0 p-5 md:p-6 border-t border-[var(--color-border)] flex items-center gap-4 bg-[var(--color-surface-2)]">
           <button 
             onClick={handleSubmit}
             disabled={isSubmitting}

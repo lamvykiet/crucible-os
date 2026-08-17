@@ -270,8 +270,8 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
       <div
         className={`bg-[var(--color-surface)] rounded-3xl w-full ${
-          activeDraft ? "max-w-6xl h-[90vh]" : "max-w-xl"
-        } shadow-xl overflow-hidden flex flex-col transition-all duration-300`}
+          activeDraft ? "max-w-6xl h-[90dvh]" : "max-w-xl"
+        } max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col transition-all duration-300`}
       >
         <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center">
           <h2

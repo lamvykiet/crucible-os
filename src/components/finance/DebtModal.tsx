@@ -86,9 +86,9 @@ export default function DebtModal({ isOpen, onClose, onSuccess }: DebtModalProps
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-[var(--color-border)] flex justify-between items-center">
-          <h2 className="text-xl font-bold text-[var(--color-text)]" style={{fontFamily: 'var(--font-display)'}}>
+      <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col">
+        <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-center gap-3">
+          <h2 className="c-modal-title text-[var(--color-text)]">
             {t("Thêm khoản nợ / vay", "Add Debt / Loan")}
           </h2>
           <button 
@@ -99,21 +99,21 @@ export default function DebtModal({ isOpen, onClose, onSuccess }: DebtModalProps
           </button>
         </div>
         
-        <div className="p-6 overflow-y-auto max-h-[70vh]">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6">
           {error && <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">{error}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Name */}
             <div className="space-y-2 col-span-1 md:col-span-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Tên khoản nợ", "Debt Name")}</label>
-              <input name="name" value={formData.name} onChange={handleChange} type="text" placeholder="VD: Vay mua ô tô, Thẻ tín dụng..." className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] focus:border-[var(--color-info)] rounded-xl px-4 py-2.5 text-sm focus:outline-none text-[var(--color-text)]" />
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Tên khoản nợ", "Debt Name")}</label>
+              <input name="name" value={formData.name} onChange={handleChange} type="text" placeholder="VD: Vay mua ô tô, Thẻ tín dụng..." className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] focus:border-[var(--color-accent)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none text-[var(--color-text)]" />
             </div>
 
             {/* Type */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Loại hình", "Type")}</label>
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Loại hình", "Type")}</label>
               <div className="relative">
-                <select name="type" value={formData.type} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)] appearance-none">
+                <select name="type" value={formData.type} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none">
                   <option value="Mortgage">Vay thế chấp (Mortgage)</option>
                   <option value="Auto Loan">Vay mua xe hơi</option>
                   <option value="Personal Loan">Vay tiêu dùng cá nhân</option>
@@ -127,44 +127,44 @@ export default function DebtModal({ isOpen, onClose, onSuccess }: DebtModalProps
 
             {/* Principal */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Tiền gốc ban đầu (VND)", "Principal (VND)")}</label>
-              <input name="principal" value={formData.principal} onChange={handleChange} type="number" placeholder="50000000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)]" />
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Tiền gốc ban đầu (VND)", "Principal (VND)")}</label>
+              <input name="principal" value={formData.principal} onChange={handleChange} type="number" placeholder="50000000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
             </div>
 
             {/* Remaining */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Dư nợ hiện tại (VND)", "Remaining (VND)")}</label>
-              <input name="remaining" value={formData.remaining} onChange={handleChange} type="number" placeholder="(Bỏ trống nếu bằng gốc)" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)]" />
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Dư nợ hiện tại (VND)", "Remaining (VND)")}</label>
+              <input name="remaining" value={formData.remaining} onChange={handleChange} type="number" placeholder="(Bỏ trống nếu bằng gốc)" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
             </div>
 
             {/* Monthly Payment */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Trả góp hàng tháng (VND)", "Monthly Payment (VND)")}</label>
-              <input name="monthlyPayment" value={formData.monthlyPayment} onChange={handleChange} type="number" placeholder="5000000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)]" />
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Trả góp hàng tháng (VND)", "Monthly Payment (VND)")}</label>
+              <input name="monthlyPayment" value={formData.monthlyPayment} onChange={handleChange} type="number" placeholder="5000000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
             </div>
 
             {/* Interest Rate */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Lãi suất (%/năm)", "Interest Rate (%)")}</label>
-              <input name="interestRate" value={formData.interestRate} onChange={handleChange} type="number" step="0.1" placeholder="8.5" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)]" />
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Lãi suất (%/năm)", "Interest Rate (%)")}</label>
+              <input name="interestRate" value={formData.interestRate} onChange={handleChange} type="number" step="0.1" placeholder="8.5" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
             </div>
 
             {/* Start Date */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Ngày vay", "Start Date")}</label>
-              <input name="startDate" value={formData.startDate} onChange={handleChange} type="date" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)]" />
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Ngày vay", "Start Date")}</label>
+              <input name="startDate" value={formData.startDate} onChange={handleChange} type="date" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
             </div>
 
             {/* Due Date */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-info)] uppercase tracking-wider">{t("Ngày đáo hạn / Kết thúc", "Due Date")}</label>
-              <input name="dueDate" value={formData.dueDate} onChange={handleChange} type="date" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-info)] text-[var(--color-text)]" />
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Ngày đáo hạn / Kết thúc", "Due Date")}</label>
+              <input name="dueDate" value={formData.dueDate} onChange={handleChange} type="date" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
             </div>
 
           </div>
         </div>
 
-        <div className="p-6 border-t border-[var(--color-border)] flex items-center gap-4 bg-[var(--color-surface-2)]">
+        <div className="shrink-0 p-5 md:p-6 border-t border-[var(--color-border)] flex items-center gap-4 bg-[var(--color-surface-2)]">
           <button 
             onClick={handleSubmit}
             disabled={isSubmitting}

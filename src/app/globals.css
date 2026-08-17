@@ -198,6 +198,15 @@ a:hover { color: var(--color-primary-hover); text-decoration: underline; }
 
 .c-overline { font: var(--text-overline); letter-spacing: .09em; text-transform: uppercase; color: var(--color-text-muted); }
 
+/* Tiêu đề hộp thoại. Phải khai báo ở đây, KHÔNG dùng class `text-lg` của Tailwind:
+   các rule h1–h4 phía trên nằm ngoài mọi @layer, còn utility của Tailwind v4 nằm
+   trong @layer utilities — theo luật cascade layer thì khai báo không thuộc layer
+   luôn thắng, nên mọi `text-*` gắn lên <h2> đều bị bỏ qua trong im lặng.
+   30px của --text-h2 làm tiêu đề dài xuống 2 dòng và ăn 113px chiều cao trên màn
+   568px, đẩy phần thân form co lại. */
+.c-modal-title { font: var(--text-h3); }
+@media (min-width: 768px) { .c-modal-title { font: var(--text-h2); } }
+
 /* Buttons */
 .c-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
