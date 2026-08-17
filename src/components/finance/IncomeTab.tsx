@@ -138,7 +138,7 @@ export default function IncomeTab() {
             <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
             <button 
               onClick={() => setIsIncomeModalOpen(true)}
-              className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm"
+              className="c-btn c-btn-success shadow-sm"
             >
               <Plus size={16} /> {t("Add Income", "Thêm thu nhập")}
             </button>
@@ -182,7 +182,7 @@ export default function IncomeTab() {
           <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
           <button 
             onClick={() => setIsIncomeModalOpen(true)}
-            className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm"
+            className="c-btn c-btn-success shadow-sm"
           >
             <Plus size={16} /> {t("Add Income", "Thêm thu nhập")}
           </button>

@@ -324,7 +324,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
 
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white font-bold px-8 py-3 rounded-full text-sm shadow-sm transition-colors flex items-center gap-2 w-full justify-center"
+                  className="c-btn c-btn-primary c-btn-lg c-btn-pill w-full shadow-sm"
                 >
                   <Upload size={18} />
                   {t("Chọn tệp (1-3 ảnh)", "Select Files (1-3)")}
@@ -591,7 +591,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="bg-[#66c2c2] hover:bg-[var(--color-success)] text-white px-6 py-2 rounded-xl font-bold text-sm shadow flex items-center gap-2 disabled:opacity-50"
+                className="c-btn c-btn-primary shadow"
               >
                 {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                 {t("Xác nhận (Confirm)", "Confirm")}

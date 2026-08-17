@@ -215,6 +215,20 @@ a:hover { color: var(--color-primary-hover); text-decoration: underline; }
 .c-btn-secondary:hover { background: var(--color-surface-2); color: var(--color-text); }
 .c-btn-tertiary { background: transparent; color: var(--color-accent); }
 .c-btn-tertiary:hover { background: var(--color-accent-tint); color: var(--color-accent); }
+/* Biến thể theo ngữ nghĩa cho hành động tiền bạc (thu / chi / chờ duyệt / xoá).
+   Dùng cặp tint + màu chữ nên đọc được ở cả bảng sáng lẫn tối — khác với nền
+   đặc + `text-white`, vốn hỏng ở bảng tối vì lúc đó --color-success là xanh
+   nhạt (#9DB07E), chữ trắng trên nền đó gần như mất hút.
+   Thay cho mã hex viết cứng (#66c2c2) chỏi hẳn với bảng nâu/kem. */
+.c-btn-success { background: var(--color-success-tint); color: var(--color-success); }
+.c-btn-success:hover { background: color-mix(in srgb, var(--color-success) 24%, transparent); color: var(--color-success); }
+.c-btn-accent { background: var(--color-accent-tint); color: var(--color-accent); }
+.c-btn-accent:hover { background: color-mix(in srgb, var(--color-accent) 24%, transparent); color: var(--color-accent); }
+.c-btn-warning { background: var(--color-warning-tint); color: var(--color-warning); }
+.c-btn-warning:hover { background: color-mix(in srgb, var(--color-warning) 24%, transparent); color: var(--color-warning); }
+.c-btn-danger { background: var(--color-error-tint); color: var(--color-error); }
+.c-btn-danger:hover { background: color-mix(in srgb, var(--color-error) 24%, transparent); color: var(--color-error); }
+
 .c-btn-sm { padding: 7px 14px; font-size: 13px; }
 .c-btn-lg { padding: 14px 28px; font-size: 15px; border-radius: var(--radius-lg); }
 .c-btn-icon { padding: 10px; border-radius: var(--radius-md); }

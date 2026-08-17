@@ -102,7 +102,7 @@ export default function DebtsTab() {
           <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
           <button 
             onClick={() => setIsDebtModalOpen(true)}
-            className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm"
+            className="c-btn c-btn-primary shadow-sm"
           >
             <Plus size={16} /> {t("Add Debt", "Thêm khoản nợ")}
           </button>
@@ -241,7 +241,7 @@ export default function DebtsTab() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <button className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white c-btn-sm rounded-md shadow-sm">{t("Record Payment", "Ghi nhận thanh toán")}</button>
+                      <button className="c-btn c-btn-primary c-btn-sm shadow-sm">{t("Record Payment", "Ghi nhận thanh toán")}</button>
                       <button className="c-btn bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] c-btn-sm rounded-md">{t("Schedule", "Lịch trả nợ")}</button>
                       <button className="c-btn bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] c-btn-sm rounded-md">{t("Edit", "Sửa")}</button>
                       <button className="c-btn bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] c-btn-sm rounded-md">{t("Mark as Settled", "Đánh dấu đã tất toán")}</button>

@@ -45,7 +45,7 @@ export default function PendingReviewButton({ refreshKey = 0, onProcessed }: Pen
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="c-btn bg-[var(--color-warning)] hover:bg-[var(--color-warning-tint)] hover:text-[var(--color-warning)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+        className="c-btn c-btn-warning shadow-sm"
       >
         <ListTodo size={16} /> {t(`Duyệt hóa đơn (${count})`, `Review invoices (${count})`)}
       </button>

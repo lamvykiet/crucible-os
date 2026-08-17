@@ -299,7 +299,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
           <button 
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] disabled:opacity-50 text-white font-bold px-8 py-3 rounded-full text-sm shadow-sm transition-colors flex items-center gap-2"
+            className="c-btn c-btn-primary c-btn-lg c-btn-pill shadow-sm"
           >
             {isSubmitting && <Loader2 size={16} className="animate-spin" />}
             {t("Lưu giao dịch", "Lưu giao dịch")}

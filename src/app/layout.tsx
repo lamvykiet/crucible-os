@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/LanguageContext";
@@ -23,6 +23,20 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Crucible OS",
   description: "Personal Second Brain & Financial OS",
+};
+
+// Next tự chèn thẻ viewport mặc định, nhưng mặc định đó KHÔNG có viewport-fit=cover.
+// Thiếu nó thì env(safe-area-inset-*) luôn trả 0, và thanh nav dưới cùng nằm lọt
+// dưới vạch home indicator của iPhone.
+// themeColor để thanh trạng thái trình duyệt khớp nền app ở cả hai bảng màu.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F6F0E4" },
+    { media: "(prefers-color-scheme: dark)", color: "#291C0E" },
+  ],
 };
 
 import MainLayoutWrapper from "@/components/MainLayoutWrapper";

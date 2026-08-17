@@ -419,7 +419,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                     <button
                       onClick={() => approve(true)}
                       disabled={resolving !== null}
-                      className="w-full bg-[#66c2c2] hover:bg-[var(--color-success)] text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="c-btn c-btn-primary w-full"
                     >
                       {resolving === "force" ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                       {t("Đây là 2 hóa đơn khác nhau — vẫn ghi", "Two different receipts — record it")}
@@ -435,7 +435,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                     <button
                       onClick={() => resolveDuplicate("delete")}
                       disabled={resolving !== null}
-                      className="w-full bg-[var(--color-error)] text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="c-btn c-btn-danger w-full"
                     >
                       {resolving === "delete" && <Loader2 size={16} className="animate-spin" />}
                       {t("Xóa luôn ảnh + giao dịch vừa tạo", "Delete image + the new transaction")}
@@ -669,7 +669,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                 <button
                   onClick={() => approve(false)}
                   disabled={busy || !!duplicate}
-                  className="bg-[#66c2c2] hover:bg-[var(--color-success)] text-white px-6 py-2 rounded-xl font-bold text-sm shadow flex items-center gap-2 disabled:opacity-50"
+                  className="c-btn c-btn-primary shadow"
                 >
                   {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                   {t("Duyệt & ghi vào sổ", "Approve & record")}

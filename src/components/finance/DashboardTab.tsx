@@ -147,10 +147,14 @@ export default function DashboardTab() {
   if (!hasData) {
     return (
       <div className="space-y-8 animate-in fade-in">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-[var(--color-text)] flex items-center gap-2">
-            Dashboard <span className="text-sm font-normal text-[var(--color-text-muted)] ml-2">Tổng quan tài chính</span>
-          </h3>
+        {/* Trước là `flex justify-between items-center` không có biến thể mobile:
+            trên màn hẹp tiêu đề bị ép còn vài ký tự mỗi dòng và nhóm nút đè lên
+            nó. Xếp chồng dưới 768px, giống các tab Expense/Debts. */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+          <div>
+            <h3 className="text-xl font-bold text-[var(--color-text)]">Dashboard</h3>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1">{t("Your financial overview", "Tổng quan tài chính")}</p>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
             <button 
@@ -158,7 +162,7 @@ export default function DashboardTab() {
                 setTransactionType("Income");
                 setIsTransactionModalOpen(true);
               }}
-              className="c-btn bg-[var(--color-success)] hover:bg-[var(--color-success-tint)] hover:text-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+              className="c-btn c-btn-success shadow-sm"
             >
               <Plus size={16} /> {t("Add Income", "Thu nhập")}
             </button>
@@ -167,13 +171,13 @@ export default function DashboardTab() {
                 setTransactionType("Expense");
                 setIsTransactionModalOpen(true);
               }}
-              className="c-btn bg-[#66c2c2] hover:bg-[var(--color-info)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+              className="c-btn c-btn-accent shadow-sm"
             >
               <Plus size={16} /> {t("Add Expense", "Chi phí")}
             </button>
             <button 
               onClick={() => setIsScanModalOpen(true)}
-              className="c-btn bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-2)] text-[var(--color-text)] rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+              className="c-btn c-btn-secondary shadow-sm"
             >
               <Receipt size={16} className="text-[var(--color-success)]" /> {t("Scan Invoice", "Quét hóa đơn")}
             </button>
@@ -261,10 +265,12 @@ export default function DashboardTab() {
 
   return (
     <div className="space-y-8 animate-in fade-in">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-bold text-[var(--color-text)] flex items-center gap-2">
-          Dashboard <span className="text-sm font-normal text-[var(--color-text-muted)] ml-2">Tổng quan tài chính</span>
-        </h3>
+      {/* Xem chú thích ở nhánh "chưa có dữ liệu" phía trên — cùng một header. */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+        <div>
+          <h3 className="text-xl font-bold text-[var(--color-text)]">Dashboard</h3>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">{t("Your financial overview", "Tổng quan tài chính")}</p>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
           <button 
@@ -272,7 +278,7 @@ export default function DashboardTab() {
               setTransactionType("Income");
               setIsTransactionModalOpen(true);
             }}
-            className="c-btn bg-[var(--color-success)] hover:bg-[var(--color-success-tint)] hover:text-[var(--color-success)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+            className="c-btn c-btn-success shadow-sm"
           >
             <Plus size={16} /> {t("Add Income", "Thu nhập")}
           </button>
@@ -281,13 +287,13 @@ export default function DashboardTab() {
               setTransactionType("Expense");
               setIsTransactionModalOpen(true);
             }}
-            className="c-btn bg-[#66c2c2] hover:bg-[var(--color-info)] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+            className="c-btn c-btn-accent shadow-sm"
           >
             <Plus size={16} /> {t("Add Expense", "Chi phí")}
           </button>
           <button 
             onClick={() => setIsScanModalOpen(true)}
-            className="c-btn bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-2)] text-[var(--color-text)] rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+            className="c-btn c-btn-secondary shadow-sm"
           >
             <Receipt size={16} className="text-[var(--color-success)]" /> {t("Scan Invoice", "Quét hóa đơn")}
           </button>
@@ -315,7 +321,9 @@ export default function DashboardTab() {
       />
 
       {/* Main Cards Row 1 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* md:grid-cols-4 cũ ép mỗi thẻ còn 96px ở 768px (số tiền cần 155px) vì
+          vùng nội dung tablet chỉ rộng ~440px sau khi trừ sidebar 248px. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-[var(--color-success-tint)] text-[var(--color-success)] flex items-center justify-center">
@@ -370,7 +378,9 @@ export default function DashboardTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* md:grid-cols-4 cũ ép mỗi thẻ còn 96px ở 768px (số tiền cần 155px) vì
+          vùng nội dung tablet chỉ rộng ~440px sau khi trừ sidebar 248px. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center">
@@ -395,7 +405,7 @@ export default function DashboardTab() {
         <h3 className="text-2xl font-bold text-[var(--color-text)] flex items-center gap-3 mb-6" style={{ fontFamily: "var(--font-display)" }}>
           <Calendar size={24} /> {t("Today's Metrics", "Chỉ số hôm nay")}
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-lg bg-[var(--color-success-tint)] text-[var(--color-success)] flex items-center justify-center">
