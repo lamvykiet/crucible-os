@@ -52,7 +52,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<"upload" | "review">("upload");
+  const [step, setStep] = useState<"upload" | "review" | "saved">("upload");
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [driveFileIds, setDriveFileIds] = useState<string[]>([]);
   const [driveFileName, setDriveFileName] = useState("");
@@ -248,8 +248,11 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
       const data = await res.json();
 
       if (res.ok && data.success) {
+        // Không đóng modal ngay. Bản cũ đóng cái rụp, nên người dùng bấm "Xác
+        // nhận" xong thấy màn hình trở lại như cũ và đinh ninh là đã ghi sổ —
+        // trong khi mới chỉ lưu nháp, và còn một bước duyệt nữa mới vào sổ.
         onSuccess();
-        onClose();
+        setStep("saved");
       } else {
         setError(data.error || t("Có lỗi xảy ra khi lưu nháp", "Failed to save draft"));
       }
@@ -284,7 +287,11 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
           <h2
             className="c-h3 text-[var(--color-text)]"
           >
-            {step === "review" ? t("Duyệt kết quả OCR", "Review OCR Result") : t("Quét hóa đơn OCR", "Scan Invoice")}
+            {step === "saved"
+              ? t("Đã lưu vào hàng đợi", "Saved to the queue")
+              : step === "review"
+                ? t("Duyệt kết quả OCR", "Review OCR Result")
+                : t("Quét hóa đơn OCR", "Scan Invoice")}
           </h2>
           <button
             onClick={onClose}
@@ -346,6 +353,48 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                 </button>
               </>
             )}
+          </div>
+        )}
+
+        {step === "saved" && (
+          <div className="p-8 flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-full bg-[var(--color-success-tint)] text-[var(--color-success)] flex items-center justify-center mb-5">
+              <Check size={32} />
+            </div>
+
+            <h3 className="font-bold text-lg text-[var(--color-text)] mb-2">
+              {t("Chưa ghi vào sổ đâu nhé", "Not in the ledger yet")}
+            </h3>
+
+            <p className="text-sm text-[var(--color-text-muted)] mb-1">
+              {formData.supplier || t("Hoá đơn", "Receipt")} ·{" "}
+              <strong className="text-[var(--color-text)]">
+                {Number(formData.totalAmount || 0).toLocaleString("vi-VN")} đ
+              </strong>{" "}
+              · {items.length} {t("dòng", "lines")}
+            </p>
+
+            <p className="text-sm text-[var(--color-text-muted)] mb-6 max-w-sm">
+              {t(
+                'Hoá đơn đang nằm trong hàng đợi. Bấm nút cam "Duyệt hóa đơn" ở đầu trang, xem lại lần cuối rồi bấm "Duyệt & ghi vào sổ" thì giao dịch mới được ghi.',
+                'It is waiting in the queue. Press the orange "Review invoices" button at the top of the page, check it once more, then "Approve & record".'
+              )}
+            </p>
+
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={onClose}
+                className="flex-1 bg-[#66c2c2] hover:bg-[var(--color-success)] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow"
+              >
+                {t("Đóng để đi duyệt", "Close and review")}
+              </button>
+              <button
+                onClick={resetState}
+                className="flex-1 c-btn c-btn-secondary justify-center"
+              >
+                {t("Quét tiếp", "Scan another")}
+              </button>
+            </div>
           </div>
         )}
 
@@ -614,7 +663,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                 className="c-btn c-btn-primary shadow"
               >
                 {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                {t("Xác nhận (Confirm)", "Confirm")}
+                {t("Lưu & chờ duyệt", "Save for review")}
               </button>
               <button
                 onClick={onClose}
