@@ -445,9 +445,9 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
               </div>
             )}
 
-            <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
+            <div className="flex flex-1 min-h-0 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
               {/* Cột 1: ảnh */}
-              <div className="w-full md:w-1/3 bg-[var(--color-surface-2)] border-r border-[var(--color-border)] overflow-y-auto p-4 flex flex-col gap-4">
+              <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface-2)] border-b md:border-b-0 md:border-r border-[var(--color-border)] md:overflow-y-auto p-4 flex flex-col gap-4">
                 <h3 className="text-sm font-bold text-[var(--color-text)]">
                   {t("Ảnh hóa đơn", "Receipt Images")}
                 </h3>
@@ -462,7 +462,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
               </div>
 
               {/* Cột 2: thông tin chung */}
-              <div className="w-full md:w-1/3 bg-[var(--color-surface)] border-r border-[var(--color-border)] overflow-y-auto p-6 flex flex-col">
+              <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface)] border-b md:border-b-0 md:border-r border-[var(--color-border)] md:overflow-y-auto p-5 md:p-6 flex flex-col">
                 {error && (
                   <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
                     {error}
@@ -582,7 +582,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
               </div>
 
               {/* Cột 3: chi tiết món hàng */}
-              <div className="w-full md:w-1/3 bg-[var(--color-surface)] overflow-y-auto p-6 flex flex-col">
+              <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface)] md:overflow-y-auto p-5 md:p-6 flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-sm font-bold text-[var(--color-text)]">
                     {t("Chi tiết món hàng", "Line Items")}
@@ -595,7 +595,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                   </button>
                 </div>
 
-                <div className="border border-[var(--color-border)] rounded-xl overflow-hidden overflow-x-auto flex-1">
+                <div className="border border-[var(--color-border)] rounded-xl overflow-x-auto">
                   <table className="w-full text-sm text-left">
                     <thead className="text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)] uppercase border-b border-[var(--color-border)]">
                       <tr>
@@ -664,7 +664,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
               </div>
             </div>
 
-            <div className="p-4 border-t border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface-2)] gap-4">
+            <div className="shrink-0 p-4 border-t border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface-2)] gap-4">
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => approve(false)}

@@ -231,7 +231,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
               </button>
             </div>
             
-            <div className="border border-[var(--color-border)] rounded-xl overflow-hidden overflow-x-auto">
+            <div className="border border-[var(--color-border)] rounded-xl overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)] uppercase border-b border-[var(--color-border)]">
                   <tr>
