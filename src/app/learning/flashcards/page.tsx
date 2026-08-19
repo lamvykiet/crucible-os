@@ -137,8 +137,7 @@ export default function FlashcardPage() {
     <div className="max-w-3xl mx-auto space-y-6 flex flex-col items-center justify-center min-h-[70vh]">
       <div className="text-center mb-2">
         <h1
-          className="text-3xl font-bold flex items-center justify-center gap-3 mb-2"
-          style={{ fontFamily: "var(--font-display)" }}
+          className="c-h2 flex items-center justify-center gap-3 mb-2"
         >
           <Brain className="text-[var(--color-success)]" size={32} />
           {t("Review Today", "Ôn Tập Hôm Nay")}
@@ -201,8 +200,7 @@ export default function FlashcardPage() {
             >
               <div className="absolute inset-0 backface-hidden bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[32px] shadow-lg flex items-center justify-center p-8 text-center">
                 <h2
-                  className="text-3xl font-bold text-[var(--color-primary)]"
-                  style={{ fontFamily: "var(--font-display)" }}
+                  className="c-h2 text-[var(--color-primary)]"
                 >
                   {current.front}
                 </h2>

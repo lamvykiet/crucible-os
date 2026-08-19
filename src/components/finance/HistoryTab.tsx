@@ -95,7 +95,7 @@ export default function HistoryTab() {
     <div className="space-y-8 animate-in fade-in">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-display)' }}>
+          <h2 className="c-h2 text-[var(--color-text)]">
             {t("Transaction History", "Lịch sử Giao dịch")}
           </h2>
           <p className="text-[var(--color-text-muted)] text-sm mt-1">

@@ -127,7 +127,7 @@ export default function IncomeTab() {
       <div className="space-y-8 animate-in fade-in">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-[var(--color-text)]" style={{ fontFamily: "var(--font-display)" }}>
+            <h2 className="c-h2 text-[var(--color-text)]">
               {t("Income", "Thu nhập")}
             </h2>
             <p className="text-[var(--color-text-muted)] text-sm mt-1">
@@ -171,7 +171,7 @@ export default function IncomeTab() {
     <div className="space-y-8 animate-in fade-in">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-[var(--color-text)]" style={{ fontFamily: "var(--font-display)" }}>
+          <h2 className="c-h2 text-[var(--color-text)]">
             {t("Income", "Thu nhập")}
           </h2>
           <p className="text-[var(--color-text-muted)] text-sm mt-1">
@@ -257,7 +257,7 @@ export default function IncomeTab() {
 
       {/* Phân tích nguồn thu */}
       <div>
-        <h3 className="text-2xl font-bold text-[var(--color-text)] mb-6 mt-8" style={{ fontFamily: "var(--font-display)" }}>
+        <h3 className="c-h3 text-[var(--color-text)] mb-6 mt-8">
           {t("Income Analysis", "Phân tích nguồn thu")} — {year}
         </h3>
 
@@ -317,13 +317,13 @@ export default function IncomeTab() {
       </div>
 
       {/* Xu hướng */}
-      <h3 className="text-2xl font-bold text-[var(--color-text)] mb-6 mt-8" style={{ fontFamily: "var(--font-display)" }}>
+      <h3 className="c-h3 text-[var(--color-text)] mb-6 mt-8">
         {t("Trends", "Xu hướng")}
       </h3>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-          <h3 className="font-bold text-[var(--color-text)] mb-6 text-sm">
+          <h3 className="c-h5 text-[var(--color-text)] mb-6">
             {t("Monthly Income Trend (12 Months)", "Xu hướng thu nhập theo tháng (12 tháng)")}
           </h3>
           <div className="h-64 w-full">
@@ -340,7 +340,7 @@ export default function IncomeTab() {
         </div>
 
         <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-          <h3 className="font-bold text-[var(--color-text)] mb-6 text-sm">
+          <h3 className="c-h5 text-[var(--color-text)] mb-6">
             {t("Total Annual Income", "Tổng thu nhập theo năm")}
           </h3>
           <div className="h-64 w-full">
@@ -357,7 +357,7 @@ export default function IncomeTab() {
         </div>
 
         <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm lg:col-span-2">
-          <h3 className="font-bold text-[var(--color-text)] mb-6 text-sm">
+          <h3 className="c-h5 text-[var(--color-text)] mb-6">
             {t("Income by Source", "Thu nhập theo nguồn")} — {year}
           </h3>
           {bySupplier.length === 0 ? (

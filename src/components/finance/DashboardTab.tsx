@@ -152,7 +152,7 @@ export default function DashboardTab() {
             nó. Xếp chồng dưới 768px, giống các tab Expense/Debts. */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
           <div>
-            <h3 className="text-xl font-bold text-[var(--color-text)]">Dashboard</h3>
+            <h3 className="c-h3 text-[var(--color-text)]">Dashboard</h3>
             <p className="text-sm text-[var(--color-text-muted)] mt-1">{t("Your financial overview", "Tổng quan tài chính")}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -268,7 +268,7 @@ export default function DashboardTab() {
       {/* Xem chú thích ở nhánh "chưa có dữ liệu" phía trên — cùng một header. */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <div>
-          <h3 className="text-xl font-bold text-[var(--color-text)]">Dashboard</h3>
+          <h3 className="c-h3 text-[var(--color-text)]">Dashboard</h3>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">{t("Your financial overview", "Tổng quan tài chính")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -402,7 +402,7 @@ export default function DashboardTab() {
 
       {/* Chỉ số hôm nay */}
       <div>
-        <h3 className="text-2xl font-bold text-[var(--color-text)] flex items-center gap-3 mb-6" style={{ fontFamily: "var(--font-display)" }}>
+        <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3 mb-6">
           <Calendar size={24} /> {t("Today's Metrics", "Chỉ số hôm nay")}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -470,7 +470,7 @@ export default function DashboardTab() {
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-          <h3 className="font-bold text-[var(--color-text)] mb-6 text-sm">
+          <h3 className="c-h5 text-[var(--color-text)] mb-6">
             {t("Daily Spending Trend (with 7-day MA)", "Xu hướng chi theo ngày (Kèm MA 7-ngày)")}
           </h3>
           <div className="h-64 w-full">
@@ -488,7 +488,7 @@ export default function DashboardTab() {
         </div>
 
         <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-          <h3 className="font-bold text-[var(--color-text)] mb-6 text-sm">
+          <h3 className="c-h5 text-[var(--color-text)] mb-6">
             {t("Weekly Spending Heatmap", "Nhiệt đồ chi tiêu theo tuần")}
           </h3>
           <div className="flex flex-col gap-1.5">
@@ -528,7 +528,7 @@ export default function DashboardTab() {
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-          <h3 className="font-bold text-[var(--color-text)] mb-6 text-sm">
+          <h3 className="c-h5 text-[var(--color-text)] mb-6">
             {t("12-Month Cumulative Income vs Expense", "Luỹ kế Thu / Chi 12 tháng")}
           </h3>
           <div className="h-64 w-full">
@@ -556,7 +556,7 @@ export default function DashboardTab() {
         </div>
 
         <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-          <h3 className="font-bold text-[var(--color-text)] mb-6 text-sm">
+          <h3 className="c-h5 text-[var(--color-text)] mb-6">
             {t("Expense Distribution", "Phân bổ chi tiêu")}
           </h3>
           {categoryBreakdown.length === 0 ? (
@@ -587,7 +587,7 @@ export default function DashboardTab() {
       {/* Widgets Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col">
-          <h3 className="font-bold text-[var(--color-text)] mb-4 text-sm flex items-center gap-2">
+          <h3 className="c-h5 text-[var(--color-text)] mb-4 flex items-center gap-2">
             <AlertCircle size={18} className="text-[var(--color-success)]" /> {t("Alerts & Insights", "Cảnh báo & Gợi ý")}
           </h3>
           <div className="space-y-3">
@@ -621,7 +621,7 @@ export default function DashboardTab() {
         </div>
 
         <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col">
-          <h3 className="font-bold text-[var(--color-text)] mb-4 text-sm flex items-center gap-2">
+          <h3 className="c-h5 text-[var(--color-text)] mb-4 flex items-center gap-2">
             <Clock size={18} className="text-[var(--color-success)]" /> {t("Budget Tracking", "Theo dõi Ngân sách")}
           </h3>
           {budgetVsActual.length === 0 ? (

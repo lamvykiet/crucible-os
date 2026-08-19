@@ -43,7 +43,7 @@ export default function SubjectPage({ params }: { params: Promise<{ id: string }
   if (notFound) {
     return (
       <div className="max-w-7xl mx-auto py-20 text-center">
-        <h1 className="text-2xl font-bold text-[var(--color-text-muted)]">
+        <h1 className="c-h3 text-[var(--color-text-muted)]">
           {t("Subject not found", "Lĩnh vực không tồn tại")}
         </h1>
         <button onClick={() => router.push("/learning")} className="mt-4 text-[var(--color-accent)] font-bold">

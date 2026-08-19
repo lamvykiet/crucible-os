@@ -24,7 +24,7 @@ export default function SettingsPage() {
     <div className="max-w-7xl mx-auto space-y-6 pb-20">
       {/* Top Header with Tabs */}
       <div className="flex flex-col items-center">
-        <h1 className="text-4xl font-bold mb-6" style={{ fontFamily: 'var(--font-display)' }}>
+        <h1 className="c-h1 mb-6">
           {t("Settings", "Cài Đặt Hệ Thống")}
         </h1>
         

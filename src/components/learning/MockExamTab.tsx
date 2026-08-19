@@ -153,7 +153,7 @@ export default function MockExamTab() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold text-[var(--color-text)]" style={{ fontFamily: "var(--font-display)" }}>
+        <h2 className="c-h2 text-[var(--color-text)]">
           {t("Mock Exam", "Thi thử")}
         </h2>
         <p className="text-[var(--color-text-muted)] text-sm mt-1">
@@ -231,7 +231,7 @@ export default function MockExamTab() {
 
           {attempts.length > 0 && (
             <div>
-              <h3 className="font-bold text-[var(--color-text)] mb-4 flex items-center gap-2">
+              <h3 className="c-h3 text-[var(--color-text)] mb-4 flex items-center gap-2">
                 <History size={18} /> {t("Past attempts", "Lịch sử làm bài")}
               </h3>
               <div className="space-y-2">

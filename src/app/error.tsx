@@ -28,7 +28,7 @@ export default function Error({
       </div>
 
       <div className="max-w-md">
-        <h2 className="text-2xl font-bold text-[var(--color-text)]" style={{ fontFamily: "var(--font-display)" }}>
+        <h2 className="c-h3 text-[var(--color-text)]">
           Đã xảy ra lỗi
         </h2>
         <p className="text-sm text-[var(--color-text-muted)] mt-2">

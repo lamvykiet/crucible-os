@@ -280,12 +280,12 @@ export default function ThreePanelWorkspace({
           >
             <ArrowLeft size={18} />
           </button>
-          <h2 className="text-lg font-bold truncate tracking-tight">{title}</h2>
+          <h2 className="c-h4 truncate tracking-tight">{title}</h2>
         </div>
 
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-4 flex-1 flex flex-col min-h-0 shadow-inner">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-sm tracking-wide uppercase">
+            <h3 className="c-h5 tracking-wide uppercase">
               {t("Sources", "Nguồn")}
             </h3>
             <span className="text-[11px] font-bold text-[var(--color-text-faint)]">
@@ -410,7 +410,7 @@ export default function ThreePanelWorkspace({
               >
                 <ArrowLeft size={16} />
               </button>
-              <h3 className="font-bold tracking-wide truncate flex-1">
+              <h3 className="c-h3 tracking-wide truncate flex-1">
                 {activeName || t("Document", "Tài liệu")}
               </h3>
               <button
@@ -432,7 +432,7 @@ export default function ThreePanelWorkspace({
         ) : (
           <>
             <div className="flex justify-between items-center mb-4 border-b border-[var(--color-border)] pb-4">
-              <h3 className="font-bold tracking-wide">{t("Conversation", "Cuộc trò chuyện")}</h3>
+              <h3 className="c-h3 tracking-wide">{t("Conversation", "Cuộc trò chuyện")}</h3>
               <div className="flex gap-4 text-[var(--color-text-muted)]">
                 <button className="hover:text-[var(--color-text)] transition-colors"><Grid size={18} /></button>
                 <button className="hover:text-[var(--color-text)] transition-colors"><MoreVertical size={18} /></button>

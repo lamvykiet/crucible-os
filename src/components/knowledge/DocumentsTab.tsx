@@ -93,7 +93,7 @@ export default function DocumentsTab() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold flex items-center gap-3 text-[var(--color-text)]" style={{fontFamily: 'var(--font-display)'}}>
+          <h2 className="c-h2 flex items-center gap-3 text-[var(--color-text)]">
             <BookOpen className="text-[var(--color-primary)]" size={32} />
             {t("Documents Explorer", "Khám phá Tài liệu")}
           </h2>
@@ -146,7 +146,7 @@ export default function DocumentsTab() {
       ) : filteredFiles.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] border-dashed">
           <Folder className="mb-4 text-[var(--color-border-strong)] opacity-50" size={64} />
-          <h3 className="text-xl font-bold mb-2 text-[var(--color-text)]" style={{fontFamily: 'var(--font-display)'}}>{t("Empty Folder", "Thư mục trống")}</h3>
+          <h3 className="c-h3 mb-2 text-[var(--color-text)]">{t("Empty Folder", "Thư mục trống")}</h3>
           <p className="text-[var(--color-text-muted)] text-sm">{t("No subfolders or documents found here.", "Chưa có thư mục con hoặc tài liệu nào ở đây.")}</p>
         </div>
       ) : (
@@ -155,7 +155,7 @@ export default function DocumentsTab() {
           {/* Folders Section */}
           {foldersList.length > 0 && (
             <div>
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-[var(--color-text-muted)]">
+              <h3 className="c-h4 mb-4 flex items-center gap-2 text-[var(--color-text-muted)]">
                 <LayoutGrid size={18} /> {t("Folders", "Thư mục")}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -169,7 +169,7 @@ export default function DocumentsTab() {
                       <Folder size={24} className="text-[var(--color-info)]" fill="currentColor" fillOpacity={0.2} />
                     </div>
                     <div className="overflow-hidden">
-                      <h4 className="font-semibold text-[var(--color-text)] truncate text-base">{folder.name}</h4>
+                      <h4 className="c-h4 text-[var(--color-text)] truncate">{folder.name}</h4>
                       <p className="text-xs text-[var(--color-text-faint)] mt-0.5">{t("Drive Folder", "Thư mục Drive")}</p>
                     </div>
                   </div>
@@ -181,7 +181,7 @@ export default function DocumentsTab() {
           {/* Files Section */}
           {documentsList.length > 0 && (
             <div>
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-[var(--color-text-muted)]">
+              <h3 className="c-h4 mb-4 flex items-center gap-2 text-[var(--color-text-muted)]">
                 <FileText size={18} /> {t("Documents", "Tài liệu")}
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -198,7 +198,7 @@ export default function DocumentsTab() {
                       </div>
                       
                       <div className="p-4 flex-1 flex flex-col">
-                        <h4 className="font-semibold text-[var(--color-text)] line-clamp-2 text-sm leading-snug mb-3 group-hover:text-[var(--color-accent)] transition-colors">
+                        <h4 className="c-h5 text-[var(--color-text)] line-clamp-2 leading-snug mb-3 group-hover:text-[var(--color-accent)] transition-colors">
                           {file.name.replace(/\.[a-z0-9]+$/i, "")}
                         </h4>
                         

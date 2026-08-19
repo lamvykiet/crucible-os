@@ -105,7 +105,7 @@ export default function DashboardTab({
           <div className="flex justify-between items-start mb-2">
             <div>
               <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">{t("Total Documents", "Tổng Tài Liệu")}</p>
-              <h3 className="text-3xl font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-display)' }}>
+              <h3 className="c-h2 text-[var(--color-text)]">
                 {loadingSummary ? <Loader2 size={24} className="animate-spin" /> : summary.totalDocuments}
               </h3>
             </div>
@@ -120,7 +120,7 @@ export default function DashboardTab({
           <div className="flex justify-between items-start mb-2">
             <div>
               <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">{t("Stale Documents", "Tài Liệu Cũ")}</p>
-              <h3 className="text-3xl font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-display)' }}>
+              <h3 className="c-h2 text-[var(--color-text)]">
                 {loadingSummary ? <Loader2 size={24} className="animate-spin" /> : summary.staleDocuments}
               </h3>
             </div>
@@ -140,7 +140,7 @@ export default function DashboardTab({
           <div className="flex justify-between items-start mb-2">
             <div>
               <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">{t("Ideas", "Ý Tưởng")}</p>
-              <h3 className="text-3xl font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-display)' }}>
+              <h3 className="c-h2 text-[var(--color-text)]">
                 {loadingSummary ? <Loader2 size={24} className="animate-spin" /> : summary.totalIdeas}
               </h3>
             </div>
@@ -178,7 +178,7 @@ export default function DashboardTab({
               <Video size={20} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-display)' }}>{t("Video Library", "Thư viện Video")}</h3>
+              <h3 className="c-h4 text-[var(--color-text)]">{t("Video Library", "Thư viện Video")}</h3>
               <p className="text-[10px] text-[var(--color-text-muted)]">{t("Saved from your iOS Shortcut", "Lưu từ shortcut iOS của bạn")}</p>
             </div>
           </div>
@@ -208,7 +208,7 @@ export default function DashboardTab({
                 <Lightbulb size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-display)' }}>{t("Idea Tracker", "Quản Lý Ý Tưởng")}</h3>
+                <h3 className="c-h4 text-[var(--color-text)]">{t("Idea Tracker", "Quản Lý Ý Tưởng")}</h3>
                 <p className="text-[10px] text-[var(--color-text-muted)]">{t("Generate blueprints with Gemini", "Tạo bản thiết kế bằng Gemini")}</p>
               </div>
             </div>
@@ -264,7 +264,7 @@ export default function DashboardTab({
       {blueprintResult && (
         <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden mt-6">
           <div className="bg-[var(--color-surface-2)] px-6 py-4 border-b border-[var(--color-border)] flex justify-between items-center">
-            <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2"><Zap size={18} className="text-[var(--color-warning)]" /> Generated Blueprint</h3>
+            <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-2"><Zap size={18} className="text-[var(--color-warning)]" /> Generated Blueprint</h3>
             <button onClick={() => setBlueprintResult("")} className="text-[var(--color-text-faint)] hover:text-[var(--color-text-muted)] text-sm font-bold px-3 py-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg">Close</button>
           </div>
           <div className="p-6 prose prose-sm max-w-none max-h-[500px] overflow-y-auto whitespace-pre-wrap text-sm text-[var(--color-text)] font-medium">
@@ -276,7 +276,7 @@ export default function DashboardTab({
       {/* Recent Media & Documents */}
       <div>
         <div className="flex justify-between items-center mb-4 mt-8">
-          <h3 className="text-xl font-bold flex items-center gap-2 text-[var(--color-text)]" style={{ fontFamily: 'var(--font-display)' }}>
+          <h3 className="c-h3 flex items-center gap-2 text-[var(--color-text)]">
             <Folder size={20} className="text-[var(--color-primary)]" />
             {t("Recent Media & Documents", "Tài Liệu & Truyền Thông Mới Nhất")}
           </h3>

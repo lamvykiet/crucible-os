@@ -134,8 +134,7 @@ export default function OcrRulesSettings() {
     <div className="space-y-6 animate-in fade-in">
       <div>
         <h2
-          className="text-2xl font-bold text-[var(--color-text)] mb-1"
-          style={{ fontFamily: "var(--font-display)" }}
+          className="c-h3 text-[var(--color-text)] mb-1"
         >
           {t("Quy tắc & Nhật ký OCR", "OCR rules & logs")}
         </h2>
@@ -161,7 +160,7 @@ export default function OcrRulesSettings() {
         <>
           {/* Thêm quy tắc */}
           <div className={cardClass}>
-            <h3 className="font-bold text-[var(--color-text)] mb-4">
+            <h3 className="c-h3 text-[var(--color-text)] mb-4">
               {t("Thêm quy tắc", "Add a rule")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
@@ -260,7 +259,7 @@ export default function OcrRulesSettings() {
 
           {/* Danh sách quy tắc */}
           <div className={cardClass}>
-            <h3 className="font-bold text-[var(--color-text)] mb-4">
+            <h3 className="c-h3 text-[var(--color-text)] mb-4">
               {t("Quy tắc hiện có", "Active rules")} ({rules.length})
             </h3>
 
@@ -329,7 +328,7 @@ export default function OcrRulesSettings() {
           {/* Nhật ký OCR */}
           <div className={cardClass}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-[var(--color-text)]">{t("Nhật ký OCR", "OCR log")}</h3>
+              <h3 className="c-h3 text-[var(--color-text)]">{t("Nhật ký OCR", "OCR log")}</h3>
               <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer select-none">
                 <input
                   type="checkbox"

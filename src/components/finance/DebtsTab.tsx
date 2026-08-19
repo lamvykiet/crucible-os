@@ -95,7 +95,7 @@ export default function DebtsTab() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-display)' }}>{t("Debts & Loans", "Nợ & Khoản vay")}</h2>
+          <h2 className="c-h2 text-[var(--color-text)]">{t("Debts & Loans", "Nợ & Khoản vay")}</h2>
           <p className="text-[var(--color-text-muted)] text-sm mt-1">{t("Mortgage, auto loan, and other debts", "Vay mua nhà, mua xe và các khoản nợ khác")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -177,14 +177,14 @@ export default function DebtsTab() {
           {/* Charts & Due Dates Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col">
-              <h3 className="font-bold text-[var(--color-text)] mb-6 text-sm">{t("Debt by Type", "Dư nợ theo loại")}</h3>
+              <h3 className="c-h5 text-[var(--color-text)] mb-6">{t("Debt by Type", "Dư nợ theo loại")}</h3>
               <div className="flex-1 flex items-center justify-center text-[var(--color-text-faint)] text-sm">
                  {t("No data available", "Chưa có dữ liệu")}
               </div>
             </div>
             
             <div className="md:col-span-2 bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-              <h3 className="font-bold text-[var(--color-text)] mb-6 text-sm">{t("Due This Month", "Sắp đến hạn tháng này")}</h3>
+              <h3 className="c-h5 text-[var(--color-text)] mb-6">{t("Due This Month", "Sắp đến hạn tháng này")}</h3>
               {dueThisMonth.length === 0 ? (
                 <div className="text-sm text-[var(--color-text-faint)] mt-4">{t("No debts due this month", "Không có khoản nợ nào đến hạn trong tháng này")}</div>
               ) : (
@@ -208,7 +208,7 @@ export default function DebtsTab() {
 
           {/* Danh sách khoản nợ */}
           <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm mt-8">
-            <h3 className="font-bold text-[var(--color-text)] mb-6 text-sm">{t("Debt List", "Danh sách khoản nợ")}</h3>
+            <h3 className="c-h5 text-[var(--color-text)] mb-6">{t("Debt List", "Danh sách khoản nợ")}</h3>
             
             <div className="space-y-6">
               {debtsList.length === 0 ? (
@@ -219,7 +219,7 @@ export default function DebtsTab() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <span className="bg-[var(--color-success-tint)] text-[var(--color-success)] text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider mb-2 inline-block">{debt.type}</span>
-                        <h4 className="font-bold text-[var(--color-text)] text-lg">{debt.name}</h4>
+                        <h4 className="c-h4 text-[var(--color-text)]">{debt.name}</h4>
                         <p className="text-xs text-[var(--color-text-faint)] mt-1">{t("started", "bắt đầu")} {debt.startDate}</p>
                       </div>
                       <div className="text-right">

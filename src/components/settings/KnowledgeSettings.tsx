@@ -61,8 +61,7 @@ export default function KnowledgeSettings() {
     <div className="space-y-6 animate-in fade-in max-w-4xl">
       <div>
         <h2
-          className="text-2xl font-bold text-[var(--color-text)] mb-1"
-          style={{ fontFamily: "var(--font-display)" }}
+          className="c-h3 text-[var(--color-text)] mb-1"
         >
           {t("Drive & AI connection", "Kết nối Drive & AI")}
         </h2>
@@ -75,7 +74,7 @@ export default function KnowledgeSettings() {
       </div>
 
       <div className="bg-[var(--color-info-tint)] border-l-4 border-[var(--color-info)] p-4 rounded-r-lg text-sm">
-        <h4 className="font-bold flex items-center gap-2 mb-1 text-[var(--color-info)]">
+        <h4 className="c-h4 flex items-center gap-2 mb-1 text-[var(--color-info)]">
           <Info size={16} /> {t("How to change these", "Muốn đổi thì làm ở đâu")}
         </h4>
         <p className="text-[var(--color-text)]">
@@ -109,7 +108,7 @@ export default function KnowledgeSettings() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-sm text-[var(--color-text)]">{f.label}</h3>
+                    <h3 className="c-h5 text-[var(--color-text)]">{f.label}</h3>
                     {f.reachable ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--color-success)]">
                         <CheckCircle2 size={12} /> {t("Connected", "Đã kết nối")}
@@ -174,7 +173,7 @@ export default function KnowledgeSettings() {
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-sm text-[var(--color-text)]">Gemini API</h3>
+                  <h3 className="c-h5 text-[var(--color-text)]">Gemini API</h3>
                   {gemini.configured ? (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--color-success)]">
                       <CheckCircle2 size={12} /> {t("Key present", "Đã có khoá")}

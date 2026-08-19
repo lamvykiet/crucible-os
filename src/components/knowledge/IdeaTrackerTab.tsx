@@ -164,7 +164,7 @@ export default function IdeaTrackerTab() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-[var(--color-text)]" style={{ fontFamily: "var(--font-display)" }}>
+          <h2 className="c-h2 text-[var(--color-text)]">
             {t("Idea & Project Tracker", "Quản lý Dự án & Ý tưởng")}
           </h2>
           <p className="text-[var(--color-text-muted)] text-sm mt-1">
@@ -273,7 +273,7 @@ export default function IdeaTrackerTab() {
                       {done ? t("Completed", "Đã hoàn thành") : t("In Progress", "Đang thực hiện")}
                     </span>
                   </div>
-                  <h3 className="font-bold text-[var(--color-text)] text-lg">{idea.title}</h3>
+                  <h3 className="c-h4 text-[var(--color-text)]">{idea.title}</h3>
                   {idea.description && (
                     <p className="text-sm text-[var(--color-text-muted)] mt-2 line-clamp-3">
                       {idea.description}
@@ -326,7 +326,7 @@ export default function IdeaTrackerTab() {
             <div className="p-6 border-b border-[var(--color-border)] flex justify-between items-center">
               <div className="flex items-center gap-3 min-w-0">
                 <Zap className="text-[var(--color-warning)] flex-none" size={20} />
-                <h3 className="text-lg font-bold truncate" style={{ fontFamily: "var(--font-display)" }}>
+                <h3 className="c-h4 truncate">
                   {blueprintFor.title}
                 </h3>
               </div>

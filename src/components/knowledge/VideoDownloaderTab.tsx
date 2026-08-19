@@ -149,7 +149,7 @@ export default function VideoDownloaderTab() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-[var(--color-text)]" style={{ fontFamily: "var(--font-display)" }}>
+          <h2 className="c-h2 text-[var(--color-text)]">
             {t("Video Library", "Thư viện Video")}
           </h2>
           <p className="text-[var(--color-text-muted)] text-sm mt-1">
@@ -191,7 +191,7 @@ export default function VideoDownloaderTab() {
             <LinkIcon size={20} />
           </div>
           <div>
-            <h3 className="font-bold text-[var(--color-text)]">{t("Save a video", "Lưu một video")}</h3>
+            <h3 className="c-h3 text-[var(--color-text)]">{t("Save a video", "Lưu một video")}</h3>
             <p className="text-xs text-[var(--color-text-muted)]">
               {t("TikTok, Facebook Reel, YouTube, Instagram", "TikTok, Facebook Reel, YouTube, Instagram")}
             </p>
@@ -242,7 +242,7 @@ export default function VideoDownloaderTab() {
         <div className="c-card space-y-3 animate-in fade-in">
           <div className="flex items-center gap-3">
             <Smartphone size={20} className="text-[var(--color-accent)]" />
-            <h3 className="font-bold text-lg" style={{ fontFamily: "var(--font-display)" }}>
+            <h3 className="c-h4">
               {t("How it works", "Cách hoạt động")}
             </h3>
           </div>
@@ -273,7 +273,7 @@ export default function VideoDownloaderTab() {
         <>
           {pending.length > 0 && (
             <section>
-              <h3 className="font-bold text-[var(--color-text)] mb-1 flex items-center gap-2">
+              <h3 className="c-h3 text-[var(--color-text)] mb-1 flex items-center gap-2">
                 <Clock size={16} className="text-[var(--color-warning)]" />
                 {t("Waiting for the file", "Chờ file về")} ({pending.length})
               </h3>
@@ -303,7 +303,7 @@ export default function VideoDownloaderTab() {
           )}
 
           <section>
-            <h3 className="font-bold text-[var(--color-text)] mb-4 flex items-center gap-2">
+            <h3 className="c-h3 text-[var(--color-text)] mb-4 flex items-center gap-2">
               <CheckCircle2 size={16} className="text-[var(--color-success)]" />
               {t("Saved", "Đã lưu")} ({saved.length})
             </h3>

@@ -76,8 +76,7 @@ export default function LearningSettings() {
     <div className="space-y-6 animate-in fade-in">
       <div>
         <h2
-          className="text-2xl font-bold text-[var(--color-text)] mb-1"
-          style={{ fontFamily: "var(--font-display)" }}
+          className="c-h3 text-[var(--color-text)] mb-1"
         >
           {t("Subjects", "Lĩnh vực học tập")}
         </h2>

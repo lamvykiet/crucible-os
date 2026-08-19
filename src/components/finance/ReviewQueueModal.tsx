@@ -275,8 +275,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
       >
         <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center">
           <h2
-            className="text-xl font-bold text-[var(--color-text)]"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="c-h3 text-[var(--color-text)]"
           >
             {t("Duyệt hóa đơn", "Review Invoices")}
           </h2>
@@ -344,7 +343,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
 
             {errorFiles.length > 0 && (
               <div className="mt-8 pt-6 border-t border-[var(--color-border)]">
-                <h3 className="text-sm font-bold text-[var(--color-error)] mb-1">
+                <h3 className="c-h5 text-[var(--color-error)] mb-1">
                   {t("Hóa đơn quét lỗi", "Failed scans")} ({errorFiles.length})
                 </h3>
                 <p className="text-xs text-[var(--color-text-muted)] mb-4">
@@ -387,7 +386,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                 <div className="bg-[var(--color-surface)] rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95">
                   <div className="flex items-center gap-3 text-[var(--color-warning)] mb-4">
                     <AlertCircle size={24} />
-                    <h3 className="font-bold text-lg">
+                    <h3 className="c-h4">
                       {t("Phát hiện trùng lặp", "Duplicate detected")}
                     </h3>
                   </div>
@@ -448,7 +447,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
             <div className="flex flex-1 min-h-0 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
               {/* Cột 1: ảnh */}
               <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface-2)] border-b md:border-b-0 md:border-r border-[var(--color-border)] md:overflow-y-auto p-4 flex flex-col gap-4">
-                <h3 className="text-sm font-bold text-[var(--color-text)]">
+                <h3 className="c-h5 text-[var(--color-text)]">
                   {t("Ảnh hóa đơn", "Receipt Images")}
                 </h3>
                 {previewIds.map((id) => (
@@ -470,7 +469,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                 )}
 
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-sm font-bold text-[var(--color-text)]">
+                  <h3 className="c-h5 text-[var(--color-text)]">
                     {t("Thông tin chung", "General Info")}
                   </h3>
                   <span className="text-xs bg-[var(--color-info-tint)] text-[var(--color-info)] px-2 py-1 rounded-full font-bold">
@@ -584,7 +583,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
               {/* Cột 3: chi tiết món hàng */}
               <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface)] md:overflow-y-auto p-5 md:p-6 flex flex-col">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-sm font-bold text-[var(--color-text)]">
+                  <h3 className="c-h5 text-[var(--color-text)]">
                     {t("Chi tiết món hàng", "Line Items")}
                   </h3>
                   <button

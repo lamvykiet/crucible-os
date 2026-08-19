@@ -18,7 +18,7 @@ export default function GeneralSettings() {
   return (
     <div className="space-y-6 animate-in fade-in">
       <div>
-        <h2 className="text-2xl font-bold text-[var(--color-text)] mb-1" style={{ fontFamily: 'var(--font-display)' }}>{t("Tổng Quan & Tài Khoản", "Tổng Quan & Tài Khoản")}</h2>
+        <h2 className="c-h3 text-[var(--color-text)] mb-1">{t("Tổng Quan & Tài Khoản", "Tổng Quan & Tài Khoản")}</h2>
         <p className="text-[var(--color-text-muted)] text-sm">{t("Quản lý dữ liệu và cấu hình tài khoản cá nhân", "Quản lý dữ liệu và cấu hình tài khoản cá nhân")}</p>
       </div>
 
@@ -29,7 +29,7 @@ export default function GeneralSettings() {
             <div className="w-12 h-12 rounded-full bg-[var(--color-info-tint)] text-[var(--color-info)] flex items-center justify-center mb-4">
               <Database size={24} />
             </div>
-            <h3 className="text-xl font-bold mb-2 text-[var(--color-text)]" style={{fontFamily: 'var(--font-display)'}}>{t("Data Safety & Backup", "An toàn Dữ liệu & Sao lưu")}</h3>
+            <h3 className="c-h3 mb-2 text-[var(--color-text)]">{t("Data Safety & Backup", "An toàn Dữ liệu & Sao lưu")}</h3>
             <p className="text-[var(--color-text-muted)] text-sm mb-6">
               {t("Xuất toàn bộ dữ liệu của bạn (Tài chính, Từ điển, Flashcard...) ra định dạng JSON an toàn.", "Xuất toàn bộ dữ liệu của bạn (Tài chính, Từ điển, Flashcard...) ra định dạng JSON an toàn.")}
             </p>
@@ -47,7 +47,7 @@ export default function GeneralSettings() {
             <div className="w-12 h-12 rounded-full bg-[var(--color-error-tint)] text-[var(--color-error)] flex items-center justify-center mb-4">
               <LogOut size={24} />
             </div>
-            <h3 className="text-xl font-bold mb-2 text-[var(--color-text)]" style={{fontFamily: 'var(--font-display)'}}>{t("Tài Khoản", "Tài Khoản")}</h3>
+            <h3 className="c-h3 mb-2 text-[var(--color-text)]">{t("Tài Khoản", "Tài Khoản")}</h3>
             <p className="text-[var(--color-text-muted)] text-sm mb-6">
               {t("Phiên đăng nhập hiện tại. Bấm đăng xuất để bảo vệ dữ liệu khi dùng chung thiết bị.", "Phiên đăng nhập hiện tại. Bấm đăng xuất để bảo vệ dữ liệu khi dùng chung thiết bị.")}
             </p>

@@ -78,7 +78,7 @@ export default function LoginPage() {
             </div>
             
             <div className="flex justify-between items-end mb-8">
-              <h1 className="text-[40px] leading-none" style={{fontFamily: 'var(--font-display)'}}>Log in</h1>
+              <h1 className="c-h1 leading-none">Log in</h1>
               <div className="bg-[var(--color-surface-2)]/50 border border-[var(--color-border)]/30 rounded-full px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5">
                 <Sparkles size={12} /> Google
               </div>
@@ -139,7 +139,7 @@ export default function LoginPage() {
           {/* Dark "New In" Card below */}
           <div className="w-full rounded-[24px] p-6 bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-xl flex flex-col justify-between items-start gap-4">
             <div>
-              <h3 className="text-2xl" style={{fontFamily: 'var(--font-display)'}}>New in</h3>
+              <h3 className="c-h3">New in</h3>
               <p className="opacity-80 text-sm mt-1">Finance OS Module</p>
             </div>
             <div className="w-full flex justify-end">
@@ -154,7 +154,7 @@ export default function LoginPage() {
           <div className="flex justify-between items-start z-10 relative">
             {mounted ? (
               <div>
-                <h2 className="text-6xl leading-[0.9]" style={{fontFamily: 'var(--font-display)'}}>
+                <h2 className="c-display leading-[0.9]">
                   {dayName}<br/>
                   <span className="opacity-40">{dateNum}{postfix}</span>
                 </h2>

@@ -266,8 +266,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
       >
         <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center">
           <h2
-            className="text-xl font-bold text-[var(--color-text)]"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="c-h3 text-[var(--color-text)]"
           >
             {step === "review" ? t("Duyệt kết quả OCR", "Review OCR Result") : t("Quét hóa đơn OCR", "Scan Invoice")}
           </h2>
@@ -303,7 +302,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                 <div className="w-20 h-20 bg-[var(--color-info-tint)] text-[var(--color-info)] rounded-full flex items-center justify-center mb-6">
                   <FileText size={32} />
                 </div>
-                <h3 className="font-bold text-[var(--color-text)] text-lg mb-2">
+                <h3 className="c-h4 text-[var(--color-text)] mb-2">
                   {t("Tải lên hóa đơn", "Upload Receipt")}
                 </h3>
                 <p className="text-sm text-[var(--color-text-muted)] mb-8">
@@ -339,7 +338,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
             <div className="flex flex-1 min-h-0 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
               {/* Cột trái: ảnh hóa đơn */}
               <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface-2)] border-b md:border-b-0 md:border-r border-[var(--color-border)] md:overflow-y-auto p-4 flex flex-col gap-4">
-                <h3 className="text-sm font-bold text-[var(--color-text)]">
+                <h3 className="c-h5 text-[var(--color-text)]">
                   {t("Ảnh hóa đơn", "Receipt Images")}
                 </h3>
                 {previewUrls.map((url, i) => (
@@ -380,7 +379,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                   </div>
                 )}
 
-                <h3 className="text-sm font-bold text-[var(--color-text)] mb-4">
+                <h3 className="c-h5 text-[var(--color-text)] mb-4">
                   {t("Thông tin chung", "General Info")}
                 </h3>
 
@@ -497,7 +496,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
               {/* Cột phải: chi tiết món hàng */}
               <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface)] md:overflow-y-auto p-5 md:p-6 flex flex-col">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-sm font-bold text-[var(--color-text)]">
+                  <h3 className="c-h5 text-[var(--color-text)]">
                     {t("Chi tiết món hàng", "Line Items")}
                   </h3>
                   <button

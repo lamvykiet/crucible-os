@@ -104,7 +104,7 @@ export default function ExpenseTab() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-[var(--color-text)]" style={{ fontFamily: 'var(--font-display)' }}>{t("Expense", "Chi tiêu")}</h2>
+          <h2 className="c-h2 text-[var(--color-text)]">{t("Expense", "Chi tiêu")}</h2>
           <p className="text-[var(--color-text-muted)] text-sm mt-1">{t("Categories & spending trends", "Danh mục & xu hướng chi tiêu")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -208,7 +208,7 @@ export default function ExpenseTab() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col">
-              <h3 className="font-bold text-[var(--color-text)] mb-2 text-sm">{t("Expense by Category", "Chi tiêu theo nhóm")}</h3>
+              <h3 className="c-h5 text-[var(--color-text)] mb-2">{t("Expense by Category", "Chi tiêu theo nhóm")}</h3>
               <p className="text-xs text-[var(--color-text-faint)] mb-6">({getRangeLabel()})</p>
               
               <div className="h-64 w-full flex-1 relative">
@@ -257,7 +257,7 @@ export default function ExpenseTab() {
             </div>
             
             <div className="md:col-span-2 bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-              <h3 className="font-bold text-[var(--color-text)] mb-6 text-sm">{t("Daily Expense Trend", "Xu hướng chi theo ngày")}</h3>
+              <h3 className="c-h5 text-[var(--color-text)] mb-6">{t("Daily Expense Trend", "Xu hướng chi theo ngày")}</h3>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsLineChart data={dailySeries}>
@@ -273,7 +273,7 @@ export default function ExpenseTab() {
           </div>
 
           <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-            <h3 className="font-bold text-[var(--color-text)] mb-6 text-sm">{t("Monthly Expense Trend (12 Months)", "Xu hướng chi theo tháng (12 tháng)")}</h3>
+            <h3 className="c-h5 text-[var(--color-text)] mb-6">{t("Monthly Expense Trend (12 Months)", "Xu hướng chi theo tháng (12 tháng)")}</h3>
             <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlySeries}>
@@ -289,7 +289,7 @@ export default function ExpenseTab() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-              <h3 className="font-bold text-[var(--color-text)] mb-4 text-sm">{t("Top Merchants", "Top nhà cung cấp")}</h3>
+              <h3 className="c-h5 text-[var(--color-text)] mb-4">{t("Top Merchants", "Top nhà cung cấp")}</h3>
               {topMerchants.length === 0 ? (
                 <p className="text-[var(--color-text-muted)] text-sm">{t("No data available.", "Chưa có dữ liệu.")}</p>
               ) : (
@@ -313,7 +313,7 @@ export default function ExpenseTab() {
             </div>
             
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm md:col-span-2">
-              <h3 className="font-bold text-[var(--color-text)] mb-4 text-sm">{t("Recent Transactions", "Giao dịch chi tiêu gần đây")}</h3>
+              <h3 className="c-h5 text-[var(--color-text)] mb-4">{t("Recent Transactions", "Giao dịch chi tiêu gần đây")}</h3>
               {recentTransactions.length === 0 ? (
                 <p className="text-[var(--color-text-muted)] text-sm">{t("No expenses this month.", "Chưa có giao dịch chi tiêu tháng này.")}</p>
               ) : (

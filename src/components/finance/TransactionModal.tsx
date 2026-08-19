@@ -125,7 +125,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
       <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col">
         <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-center gap-3">
-          <h2 className="c-modal-title text-[var(--color-text)]">
+          <h2 className="c-h2 text-[var(--color-text)]">
             {initialData?.id ? t("Chỉnh sửa giao dịch", "Edit transaction") : t("Thêm giao dịch thủ công", "Add manual transaction")}
           </h2>
           <button 
@@ -222,7 +222,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
           {/* Line Items Table */}
           <div className="mt-6 border-t border-[var(--color-border)] pt-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold text-[var(--color-text)]">Chi tiết món hàng</h3>
+              <h3 className="c-h5 text-[var(--color-text)]">Chi tiết món hàng</h3>
               <button 
                 onClick={() => setItems([...items, { productName: "", quantity: 1, unitPrice: 0, totalPrice: 0 }])}
                 className="text-xs flex items-center gap-1 bg-[var(--color-surface-2)] px-3 py-1.5 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-border)] transition-colors text-[var(--color-text)]"

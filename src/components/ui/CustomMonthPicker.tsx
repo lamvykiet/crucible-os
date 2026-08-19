@@ -76,7 +76,7 @@ export default function CustomMonthPicker({ value, onChange }: CustomMonthPicker
               lên vẫn là dropdown neo dưới nút như cũ. */}
           <div className="fixed left-1/2 top-1/2 z-50 w-[min(320px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xl animate-in fade-in zoom-in-95 duration-200 md:absolute md:left-0 md:top-full md:mt-3 md:w-[320px] md:translate-x-0 md:translate-y-0">
           <div className="flex justify-between items-center mb-6">
-            <h4 className="text-lg font-bold text-[var(--color-text)] ml-2">{currentYear}</h4>
+            <h4 className="c-h4 text-[var(--color-text)] ml-2">{currentYear}</h4>
             <div className="flex items-center gap-1">
               <button
                 type="button"

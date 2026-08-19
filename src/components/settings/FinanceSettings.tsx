@@ -210,7 +210,7 @@ export default function FinanceSettings() {
   return (
     <div className="space-y-6 animate-in fade-in">
       <div>
-        <h2 className="text-2xl font-bold text-[var(--color-text)] mb-1" style={{ fontFamily: "var(--font-display)" }}>
+        <h2 className="c-h3 text-[var(--color-text)] mb-1">
           {t("Categories", "Danh mục")}
         </h2>
         <p className="text-[var(--color-text-muted)] text-sm">
@@ -240,7 +240,7 @@ export default function FinanceSettings() {
 
             return (
               <div key={key} className="c-card">
-                <h3 className="font-bold text-[var(--color-text)]">{t(en, vi)}</h3>
+                <h3 className="c-h3 text-[var(--color-text)]">{t(en, vi)}</h3>
                 <p className="text-[11px] text-[var(--color-text-faint)] mb-4">
                   {groups.filter((c) => c.active).length}/{groups.length} {t("active", "đang bật")}
                 </p>

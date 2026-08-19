@@ -13,6 +13,9 @@
   --text-h2: 600 30px/1.2 var(--font-display);
   --text-h3: 600 22px/1.3 var(--font-display);
   --text-h4: 700 16px/1.4 var(--font-body);
+  /* Nấc nhỏ nhất của thang tiêu đề: nhãn mục trong thẻ/bảng điều khiển.
+     29 chỗ trong dự án cần cỡ này. */
+  --text-h5: 700 14px/1.4 var(--font-body);
   --text-body-lg: 400 16px/1.55 var(--font-body);
   --text-body: 400 14px/1.55 var(--font-body);
   --text-body-sm: 400 13px/1.5 var(--font-body);
@@ -178,34 +181,59 @@
 }
 
 /* Crucible component layer — class-based, consumed by the JSX primitives and plain HTML alike */
-body {
-  margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font: var(--text-body);
-  -webkit-font-smoothing: antialiased;
+/* Mặc định cho thẻ HTML — BẮT BUỘC nằm trong @layer base.
+ *
+ * Trước đây khối này viết ngoài mọi @layer. Theo luật cascade layer, khai báo
+ * không thuộc layer nào luôn thắng khai báo trong layer, mà utility của
+ * Tailwind v4 lại nằm trong @layer utilities. Hậu quả: mọi `text-*` đặt lên
+ * h1–h4 và mọi `mt-*`/`mb-*` đặt lên <p> đều bị bỏ qua trong im lặng —
+ * 83 heading và 58 đoạn văn trong dự án viết ra mà không có tác dụng gì.
+ *
+ * Đưa vào @layer base thì thứ tự thành base < components < utilities, đúng như
+ * mọi dự án Tailwind, và class viết trên JSX làm đúng điều nó nói. */
+@layer base {
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font: var(--text-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5 { margin: 0; }
+  h1 { font: var(--text-h1); }
+  h2 { font: var(--text-h2); }
+  h3 { font: var(--text-h3); }
+  h4 { font: var(--text-h4); }
+  h5 { font: var(--text-h5); }
+  p { margin: 0; }
+  a { color: var(--color-accent); text-decoration: none; }
+  a:hover { color: var(--color-primary-hover); text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+  ::selection { background: var(--color-accent-tint); }
 }
-h1, h2, h3, h4 { margin: 0; }
-h1 { font: var(--text-h1); }
-h2 { font: var(--text-h2); }
-h3 { font: var(--text-h3); }
-h4 { font: var(--text-h4); }
-p { margin: 0; }
-a { color: var(--color-accent); text-decoration: none; }
-a:hover { color: var(--color-primary-hover); text-decoration: underline; }
-:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-::selection { background: var(--color-accent-tint); }
 
-.c-overline { font: var(--text-overline); letter-spacing: .09em; text-transform: uppercase; color: var(--color-text-muted); }
+/* Thang tiêu đề dùng chung. Đặt trong @layer components để utility vẫn ghi đè
+   được khi thực sự cần — không lặp lại cái bẫy ở trên. */
+@layer components {
+  /* Nấc lớn nhất, cho chữ trang trí cỡ lớn (co giãn 40→60px). */
+  .c-display { font: var(--text-display); }
+  .c-h1 { font: var(--text-h1); }
+  .c-h2 { font: var(--text-h2); }
+  .c-h3 { font: var(--text-h3); }
+  .c-h4 { font: var(--text-h4); }
+  .c-h5 { font: var(--text-h5); }
 
-/* Tiêu đề hộp thoại. Phải khai báo ở đây, KHÔNG dùng class `text-lg` của Tailwind:
-   các rule h1–h4 phía trên nằm ngoài mọi @layer, còn utility của Tailwind v4 nằm
-   trong @layer utilities — theo luật cascade layer thì khai báo không thuộc layer
-   luôn thắng, nên mọi `text-*` gắn lên <h2> đều bị bỏ qua trong im lặng.
-   30px của --text-h2 làm tiêu đề dài xuống 2 dòng và ăn 113px chiều cao trên màn
-   568px, đẩy phần thân form co lại. */
-.c-modal-title { font: var(--text-h3); }
-@media (min-width: 768px) { .c-modal-title { font: var(--text-h2); } }
+  /* Các class chữ khác cũng đưa vào layer này: cùng một lý do — để utility
+     ghi đè được khi cần, thay vì bị bỏ qua trong im lặng. */
+  .c-overline { font: var(--text-overline); letter-spacing: .09em; text-transform: uppercase; color: var(--color-text-muted); }
+  .c-card-kicker { font: var(--text-overline); letter-spacing: .09em; text-transform: uppercase; color: var(--color-text-faint); margin-bottom: 8px; }
+  .c-card-title { font: var(--text-h3); margin-bottom: 6px; }
+  .c-card-body { font: var(--text-body); color: var(--color-text-muted); }
+  .c-stat-value { font: var(--text-stat); }
+  .c-stat-label { font: var(--text-caption); color: var(--color-text-muted); }
+}
+
+
 
 /* Buttons */
 .c-btn {
@@ -289,9 +317,6 @@ a:hover { color: var(--color-primary-hover); text-decoration: underline; }
   background: var(--color-surface); border: 1px solid var(--color-border);
   border-radius: var(--radius-lg); padding: var(--space-5); box-shadow: var(--shadow-sm);
 }
-.c-card-kicker { font: var(--text-overline); letter-spacing: .09em; text-transform: uppercase; color: var(--color-text-faint); margin-bottom: 8px; }
-.c-card-title { font: var(--text-h3); margin-bottom: 6px; }
-.c-card-body { font: var(--text-body); color: var(--color-text-muted); }
 .c-elev-md { box-shadow: var(--shadow-md); }
 .c-elev-lg { box-shadow: var(--shadow-lg); }
 
@@ -353,8 +378,6 @@ a:hover { color: var(--color-primary-hover); text-decoration: underline; }
 .c-progress.thick { height: 12px; }
 
 /* Stat */
-.c-stat-value { font: var(--text-stat); }
-.c-stat-label { font: var(--text-caption); color: var(--color-text-muted); }
 .c-delta-up { color: var(--color-success); font: 600 13px/1 var(--font-body); }
 .c-delta-down { color: var(--color-error); font: 600 13px/1 var(--font-body); }
 

@@ -144,7 +144,7 @@ export default function StudioPanel({ fileId, fileName }: Props) {
   return (
     <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-4 flex-1 flex flex-col min-h-0 shadow-inner">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="font-bold tracking-wide">Studio</h3>
+        <h3 className="c-h3 tracking-wide">Studio</h3>
         {fileName && (
           <span className="text-[10px] text-[var(--color-text-faint)] truncate max-w-[150px]" title={fileName}>
             {fileName}

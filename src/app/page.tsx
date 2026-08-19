@@ -122,7 +122,7 @@ export default function Home() {
 
   return (
     <div className="max-w-6xl mx-auto pb-20">
-      <h1 className="c-card-title" style={{ fontSize: "32px" }}>
+      <h1 className="c-h1">
         Crucible OS
       </h1>
       <p className="c-card-body mt-2">
@@ -143,7 +143,7 @@ export default function Home() {
                 <Icon size={18} className="text-[var(--color-text-faint)]" />
               </div>
 
-              <h2 className="c-card-title" style={{ fontSize: "26px" }}>
+              <h2 className="c-card-title">
                 {card.title}
               </h2>
               <p className="c-card-body mt-1 flex-1">{card.body}</p>

@@ -140,7 +140,7 @@ export default function DictionaryTab() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-[var(--color-text)]" style={{ fontFamily: "var(--font-display)" }}>
+          <h2 className="c-h2 text-[var(--color-text)]">
             {t("Dictionary", "Từ Điển")}
           </h2>
           <p className="text-[var(--color-text-muted)] text-sm mt-1">
@@ -342,7 +342,7 @@ export default function DictionaryTab() {
             >
               <div>
                 <div className="flex justify-between items-start mb-2 gap-2">
-                  <h3 className="text-xl font-bold text-[var(--color-primary)] break-words" style={{ fontFamily: "var(--font-display)" }}>
+                  <h3 className="c-h3 text-[var(--color-primary)] break-words">
                     {item.term}
                   </h3>
                   <div className="flex items-center gap-1.5 flex-none">
