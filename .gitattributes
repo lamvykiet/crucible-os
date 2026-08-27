@@ -1,0 +1,14 @@
+# Ổ làm việc là USB exFAT, và có lúc file được sửa từ máy Windows.
+# Không có dòng này thì cả cây nguồn bị ghi lại thành CRLF và git báo
+# hàng chục file "đã sửa" trong khi không có một dòng nội dung nào đổi.
+* text=auto eol=lf
+
+# Nhị phân — không đụng vào phần xuống dòng
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
