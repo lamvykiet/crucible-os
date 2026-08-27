@@ -162,7 +162,7 @@ export default function ExpenseTab() {
                     <select 
                       value={timeRange} 
                       onChange={(e) => setTimeRange(e.target.value as any)}
-                      className="appearance-none bg-transparent text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text)] uppercase tracking-wider focus:outline-none cursor-pointer pr-4"
+                      className="appearance-none bg-transparent text-base md:text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text)] uppercase tracking-wider focus:outline-none cursor-pointer pr-4"
                     >
                       <option value="day">{t("Daily Expense", "Chi tiêu ngày")}</option>
                       <option value="month">{t("Monthly Expense", "Chi tiêu tháng")}</option>

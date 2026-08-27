@@ -322,7 +322,7 @@ export default function ThreePanelWorkspace({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("Filter sources", "Lọc nguồn")}
-              className="w-full bg-[var(--color-bg)] border border-transparent focus:border-[var(--color-border-strong)] rounded-xl pl-9 pr-4 py-2.5 text-xs focus:outline-none transition-all text-[var(--color-text)] placeholder-[var(--color-text-faint)]"
+              className="w-full bg-[var(--color-bg)] border border-transparent focus:border-[var(--color-border-strong)] rounded-xl pl-9 pr-4 py-2.5 text-base md:text-xs focus:outline-none transition-all text-[var(--color-text)] placeholder-[var(--color-text-faint)]"
             />
           </div>
 
@@ -532,7 +532,7 @@ export default function ThreePanelWorkspace({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={t("Ask anything...", "Bắt đầu nhập lệnh...")}
-                className="w-full bg-[var(--color-bg)] border border-[var(--color-border-strong)] focus:border-[var(--color-accent)] rounded-full pl-6 pr-32 py-4 text-sm focus:outline-none transition-all text-[var(--color-text)] placeholder-[var(--color-text-faint)] shadow-inner"
+                className="w-full bg-[var(--color-bg)] border border-[var(--color-border-strong)] focus:border-[var(--color-accent)] rounded-full pl-6 pr-32 py-4 text-base md:text-sm focus:outline-none transition-all text-[var(--color-text)] placeholder-[var(--color-text-faint)] shadow-inner"
                 disabled={loading}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-3">

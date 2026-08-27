@@ -214,7 +214,7 @@ export default function StudioPanel({ fileId, fileName }: Props) {
               onChange={(e) => setDraft(e.target.value)}
               rows={2}
               placeholder={t("Write a note...", "Viết ghi chú...")}
-              className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] focus:border-[var(--color-accent)] rounded-xl px-3 py-2 text-xs focus:outline-none resize-none text-[var(--color-text)] placeholder-[var(--color-text-faint)]"
+              className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] focus:border-[var(--color-accent)] rounded-xl px-3 py-2 text-base md:text-xs focus:outline-none resize-none text-[var(--color-text)] placeholder-[var(--color-text-faint)]"
             />
             <button
               type="submit"

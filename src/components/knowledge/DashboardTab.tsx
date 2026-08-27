@@ -228,7 +228,7 @@ export default function DashboardTab({
                 value={ideaRequest}
                 onChange={(e) => setIdeaRequest(e.target.value)}
                 placeholder="e.g. Build an AI-driven personal knowledge base..."
-                className="w-full flex-1 min-h-[80px] bg-[var(--color-surface-2)] border-none rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all resize-none"
+                className="w-full flex-1 min-h-[80px] bg-[var(--color-surface-2)] border-none rounded-xl px-4 py-3 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all resize-none"
               />
             </div>
             
@@ -245,7 +245,7 @@ export default function DashboardTab({
                 type="text" 
                 value={promptDirective}
                 onChange={(e) => setPromptDirective(e.target.value)}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm focus:outline-none transition-all shadow-sm"
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-base md:text-sm focus:outline-none transition-all shadow-sm"
               />
             </div>
             

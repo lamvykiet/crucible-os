@@ -24,6 +24,18 @@
   --text-stat: 600 32px/1.1 var(--font-display);
 }
 
+/* Thang tiêu đề trên mobile.
+   40px và 30px là cỡ dành cho màn rộng; ở 375px thì "Thêm giao dịch thủ công"
+   tràn xuống hai dòng và nuốt mất phần đầu modal. Chỉ hạ h1/h2 — h3 trở xuống
+   (22/16/14) vốn đã vừa trên điện thoại. `--text-display` đã co giãn sẵn bằng
+   clamp() nên không đụng tới. */
+@media (max-width: 767px) {
+  :root {
+    --text-h1: 600 32px/1.15 var(--font-display);
+    --text-h2: 600 24px/1.25 var(--font-display);
+  }
+}
+
 /* Crucible color tokens — warm brown/cream palette from brand reference */
 :root {
   /* Brown ramp (base palette: #291C0E #6E473B #A78D78 #BEB5A9 #E1D4C2) */
@@ -210,6 +222,35 @@
   a:hover { color: var(--color-primary-hover); text-decoration: underline; }
   :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
   ::selection { background: var(--color-accent-tint); }
+
+  /* iOS Safari tự phóng to CẢ TRANG khi chạm vào ô nhập có cỡ chữ dưới 16px.
+     Phóng rồi thì mọi thứ trông như bị cắt mất — kể cả thanh điều hướng
+     `position: fixed`, thứ mà tràn ngang không bao giờ cắt được. Đó chính là
+     thủ phạm của mấy ảnh chụp "giao diện vỡ" sau khi gõ vào bảng chi tiết
+     món hàng (các ô đó thừa hưởng `text-sm` = 14px từ thẻ <table>).
+     Đặt sàn 16px cho mọi ô nhập trên mobile. Desktop giữ nguyên vì không có
+     hành vi tự phóng này. Dùng max() để chỗ nào cố ý to hơn thì vẫn to hơn.
+     Preflight của Tailwind đặt `font: inherit` cho ô nhập, cũng nằm trong
+     @layer base và cũng chỉ là selector kiểu — cùng độ đặc hiệu thì thứ tự
+     nguồn quyết định và preflight thắng. Nên phải nâng độ đặc hiệu bằng
+     :not(), chứ viết `input, select, textarea` là không ăn.
+     Vẫn để trong @layer base để utility (`text-base`, `text-sm`) còn ghi đè. */
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      font-size: max(16px, 1em);
+    }
+  }
+
+  /* iOS Safari không cho input[type=date] co theo `width: 100%` — nó giữ bề
+     ngang nội dung và thò ra rộng hơn các ô bên cạnh, làm form trông so le.
+     Chrome không tái hiện lỗi này nên chỉ nhìn trên máy tính sẽ không thấy. */
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+  }
 }
 
 /* Thang tiêu đề dùng chung. Đặt trong @layer components để utility vẫn ghi đè

@@ -152,14 +152,14 @@ export default function FinanceSettings() {
             value={editing.en}
             onChange={(e) => setEditing({ ...editing, en: e.target.value })}
             placeholder="English"
-            className="c-input flex-1 text-sm"
+            className="c-input flex-1 text-base md:text-sm"
           />
           <input
             value={editing.vi}
             onChange={(e) => setEditing({ ...editing, vi: e.target.value })}
             onKeyDown={(e) => e.key === "Enter" && saveEdit()}
             placeholder="Tiếng Việt"
-            className="c-input flex-1 text-sm"
+            className="c-input flex-1 text-base md:text-sm"
           />
           <button onClick={saveEdit} disabled={busy === cat.id} className="c-btn c-btn-primary c-btn-sm">
             {busy === cat.id ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
@@ -296,7 +296,7 @@ export default function FinanceSettings() {
                                 value={sd.en}
                                 onChange={(e) => setSubDraft((d) => ({ ...d, [cat.id]: { ...sd, en: e.target.value } }))}
                                 placeholder={t("Sub-category (English)", "Danh mục con (tiếng Anh)")}
-                                className="c-input flex-1 text-sm"
+                                className="c-input flex-1 text-base md:text-sm"
                               />
                               <input
                                 value={sd.vi}
@@ -308,7 +308,7 @@ export default function FinanceSettings() {
                                   }
                                 }}
                                 placeholder={t("Vietnamese label", "Nhãn tiếng Việt")}
-                                className="c-input flex-1 text-sm"
+                                className="c-input flex-1 text-base md:text-sm"
                               />
                               <button
                                 onClick={async () => {
@@ -337,7 +337,7 @@ export default function FinanceSettings() {
                     value={draft.en}
                     onChange={(e) => setGroupDraft((d) => ({ ...d, [key]: { ...draft, en: e.target.value } }))}
                     placeholder={t("New group (English)", "Nhóm mới (tiếng Anh)")}
-                    className="c-input flex-1 text-sm"
+                    className="c-input flex-1 text-base md:text-sm"
                   />
                   <input
                     value={draft.vi}
@@ -349,7 +349,7 @@ export default function FinanceSettings() {
                       }
                     }}
                     placeholder={t("Vietnamese label", "Nhãn tiếng Việt")}
-                    className="c-input flex-1 text-sm"
+                    className="c-input flex-1 text-base md:text-sm"
                   />
                   <button
                     onClick={async () => {

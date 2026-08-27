@@ -98,7 +98,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="e-mail address" 
-                  className="w-full bg-[var(--color-surface)]/70 backdrop-blur-md border border-[var(--color-border)]/50 rounded-full pl-10 pr-5 py-4 focus:outline-none focus:border-[var(--color-accent)] transition-all font-medium placeholder:opacity-60 text-sm shadow-inner" 
+                  className="w-full bg-[var(--color-surface)]/70 backdrop-blur-md border border-[var(--color-border)]/50 rounded-full pl-10 pr-5 py-4 focus:outline-none focus:border-[var(--color-accent)] transition-all font-medium placeholder:opacity-60 text-base md:text-sm shadow-inner" 
                   required
                 />
               </div>
@@ -110,7 +110,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="password" 
-                  className="w-full bg-[var(--color-surface)]/70 backdrop-blur-md border border-[var(--color-border)]/50 rounded-full pl-10 pr-[70px] py-4 focus:outline-none focus:border-[var(--color-accent)] transition-all font-medium placeholder:opacity-60 text-sm shadow-inner" 
+                  className="w-full bg-[var(--color-surface)]/70 backdrop-blur-md border border-[var(--color-border)]/50 rounded-full pl-10 pr-[70px] py-4 focus:outline-none focus:border-[var(--color-accent)] transition-all font-medium placeholder:opacity-60 text-base md:text-sm shadow-inner" 
                   required
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-[var(--color-surface-2)] px-3 py-1 rounded-full text-[10px] font-semibold cursor-pointer hover:opacity-80">

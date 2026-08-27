@@ -88,7 +88,7 @@ export default function DebtModal({ isOpen, onClose, onSuccess }: DebtModalProps
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
       <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col">
         <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-center gap-3">
-          <h2 className="c-h2 text-[var(--color-text)]">
+          <h2 className="c-h3 text-[var(--color-text)]">
             {t("Thêm khoản nợ / vay", "Add Debt / Loan")}
           </h2>
           <button 

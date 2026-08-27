@@ -106,7 +106,7 @@ export default function HistoryTab() {
           <select 
             value={typeFilter} 
             onChange={e => setTypeFilter(e.target.value)}
-            className="bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-success)]"
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] rounded-lg px-3 py-2 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-success)]"
           >
             <option value="All">{t("All Types", "Tất cả các loại")}</option>
             <option value="Income">{t("Income", "Thu nhập")}</option>
@@ -124,7 +124,7 @@ export default function HistoryTab() {
             <input 
               type="text" 
               placeholder={t("Search transactions...", "Tìm kiếm giao dịch...")}
-              className="w-full bg-[var(--color-surface-2)] border-none rounded-lg pl-9 pr-4 py-2 text-sm text-[var(--color-text)] focus:ring-2 focus:ring-[var(--color-success)] focus:outline-none"
+              className="w-full bg-[var(--color-surface-2)] border-none rounded-lg pl-9 pr-4 py-2 text-base md:text-sm text-[var(--color-text)] focus:ring-2 focus:ring-[var(--color-success)] focus:outline-none"
             />
           </div>
           <button className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] rounded-lg transition-colors">

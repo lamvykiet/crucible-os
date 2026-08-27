@@ -181,7 +181,7 @@ export default function OcrRulesSettings() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-[var(--color-info)] mb-1 uppercase">
+                <label className="block text-base md:text-xs font-bold text-[var(--color-info)] mb-1 uppercase">
                   {t("Chứa chữ", "Contains")}
                 </label>
                 <input
@@ -193,7 +193,7 @@ export default function OcrRulesSettings() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-[var(--color-info)] mb-1 uppercase">
+                <label className="block text-base md:text-xs font-bold text-[var(--color-info)] mb-1 uppercase">
                   {t("Loại", "Type")}
                 </label>
                 <select
@@ -210,7 +210,7 @@ export default function OcrRulesSettings() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-[var(--color-info)] mb-1 uppercase">
+                <label className="block text-base md:text-xs font-bold text-[var(--color-info)] mb-1 uppercase">
                   {t("Nhóm", "Category")}
                 </label>
                 <select
@@ -229,7 +229,7 @@ export default function OcrRulesSettings() {
               <button
                 onClick={addRule}
                 disabled={isSaving}
-                className="bg-[#66c2c2] hover:bg-[var(--color-success)] text-white font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center justify-center gap-1 disabled:opacity-50"
+                className="bg-[#66c2c2] hover:bg-[var(--color-success)] text-white font-bold px-4 py-2 rounded-xl text-base md:text-sm shadow flex items-center justify-center gap-1 disabled:opacity-50"
               >
                 {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                 {t("Thêm", "Add")}

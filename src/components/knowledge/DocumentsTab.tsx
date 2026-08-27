@@ -107,7 +107,7 @@ export default function DocumentsTab() {
             placeholder={t("Search files, folders...", "Tìm kiếm tài liệu, thư mục...")} 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full pl-12 pr-4 py-2.5 focus:outline-none focus:border-[var(--color-primary)] transition-colors text-sm shadow-sm"
+            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full pl-12 pr-4 py-2.5 focus:outline-none focus:border-[var(--color-primary)] transition-colors text-base md:text-sm shadow-sm"
           />
         </div>
       </div>
