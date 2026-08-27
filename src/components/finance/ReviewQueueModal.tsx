@@ -5,6 +5,8 @@ import { X, Loader2, FileText, Check, AlertCircle, Trash2, Plus, ArrowLeft, Refr
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
+import { type SupplierSuggestion } from "@/lib/useSuppliers";
+import SupplierInput from "./SupplierInput";
 
 interface ReviewQueueModalProps {
   isOpen: boolean;
@@ -174,6 +176,26 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
           ? { ...prev, categoryGroup: value, subGroup: "" }
           : { ...prev, [name]: value }
     );
+  };
+
+  /**
+   * Chọn một gợi ý thì điền luôn nhóm chi tiêu quen thuộc của nơi đó, nhưng
+   * chỉ khi ô nhóm đang trống: nhóm do OCR và quy tắc phân loại đề xuất đáng
+   * tin hơn thói quen chung.
+   *
+   * Ghi cả tên lẫn nhóm trong một lần cập nhật vì ô gợi ý gọi `onChange` ngay
+   * trước `onSelect`; tách làm hai lần ghi thì lần sau xoá mất lần trước.
+   */
+  const applySupplierDefaults = (supplier: SupplierSuggestion) => {
+    const preset = supplier.defaultsByType[formData.type || "Expense"];
+    const fillCategory = preset && !formData.categoryGroup;
+    setFormData({
+      ...formData,
+      supplier: supplier.name,
+      ...(fillCategory
+        ? { categoryGroup: preset.categoryGroup, subGroup: preset.subGroup || "" }
+        : {}),
+    });
   };
 
   const handleItemChange = (index: number, field: keyof LineItem, value: string) => {
@@ -484,7 +506,12 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                   </div>
                   <div>
                     <label className={labelClass}>{t("Nhà cung cấp", "Supplier")}</label>
-                    <input type="text" name="supplier" value={formData.supplier || ""} onChange={handleFormChange} className={inputClass} />
+                    <SupplierInput
+                      value={formData.supplier || ""}
+                      onChange={(supplier) => setFormData({ ...formData, supplier })}
+                      onSelect={applySupplierDefaults}
+                      className={inputClass}
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">

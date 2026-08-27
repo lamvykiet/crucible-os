@@ -5,6 +5,8 @@ import { X, Upload, FileText, Loader2, AlertCircle, Plus, Trash2, Check } from "
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
+import { type SupplierSuggestion } from "@/lib/useSuppliers";
+import SupplierInput from "./SupplierInput";
 
 interface ScanInvoiceModalProps {
   isOpen: boolean;
@@ -185,6 +187,20 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
           ? { ...prev, categoryGroup: value, subGroup: "" }
           : { ...prev, [name]: value }
     );
+  };
+
+  /**
+   * Chọn một gợi ý thì điền luôn nhóm chi tiêu quen thuộc của nơi đó, nhưng
+   * chỉ khi ô nhóm đang trống: nhóm do OCR/quy tắc phân loại đề xuất, hay do
+   * người dùng tự chọn, đều đáng tin hơn thói quen chung.
+   */
+  const applySupplierDefaults = (supplier: SupplierSuggestion) => {
+    setFormData((prev) => {
+      if (prev.categoryGroup) return prev;
+      const preset = supplier.defaultsByType[prev.type || "Expense"];
+      if (!preset) return prev;
+      return { ...prev, categoryGroup: preset.categoryGroup, subGroup: preset.subGroup || "" };
+    });
   };
 
   const handleItemChange = (index: number, field: keyof LineItem, value: string) => {
@@ -390,7 +406,12 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                   </div>
                   <div>
                     <label className={labelClass}>{t("Nhà cung cấp", "Supplier")}</label>
-                    <input type="text" name="supplier" value={formData.supplier} onChange={handleFormChange} className={inputClass} />
+                    <SupplierInput
+                      value={formData.supplier}
+                      onChange={(supplier) => setFormData((prev) => ({ ...prev, supplier }))}
+                      onSelect={applySupplierDefaults}
+                      className={inputClass}
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
