@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, Plus, CreditCard, LineChart as LineChartIcon, Tag, Receipt, ChevronDown } from "lucide-react";
+import { Calendar, Plus, CreditCard, LineChart as LineChartIcon, Tag, Receipt, ChevronDown, AlertCircle, ListChecks } from "lucide-react";
 import { BarChart, Bar, LineChart as RechartsLineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
@@ -9,10 +9,23 @@ import { CalendarX } from "lucide-react";
 import TransactionModal from "./TransactionModal";
 import ScanInvoiceModal from "./ScanInvoiceModal";
 import PendingReviewButton from "./PendingReviewButton";
+import DayTransactionsCard from "./DayTransactionsCard";
+import IncompleteDataModal from "./IncompleteDataModal";
+import { thisMonthLocalIso } from "@/lib/localDate";
 
 interface CategorySlice { name: string; amount: number }
 interface SeriesPoint { name: string; amount: number }
-interface TransactionInfo { id: string; date: string; supplier: string; amount: number; category: string }
+interface TransactionInfo {
+  id: string;
+  date: string;
+  supplier: string;
+  amount: number;
+  category: string;
+  subGroup: string;
+  paymentMethod: string;
+  itemCount: number;
+  missing: { subGroup: boolean; paymentMethod: boolean; items: boolean };
+}
 
 interface ExpenseData {
   totals: {
@@ -50,12 +63,15 @@ const COLORS = ['#14b8a6', '#0ea5e9', '#8b5cf6', '#f43f5e', '#f59e0b', '#64748b'
 
 export default function ExpenseTab() {
   const { t } = useLanguage();
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
   const [timeRange, setTimeRange] = useState<"day" | "month" | "year">("month");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [scannedData, setScannedData] = useState<any>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Ngày đang mở chi tiết, chọn bằng cách bấm vào một điểm trên biểu đồ ngày.
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [isIncompleteOpen, setIsIncompleteOpen] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState<ExpenseData>(EMPTY);
@@ -65,7 +81,7 @@ export default function ExpenseTab() {
     const load = async () => {
       setIsLoading(true);
       try {
-        const monthParam = selectedMonth || new Date().toISOString().slice(0, 7);
+        const monthParam = selectedMonth || thisMonthLocalIso();
         const res = await fetch(`/api/finance/expense?month=${monthParam}`, { signal: controller.signal });
         const result = await res.json().catch(() => null);
         if (res.ok && result?.success) {
@@ -141,6 +157,11 @@ export default function ExpenseTab() {
           setIsScanModalOpen(false);
           setRefreshKey(k => k + 1);
         }} 
+      />
+      <IncompleteDataModal
+        isOpen={isIncompleteOpen}
+        onClose={() => setIsIncompleteOpen(false)}
+        onSaved={() => setRefreshKey(k => k + 1)}
       />
 
       {/* Main Cards Row */}
@@ -269,6 +290,52 @@ export default function ExpenseTab() {
                   </RechartsLineChart>
                 </ResponsiveContainer>
               </div>
+              {/* Chọn ngày bằng dải nút thay vì bấm vào điểm trên biểu đồ: chấm
+                  chỉ rộng 3px, trên điện thoại gần như không trúng. Nút thật thì
+                  đủ 44px, và ngày đã có chi tiêu được tô đậm để dễ nhắm. */}
+              <div className="mt-6">
+                <p className="text-xs text-[var(--color-text-muted)] mb-2">
+                  {t("Pick a day to see its transactions", "Chọn một ngày để xem chi tiết")}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {dailySeries.map((d) => {
+                    const iso = `${selectedMonth}-${d.name}`;
+                    const active = selectedDay === iso;
+                    const hasSpend = d.amount > 0;
+                    return (
+                      <button
+                        key={d.name}
+                        onClick={() => setSelectedDay(active ? null : iso)}
+                        className={`min-w-11 h-11 px-2 flex items-center justify-center rounded-lg text-xs font-bold tabular-nums border transition-colors ${
+                          active
+                            ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] border-[var(--color-primary)]"
+                            : hasSpend
+                              ? "bg-[var(--color-surface-2)] text-[var(--color-text)] border-[var(--color-border)] hover:border-[var(--color-info)]"
+                              : "bg-transparent text-[var(--color-text-faint)] border-[var(--color-border)] hover:border-[var(--color-info)]"
+                        }`}
+                      >
+                        {Number(d.name)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {selectedDay && (
+                <div className="mt-6">
+                  <DayTransactionsCard
+                    date={selectedDay}
+                    refreshKey={refreshKey}
+                    onAddTransaction={() => setIsModalOpen(true)}
+                  />
+                  <button
+                    onClick={() => setSelectedDay(null)}
+                    className="mt-3 min-h-11 px-1 text-xs text-[var(--color-text-muted)] underline underline-offset-2 hover:text-[var(--color-text)]"
+                  >
+                    {t("Close day detail", "Đóng chi tiết ngày")}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -313,20 +380,48 @@ export default function ExpenseTab() {
             </div>
             
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm md:col-span-2">
-              <h3 className="c-h5 text-[var(--color-text)] mb-4">{t("Recent Transactions", "Giao dịch chi tiêu gần đây")}</h3>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h3 className="c-h5 text-[var(--color-text)]">{t("Recent Transactions", "Giao dịch chi tiêu gần đây")}</h3>
+                <button
+                  onClick={() => setIsIncompleteOpen(true)}
+                  className="text-xs flex items-center gap-1.5 bg-[var(--color-surface-2)] px-4 min-h-11 md:min-h-0 md:px-3 md:py-1.5 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-border)] transition-colors text-[var(--color-text)]"
+                >
+                  <ListChecks size={14} />
+                  {t("Fill in sub-categories", "Bổ sung danh mục con")}
+                </button>
+              </div>
               {recentTransactions.length === 0 ? (
                 <p className="text-[var(--color-text-muted)] text-sm">{t("No expenses this month.", "Chưa có giao dịch chi tiêu tháng này.")}</p>
               ) : (
                 <div className="space-y-3 mt-4">
-                  {recentTransactions.map(t => (
-                    <div key={t.id} className="flex justify-between items-center bg-[var(--color-surface-2)] p-3 rounded-xl border border-[var(--color-border)] transition-colors hover:border-[var(--color-info)]">
-                      <div>
-                        <div className="text-sm font-bold text-[var(--color-text)]">{t.supplier}</div>
-                        <div className="text-xs text-[var(--color-text-muted)] mt-1">{t.date} · {t.category}</div>
+                  {/* Biến vòng lặp đặt tên `tx`, không phải `t` — `t` là hàm dịch,
+                      đặt trùng thì không gọi được t() bên trong dòng nào cả. */}
+                  {recentTransactions.map(tx => {
+                    const gaps = [
+                      tx.missing.subGroup && t("no sub-category", "thiếu danh mục con"),
+                      tx.missing.paymentMethod && t("no payment method", "thiếu cách trả"),
+                      tx.missing.items && t("no line items", "chưa có dòng hàng"),
+                    ].filter(Boolean) as string[];
+                    return (
+                      <div key={tx.id} className="bg-[var(--color-surface-2)] p-3 rounded-xl border border-[var(--color-border)] transition-colors hover:border-[var(--color-info)]">
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-[var(--color-text)] truncate">{tx.supplier}</div>
+                            <div className="text-xs text-[var(--color-text-muted)] mt-1">
+                              {tx.date} · {tx.category}{tx.subGroup ? ` · ${tx.subGroup}` : ""}
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-sm font-bold text-[var(--color-warning)] tabular-nums">{formatVND(tx.amount)}</div>
+                        </div>
+                        {gaps.length > 0 && (
+                          <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-warning)]">
+                            <AlertCircle size={13} className="shrink-0" />
+                            {gaps.join(" · ")}
+                          </p>
+                        )}
                       </div>
-                      <div className="text-sm font-bold text-[var(--color-warning)]">{formatVND(t.amount)}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

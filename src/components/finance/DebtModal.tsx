@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, ChevronDown, Loader2 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { todayLocalIso } from "@/lib/localDate";
 
 interface DebtModalProps {
   isOpen: boolean;
@@ -18,7 +19,7 @@ export default function DebtModal({ isOpen, onClose, onSuccess }: DebtModalProps
   const [formData, setFormData] = useState({
     name: "",
     type: "Personal Loan",
-    startDate: new Date().toISOString().slice(0, 10),
+    startDate: todayLocalIso(),
     dueDate: "",
     principal: "",
     remaining: "",
@@ -66,7 +67,7 @@ export default function DebtModal({ isOpen, onClose, onSuccess }: DebtModalProps
         setFormData({
           name: "",
           type: "Personal Loan",
-          startDate: new Date().toISOString().slice(0, 10),
+          startDate: todayLocalIso(),
           dueDate: "",
           principal: "",
           remaining: "",

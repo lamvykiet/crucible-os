@@ -7,6 +7,7 @@ import { useCategories } from "@/lib/useCategories";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 import { invalidateSuppliers, type SupplierSuggestion } from "@/lib/useSuppliers";
 import SupplierInput from "./SupplierInput";
+import { todayLocalIso } from "@/lib/localDate";
 
 interface LineItem {
   productName: string;
@@ -33,7 +34,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
   const { groupNames, subGroupsOf, label } = useCategories(typeForCategories);
 
   const [formData, setFormData] = useState({
-    date: initialData?.date || new Date().toISOString().slice(0, 10),
+    date: initialData?.date || todayLocalIso(),
     supplier: initialData?.supplier || "",
     type: defaultType,
     categoryGroup: initialData?.categoryGroup || "",
@@ -49,7 +50,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
   React.useEffect(() => {
     if (isOpen) {
       setFormData({
-        date: initialData?.date || new Date().toISOString().slice(0, 10),
+        date: initialData?.date || todayLocalIso(),
         supplier: initialData?.supplier || "",
         type: initialData?.type || defaultType,
         categoryGroup: initialData?.categoryGroup || "",
@@ -171,7 +172,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
         onClose();
         // Reset form
         setFormData({
-          date: new Date().toISOString().slice(0, 10),
+          date: todayLocalIso(),
           supplier: "",
           type: defaultType,
           categoryGroup: "",

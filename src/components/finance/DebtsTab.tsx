@@ -6,6 +6,7 @@ import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import { useState, useEffect } from "react";
 import { CalendarX } from "lucide-react";
 import DebtModal from "./DebtModal";
+import { thisMonthLocalIso } from "@/lib/localDate";
 
 interface DebtInfo {
   id: string;
@@ -54,7 +55,7 @@ const formatVND = (amount: number) => new Intl.NumberFormat("vi-VN").format(amou
 
 export default function DebtsTab() {
   const { t } = useLanguage();
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -67,7 +68,7 @@ export default function DebtsTab() {
     const load = async () => {
       setIsLoading(true);
       try {
-        const monthParam = selectedMonth || new Date().toISOString().slice(0, 7);
+        const monthParam = selectedMonth || thisMonthLocalIso();
         const res = await fetch(`/api/finance/debts?month=${monthParam}`, { signal: controller.signal });
         const result = await res.json().catch(() => null);
         if (res.ok && result?.success) {

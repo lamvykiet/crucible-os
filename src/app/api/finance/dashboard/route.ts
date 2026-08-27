@@ -189,6 +189,17 @@ export async function GET(req: Request) {
       if (b === "expense") perDay[idx] += t.totalAmount;
       else if (b === "refund") perDay[idx] -= t.totalAmount;
     }
+    // Ngày nào đã có ÍT NHẤT một giao dịch — không dùng `perDay` được, vì một
+    // ngày chỉ ghi thu nhập (hoặc chỉ có Transfer) vẫn cho tổng chi bằng 0 và
+    // sẽ bị đếm nhầm là ngày chưa ghi sổ.
+    const daysWithData = [
+      ...new Set(
+        monthTx
+          .map((t) => t.date.getUTCDate())
+          .filter((d) => d >= 1 && d <= daysInMonth)
+      ),
+    ].sort((a, b) => a - b);
+
     // Với tháng hiện tại, cắt ở hôm nay — kéo dài tới cuối tháng chỉ tạo ra một
     // chuỗi số 0 giả và kéo tụt đường trung bình trượt.
     const visibleDays = isCurrentMonth ? elapsedDays : daysInMonth;
@@ -280,6 +291,7 @@ export async function GET(req: Request) {
         latestMonthWithData: latestTx ? monthKey(latestTx.date) : null,
         elapsedDays,
         daysInMonth,
+        daysWithData,
 
         // Các `type` không xếp được vào thu/chi — hiện ra thay vì bỏ qua im lặng
         unclassified: [...unclassified.entries()].map(([type, count]) => ({

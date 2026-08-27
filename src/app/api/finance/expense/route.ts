@@ -40,6 +40,8 @@ export async function GET(req: Request) {
       prisma.transaction.findMany({
         where: { userId, date: { gte: startDate, lt: endDate } },
         orderBy: { date: "asc" },
+        // Chỉ lấy id của dòng hàng, đủ để biết giao dịch có chi tiết hay chưa.
+        include: { items: { select: { id: true } } },
       }),
       prisma.transaction.findMany({
         where: { userId, date: { gte: ytdStart, lt: endDate } },
@@ -129,7 +131,17 @@ export async function GET(req: Request) {
         date: t.date.toISOString().split('T')[0],
         supplier: t.supplier || 'Unknown',
         amount: classify(t.type) === "expense" ? t.totalAmount : -t.totalAmount,
-        category: t.categoryGroup || 'Other'
+        category: t.categoryGroup || 'Other',
+        subGroup: t.subGroup || '',
+        paymentMethod: t.paymentMethod || 'unknown',
+        itemCount: t.items.length,
+        // Chỗ nào còn trống thì hiện cờ ngay trong danh sách, thay vì bắt người
+        // dùng mở từng giao dịch mới biết mình còn thiếu gì.
+        missing: {
+          subGroup: !t.subGroup,
+          paymentMethod: !t.paymentMethod || t.paymentMethod === 'unknown',
+          items: t.items.length === 0,
+        },
       }));
 
     // --- Calculate Yearly Breakdown ---

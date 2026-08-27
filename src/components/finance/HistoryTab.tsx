@@ -5,6 +5,7 @@ import { Search, Filter, Edit2, Trash2 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import TransactionModal from "./TransactionModal";
+import { thisMonthLocalIso } from "@/lib/localDate";
 
 interface Transaction {
   id: string;
@@ -21,7 +22,7 @@ const formatVND = (amount: number) => new Intl.NumberFormat("vi-VN").format(amou
 
 export default function HistoryTab() {
   const { t } = useLanguage();
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
   const [typeFilter, setTypeFilter] = useState("All");
 
   const [isLoading, setIsLoading] = useState(true);
@@ -34,7 +35,7 @@ export default function HistoryTab() {
   const loadTransactions = async (controller?: AbortController) => {
     setIsLoading(true);
     try {
-      const monthParam = selectedMonth || new Date().toISOString().slice(0, 7);
+      const monthParam = selectedMonth || thisMonthLocalIso();
       const res = await fetch(`/api/finance/history?month=${monthParam}&type=${typeFilter}`, { 
         signal: controller?.signal 
       });

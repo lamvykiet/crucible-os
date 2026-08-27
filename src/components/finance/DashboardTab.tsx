@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Calendar, Receipt, DollarSign, CreditCard, ArrowLeftRight, Target,
-  Clock, PieChart, AlertCircle, TrendingUp, CalendarX,
+  Clock, PieChart, AlertCircle, TrendingUp, CalendarX, ListChecks, CalendarDays,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -14,7 +14,10 @@ import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import TransactionModal from "./TransactionModal";
 import ScanInvoiceModal from "./ScanInvoiceModal";
 import PendingReviewButton from "./PendingReviewButton";
+import DayTransactionsCard from "./DayTransactionsCard";
+import IncompleteDataModal from "./IncompleteDataModal";
 import { Plus } from "lucide-react";
+import { thisMonthLocalIso, todayLocalIso } from "@/lib/localDate";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,
@@ -50,6 +53,8 @@ interface DashboardData {
   latestMonthWithData: string | null;
   elapsedDays: number;
   daysInMonth: number;
+  /** Các ngày trong tháng đã có ít nhất một giao dịch. */
+  daysWithData: number[];
   unclassified: { type: string; count: number }[];
 }
 
@@ -58,7 +63,7 @@ const EMPTY: DashboardData = {
   dailyIncome: 0, dailyExpense: 0, dailyCashFlow: 0, avgDailyExpense: 0, eomForecast: 0,
   dailySeries: [], ytdSeries: [], categoryBreakdown: [], budgetVsActual: [],
   totalBudget: 0, totalActualExpense: 0, transactionCount: 0, hasData: false,
-  latestMonthWithData: null, elapsedDays: 0, daysInMonth: 0, unclassified: [],
+  latestMonthWithData: null, elapsedDays: 0, daysInMonth: 0, daysWithData: [], unclassified: [],
 };
 
 const formatVND = (amount: number) =>
@@ -68,7 +73,7 @@ const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 export default function DashboardTab() {
   const { t } = useLanguage();
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
 
   const [isLoading, setIsLoading] = useState(true);
   const [errorCode, setErrorCode] = useState<"api" | "network" | null>(null);
@@ -79,6 +84,10 @@ export default function DashboardTab() {
   const [scannedData, setScannedData] = useState<any>(null);
   const [transactionType, setTransactionType] = useState<"Expense" | "Income" | "Transfer">("Expense");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isIncompleteOpen, setIsIncompleteOpen] = useState(false);
+  const [gaps, setGaps] = useState({
+    missingSubGroup: 0, unknownPayment: 0, noItems: 0, pendingDrafts: 0,
+  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -88,7 +97,7 @@ export default function DashboardTab() {
       setErrorCode(null);
       setApiMessage(null);
       try {
-        const monthParam = selectedMonth || new Date().toISOString().slice(0, 7);
+        const monthParam = selectedMonth || thisMonthLocalIso();
         const res = await fetch(`/api/finance/dashboard?month=${monthParam}`, {
           signal: controller.signal,
         });
@@ -114,12 +123,45 @@ export default function DashboardTab() {
     return () => controller.abort();
   }, [selectedMonth, refreshKey]);
 
+  // Số liệu "còn thiếu gì" tính trên TOÀN BỘ lịch sử, không theo tháng đang
+  // xem, nên tách khỏi lần fetch dashboard ở trên.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/finance/incomplete", { signal: controller.signal })
+      .then((r) => r.json())
+      .then((j) => { if (j?.success) setGaps(j.data.counts); })
+      .catch(() => { /* thẻ tự ẩn khi mọi số bằng 0 */ });
+    return () => controller.abort();
+  }, [refreshKey]);
+
   const {
     monthlyIncome, monthlyExpense, netCashFlow, savingsRate,
     dailyIncome, dailyExpense, dailyCashFlow, avgDailyExpense, eomForecast,
     dailySeries, ytdSeries, categoryBreakdown, budgetVsActual,
-    totalBudget, hasData, latestMonthWithData, elapsedDays, unclassified,
+    totalBudget, hasData, latestMonthWithData, elapsedDays, daysInMonth,
+    daysWithData, unclassified,
   } = data;
+
+  const todayIso = todayLocalIso();
+  const isCurrentMonth = selectedMonth === todayIso.slice(0, 7);
+
+  // Ngày đang soi: hôm nay nếu đang xem tháng này, còn tháng cũ thì lấy ngày
+  // gần nhất có dữ liệu — mở tháng 6 mà hiện "hôm nay" thì vô nghĩa.
+  const lastDayWithData = daysWithData.length ? daysWithData[daysWithData.length - 1] : null;
+  const focusDate = isCurrentMonth
+    ? todayIso
+    : lastDayWithData
+      ? `${selectedMonth}-${String(lastDayWithData).padStart(2, "0")}`
+      : null;
+
+  // Ngày chưa ghi sổ. Tháng đang chạy thì chỉ tính tới hôm nay — mấy ngày chưa
+  // tới mà đếm là "chưa ghi" thì thành lời trách vô lý.
+  const daysToCheck = isCurrentMonth ? elapsedDays : daysInMonth;
+  const recorded = new Set(daysWithData);
+  const blankDays: number[] = [];
+  for (let d = 1; d <= daysToCheck; d++) if (!recorded.has(d)) blankDays.push(d);
+
+  const gapTotal = gaps.missingSubGroup + gaps.unknownPayment + gaps.pendingDrafts;
 
   if (isLoading) {
     return (
@@ -262,6 +304,10 @@ export default function DashboardTab() {
   }
 
   const overBudget = budgetVsActual.filter((b) => b.remaining < 0);
+  const monthMostlyGone = daysToCheck / (daysInMonth || 31) > 0.5;
+  const zeroSpendBudgets = monthMostlyGone
+    ? budgetVsActual.filter((b) => b.budget > 0 && b.actual === 0)
+    : [];
 
   return (
     <div className="space-y-8 animate-in fade-in">
@@ -318,6 +364,11 @@ export default function DashboardTab() {
           setIsScanModalOpen(false);
           setRefreshKey(prev => prev + 1);
         }} 
+      />
+      <IncompleteDataModal
+        isOpen={isIncompleteOpen}
+        onClose={() => setIsIncompleteOpen(false)}
+        onSaved={() => setRefreshKey((prev) => prev + 1)}
       />
 
       {/* Main Cards Row 1 */}
@@ -389,13 +440,18 @@ export default function DashboardTab() {
             <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Savings Rate", "Tỷ lệ tiết kiệm")}</div>
           </div>
           {/* Không kẹp về 0 nữa — tháng bội chi phải nhìn thấy được */}
-          <div className={`text-2xl font-bold ${savingsRate < 0 ? "text-[var(--color-error)]" : "text-[var(--color-text)]"}`}>
-            {savingsRate}%
+          {/* Chưa ghi đồng thu nhập nào thì tỷ lệ tiết kiệm không tính được.
+              Hiện "0%" ở đây đọc như "tiêu sạch những gì kiếm được", trong khi
+              sự thật là chưa có gì để chia. */}
+          <div className={`text-2xl font-bold ${monthlyIncome === 0 ? "text-[var(--color-text-faint)]" : savingsRate < 0 ? "text-[var(--color-error)]" : "text-[var(--color-text)]"}`}>
+            {monthlyIncome === 0 ? "—" : `${savingsRate}%`}
           </div>
           <div className="text-xs text-[var(--color-text-faint)] mt-1">
-            {savingsRate < 0
-              ? t("overspending this month", "tháng này chi vượt thu")
-              : t("retained income", "phần thu nhập giữ lại")}
+            {monthlyIncome === 0
+              ? t("no income recorded this month", "chưa ghi thu nhập tháng này")
+              : savingsRate < 0
+                ? t("overspending this month", "tháng này chi vượt thu")
+                : t("retained income", "phần thu nhập giữ lại")}
           </div>
         </div>
       </div>
@@ -464,6 +520,109 @@ export default function DashboardTab() {
             <div className="text-lg font-bold text-[var(--color-text)]">{formatVND(eomForecast)}</div>
             <div className="text-xs text-[var(--color-text-faint)] mt-1">{t("at current rate", "theo nhịp chi hiện tại")}</div>
           </div>
+        </div>
+      </div>
+
+      {/* Hôm nay đã ghi gì, và còn thiếu gì */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {focusDate ? (
+          <DayTransactionsCard
+            date={focusDate}
+            refreshKey={refreshKey}
+            title={isCurrentMonth ? t("Today", "Hôm nay") : undefined}
+            onAddTransaction={() => {
+              setTransactionType("Expense");
+              setIsTransactionModalOpen(true);
+            }}
+          />
+        ) : (
+          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-5">
+            <h3 className="c-h5 text-[var(--color-text)]">{t("Daily detail", "Chi tiết theo ngày")}</h3>
+            <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+              {t("No transactions in this month at all.", "Tháng này chưa có giao dịch nào.")}
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-6">
+          {/* Ngày chưa ghi sổ. Đây là lỗ hổng lớn nhất và cũng là thứ khó tự
+              nhận ra nhất: mọi biểu đồ vẫn vẽ đẹp trên phần dữ liệu ít ỏi. */}
+          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--color-warning-tint)] text-[var(--color-warning)] flex items-center justify-center">
+                <CalendarDays size={16} />
+              </div>
+              <h3 className="c-h5 text-[var(--color-text)]">{t("Days not recorded", "Ngày chưa ghi sổ")}</h3>
+            </div>
+            {blankDays.length === 0 ? (
+              <p className="text-sm text-[var(--color-success)]">
+                {t("Every day so far has at least one record.", "Mọi ngày đã qua đều có ít nhất một khoản.")}
+              </p>
+            ) : (
+              <>
+                <p className="text-2xl font-bold text-[var(--color-warning)]">
+                  {blankDays.length}
+                  <span className="text-base font-normal text-[var(--color-text-faint)]">/{daysToCheck}</span>
+                </p>
+                <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-3">
+                  {t("days with nothing recorded", "ngày không có khoản nào")}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {blankDays.map((d) => (
+                    <span
+                      key={d}
+                      className="min-w-8 h-8 px-2 flex items-center justify-center rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs font-bold text-[var(--color-text-muted)] tabular-nums"
+                    >
+                      {d}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-[var(--color-text-muted)]">
+                  {t(
+                    "Charts below only cover the days that were recorded.",
+                    "Các biểu đồ bên dưới chỉ phản ánh những ngày đã ghi."
+                  )}
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* Dữ liệu cần bổ sung — gom mọi lỗ hổng đã biết vào một chỗ bấm được */}
+          {gapTotal > 0 && (
+            <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-[var(--color-info-tint)] text-[var(--color-info)] flex items-center justify-center">
+                  <ListChecks size={16} />
+                </div>
+                <h3 className="c-h5 text-[var(--color-text)]">{t("Data to fill in", "Dữ liệu cần bổ sung")}</h3>
+              </div>
+              <ul className="space-y-2 text-sm">
+                {gaps.missingSubGroup > 0 && (
+                  <li>
+                    <button
+                      onClick={() => setIsIncompleteOpen(true)}
+                      className="w-full text-left flex items-center justify-between gap-3 rounded-lg px-3 min-h-11 bg-[var(--color-surface-2)] hover:bg-[var(--color-border)] transition-colors text-[var(--color-text)]"
+                    >
+                      <span>{t("missing sub-category", "thiếu danh mục con")}</span>
+                      <span className="font-bold tabular-nums">{gaps.missingSubGroup}</span>
+                    </button>
+                  </li>
+                )}
+                {gaps.unknownPayment > 0 && (
+                  <li className="flex items-center justify-between gap-3 px-3 min-h-11 text-[var(--color-text-muted)]">
+                    <span>{t("payment method unknown", "chưa rõ cách thanh toán")}</span>
+                    <span className="font-bold tabular-nums">{gaps.unknownPayment}</span>
+                  </li>
+                )}
+                {gaps.pendingDrafts > 0 && (
+                  <li className="flex items-center justify-between gap-3 px-3 min-h-11 text-[var(--color-warning)]">
+                    <span>{t("scanned receipts awaiting review", "hoá đơn quét chờ duyệt")}</span>
+                    <span className="font-bold tabular-nums">{gaps.pendingDrafts}</span>
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 
@@ -605,6 +764,22 @@ export default function DashboardTab() {
                 {t("Spending exceeded income this month.", "Tháng này chi vượt thu.")}
               </div>
             )}
+            {/* Chiều ngược lại của "vượt ngân sách", và thường đúng hơn: một
+                nhóm đặt ngân sách mà cuối tháng vẫn bằng 0 gần như luôn là
+                thiếu ghi chứ không phải không tiêu. Chỉ nhắc khi tháng đã đi
+                được quá nửa, không thì đầu tháng nhóm nào cũng bằng 0. */}
+            {zeroSpendBudgets.length > 0 && (
+              <div className="bg-[var(--color-warning-tint)] border border-[var(--color-warning)] text-[var(--color-warning)] rounded-xl p-4 text-sm font-medium flex items-start gap-3">
+                <CalendarX size={16} className="flex-none mt-0.5" />
+                <span>
+                  {t(
+                    "Budgeted but nothing spent yet — likely unrecorded: ",
+                    "Có ngân sách mà chưa chi đồng nào, nhiều khả năng là chưa ghi: "
+                  )}
+                  <b>{zeroSpendBudgets.map((b) => b.group).join(", ")}</b>
+                </span>
+              </div>
+            )}
             {unclassified.length > 0 && (
               <div className="bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-xl p-4 text-sm font-medium flex items-center gap-3">
                 <Receipt size={16} className="flex-none" />
@@ -612,7 +787,7 @@ export default function DashboardTab() {
                 {unclassified.map((u) => `${u.type} (${u.count})`).join(", ")}
               </div>
             )}
-            {overBudget.length === 0 && savingsRate >= 0 && unclassified.length === 0 && (
+            {overBudget.length === 0 && savingsRate >= 0 && unclassified.length === 0 && zeroSpendBudgets.length === 0 && (
               <div className="bg-[var(--color-success-tint)] border border-[var(--color-success)] text-[var(--color-success)] rounded-xl p-4 text-sm font-medium">
                 {t("Everything looks healthy this month.", "Tháng này mọi chỉ số đều ổn.")}
               </div>

@@ -12,6 +12,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import TransactionModal from "./TransactionModal";
 import PendingReviewButton from "./PendingReviewButton";
+import { thisMonthLocalIso } from "@/lib/localDate";
 
 // Toàn bộ số liệu đến từ /api/finance/income.
 // Trước đây tab này chạy trên 4 mảng hardcode và cả tên công ty ("SHINHAN
@@ -51,7 +52,7 @@ const formatVND = (amount: number) =>
 
 export default function IncomeTab() {
   const { t } = useLanguage();
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
 
   const [isLoading, setIsLoading] = useState(true);
   const [errorCode, setErrorCode] = useState<"api" | "network" | null>(null);
@@ -68,7 +69,7 @@ export default function IncomeTab() {
       setErrorCode(null);
       setApiMessage(null);
       try {
-        const monthParam = selectedMonth || new Date().toISOString().slice(0, 7);
+        const monthParam = selectedMonth || thisMonthLocalIso();
         const res = await fetch(`/api/finance/income?month=${monthParam}`, {
           signal: controller.signal,
         });

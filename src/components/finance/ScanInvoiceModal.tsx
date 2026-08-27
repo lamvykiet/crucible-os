@@ -7,6 +7,7 @@ import { useCategories } from "@/lib/useCategories";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 import { type SupplierSuggestion } from "@/lib/useSuppliers";
 import SupplierInput from "./SupplierInput";
+import { todayLocalIso } from "@/lib/localDate";
 
 interface ScanInvoiceModalProps {
   isOpen: boolean;
@@ -120,7 +121,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
 
       setFormData({
         ...EMPTY_FORM,
-        date: str(data.date) || new Date().toISOString().slice(0, 10),
+        date: str(data.date) || todayLocalIso(),
         supplier: str(data.supplier),
         type: suggestion?.type || "Expense",
         categoryGroup: suggested || "",
