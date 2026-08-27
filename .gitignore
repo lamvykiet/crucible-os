@@ -46,3 +46,8 @@ next-env.d.ts
 ._*
 .DS_Store
 .claude/
+
+# Ghi chép cá nhân + log transcript. KHÔNG theo dõi: log có chứa
+# token đã dán vào terminal. Trước đây thư mục này untracked nhưng
+# cũng không được ignore — một lệnh `git add -A` là lộ.
+Brain/
