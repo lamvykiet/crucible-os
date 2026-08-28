@@ -44,18 +44,22 @@ const formatVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " �
 interface Props {
   debtId: string | null;
   debtName?: string;
+  /** Bộ lọc mở sẵn. "projected" đưa kỳ chưa trả kế tiếp lên đầu. */
+  initialFilter?: Filter;
   onClose: () => void;
   onChanged?: () => void;
 }
 
 type Filter = "all" | "paid" | "projected";
 
-export default function DebtScheduleModal({ debtId, debtName, onClose, onChanged }: Props) {
+export default function DebtScheduleModal({
+  debtId, debtName, initialFilter = "all", onClose, onChanged,
+}: Props) {
   const { t } = useLanguage();
   const [periods, setPeriods] = useState<Period[] | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [errorText, setErrorText] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>(initialFilter);
   const [editing, setEditing] = useState<Period | null>(null);
   const [draft, setDraft] = useState<Partial<Period>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -82,6 +86,13 @@ export default function DebtScheduleModal({ debtId, debtName, onClose, onChanged
     })();
     return () => { ignore = true; };
   }, [debtId, reloadTick]);
+
+  // Mở lại bằng nút khác thì đổi bộ lọc theo nút đó.
+  const [lastInitial, setLastInitial] = useState(initialFilter);
+  if (initialFilter !== lastInitial) {
+    setLastInitial(initialFilter);
+    setFilter(initialFilter);
+  }
 
   if (!debtId) return null;
 

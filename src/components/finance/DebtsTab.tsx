@@ -58,7 +58,7 @@ export default function DebtsTab() {
   const { t } = useLanguage();
   const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
   const [refreshKey, setRefreshKey] = useState(0);
-  const [scheduleFor, setScheduleFor] = useState<{ id: string; name: string } | null>(null);
+  const [scheduleFor, setScheduleFor] = useState<{ id: string; name: string; filter: "all" | "projected" } | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState<DebtsData>(EMPTY);
@@ -244,9 +244,14 @@ export default function DebtsTab() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <button className="c-btn c-btn-primary c-btn-sm shadow-sm">{t("Record Payment", "Ghi nhận thanh toán")}</button>
                       <button
-                        onClick={() => setScheduleFor({ id: debt.id, name: debt.name })}
+                        onClick={() => setScheduleFor({ id: debt.id, name: debt.name, filter: "projected" })}
+                        className="c-btn c-btn-primary c-btn-sm shadow-sm"
+                      >
+                        {t("Record Payment", "Ghi nhận thanh toán")}
+                      </button>
+                      <button
+                        onClick={() => setScheduleFor({ id: debt.id, name: debt.name, filter: "all" })}
                         className="c-btn bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] c-btn-sm rounded-md"
                       >
                         {t("Schedule", "Lịch trả nợ")}
@@ -266,6 +271,7 @@ export default function DebtsTab() {
       <DebtScheduleModal
         debtId={scheduleFor?.id ?? null}
         debtName={scheduleFor?.name}
+        initialFilter={scheduleFor?.filter ?? "all"}
         onClose={() => setScheduleFor(null)}
         onChanged={() => setRefreshKey(k => k + 1)}
       />

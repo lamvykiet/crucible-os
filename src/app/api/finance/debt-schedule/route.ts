@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { recalcFrom, type ScheduleRow } from "@/lib/debtSchedule";
+import { buildDebtTransactions, debtTxIds } from "@/lib/debtTransactions";
 
 // Lịch trả nợ từng kỳ: đọc, và sửa một kỳ rồi tính lại các kỳ sau.
 // Quy tắc tính lại nằm trong @/lib/debtSchedule — tách ra để kiểm chứng được
@@ -100,7 +101,7 @@ export async function PATCH(req: Request) {
 
     const target = await prisma.debtSchedule.findUnique({
       where: { id },
-      include: { debt: { select: { id: true, userId: true } } },
+      include: { debt: { select: { id: true, userId: true, name: true } } },
     });
     if (!target || target.debt.userId !== user.id) {
       return NextResponse.json(
@@ -173,6 +174,35 @@ export async function PATCH(req: Request) {
           FROM (VALUES ${values}) AS v(id, ob, i, p, cb)
           WHERE d.id = v.id
         `;
+      }
+
+      // Đồng bộ giao dịch của chính kỳ vừa sửa.
+      //
+      // Không có bước này thì bảng tổng kết chi phí lệch khỏi lịch trả nợ mà
+      // không ai hay — đúng cái đã xảy ra: 76 kỳ, hơn 1 tỷ tiền ra, không một
+      // dòng nào trong báo cáo. Chỉ cần đồng bộ kỳ vừa sửa: các kỳ sau tuy có
+      // dư nợ đổi nhưng tiền lãi của kỳ ĐÃ CHỐT thì không đổi, nên giao dịch
+      // của chúng vẫn đúng.
+      const ids = debtTxIds(id);
+      await tx.transaction.deleteMany({
+        where: { id: { in: [ids.interest, ids.principal] }, userId: user.id },
+      });
+
+      const edited = await tx.debtSchedule.findUnique({ where: { id } });
+      if (edited && edited.status === "paid") {
+        const txRows = buildDebtTransactions({
+          scheduleId: id,
+          userId: user.id,
+          debtName: target.debt.name,
+          period: edited.period,
+          totalPeriods: rows.length,
+          dueDate: edited.dueDate,
+          principal: edited.principal,
+          interest: edited.interest,
+          interestRate: edited.interestRate,
+          interestDays: edited.interestDays,
+        });
+        if (txRows.length > 0) await tx.transaction.createMany({ data: txRows });
       }
 
       // Dòng tóm tắt phải bám theo lịch, không nhập tay: dư nợ = số cuối của kỳ
