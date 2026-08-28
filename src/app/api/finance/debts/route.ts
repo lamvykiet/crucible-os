@@ -39,7 +39,15 @@ export async function GET(req: Request) {
 
     const debts = await prisma.debt.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: {
+        // Chỉ lấy kỳ chưa trả để đếm — không kéo cả 240 dòng về cho một thẻ tóm tắt.
+        schedule: {
+          where: { status: "projected" },
+          orderBy: { period: "asc" },
+          select: { period: true, dueDate: true, payment: true, interestRate: true },
+        },
+      },
     });
 
     let totalOutstanding = 0;
@@ -80,7 +88,21 @@ export async function GET(req: Request) {
         monthlyPayment: d.monthlyPayment,
         interestRate: d.interestRate,
         dueDate: d.dueDate ? d.dueDate.toISOString().split('T')[0] : 'N/A',
-        remainingMonths: d.monthlyPayment > 0 ? Math.ceil(d.remaining / d.monthlyPayment) : 0,
+        // Có lịch trả thì đếm số kỳ còn lại cho đúng. Công thức cũ lấy dư nợ
+        // GỐC chia cho khoản trả GỒM CẢ LÃI nên luôn ra ít hơn thực tế — khoản
+        // vay mua nhà ra 77 kỳ trong khi thật ra còn 164.
+        remainingMonths: d.schedule.length > 0
+          ? d.schedule.length
+          : (d.monthlyPayment > 0 ? Math.ceil(d.remaining / d.monthlyPayment) : 0),
+        hasSchedule: d.schedule.length > 0,
+        nextPeriod: d.schedule.length > 0
+          ? {
+              period: d.schedule[0].period,
+              dueDate: d.schedule[0].dueDate.toISOString().slice(0, 10),
+              payment: d.schedule[0].payment,
+              interestRate: d.schedule[0].interestRate,
+            }
+          : null,
         paidPercentage: d.principal > 0 ? Math.round(((d.principal - d.remaining) / d.principal) * 100) : 0,
         type: d.type,
       } as any);

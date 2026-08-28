@@ -457,6 +457,49 @@ model Debt {
   userId          String
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  schedule        DebtSchedule[]
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// Lịch trả nợ từng kỳ.
+//
+// `Debt` chỉ giữ được một dòng tóm tắt, không đủ cho khoản vay gốc đều lãi thả
+// nổi: mỗi kỳ có ngày đến hạn riêng (mùng 10, lùi về thứ Sáu nếu rơi cuối
+// tuần), số ngày tính lãi riêng, và lãi suất riêng — khoản vay mua nhà đã đổi
+// lãi 16 lần trong 76 kỳ đầu.
+//
+// Lãi = openingBalance × interestRate × interestDays / 365. Công thức này khớp
+// tới từng đồng với bảng của ngân hàng.
+//
+// `status` phân biệt kỳ ĐÃ CHỐT với kỳ TẠM TÍNH. Kỳ tạm tính dựng theo giả định
+// lãi suất hiện hành giữ nguyên tới hết — giả định gần như chắc chắn sai với
+// lãi thả nổi, nên giao diện phải nói rõ, không được trình bày như số thật.
+//
+// Mọi cột đều sửa được, kể cả kỳ quá khứ: khi thương lượng được khoản hoàn thì
+// cấn trừ ngược vào kỳ cũ, và các kỳ sau được tính lại từ dư nợ mới.
+model DebtSchedule {
+  id             String   @id @default(uuid())
+
+  debtId         String
+  debt           Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
+
+  period         Int      // 1..tenor
+  dueDate        DateTime
+  interestDays   Int
+  openingBalance Int      // dư nợ đầu kỳ
+  principal      Int
+  interest       Int
+  payment        Int      // principal + interest
+  closingBalance Int      // dư nợ cuối kỳ
+  interestRate   Float    // %/năm áp cho kỳ này
+  status         String   @default("projected") // paid | projected
+  note           String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([debtId, period])
+  @@index([debtId, dueDate])
 }
