@@ -141,7 +141,7 @@ export default function DebtsTab() {
                 </div>
                 <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Total Outstanding", "Tổng dư nợ")}</div>
               </div>
-              <div className="text-2xl font-bold text-[var(--color-warning)] ml-13 pl-13">{formatVND(totalOutstanding)}</div>
+              <div className="text-2xl font-bold text-[var(--color-warning)]">{formatVND(totalOutstanding)}</div>
             </div>
 
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
@@ -151,7 +151,7 @@ export default function DebtsTab() {
                 </div>
                 <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Monthly Payment", "Trả hàng tháng")}</div>
               </div>
-              <div className="text-2xl font-bold text-[var(--color-text)] ml-13 pl-13">{formatVND(monthlyPayment)}</div>
+              <div className="text-2xl font-bold text-[var(--color-text)]">{formatVND(monthlyPayment)}</div>
             </div>
 
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
@@ -161,7 +161,7 @@ export default function DebtsTab() {
                 </div>
                 <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Principal Paid", "Đã trả (gốc)")}</div>
               </div>
-              <div className="text-2xl font-bold text-[var(--color-success)] ml-13 pl-13">{formatVND(principalPaid)}</div>
+              <div className="text-2xl font-bold text-[var(--color-success)]">{formatVND(principalPaid)}</div>
             </div>
 
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
@@ -171,7 +171,7 @@ export default function DebtsTab() {
                 </div>
                 <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Active / Settled", "Đang hoạt động / Đã tất toán")}</div>
               </div>
-              <div className="text-2xl font-bold text-[var(--color-text)] ml-13 pl-13">{active} / {settled}</div>
+              <div className="text-2xl font-bold text-[var(--color-text)]">{active} / {settled}</div>
             </div>
           </div>
 

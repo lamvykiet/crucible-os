@@ -195,7 +195,10 @@ export default function DayTransactionsCard({
               <li key={tx.id} className="px-5 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-bold text-[var(--color-text)] truncate">
+                    <p
+                      className="font-bold text-[var(--color-text)] truncate"
+                      title={tx.supplier || undefined}
+                    >
                       {tx.supplier || t("(no name)", "(chưa đặt tên)")}
                     </p>
                     <p className="text-xs text-[var(--color-text-muted)] mt-0.5">

@@ -172,7 +172,7 @@ export default function ExpenseTab() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
@@ -193,7 +193,7 @@ export default function ExpenseTab() {
                   </div>
                 </div>
               </div>
-              <div className="text-2xl font-bold text-[var(--color-warning)] ml-13 pl-13 truncate">{formatVND(currentTotal)}</div>
+              <div className="text-2xl font-bold text-[var(--color-warning)] truncate">{formatVND(currentTotal)}</div>
             </div>
 
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
@@ -203,7 +203,7 @@ export default function ExpenseTab() {
                 </div>
                 <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Avg Daily Expense", "Chi tiêu TB/ngày")}</div>
               </div>
-              <div className="text-2xl font-bold text-[var(--color-text)] ml-13 pl-13">{formatVND(avgDailyExpense)}</div>
+              <div className="text-2xl font-bold text-[var(--color-text)]">{formatVND(avgDailyExpense)}</div>
             </div>
 
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
@@ -213,7 +213,7 @@ export default function ExpenseTab() {
                 </div>
                 <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("End of Month Forecast", "Dự báo cuối tháng")}</div>
               </div>
-              <div className="text-2xl font-bold text-[var(--color-text)] ml-13 pl-13">{formatVND(eomForecast)}</div>
+              <div className="text-2xl font-bold text-[var(--color-text)]">{formatVND(eomForecast)}</div>
             </div>
 
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
@@ -223,7 +223,7 @@ export default function ExpenseTab() {
                 </div>
                 <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Categories", "Số danh mục")}</div>
               </div>
-              <div className="text-2xl font-bold text-[var(--color-text)] ml-13 pl-13">{categoriesCount}</div>
+              <div className="text-2xl font-bold text-[var(--color-text)]">{categoriesCount}</div>
             </div>
           </div>
 
@@ -364,7 +364,7 @@ export default function ExpenseTab() {
                   {topMerchants.map(m => (
                     <div key={m.name}>
                       <div className="flex justify-between items-baseline mb-1">
-                        <span className="text-xs font-bold text-[var(--color-text-muted)] truncate">{m.name}</span>
+                        <span className="min-w-0 text-xs font-bold text-[var(--color-text-muted)] break-words">{m.name}</span>
                         <span className="text-xs font-bold text-[var(--color-text)] flex-none ml-3">{formatVND(m.amount)}</span>
                       </div>
                       <div className="h-2 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
@@ -406,7 +406,7 @@ export default function ExpenseTab() {
                       <div key={tx.id} className="bg-[var(--color-surface-2)] p-3 rounded-xl border border-[var(--color-border)] transition-colors hover:border-[var(--color-info)]">
                         <div className="flex justify-between items-start gap-3">
                           <div className="min-w-0">
-                            <div className="text-sm font-bold text-[var(--color-text)] truncate">{tx.supplier}</div>
+                            <div className="text-sm font-bold text-[var(--color-text)] truncate" title={tx.supplier}>{tx.supplier}</div>
                             <div className="text-xs text-[var(--color-text-muted)] mt-1">
                               {tx.date} · {tx.category}{tx.subGroup ? ` · ${tx.subGroup}` : ""}
                             </div>
