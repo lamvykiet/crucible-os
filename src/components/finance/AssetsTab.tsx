@@ -61,6 +61,9 @@ export default function AssetsTab() {
   const [totals, setTotals] = useState<Totals | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [unlinkedDebts, setUnlinkedDebts] = useState<{ id: string; name: string }[]>([]);
+  // Mọi khoản vay, để form chọn. Khác với `unlinkedDebts` vốn chỉ là danh sách
+  // ĐÁNG NHẮC — vay tín chấp không nằm trong đó vì nó không thế chấp gì cả.
+  const [allDebts, setAllDebts] = useState<{ id: string; name: string }[]>([]);
   const [errorText, setErrorText] = useState("");
   const [reloadTick, setReloadTick] = useState(0);
   const [editing, setEditing] = useState<AssetDraft | null>(null);
@@ -83,6 +86,7 @@ export default function AssetsTab() {
           setTotals(json.data.totals);
           setCategories(json.data.categories);
           setUnlinkedDebts(json.data.unlinkedDebts);
+          setAllDebts(json.data.allDebts ?? []);
           setErrorText("");
         } else {
           setErrorText(json.error || "Không tải được danh sách tài sản");
@@ -93,11 +97,6 @@ export default function AssetsTab() {
     })();
     return () => { ignore = true; };
   }, [reloadTick]);
-
-  const allDebts = [
-    ...unlinkedDebts,
-    ...(assets ?? []).flatMap((a) => a.loans.map((l) => ({ id: l.id, name: l.name }))),
-  ].filter((d, i, arr) => arr.findIndex((x) => x.id === d.id) === i);
 
   // Gắn sẵn khoản vay và chọn sẵn nhóm bất động sản, nhưng KHÔNG điền sẵn
   // nguyên giá — tôi không biết bạn mua căn nhà bao nhiêu, và một con số bịa

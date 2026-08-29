@@ -14,6 +14,21 @@ export interface AssetLike {
   disposalAmount: number | null;
 }
 
+/**
+ * Loại khoản vay CÓ tài sản bảo đảm — chỉ những loại này mới đáng nhắc "chưa
+ * gắn với tài sản nào".
+ *
+ * Vay tín chấp theo định nghĩa là không thế chấp gì cả, nên nhắc gắn tài sản
+ * cho nó là lời nhắc không bao giờ tắt được. Đã gặp thật: ngân hàng đặt tên
+ * sản phẩm "Home Equity Loan" cho một khoản vay tiền mặt không liên quan tới
+ * căn nhà — tên sản phẩm không quyết định được điều này, `type` mới quyết định.
+ */
+export const SECURED_DEBT_TYPES = ["Mortgage", "Auto Loan"];
+
+export function isSecured(debtType: string): boolean {
+  return SECURED_DEBT_TYPES.includes(debtType);
+}
+
 /** Đời hữu dụng mặc định theo nhóm, tính bằng tháng. Sửa được ở từng tài sản. */
 export const DEFAULT_LIFE_MONTHS: Record<string, number> = {
   "Real Estate": 0, // không khấu hao — nhà lên xuống theo thị trường, không mòn theo sổ

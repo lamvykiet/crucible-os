@@ -8,6 +8,7 @@ import {
   bookValue,
   currentWorth,
   equity,
+  isSecured,
   monthlyDepreciation,
   remainingLifeMonths,
 } from "@/lib/assets";
@@ -90,15 +91,18 @@ export async function GET() {
 
     const owned = rows.filter((r) => r.status === "owned");
 
-    // Khoản vay chưa gắn với tài sản nào — để giao diện mời gắn, thay vì âm
-    // thầm bỏ sót phần lớn nhất trong bảng cân đối.
+    // Khoản vay CÓ BẢO ĐẢM mà chưa gắn tài sản — để giao diện mời gắn, thay vì
+    // âm thầm bỏ sót phần lớn nhất trong bảng cân đối. Vay tín chấp không lọt
+    // vào đây: nó không thế chấp gì, nhắc gắn tài sản là lời nhắc không bao giờ
+    // tắt được.
     const linkedDebtIds = new Set(rows.flatMap((r) => r.loans.map((l) => l.id)));
-    const unlinkedDebts = (
-      await prisma.debt.findMany({
-        where: { userId: user.id, status: "active" },
-        select: { id: true, name: true, remaining: true },
-      })
-    ).filter((d) => !linkedDebtIds.has(d.id));
+    const allDebts = await prisma.debt.findMany({
+      where: { userId: user.id, status: "active" },
+      select: { id: true, name: true, type: true, remaining: true },
+    });
+    const unlinkedDebts = allDebts.filter(
+      (d) => !linkedDebtIds.has(d.id) && isSecured(d.type)
+    );
 
     return NextResponse.json({
       success: true,
@@ -106,6 +110,9 @@ export async function GET() {
         assets: rows,
         categories: ASSET_CATEGORIES,
         unlinkedDebts,
+        // Form vẫn cho chọn MỌI khoản vay: bạn có thể muốn gắn một khoản tín
+        // chấp vào món đồ mua bằng chính tiền đó. Chỉ phần NHẮC là lọc theo loại.
+        allDebts: allDebts.map((d) => ({ id: d.id, name: d.name })),
         totals: {
           count: owned.length,
           acquisitionCost: owned.reduce((s, r) => s + r.acquisitionCost, 0),
