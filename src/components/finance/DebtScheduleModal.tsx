@@ -64,6 +64,8 @@ export default function DebtScheduleModal({
   const [draft, setDraft] = useState<Partial<Period>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
+  const [bulkRate, setBulkRate] = useState("");
+  const [isApplyingRate, setIsApplyingRate] = useState(false);
 
   useEffect(() => {
     if (!debtId) return;
@@ -137,6 +139,35 @@ export default function DebtScheduleModal({
   const derivedInterest = Math.round(
     (opening * (Number(draft.interestRate ?? 0) / 100) * derivedDays) / 365
   );
+
+  // Vay thả nổi thì ngân hàng đổi lãi suất vài lần mỗi năm. Sửa tay 164 kỳ là
+  // việc không ai làm, nên bảng cứ sai âm thầm — lần gần nhất 8,14% lên 9,42%
+  // làm tổng lãi còn phải trả tăng 84 triệu.
+  const handleApplyRate = async () => {
+    const rate = Number(bulkRate);
+    if (!Number.isFinite(rate) || rate <= 0) return;
+    setIsApplyingRate(true);
+    setErrorText("");
+    try {
+      const res = await fetch("/api/finance/debt-schedule", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ debtId, rateForProjected: rate }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setBulkRate("");
+        setReloadTick((n) => n + 1);
+        onChanged?.();
+      } else {
+        setErrorText(json.error || "Không đổi được lãi suất");
+      }
+    } catch {
+      setErrorText("Không đổi được lãi suất");
+    } finally {
+      setIsApplyingRate(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!editing) return;
@@ -247,6 +278,33 @@ export default function DebtScheduleModal({
             </span>
           </div>
         )}
+
+        <div className="shrink-0 px-5 md:px-6 py-3 flex flex-wrap items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-2)]">
+          <span className="text-xs text-[var(--color-text-muted)]">
+            {t("Rate for all projected periods", "Lãi suất cho mọi kỳ tạm tính")}
+            {summary ? ` (${summary.projectedCount})` : ""}:
+          </span>
+          <input
+            type="number"
+            step="0.01"
+            inputMode="decimal"
+            value={bulkRate}
+            onChange={(e) => setBulkRate(e.target.value)}
+            placeholder={periods?.find((x) => x.status === "projected")?.interestRate?.toString() ?? "9.42"}
+            className="w-24 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+          />
+          <button
+            onClick={handleApplyRate}
+            disabled={isApplyingRate || !bulkRate}
+            className="c-btn c-btn-secondary c-btn-sm"
+          >
+            {isApplyingRate && <Loader2 size={14} className="animate-spin" />}
+            {t("Apply", "Áp dụng")}
+          </button>
+          <span className="text-[10px] text-[var(--color-text-faint)]">
+            {t("settled periods keep their actual rate", "kỳ đã chốt giữ nguyên lãi suất thực tế")}
+          </span>
+        </div>
 
         <div className="shrink-0 px-5 md:px-6 py-3 flex flex-wrap gap-2 border-b border-[var(--color-border)]">
           {([

@@ -91,6 +91,75 @@ export async function PATCH(req: Request) {
 
   try {
     const body = await req.json();
+
+    // Đổi lãi suất cho MỌI kỳ tạm tính trong một lượt.
+    //
+    // Vay thả nổi thì ngân hàng đổi lãi suất vài lần mỗi năm, và mỗi lần đổi
+    // làm sai toàn bộ phần dự báo còn lại — lần gần nhất 8,14% lên 9,42% làm
+    // tổng lãi còn phải trả tăng 84 triệu. Không có nút này thì phải sửa tay
+    // 164 kỳ, tức là không ai sửa và bảng cứ sai âm thầm.
+    if (typeof body?.debtId === "string" && typeof body?.rateForProjected === "number") {
+      const rate = body.rateForProjected;
+      if (!Number.isFinite(rate) || rate <= 0 || rate > 100) {
+        return NextResponse.json(
+          { success: false, error: "Lãi suất phải nằm giữa 0 và 100" },
+          { status: 400 }
+        );
+      }
+      const owned = await prisma.debt.findFirst({
+        where: { id: body.debtId, userId: user.id },
+        select: { id: true, startDate: true },
+      });
+      if (!owned) {
+        return NextResponse.json(
+          { success: false, error: "Không tìm thấy khoản vay này" },
+          { status: 404 }
+        );
+      }
+
+      const updated = await prisma.$transaction(async (tx) => {
+        const rows = (await tx.debtSchedule.findMany({
+          where: { debtId: owned.id },
+          orderBy: { period: "asc" },
+          select: {
+            id: true, period: true, dueDate: true, openingBalance: true,
+            principal: true, interest: true, payment: true, closingBalance: true,
+            interestRate: true, interestDays: true, status: true,
+          },
+        })) as ScheduleRow[];
+
+        for (const r of rows) if (r.status === "projected") r.interestRate = rate;
+
+        // Tính lại từ đầu bảng để chuỗi dư nợ và số ngày đều nhất quán, nhưng
+        // CHỈ GHI các kỳ tạm tính. Kỳ đã chốt giữ nguyên lãi suất thực tế đã
+        // suy ra từ số ngân hàng thu — recalc có đụng tới kỳ đầu tiên (nó rơi
+        // vào vị trí `editedIndex`) nhưng kết quả bị lọc bỏ ở đây nên không
+        // bao giờ ghi xuống.
+        const changed = recalcFrom(rows, 0, owned.startDate).filter(
+          (r) => r.status === "projected"
+        );
+
+        if (changed.length > 0) {
+          const values = Prisma.join(
+            changed.map(
+              (r) => Prisma.sql`(${r.id}::text, ${r.openingBalance}::int, ${r.interest}::int, ${r.payment}::int, ${r.closingBalance}::int, ${r.interestRate}::double precision, ${r.interestDays}::int)`
+            )
+          );
+          await tx.$executeRaw`
+            UPDATE "DebtSchedule" AS d
+            SET "openingBalance" = v.ob, "interest" = v.i, "payment" = v.p,
+                "closingBalance" = v.cb, "interestRate" = v.rate,
+                "interestDays" = v.days, "updatedAt" = NOW()
+            FROM (VALUES ${values}) AS v(id, ob, i, p, cb, rate, days)
+            WHERE d.id = v.id
+          `;
+        }
+        return changed.length;
+      }, { timeout: 120000 });
+
+      return NextResponse.json({ success: true, data: { updated } });
+    }
+
     const { id, ...patch } = body ?? {};
     if (typeof id !== "string") {
       return NextResponse.json(
