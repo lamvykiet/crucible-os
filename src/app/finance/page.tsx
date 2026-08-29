@@ -6,6 +6,7 @@ import IncomeTab from "@/components/finance/IncomeTab";
 import ExpenseTab from "@/components/finance/ExpenseTab";
 import DebtsTab from "@/components/finance/DebtsTab";
 import HistoryTab from "@/components/finance/HistoryTab";
+import AssetsTab from "@/components/finance/AssetsTab";
 
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -22,6 +23,7 @@ export default function FinancePage() {
               { id: "income", label: "Income" },
               { id: "expense", label: "Expense" },
               { id: "debts", label: "Debts" },
+              { id: "assets", label: "Assets" },
               { id: "history", label: "History" }
             ].map((tab) => (
               <button
@@ -48,6 +50,7 @@ export default function FinancePage() {
         {activeTab === "income" && <IncomeTab />}
         {activeTab === "expense" && <ExpenseTab />}
         {activeTab === "debts" && <DebtsTab />}
+        {activeTab === "assets" && <AssetsTab />}
         {activeTab === "history" && <HistoryTab />}
       </div>
     </div>

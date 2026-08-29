@@ -29,6 +29,7 @@ model User {
   OcrLog             OcrLog[]
   ExamAttempt        ExamAttempt[]
   VideoItem          VideoItem[]
+  Asset              Asset[]
 }
 
 // -----------------------------------------
@@ -458,6 +459,7 @@ model Debt {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   schedule        DebtSchedule[]
+  assets          Asset[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -502,4 +504,57 @@ model DebtSchedule {
 
   @@unique([debtId, period])
   @@index([debtId, dueDate])
+}
+
+// Tài sản và công cụ dụng cụ.
+//
+// Có hai loại giá trị và đừng lẫn chúng:
+//
+//   GIÁ TRỊ SỔ SÁCH — nguyên giá trừ khấu hao luỹ kế. Dùng cho thiết bị: laptop
+//   mua 30 triệu, đời hữu dụng 4 năm, sau 2 năm còn 15 triệu trên sổ.
+//
+//   GIÁ TRỊ ĐỊNH GIÁ (`currentValue`) — số bạn tự đặt khi biết giá thị trường.
+//   Bất động sản không khấu hao mà lên xuống theo thị trường, nên nhà thì dùng
+//   ô này. Có `currentValue` thì nó đè lên giá trị sổ sách.
+//
+// VỐN CHỦ SỞ HỮU của một tài sản mua bằng nợ = giá trị hiện tại − dư nợ còn
+// lại của khoản vay gắn với nó. Trả gốc KHÔNG làm tài sản đắt lên, nó làm nợ
+// nhỏ đi — vốn chủ sở hữu tự tăng đúng bằng số đó. Cộng gốc vào giá trị tài
+// sản là đếm hai lần.
+model Asset {
+  id       String @id @default(uuid())
+  name     String
+  // Real Estate | Vehicle | Electronics | Furniture | Equipment | Other
+  category String
+
+  acquisitionDate DateTime
+  acquisitionCost Int
+
+  // straight_line | none. `none` dành cho thứ không mòn theo sổ sách (nhà, đất).
+  depreciationMethod String @default("straight_line")
+  // 0 nghĩa là không khấu hao, bất kể `depreciationMethod`.
+  usefulLifeMonths   Int    @default(0)
+  // Giá trị còn lại khi hết đời hữu dụng; khấu hao không bao giờ ăn xuống dưới mức này.
+  salvageValue       Int    @default(0)
+
+  // Định giá lại. Có giá trị thì đè lên giá trị sổ sách.
+  currentValue  Int?
+  valuationDate DateTime?
+
+  // owned | sold | written_off
+  status         String    @default("owned")
+  disposalDate   DateTime?
+  disposalAmount Int?
+
+  // Khoản vay dùng để mua tài sản này, nếu có.
+  debtId String?
+  debt   Debt?   @relation(fields: [debtId], references: [id], onDelete: SetNull)
+
+  notes String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
