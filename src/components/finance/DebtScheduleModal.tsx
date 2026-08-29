@@ -113,6 +113,31 @@ export default function DebtScheduleModal({
     });
   };
 
+  // Mốc đếm ngày của kỳ đang sửa: ngày đến hạn kỳ liền trước.
+  const prevDue = (() => {
+    if (!editing || !periods) return null;
+    const i = periods.findIndex((x) => x.id === editing.id);
+    return i > 0 ? periods[i - 1].dueDate : null;
+  })();
+
+  const draftDue = String(draft.dueDate ?? editing?.dueDate ?? "");
+  const derivedDays =
+    prevDue && draftDue
+      ? Math.round(
+          (Date.parse(`${draftDue}T00:00:00Z`) - Date.parse(`${prevDue}T00:00:00Z`)) / 86_400_000
+        )
+      : Number(draft.interestDays ?? 0);
+
+  const opening = editing?.openingBalance ?? 0;
+  const isSettled = String(draft.status ?? "") === "paid";
+  const derivedRate =
+    opening > 0 && derivedDays > 0
+      ? Math.round(((Number(draft.interest ?? 0) * 365 * 100) / (opening * derivedDays)) * 100) / 100
+      : 0;
+  const derivedInterest = Math.round(
+    (opening * (Number(draft.interestRate ?? 0) / 100) * derivedDays) / 365
+  );
+
   const handleSave = async () => {
     if (!editing) return;
     setIsSaving(true);
@@ -137,6 +162,24 @@ export default function DebtScheduleModal({
       setIsSaving(false);
     }
   };
+
+  // Ô SUY RA, không nhập tay. Số ngày là hiệu hai ngày đến hạn; còn lãi suất
+  // (kỳ đã chốt) hay tiền lãi (kỳ tạm tính) là hai chiều của cùng công thức.
+  // Cho gõ vào những ô này thì bảng tự mâu thuẫn với chính ngày của nó.
+  const derived = (label: string, value: string, hint: string) => (
+    <div className="space-y-1.5">
+      <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+        {label} <span className="text-[var(--color-text-faint)]">· {t("auto", "tự tính")}</span>
+      </label>
+      <div
+        title={hint}
+        className="w-full rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 text-[var(--color-text-muted)] tabular-nums"
+      >
+        {value}
+      </div>
+      <p className="text-[10px] leading-tight text-[var(--color-text-faint)]">{hint}</p>
+    </div>
+  );
 
   const field = (
     label: string,
@@ -323,10 +366,31 @@ export default function DebtScheduleModal({
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {field(t("Due date", "Ngày đến hạn"), "dueDate", "date")}
-              {field(t("Interest days", "Số ngày tính lãi"), "interestDays")}
-              {field(t("Rate %", "Lãi suất %"), "interestRate", "number", "0.0001")}
+              {derived(
+                t("Interest days", "Số ngày tính lãi"),
+                derivedDays > 0 ? String(derivedDays) : "—",
+                prevDue
+                  ? t(`from ${prevDue}`, `tính từ ${prevDue}`)
+                  : t("from the disbursement date", "tính từ ngày giải ngân")
+              )}
+              {isSettled
+                ? derived(
+                    t("Rate %", "Lãi suất %"),
+                    derivedRate ? `${derivedRate}%` : "—",
+                    t(
+                      "actual rate the bank charged, back-derived from the interest",
+                      "lãi suất thực tế, suy ngược từ tiền lãi đã thu"
+                    )
+                  )
+                : field(t("Rate %", "Lãi suất %"), "interestRate", "number", "0.0001")}
               {field(t("Principal", "Gốc"), "principal")}
-              {field(t("Interest", "Lãi"), "interest")}
+              {isSettled
+                ? field(t("Interest", "Lãi"), "interest")
+                : derived(
+                    t("Interest", "Lãi"),
+                    formatVND(derivedInterest),
+                    t("balance × rate × days / 365", "dư nợ × lãi suất × ngày / 365")
+                  )}
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
                   {t("Status", "Trạng thái")}

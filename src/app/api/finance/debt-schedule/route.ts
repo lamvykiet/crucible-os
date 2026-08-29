@@ -101,7 +101,7 @@ export async function PATCH(req: Request) {
 
     const target = await prisma.debtSchedule.findUnique({
       where: { id },
-      include: { debt: { select: { id: true, userId: true, name: true } } },
+      include: { debt: { select: { id: true, userId: true, name: true, startDate: true } } },
     });
     if (!target || target.debt.userId !== user.id) {
       return NextResponse.json(
@@ -117,7 +117,8 @@ export async function PATCH(req: Request) {
     if ("dueDate" in patch && /^\d{4}-\d{2}-\d{2}$/.test(String(patch.dueDate))) {
       data.dueDate = new Date(`${patch.dueDate}T00:00:00Z`);
     }
-    if ("interestDays" in patch) data.interestDays = num(patch.interestDays, target.interestDays);
+    // `interestDays` KHÔNG nhận từ client: nó là hiệu hai ngày đến hạn, để
+    // nhập tay thì bảng tự mâu thuẫn với chính ngày của nó. recalcFrom lo.
     if ("principal" in patch) data.principal = num(patch.principal, target.principal);
     if ("interest" in patch) data.interest = num(patch.interest, target.interest);
     if ("interestRate" in patch && typeof patch.interestRate === "number") {
@@ -144,15 +145,15 @@ export async function PATCH(req: Request) {
         where: { debtId },
         orderBy: { period: "asc" },
         select: {
-          id: true, period: true, openingBalance: true, principal: true,
-          interest: true, payment: true, closingBalance: true,
+          id: true, period: true, dueDate: true, openingBalance: true,
+          principal: true, interest: true, payment: true, closingBalance: true,
           interestRate: true, interestDays: true, status: true,
         },
       })) as ScheduleRow[];
 
       const idx = rows.findIndex((r) => r.id === id);
       // Bắt đầu từ chính kỳ vừa sửa: gốc/lãi/lãi suất của nó có thể đã đổi.
-      const changed = recalcFrom(rows, Math.max(0, idx));
+      const changed = recalcFrom(rows, Math.max(0, idx), target.debt.startDate);
 
       // Sửa một kỳ sớm kéo theo gần 200 dòng phải cập nhật. Ghi từng dòng một
       // là gần 200 lượt đi-về tới Supabase, vượt hạn 5 giây của transaction và
@@ -161,7 +162,7 @@ export async function PATCH(req: Request) {
       if (changed.length > 0) {
         const values = Prisma.join(
           changed.map(
-            (r) => Prisma.sql`(${r.id}::text, ${r.openingBalance}::int, ${r.interest}::int, ${r.payment}::int, ${r.closingBalance}::int)`
+            (r) => Prisma.sql`(${r.id}::text, ${r.openingBalance}::int, ${r.interest}::int, ${r.payment}::int, ${r.closingBalance}::int, ${r.interestRate}::double precision, ${r.interestDays}::int)`
           )
         );
         await tx.$executeRaw`
@@ -170,8 +171,10 @@ export async function PATCH(req: Request) {
               "interest"       = v.i,
               "payment"        = v.p,
               "closingBalance" = v.cb,
+              "interestRate"   = v.rate,
+              "interestDays"   = v.days,
               "updatedAt"      = NOW()
-          FROM (VALUES ${values}) AS v(id, ob, i, p, cb)
+          FROM (VALUES ${values}) AS v(id, ob, i, p, cb, rate, days)
           WHERE d.id = v.id
         `;
       }
