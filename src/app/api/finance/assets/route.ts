@@ -17,6 +17,9 @@ import {
 // Dư nợ của khoản vay gắn với tài sản KHÔNG đọc từ `Debt.remaining` mà tính từ
 // kỳ đã chốt gần nhất trong lịch trả nợ. Hai chỗ đó có thể lệch nhau, và lịch
 // trả nợ mới là thứ có căn cứ từng kỳ.
+//
+// Một tài sản có thể gánh NHIỀU khoản vay — căn nhà vừa có khoản vay mua nhà
+// vừa có khoản thế chấp lấy thêm tiền — nên dư nợ là TỔNG của tất cả.
 
 const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
 
@@ -30,7 +33,7 @@ export async function GET() {
       where: { userId: user.id },
       orderBy: [{ status: "asc" }, { acquisitionCost: "desc" }],
       include: {
-        debt: {
+        debts: {
           select: {
             id: true,
             name: true,
@@ -46,8 +49,16 @@ export async function GET() {
     });
 
     const rows = assets.map((a) => {
-      const lastPaid = a.debt?.schedule[0];
-      const outstanding = lastPaid ? lastPaid.closingBalance : 0;
+      const loans = a.debts.map((d) => {
+        const lastPaid = d.schedule[0];
+        return {
+          id: d.id,
+          name: d.name,
+          outstanding: lastPaid ? lastPaid.closingBalance : 0,
+          asOf: lastPaid ? iso(lastPaid.dueDate) : null,
+        };
+      });
+      const outstanding = loans.reduce((s, l) => s + l.outstanding, 0);
       const worth = currentWorth(a, now);
       return {
         id: a.id,
@@ -70,12 +81,10 @@ export async function GET() {
         monthlyDepreciation: monthlyDepreciation(a),
         remainingLifeMonths: remainingLifeMonths(a, now),
         worth,
-        // Khoản vay gắn với tài sản
-        debtId: a.debtId,
-        debtName: a.debt?.name ?? null,
+        // Các khoản vay gắn với tài sản
+        loans,
         outstandingDebt: outstanding,
         equity: equity(worth, outstanding),
-        debtAsOf: lastPaid ? iso(lastPaid.dueDate) : null,
       };
     });
 
@@ -83,7 +92,7 @@ export async function GET() {
 
     // Khoản vay chưa gắn với tài sản nào — để giao diện mời gắn, thay vì âm
     // thầm bỏ sót phần lớn nhất trong bảng cân đối.
-    const linkedDebtIds = new Set(rows.map((r) => r.debtId).filter(Boolean));
+    const linkedDebtIds = new Set(rows.flatMap((r) => r.loans.map((l) => l.id)));
     const unlinkedDebts = (
       await prisma.debt.findMany({
         where: { userId: user.id, status: "active" },
@@ -111,6 +120,16 @@ export async function GET() {
     const message = error instanceof Error ? error.message : "Server Error";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
+}
+
+/** Lọc ra những khoản vay thật sự thuộc về người dùng này. */
+async function ownedDebtIds(userId: string, ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const rows = await prisma.debt.findMany({
+    where: { userId, id: { in: ids } },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
 }
 
 function parseBody(body: Record<string, unknown>) {
@@ -143,7 +162,7 @@ function parseBody(body: Record<string, unknown>) {
       body.disposalAmount === null || body.disposalAmount === undefined || body.disposalAmount === ""
         ? null
         : int(body.disposalAmount),
-    debtId: body.debtId ? String(body.debtId) : null,
+    debtIds: Array.isArray(body.debtIds) ? body.debtIds.map(String) : [],
     notes: str(body.notes, 500) || null,
   };
 }
@@ -160,21 +179,17 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    if (data.debtId) {
-      const owns = await prisma.debt.findFirst({
-        where: { id: data.debtId, userId: user.id },
-        select: { id: true },
-      });
-      if (!owns) {
-        return NextResponse.json(
-          { success: false, error: "Không tìm thấy khoản vay này" },
-          { status: 400 }
-        );
-      }
-    }
+    const { debtIds, ...fields } = data;
+    const owned = await ownedDebtIds(user.id, debtIds);
     const created = await prisma.asset.create({
-      data: { ...data, acquisitionDate: data.acquisitionDate, userId: user.id },
+      data: { ...fields, acquisitionDate: data.acquisitionDate, userId: user.id },
     });
+    if (owned.length > 0) {
+      await prisma.debt.updateMany({
+        where: { id: { in: owned } },
+        data: { assetId: created.id },
+      });
+    }
     return NextResponse.json({ success: true, data: { id: created.id } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Server Error";
@@ -206,10 +221,23 @@ export async function PUT(req: Request) {
         { status: 400 }
       );
     }
-    await prisma.asset.update({
-      where: { id },
-      data: { ...data, acquisitionDate: data.acquisitionDate },
-    });
+    const { debtIds, ...fields } = data;
+    const owned = await ownedDebtIds(user.id, debtIds);
+    await prisma.$transaction([
+      prisma.asset.update({
+        where: { id },
+        data: { ...fields, acquisitionDate: data.acquisitionDate },
+      }),
+      // Bỏ gắn những khoản vay không còn được chọn, rồi gắn lại đúng danh sách.
+      prisma.debt.updateMany({
+        where: { userId: user.id, assetId: id, id: { notIn: owned.length ? owned : ["-"] } },
+        data: { assetId: null },
+      }),
+      prisma.debt.updateMany({
+        where: { userId: user.id, id: { in: owned } },
+        data: { assetId: id },
+      }),
+    ]);
     return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Server Error";

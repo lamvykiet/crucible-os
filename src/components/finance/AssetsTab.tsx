@@ -35,11 +35,9 @@ interface AssetRow {
   monthlyDepreciation: number;
   remainingLifeMonths: number;
   worth: number;
-  debtId: string | null;
-  debtName: string | null;
+  loans: { id: string; name: string; outstanding: number; asOf: string | null }[];
   outstandingDebt: number;
   equity: number;
-  debtAsOf: string | null;
 }
 
 interface Totals {
@@ -98,9 +96,7 @@ export default function AssetsTab() {
 
   const allDebts = [
     ...unlinkedDebts,
-    ...(assets ?? [])
-      .filter((a) => a.debtId && a.debtName)
-      .map((a) => ({ id: a.debtId as string, name: a.debtName as string })),
+    ...(assets ?? []).flatMap((a) => a.loans.map((l) => ({ id: l.id, name: l.name }))),
   ].filter((d, i, arr) => arr.findIndex((x) => x.id === d.id) === i);
 
   // Gắn sẵn khoản vay và chọn sẵn nhóm bất động sản, nhưng KHÔNG điền sẵn
@@ -114,7 +110,7 @@ export default function AssetsTab() {
             acquisitionDate: todayLocalIso(), acquisitionCost: 0,
             depreciationMethod: "none", usefulLifeMonths: 0, salvageValue: 0,
             currentValue: null, valuationDate: null, status: "owned",
-            disposalDate: null, disposalAmount: null, debtId, notes: "",
+            disposalDate: null, disposalAmount: null, debtIds: [debtId], notes: "",
           }
         : null
     );
@@ -130,7 +126,7 @@ export default function AssetsTab() {
       salvageValue: a.salvageValue, currentValue: a.currentValue,
       valuationDate: a.valuationDate, status: a.status,
       disposalDate: a.disposalDate, disposalAmount: a.disposalAmount,
-      debtId: a.debtId, notes: a.notes,
+      debtIds: a.loans.map((l) => l.id), notes: a.notes,
     });
     setOpenSeq((n) => n + 1);
     setIsModalOpen(true);
@@ -309,7 +305,7 @@ export default function AssetsTab() {
                     {formatVND(a.worth)}
                   </div>
                 </div>
-                {a.debtId && (
+                {a.loans.length > 0 && (
                   <div>
                     <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
                       {t("Your equity", "Vốn chủ sở hữu")}
@@ -325,12 +321,20 @@ export default function AssetsTab() {
                 )}
               </div>
 
-              {a.debtId && (
-                <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                  {t("Loan", "Khoản vay")} <b>{a.debtName}</b> ·{" "}
-                  {t("outstanding", "dư nợ")} {formatVND(a.outstandingDebt)}
-                  {a.debtAsOf && ` (${t("as of", "tới")} ${a.debtAsOf})`}
-                </p>
+              {a.loans.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {a.loans.map((l) => (
+                    <li key={l.id} className="text-xs text-[var(--color-text-muted)]">
+                      {l.name} · {t("outstanding", "dư nợ")} {formatVND(l.outstanding)}
+                      {l.asOf && ` (${t("as of", "tới")} ${l.asOf})`}
+                    </li>
+                  ))}
+                  {a.loans.length > 1 && (
+                    <li className="text-xs font-bold text-[var(--color-warning)]">
+                      {t("total", "tổng")} {formatVND(a.outstandingDebt)}
+                    </li>
+                  )}
+                </ul>
               )}
 
               {!noDep && (

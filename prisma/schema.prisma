@@ -459,7 +459,15 @@ model Debt {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   schedule        DebtSchedule[]
-  assets          Asset[]
+
+  // Tài sản mà khoản vay này dùng để mua, hoặc đem thế chấp.
+  //
+  // Chiều quan hệ đặt ở đây chứ không phải ở `Asset.debtId`: MỘT tài sản có thể
+  // gánh NHIỀU khoản vay. Căn nhà này vừa có khoản vay mua nhà vừa có khoản vay
+  // thế chấp lấy thêm tiền — để một chiều thì vốn chủ sở hữu tính thiếu nguyên
+  // một khoản nợ mà không báo gì.
+  assetId String?
+  asset   Asset?  @relation(fields: [assetId], references: [id], onDelete: SetNull)
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -546,9 +554,8 @@ model Asset {
   disposalDate   DateTime?
   disposalAmount Int?
 
-  // Khoản vay dùng để mua tài sản này, nếu có.
-  debtId String?
-  debt   Debt?   @relation(fields: [debtId], references: [id], onDelete: SetNull)
+  // Các khoản vay gắn với tài sản này. Xem chú thích ở `Debt.assetId`.
+  debts Debt[]
 
   notes String?
 

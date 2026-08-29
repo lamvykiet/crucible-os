@@ -25,7 +25,7 @@ export interface AssetDraft {
   status: string;
   disposalDate: string | null;
   disposalAmount: number | null;
-  debtId: string | null;
+  debtIds: string[];
   notes: string;
 }
 
@@ -44,7 +44,7 @@ const EMPTY = (): AssetDraft => ({
   status: "owned",
   disposalDate: null,
   disposalAmount: null,
-  debtId: null,
+  debtIds: [],
   notes: "",
 });
 
@@ -214,24 +214,49 @@ export default function AssetModal({
               )
             )}
 
-            <div className="space-y-1.5">
+            {/* Chọn NHIỀU khoản vay: một căn nhà có thể vừa có khoản vay mua
+                nhà vừa có khoản thế chấp lấy thêm tiền. Chỉ gắn được một khoản
+                thì vốn chủ sở hữu tính thiếu nguyên một khoản nợ. */}
+            <div className="space-y-1.5 md:col-span-2">
               <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                {t("Linked loan", "Khoản vay gắn với tài sản")}
+                {t("Loans secured by this asset", "Khoản vay gắn với tài sản")}
               </label>
-              <select
-                value={draft.debtId ?? ""}
-                onChange={(e) => set("debtId", e.target.value || null)}
-                className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
-              >
-                <option value="">{t("— none —", "— không —")}</option>
-                {debts.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
+              {debts.length === 0 ? (
+                <p className="text-sm text-[var(--color-text-faint)]">
+                  {t("No loans recorded.", "Chưa có khoản vay nào.")}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {debts.map((d) => {
+                    const on = draft.debtIds.includes(d.id);
+                    return (
+                      <label
+                        key={d.id}
+                        className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 min-h-11 cursor-pointer hover:border-[var(--color-info)] transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={() =>
+                            set(
+                              "debtIds",
+                              on
+                                ? draft.debtIds.filter((x) => x !== d.id)
+                                : [...draft.debtIds, d.id]
+                            )
+                          }
+                          className="w-5 h-5 accent-[var(--color-primary)]"
+                        />
+                        <span className="text-[var(--color-text)]">{d.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
               <p className="text-[10px] leading-tight text-[var(--color-text-faint)]">
                 {t(
-                  "equity = value − outstanding loan",
-                  "vốn chủ sở hữu = giá trị − dư nợ còn lại"
+                  "equity = value − total outstanding of every loan ticked here",
+                  "vốn chủ sở hữu = giá trị − tổng dư nợ của mọi khoản đánh dấu ở đây"
                 )}
               </p>
             </div>
