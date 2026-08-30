@@ -263,6 +263,14 @@ model VideoItem {
   // tiktok | facebook | youtube | instagram | other
   platform  String
   topic     String
+  // Nhãn phân loại con, do người dùng tự gõ: đề tài "3D Design" có "Mẫu thiết
+  // kế", "Hướng dẫn in", "Trick in"...
+  //
+  // Cố tình KHÔNG tạo thư mục Drive lồng thêm một tầng: Shortcut trên iPhone
+  // chỉ chọn được đề tài cấp một, thêm tầng nữa là mọi lượt upload rơi vào sai
+  // chỗ. Đây là nhãn thuần trong DB, dùng để lọc và gom nhóm ở giao diện, nên
+  // đổi tên nhãn không đụng gì tới file đã nằm trên Drive.
+  subTopic  String?
   title     String?
   note      String?
 

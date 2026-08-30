@@ -43,14 +43,30 @@ export function isValidHttpUrl(value: string): boolean {
   }
 }
 
-export function driveClient(): drive_v3.Drive {
+/**
+ * Nhãn phân loại con: cắt khoảng trắng thừa và chặn độ dài.
+ *
+ * Không đổi hoa thường: người dùng tự gõ nhãn nên viết hoa thế nào là ý họ.
+ * Việc gộp "mẫu in" với "Mẫu in" làm ở tầng route, bằng cách dò lại lịch sử —
+ * xem `api/video/queue/route.ts`.
+ */
+export function normalizeSubTopic(value: unknown): string | null {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim().slice(0, 60);
+  return text || null;
+}
+
+export function driveOAuthClient() {
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_DRIVE_CLIENT_ID,
     process.env.GOOGLE_DRIVE_CLIENT_SECRET,
     process.env.GOOGLE_DRIVE_REDIRECT_URI || "http://localhost:3000"
   );
   oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_DRIVE_REFRESH_TOKEN });
-  return google.drive({ version: "v3", auth: oauth2Client });
+  return oauth2Client;
+}
+
+export function driveClient(): drive_v3.Drive {
+  return google.drive({ version: "v3", auth: driveOAuthClient() });
 }
 
 export function videoRootId(): string | null {
