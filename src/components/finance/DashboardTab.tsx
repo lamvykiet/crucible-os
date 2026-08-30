@@ -17,6 +17,7 @@ import ScanInvoiceModal from "./ScanInvoiceModal";
 import PendingReviewButton from "./PendingReviewButton";
 import DayTransactionsCard from "./DayTransactionsCard";
 import IncompleteDataModal from "./IncompleteDataModal";
+import PeriodComparison from "./PeriodComparison";
 import { Plus } from "lucide-react";
 import { thisMonthLocalIso, todayLocalIso } from "@/lib/localDate";
 
@@ -743,6 +744,11 @@ export default function DashboardTab() {
           )}
         </div>
       </div>
+
+      <PeriodComparison
+        metrics={["income", "expense", "cashOut", "debtService", "net"]}
+        refreshKey={refreshKey}
+      />
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

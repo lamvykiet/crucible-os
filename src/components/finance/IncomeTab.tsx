@@ -13,6 +13,7 @@ import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import TransactionModal from "./TransactionModal";
 import PendingReviewButton from "./PendingReviewButton";
 import { thisMonthLocalIso } from "@/lib/localDate";
+import PeriodComparison from "./PeriodComparison";
 
 // Toàn bộ số liệu đến từ /api/finance/income.
 // Trước đây tab này chạy trên 4 mảng hardcode và cả tên công ty ("SHINHAN
@@ -255,6 +256,11 @@ export default function IncomeTab() {
           </div>
         </div>
       </div>
+
+      <PeriodComparison
+        metrics={["income", "net", "count"]}
+        refreshKey={refreshKey}
+      />
 
       {/* Phân tích nguồn thu */}
       <div>
