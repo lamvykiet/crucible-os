@@ -90,7 +90,10 @@ export async function GET(req: Request) {
     // Cửa sổ 12 tháng kết thúc ở tháng đang xem, dùng cho biểu đồ YTD.
     const ytdStart = new Date(Date.UTC(year, monthNum - 12, 1));
 
-    const [monthTx, ytdTx, budgets, latestTx] = await Promise.all([
+    // `upcomingRows`: các kỳ trả nợ chưa tới hạn — trả lời "tháng tới phải
+    // chuẩn bị bao nhiêu tiền". Không lấy từ `Debt.monthlyPayment` vì số đó là
+    // một con số tĩnh, còn kỳ trả thật đổi từng tháng theo số ngày và dư nợ.
+    const [monthTx, ytdTx, budgets, latestTx, upcomingRows] = await Promise.all([
       prisma.transaction.findMany({
         where: { userId, date: { gte: startDate, lt: endDate } },
         orderBy: { date: "asc" },
@@ -110,7 +113,39 @@ export async function GET(req: Request) {
         orderBy: { date: "desc" },
         select: { date: true },
       }),
+      prisma.debtSchedule.findMany({
+        where: { status: "projected", debt: { userId, status: "active" } },
+        orderBy: { dueDate: "asc" },
+        take: 24,
+        select: {
+          dueDate: true, principal: true, interest: true, payment: true,
+          debt: { select: { name: true } },
+        },
+      }),
     ]);
+
+    // Gom sáu tháng gần nhất của lịch trả nợ.
+    const upcomingMap = new Map<
+      string,
+      { month: string; principal: number; interest: number; payment: number;
+        items: { name: string; dueDate: string; payment: number }[] }
+    >();
+    for (const r of upcomingRows) {
+      const key = monthKey(r.dueDate);
+      const entry = upcomingMap.get(key) ?? {
+        month: key, principal: 0, interest: 0, payment: 0, items: [],
+      };
+      entry.principal += r.principal;
+      entry.interest += r.interest;
+      entry.payment += r.payment;
+      entry.items.push({
+        name: r.debt.name,
+        dueDate: r.dueDate.toISOString().slice(0, 10),
+        payment: r.payment,
+      });
+      upcomingMap.set(key, entry);
+    }
+    const upcoming = [...upcomingMap.values()].slice(0, 6);
 
     // ---- Tổng hợp tháng ----
     let monthlyIncome = 0;
@@ -119,6 +154,20 @@ export async function GET(req: Request) {
     const unclassified = new Map<string, number>();
 
     const expenseByCategory = new Map<string, number>();
+
+    // TIỀN RA khác CHI TIÊU, và trộn hai thứ này là nguồn gốc của một con số
+    // sai suốt sáu năm.
+    //
+    //   Chi tiêu  = tiền tiêu mất đi. Trả gốc không thuộc nhóm này: nó chuyển
+    //               tiền mặt thành phần sở hữu tài sản, tổng tài sản không đổi.
+    //   Tiền ra   = tất cả tiền rời tài khoản, gồm cả trả gốc.
+    //
+    // Muốn biết "tháng này tiêu hoang không" thì nhìn chi tiêu; muốn biết
+    // "tháng tới cần chuẩn bị bao nhiêu tiền mặt" thì phải nhìn tiền ra. Thẻ
+    // "Net Cash Flow" trước đây lấy thu trừ CHI TIÊU rồi gọi là dòng tiền —
+    // tháng 8/2026 nó báo -12.602.777 đ trong khi thật ra -25.727.777 đ.
+    let debtPrincipal = 0;
+    const principalByCategory = new Map<string, number>();
 
     for (const t of monthTx) {
       switch (classify(t.type)) {
@@ -140,14 +189,26 @@ export async function GET(req: Request) {
           );
           break;
         case "ignored":
-          unclassified.set(t.type, (unclassified.get(t.type) || 0) + 1);
+          // Trả gốc do lịch trả nợ sinh ra: không phải chi tiêu, nhưng vẫn là
+          // tiền rời tài khoản nên phải vào `cashOut`.
+          if (t.source === "debt") {
+            debtPrincipal += t.totalAmount;
+            principalByCategory.set(
+              t.categoryGroup || "Khác",
+              (principalByCategory.get(t.categoryGroup || "Khác") || 0) + t.totalAmount
+            );
+          } else {
+            unclassified.set(t.type, (unclassified.get(t.type) || 0) + 1);
+          }
           break;
       }
     }
 
     // Tiền hoàn làm giảm chi tiêu thực.
     const monthlyExpense = grossExpense - refunds;
-    const netCashFlow = monthlyIncome - monthlyExpense;
+    const cashOut = monthlyExpense + debtPrincipal;
+    // Dòng tiền phải trừ TIỀN RA, không phải trừ chi tiêu.
+    const netCashFlow = monthlyIncome - cashOut;
 
     // KHÔNG kẹp về 0 khi âm. Bản cũ làm vậy khiến tháng bội chi vẫn hiện 0%,
     // che đúng cái đáng ra phải cảnh báo.
@@ -251,8 +312,14 @@ export async function GET(req: Request) {
     const monthlyBudgets = budgets.filter(
       (b) => b.periodType?.toLowerCase() === "monthly"
     );
+    // Ngân sách đối chiếu với TIỀN RA của nhóm. Với nhóm nợ, ngân sách đặt
+    // bằng cả kỳ trả (gốc + lãi) nên nếu chỉ so với phần lãi thì tháng nào cũng
+    // báo dùng chưa tới một nửa hạn mức. Các nhóm khác không có dòng trả gốc
+    // nên `principalByCategory` bằng 0 và kết quả y như cũ.
     const budgetVsActual = monthlyBudgets.map((b) => {
-      const actual = expenseByCategory.get(b.categoryGroup) || 0;
+      const actual =
+        (expenseByCategory.get(b.categoryGroup) || 0) +
+        (principalByCategory.get(b.categoryGroup) || 0);
       return {
         group: b.categoryGroup,
         budget: b.amount,
@@ -269,6 +336,9 @@ export async function GET(req: Request) {
         // Tương thích ngược với DashboardTab hiện tại
         monthlyIncome,
         monthlyExpense,
+        // Tiền ra = chi tiêu + trả gốc. Xem chú thích dài ở chỗ tính.
+        cashOut,
+        debtPrincipal,
         netCashFlow,
         savingsRate,
         dailyIncome,
@@ -283,7 +353,7 @@ export async function GET(req: Request) {
         categoryBreakdown,
         budgetVsActual,
         totalBudget,
-        totalActualExpense: monthlyExpense,
+        totalActualExpense: cashOut,
 
         // Bối cảnh để UI phân biệt "chưa có dữ liệu" với "thật sự bằng 0"
         transactionCount: monthTx.length,
@@ -292,6 +362,9 @@ export async function GET(req: Request) {
         elapsedDays,
         daysInMonth,
         daysWithData,
+
+        // Kỳ trả nợ sắp tới, gom theo tháng — "tháng tới cần chuẩn bị bao nhiêu"
+        upcoming,
 
         // Các `type` không xếp được vào thu/chi — hiện ra thay vì bỏ qua im lặng
         unclassified: [...unclassified.entries()].map(([type, count]) => ({

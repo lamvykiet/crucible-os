@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import {
   Calendar, Receipt, DollarSign, CreditCard, ArrowLeftRight, Target,
   Clock, PieChart, AlertCircle, TrendingUp, CalendarX, ListChecks, CalendarDays,
+  Banknote, CalendarClock,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -35,6 +36,9 @@ interface DashboardData {
   month: string;
   monthlyIncome: number;
   monthlyExpense: number;
+  /** Tiền ra = chi tiêu + trả gốc. Khác chi tiêu, xem chú thích ở route. */
+  cashOut: number;
+  debtPrincipal: number;
   netCashFlow: number;
   savingsRate: number;
   dailyIncome: number;
@@ -55,15 +59,21 @@ interface DashboardData {
   daysInMonth: number;
   /** Các ngày trong tháng đã có ít nhất một giao dịch. */
   daysWithData: number[];
+  upcoming: {
+    month: string; principal: number; interest: number; payment: number;
+    items: { name: string; dueDate: string; payment: number }[];
+  }[];
   unclassified: { type: string; count: number }[];
 }
 
 const EMPTY: DashboardData = {
-  month: "", monthlyIncome: 0, monthlyExpense: 0, netCashFlow: 0, savingsRate: 0,
+  month: "", monthlyIncome: 0, monthlyExpense: 0, cashOut: 0, debtPrincipal: 0,
+  netCashFlow: 0, savingsRate: 0,
   dailyIncome: 0, dailyExpense: 0, dailyCashFlow: 0, avgDailyExpense: 0, eomForecast: 0,
   dailySeries: [], ytdSeries: [], categoryBreakdown: [], budgetVsActual: [],
   totalBudget: 0, totalActualExpense: 0, transactionCount: 0, hasData: false,
-  latestMonthWithData: null, elapsedDays: 0, daysInMonth: 0, daysWithData: [], unclassified: [],
+  latestMonthWithData: null, elapsedDays: 0, daysInMonth: 0, daysWithData: [],
+  upcoming: [], unclassified: [],
 };
 
 const formatVND = (amount: number) =>
@@ -135,11 +145,11 @@ export default function DashboardTab() {
   }, [refreshKey]);
 
   const {
-    monthlyIncome, monthlyExpense, netCashFlow, savingsRate,
+    monthlyIncome, monthlyExpense, cashOut, debtPrincipal, netCashFlow, savingsRate,
     dailyIncome, dailyExpense, dailyCashFlow, avgDailyExpense, eomForecast,
     dailySeries, ytdSeries, categoryBreakdown, budgetVsActual,
     totalBudget, hasData, latestMonthWithData, elapsedDays, daysInMonth,
-    daysWithData, unclassified,
+    daysWithData, upcoming, unclassified,
   } = data;
 
   const todayIso = todayLocalIso();
@@ -276,8 +286,11 @@ export default function DashboardTab() {
     );
   }
 
+  // Đối chiếu ngân sách với TIỀN RA, không phải chi tiêu: ngân sách nhóm nợ đặt
+  // bằng cả kỳ trả (gốc + lãi) nên so với riêng phần lãi thì tháng nào cũng báo
+  // dùng chưa tới một nửa hạn mức.
   const budgetUsedPct =
-    totalBudget > 0 ? Math.round((monthlyExpense / totalBudget) * 100) : null;
+    totalBudget > 0 ? Math.round((cashOut / totalBudget) * 100) : null;
   const maxCategory = categoryBreakdown[0]?.amount || 1;
 
   // Heatmap theo thứ trong tuần, dựng từ chính dailySeries (dữ liệu thật).
@@ -403,6 +416,28 @@ export default function DashboardTab() {
           <div className={`text-2xl font-bold ${netCashFlow < 0 ? "text-[var(--color-error)]" : "text-[var(--color-info)]"}`}>
             {formatVND(netCashFlow)}
           </div>
+          {/* Nói rõ dòng tiền đã trừ cả trả gốc — trước đây thẻ này lấy thu trừ
+              chi tiêu rồi gọi là dòng tiền, bỏ sót nguyên phần gốc. */}
+          <div className="text-xs text-[var(--color-text-faint)] mt-1">
+            {t("income − cash out", "thu − tiền ra")} {formatVND(cashOut)}
+          </div>
+        </div>
+
+        {/* Tiền ra: thứ cần biết để chuẩn bị tiền mặt, khác với chi tiêu */}
+        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-error-tint)] text-[var(--color-error)] flex items-center justify-center flex-none">
+              <Banknote size={20} />
+            </div>
+            <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+              {t("Cash out", "Tiền ra thực tế")}
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-[var(--color-error)]">{formatVND(cashOut)}</div>
+          <div className="text-xs text-[var(--color-text-faint)] mt-1">
+            {t("spending", "chi tiêu")} {formatVND(monthlyExpense)}
+            {debtPrincipal > 0 && ` + ${t("principal", "trả gốc")} ${formatVND(debtPrincipal)}`}
+          </div>
         </div>
         <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
           <div className="flex items-center gap-3 mb-2">
@@ -422,7 +457,7 @@ export default function DashboardTab() {
                 {budgetUsedPct}%
               </div>
               <div className="text-xs text-[var(--color-text-faint)] mt-1">
-                {formatVND(monthlyExpense)} / {formatVND(totalBudget)}
+                {formatVND(cashOut)} / {formatVND(totalBudget)}
               </div>
             </>
           )}
@@ -586,6 +621,44 @@ export default function DashboardTab() {
               </>
             )}
           </div>
+
+          {/* Sắp phải trả — trả lời "tháng tới cần chuẩn bị bao nhiêu tiền".
+              Số lấy từ lịch trả nợ từng kỳ chứ không từ `Debt.monthlyPayment`,
+              vì kỳ trả thật đổi theo số ngày và dư nợ mỗi tháng. */}
+          {upcoming.length > 0 && (
+            <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-[var(--color-error-tint)] text-[var(--color-error)] flex items-center justify-center flex-none">
+                  <CalendarClock size={16} />
+                </div>
+                <h3 className="c-h5 text-[var(--color-text)]">
+                  {t("Debt coming due", "Sắp phải trả nợ")}
+                </h3>
+              </div>
+              <p className="text-2xl font-bold text-[var(--color-error)]">
+                {formatVND(upcoming[0].payment)}
+              </p>
+              <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-3">
+                {t("in", "trong")} {upcoming[0].month} · {t("principal", "gốc")}{" "}
+                {formatVND(upcoming[0].principal)} + {t("interest", "lãi")}{" "}
+                {formatVND(upcoming[0].interest)}
+              </p>
+              <ul className="space-y-1.5">
+                {upcoming.slice(0, 6).map((u) => (
+                  <li key={u.month} className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="text-[var(--color-text-muted)]">{u.month}</span>
+                    <span className="font-bold tabular-nums text-[var(--color-text)]">
+                      {formatVND(u.payment)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-[var(--color-text-muted)]">
+                {t("next 6 months", "sáu tháng tới")}:{" "}
+                <b>{formatVND(upcoming.reduce((s, u) => s + u.payment, 0))}</b>
+              </p>
+            </div>
+          )}
 
           {/* Dữ liệu cần bổ sung — gom mọi lỗ hổng đã biết vào một chỗ bấm được */}
           {gapTotal > 0 && (
