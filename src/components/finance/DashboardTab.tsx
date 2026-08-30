@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import {
   Calendar, Receipt, DollarSign, CreditCard, ArrowLeftRight, Target,
   Clock, PieChart, AlertCircle, TrendingUp, CalendarX, ListChecks, CalendarDays,
-  Banknote, CalendarClock,
+  Banknote, CalendarClock, Scale,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -39,6 +39,10 @@ interface DashboardData {
   /** Tiền ra = chi tiêu + trả gốc. Khác chi tiêu, xem chú thích ở route. */
   cashOut: number;
   debtPrincipal: number;
+  /** Nghĩa vụ trả nợ tháng: gốc + lãi. */
+  debtService: number;
+  /** Trả nợ / thu nhập, %. `null` khi chưa ghi thu nhập. */
+  debtServiceRatio: number | null;
   netCashFlow: number;
   savingsRate: number;
   dailyIncome: number;
@@ -68,6 +72,7 @@ interface DashboardData {
 
 const EMPTY: DashboardData = {
   month: "", monthlyIncome: 0, monthlyExpense: 0, cashOut: 0, debtPrincipal: 0,
+  debtService: 0, debtServiceRatio: null,
   netCashFlow: 0, savingsRate: 0,
   dailyIncome: 0, dailyExpense: 0, dailyCashFlow: 0, avgDailyExpense: 0, eomForecast: 0,
   dailySeries: [], ytdSeries: [], categoryBreakdown: [], budgetVsActual: [],
@@ -145,7 +150,8 @@ export default function DashboardTab() {
   }, [refreshKey]);
 
   const {
-    monthlyIncome, monthlyExpense, cashOut, debtPrincipal, netCashFlow, savingsRate,
+    monthlyIncome, monthlyExpense, cashOut, debtPrincipal, debtService,
+    debtServiceRatio, netCashFlow, savingsRate,
     dailyIncome, dailyExpense, dailyCashFlow, avgDailyExpense, eomForecast,
     dailySeries, ytdSeries, categoryBreakdown, budgetVsActual,
     totalBudget, hasData, latestMonthWithData, elapsedDays, daysInMonth,
@@ -489,6 +495,45 @@ export default function DashboardTab() {
                 : t("retained income", "phần thu nhập giữ lại")}
           </div>
         </div>
+
+        {/* Gánh nặng trả nợ. Khoản này bắt buộc, không cắt giảm được như tiền
+            ăn uống — nên phải soi riêng chứ không trộn vào tổng chi. */}
+        {debtService > 0 && (
+          <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
+            <div className="flex items-center gap-3 mb-2">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center flex-none ${
+                  debtServiceRatio !== null && debtServiceRatio > 100
+                    ? "bg-[var(--color-error-tint)] text-[var(--color-error)]"
+                    : "bg-[var(--color-info-tint)] text-[var(--color-info)]"
+                }`}
+              >
+                <Scale size={20} />
+              </div>
+              <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                {t("Debt vs income", "Trả nợ / thu nhập")}
+              </div>
+            </div>
+            <div
+              className={`text-2xl font-bold ${
+                debtServiceRatio === null
+                  ? "text-[var(--color-text-faint)]"
+                  : debtServiceRatio > 100
+                    ? "text-[var(--color-error)]"
+                    : debtServiceRatio > 50
+                      ? "text-[var(--color-warning)]"
+                      : "text-[var(--color-text)]"
+              }`}
+            >
+              {debtServiceRatio === null ? "—" : `${debtServiceRatio}%`}
+            </div>
+            <div className="text-xs text-[var(--color-text-faint)] mt-1">
+              {debtServiceRatio === null
+                ? t("no income recorded this month", "chưa ghi thu nhập tháng này")
+                : `${formatVND(debtService)} / ${formatVND(monthlyIncome)}`}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Chỉ số hôm nay */}
@@ -831,6 +876,35 @@ export default function DashboardTab() {
                 </span>
               </div>
             ))}
+            {/* Trả nợ vượt thu nhập: phần chênh phải lấy từ tiết kiệm hoặc vay
+                thêm. Đây là cảnh báo nặng nhất trong bảng nên đặt lên đầu. */}
+            {debtServiceRatio !== null && debtServiceRatio > 100 && (
+              <div className="bg-[var(--color-error-tint)] border border-[var(--color-error)] text-[var(--color-error)] rounded-xl p-4 text-sm font-medium flex items-start gap-3">
+                <Scale size={16} className="flex-none mt-0.5" />
+                <span>
+                  <b>
+                    {t("Debt payments exceed income", "Tiền trả nợ vượt quá thu nhập")}
+                  </b>
+                  {": "}
+                  {formatVND(debtService)} / {formatVND(monthlyIncome)} ={" "}
+                  {debtServiceRatio}%.{" "}
+                  {t(
+                    "The gap has to come from savings or new borrowing.",
+                    "Phần chênh phải lấy từ tiết kiệm hoặc vay thêm."
+                  )}
+                </span>
+              </div>
+            )}
+            {debtServiceRatio !== null && debtServiceRatio > 50 && debtServiceRatio <= 100 && (
+              <div className="bg-[var(--color-warning-tint)] border border-[var(--color-warning)] text-[var(--color-warning)] rounded-xl p-4 text-sm font-medium flex items-start gap-3">
+                <Scale size={16} className="flex-none mt-0.5" />
+                <span>
+                  {t("Debt takes", "Trả nợ chiếm")} <b>{debtServiceRatio}%</b>{" "}
+                  {t("of this month's income", "thu nhập tháng này")} (
+                  {formatVND(debtService)}).
+                </span>
+              </div>
+            )}
             {savingsRate < 0 && (
               <div className="bg-[var(--color-warning-tint)] border border-[var(--color-warning)] text-[var(--color-warning)] rounded-xl p-4 text-sm font-medium flex items-center gap-3">
                 <TrendingUp size={16} className="flex-none" />
@@ -860,7 +934,7 @@ export default function DashboardTab() {
                 {unclassified.map((u) => `${u.type} (${u.count})`).join(", ")}
               </div>
             )}
-            {overBudget.length === 0 && savingsRate >= 0 && unclassified.length === 0 && zeroSpendBudgets.length === 0 && (
+            {overBudget.length === 0 && savingsRate >= 0 && unclassified.length === 0 && zeroSpendBudgets.length === 0 && (debtServiceRatio === null || debtServiceRatio <= 50) && (
               <div className="bg-[var(--color-success-tint)] border border-[var(--color-success)] text-[var(--color-success)] rounded-xl p-4 text-sm font-medium">
                 {t("Everything looks healthy this month.", "Tháng này mọi chỉ số đều ổn.")}
               </div>
