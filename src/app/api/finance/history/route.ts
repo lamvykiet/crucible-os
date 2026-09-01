@@ -44,6 +44,15 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       success: true,
+      // `subGroup` và `paymentMethod` PHẢI có mặt ở đây.
+      //
+      // Thiếu chúng thì form sửa giao dịch mở ra với ô danh mục con trống và
+      // cách trả "không rõ", rồi bấm Lưu là ghi đè mất giá trị thật trong DB.
+      // 263/267 giao dịch đang có danh mục con, nên lỗi này âm thầm phá gần
+      // như mọi lần sửa.
+      //
+      // `source` và `driveFileId` để form biết đây là hoá đơn quét và hiện lại
+      // ảnh gốc cho đối chiếu.
       data: txs.map(t => ({
         id: t.id,
         date: t.date.toISOString().split('T')[0],
@@ -51,6 +60,10 @@ export async function GET(req: Request) {
         supplier: t.supplier || 'Unknown',
         amount: t.totalAmount,
         category: t.categoryGroup || 'Other',
+        subGroup: t.subGroup || '',
+        paymentMethod: t.paymentMethod || 'unknown',
+        source: t.source,
+        driveFileId: t.driveFileId || null,
         note: t.notes || '',
         items: t.items || []
       }))
