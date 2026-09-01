@@ -304,20 +304,25 @@ export default function VideoDownloaderTab() {
         </div>
       )}
 
-      {/* Dán link — tiêu đề và nút lưu nằm chung một hàng, bốn ô nằm chung hàng dưới. */}
-      <form onSubmit={add} className="c-card space-y-4">
+      {/* Dán link.
+          Bố cục cố tình chỉ còn hai hàng. Bản trước có nhãn viết hoa trên mỗi ô
+          (LINK / TOPIC / SUB-TOPIC / TITLE); bốn nhãn đó ăn gần một phần ba
+          chiều cao thẻ mà không nói thêm gì so với placeholder, trong khi chỗ
+          ấy để dành cho lưới thư mục bên dưới thì đáng hơn. Nhãn chuyển thành
+          `aria-label` nên trình đọc màn hình không mất gì. */}
+      <form onSubmit={add} className="c-card space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-accent-tint)] text-[var(--color-accent)] flex items-center justify-center flex-none">
-              <LinkIcon size={20} />
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-[var(--color-accent-tint)] text-[var(--color-accent)] flex items-center justify-center flex-none">
+              <LinkIcon size={18} />
             </div>
-            <div className="min-w-0">
-              <h3 className="c-h3 text-[var(--color-text)]">{t("Save a video", "Lưu một video")}</h3>
-              <p className="text-xs text-[var(--color-text-muted)]">
-                {t("TikTok, Facebook Reel, YouTube, Instagram", "TikTok, Facebook Reel, YouTube, Instagram")}
-              </p>
-            </div>
+            <h3 className="c-h4 text-[var(--color-text)] truncate">
+              {t("Save a video", "Lưu một video")}
+            </h3>
           </div>
+          {/* Cỡ thường chứ không phải c-btn-sm: bản thu gọn đầu tiên dùng
+              c-btn-sm và nút tụt xuống 31px, dưới ngưỡng chạm 44px trên điện
+              thoại. Chỗ tiết kiệm được nằm ở việc bỏ nhãn ô, không ở nút này. */}
           <button
             type="submit"
             disabled={!urlOk || !topic || saving}
@@ -328,107 +333,97 @@ export default function VideoDownloaderTab() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(0,13rem)_minmax(0,11rem)_minmax(0,1fr)_minmax(0,1fr)] gap-3">
-          <div className="c-field min-w-0">
-            <label htmlFor="video-url">{t("Link", "Link")}</label>
-            {urlOk ? (
-              // Link đã vào — chỉ cần biết là nó có ở đó, không cần đọc lại.
-              <div className="c-input flex items-center gap-2 justify-between">
-                <span className="flex items-center gap-2 min-w-0">
-                  <CheckCircle2 size={16} className="text-[var(--color-success)] flex-none" />
-                  <span className="font-bold text-sm truncate">
-                    {PLATFORM_LABEL[detectPlatform(url.trim())] ?? t("Link ready", "Đã có link")}
-                  </span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          {urlOk ? (
+            // Link đã vào — chỉ cần biết là nó có ở đó, không cần đọc lại.
+            <div className="c-input w-full flex items-center gap-2 justify-between min-w-0">
+              <span className="flex items-center gap-2 min-w-0">
+                <CheckCircle2 size={16} className="text-[var(--color-success)] flex-none" />
+                <span className="font-bold text-sm truncate">
+                  {PLATFORM_LABEL[detectPlatform(url.trim())] ?? t("Link ready", "Đã có link")}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setUrl("")}
-                  aria-label={t("Clear link", "Xoá link")}
-                  title={url.trim()}
-                  className="text-[var(--color-text-faint)] hover:text-[var(--color-error)] flex-none"
-                >
-                  <X size={15} />
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-2 min-w-0">
-                <input
-                  id="video-url"
-                  className="c-input flex-1 min-w-0"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder={t("Paste link", "Dán link")}
-                  inputMode="url"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={pasteLink}
-                  aria-label={t("Paste from clipboard", "Dán từ bộ nhớ tạm")}
-                  className="c-btn c-btn-secondary c-btn-icon flex-none"
-                >
-                  <ClipboardPaste size={16} />
-                </button>
-              </div>
-            )}
-          </div>
+              </span>
+              <button
+                type="button"
+                onClick={() => setUrl("")}
+                aria-label={t("Clear link", "Xoá link")}
+                title={url.trim()}
+                className="text-[var(--color-text-faint)] hover:text-[var(--color-error)] flex-none"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2 min-w-0">
+              <input
+                className="c-input w-full flex-1 min-w-0"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                aria-label={t("Link", "Link video")}
+                placeholder={t("Paste link — TikTok, Facebook…", "Dán link — TikTok, Facebook…")}
+                inputMode="url"
+                required
+              />
+              <button
+                type="button"
+                onClick={pasteLink}
+                aria-label={t("Paste from clipboard", "Dán từ bộ nhớ tạm")}
+                className="c-btn c-btn-secondary c-btn-icon flex-none"
+              >
+                <ClipboardPaste size={16} />
+              </button>
+            </div>
+          )}
 
-          <div className="c-field min-w-0">
-            <label htmlFor="video-topic">{t("Topic", "Đề tài")}</label>
-            <select id="video-topic" className="c-input" value={topic} onChange={(e) => setTopic(e.target.value)}>
-              {topics.map((tp) => (
-                <option key={tp.id} value={tp.name}>{tp.name}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            className="c-input w-full"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            aria-label={t("Topic", "Đề tài")}
+          >
+            {topics.map((tp) => (
+              <option key={tp.id} value={tp.name}>{tp.name}</option>
+            ))}
+          </select>
 
-          <div className="c-field min-w-0">
-            <label htmlFor="video-subtopic">{t("Sub-topic", "Nhãn con")}</label>
-            <input
-              id="video-subtopic"
-              className="c-input"
-              value={subTopic}
-              onChange={(e) => setSubTopic(e.target.value)}
-              list="video-subtopic-options"
-              autoComplete="off"
-              placeholder={t("e.g. Print guide", "Vd: Hướng dẫn in")}
-            />
-            {/* Giá trị trong datalist là nhãn người dùng tự gõ — không dịch,
-                vì chuỗi này được lưu thẳng xuống DB. */}
-            <datalist id="video-subtopic-options">
-              {suggestions.map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
-          </div>
+          <input
+            className="c-input w-full"
+            value={subTopic}
+            onChange={(e) => setSubTopic(e.target.value)}
+            list="video-subtopic-options"
+            autoComplete="off"
+            aria-label={t("Sub-topic", "Nhãn con")}
+            placeholder={t("Sub-topic — e.g. Print guide", "Nhãn con — vd Hướng dẫn in")}
+          />
+          {/* Giá trị trong datalist là nhãn người dùng tự gõ — không dịch,
+              vì chuỗi này được lưu thẳng xuống DB. */}
+          <datalist id="video-subtopic-options">
+            {suggestions.map((sub) => (
+              <option key={sub} value={sub} />
+            ))}
+          </datalist>
 
-          <div className="c-field min-w-0">
-            <label htmlFor="video-title">{t("Title (optional)", "Tiêu đề (không bắt buộc)")}</label>
-            <input
-              id="video-title"
-              className="c-input"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t("e.g. 5 Excel shortcuts", "Vd: 5 phím tắt Excel")}
-            />
-          </div>
+          <input
+            className="c-input w-full"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            aria-label={t("Title", "Tiêu đề")}
+            placeholder={t("Title (optional)", "Tiêu đề (không bắt buộc)")}
+          />
         </div>
 
         {/* Safari trên iPhone không dựng danh sách của <datalist>, nên nhãn đã
             dùng phải hiện thành thẻ bấm được thì trên điện thoại mới chọn nổi. */}
         {suggestions.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-[var(--color-text-faint)] flex items-center gap-1.5">
-              <Tag size={12} /> {t("Used before", "Đã dùng")}
-            </span>
-            {suggestions.map((s) => (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {suggestions.map((sub) => (
               <button
-                key={s}
+                key={sub}
                 type="button"
-                onClick={() => setSubTopic((cur) => (cur === s ? "" : s))}
-                className={subTopic === s ? "c-chip c-chip-solid" : "c-chip c-chip-outline"}
+                onClick={() => setSubTopic((cur) => (cur === sub ? "" : sub))}
+                className={subTopic === sub ? "c-chip c-chip-solid" : "c-chip c-chip-outline"}
               >
-                {s}
+                {sub}
               </button>
             ))}
           </div>
@@ -727,12 +722,14 @@ function SavedCard({
               .join(" · ")}
           </p>
         </div>
+        {/* Vùng chạm 44px theo đúng ngưỡng của hệ thiết kế; lề âm giữ cho nút
+            trông vẫn sát mép thẻ chứ không nới thẻ rộng thêm. */}
         <button
           onClick={() => onDelete(item.id)}
           aria-label={t("Remove", "Xoá")}
-          className="text-[var(--color-text-faint)] hover:text-[var(--color-error)] flex-none p-1"
+          className="text-[var(--color-text-faint)] hover:text-[var(--color-error)] flex-none w-11 h-11 -m-2 flex items-center justify-center"
         >
-          <Trash2 size={15} />
+          <Trash2 size={16} />
         </button>
       </div>
 
@@ -787,9 +784,10 @@ function SavedCard({
         <button
           onClick={() => navigator.clipboard?.writeText(item.sourceUrl)}
           title={t("Copy link", "Sao chép link")}
-          className="text-[var(--color-text-faint)] hover:text-[var(--color-text)]"
+          aria-label={t("Copy link", "Sao chép link")}
+          className="text-[var(--color-text-faint)] hover:text-[var(--color-text)] w-11 h-11 -m-3 flex items-center justify-center flex-none"
         >
-          <Copy size={12} />
+          <Copy size={14} />
         </button>
       </div>
     </div>
