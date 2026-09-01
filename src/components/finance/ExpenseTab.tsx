@@ -11,6 +11,7 @@ import ScanInvoiceModal from "./ScanInvoiceModal";
 import PendingReviewButton from "./PendingReviewButton";
 import DayTransactionsCard from "./DayTransactionsCard";
 import IncompleteDataModal from "./IncompleteDataModal";
+import PeriodComparison from "./PeriodComparison";
 import { thisMonthLocalIso } from "@/lib/localDate";
 
 interface CategorySlice { name: string; amount: number }
@@ -226,6 +227,11 @@ export default function ExpenseTab() {
               <div className="text-2xl font-bold text-[var(--color-text)]">{categoriesCount}</div>
             </div>
           </div>
+
+          <PeriodComparison
+            metrics={["expense", "cashOut", "debtService", "count"]}
+            refreshKey={refreshKey}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col">

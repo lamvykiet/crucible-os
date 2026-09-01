@@ -8,6 +8,7 @@ import { CalendarX } from "lucide-react";
 import DebtModal from "./DebtModal";
 import DebtScheduleModal from "./DebtScheduleModal";
 import { thisMonthLocalIso } from "@/lib/localDate";
+import PeriodComparison from "./PeriodComparison";
 
 interface DebtInfo {
   id: string;
@@ -176,6 +177,12 @@ export default function DebtsTab() {
               <div className="text-2xl font-bold text-[var(--color-text)]">{active} / {settled}</div>
             </div>
           </div>
+
+          <PeriodComparison
+            title="Trả nợ so với các kỳ trước"
+            metrics={["debtService", "debtPrincipal", "cashOut"]}
+            refreshKey={refreshKey}
+          />
 
           {/* Charts & Due Dates Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">

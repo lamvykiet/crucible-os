@@ -6,6 +6,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import TransactionModal from "./TransactionModal";
 import { thisMonthLocalIso } from "@/lib/localDate";
+import PeriodComparison from "./PeriodComparison";
 
 interface Transaction {
   id: string;
@@ -117,6 +118,10 @@ export default function HistoryTab() {
           <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
         </div>
       </div>
+
+      <PeriodComparison
+        metrics={["count", "expense", "income", "cashOut"]}
+      />
 
       <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
         <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between">

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { DEBT_CATEGORY_GROUP } from "@/lib/debtTransactions";
 
 // Mọi mốc thời gian đều tính bằng UTC.
 //
@@ -207,6 +208,21 @@ export async function GET(req: Request) {
     // Tiền hoàn làm giảm chi tiêu thực.
     const monthlyExpense = grossExpense - refunds;
     const cashOut = monthlyExpense + debtPrincipal;
+
+    // NGHĨA VỤ TRẢ NỢ của tháng: cả gốc lẫn lãi. Đây là khoản bắt buộc, không
+    // cắt giảm được như tiền ăn uống — nên nó phải được soi riêng, đối chiếu
+    // thẳng với thu nhập.
+    //
+    // Tỷ lệ này là thước đo tiêu chuẩn của ngành ngân hàng (debt-to-income).
+    // Vượt 100% nghĩa là riêng tiền trả nợ đã lớn hơn toàn bộ thu nhập tháng
+    // đó — phần chênh phải lấy từ tiết kiệm hoặc vay thêm, không bền được lâu.
+    const debtService =
+      (expenseByCategory.get(DEBT_CATEGORY_GROUP) || 0) +
+      (principalByCategory.get(DEBT_CATEGORY_GROUP) || 0);
+    // `null` khi chưa ghi thu nhập: chia cho 0 ra một con số vô nghĩa, mà báo
+    // động đỏ vì thiếu dữ liệu thì còn tệ hơn không báo gì.
+    const debtServiceRatio =
+      monthlyIncome > 0 ? Math.round((debtService / monthlyIncome) * 100) : null;
     // Dòng tiền phải trừ TIỀN RA, không phải trừ chi tiêu.
     const netCashFlow = monthlyIncome - cashOut;
 
@@ -339,6 +355,9 @@ export async function GET(req: Request) {
         // Tiền ra = chi tiêu + trả gốc. Xem chú thích dài ở chỗ tính.
         cashOut,
         debtPrincipal,
+        // Nghĩa vụ trả nợ tháng và tỷ lệ trên thu nhập
+        debtService,
+        debtServiceRatio,
         netCashFlow,
         savingsRate,
         dailyIncome,
