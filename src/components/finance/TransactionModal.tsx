@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, ChevronDown, Loader2 } from "lucide-react";
+import { X, ChevronDown, Loader2, Receipt } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
@@ -45,6 +45,17 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
   });
 
   const [items, setItems] = useState<LineItem[]>(initialData?.items || []);
+
+  // Ảnh hoá đơn gốc của giao dịch quét. `driveFileId` là chuỗi id ngăn bằng dấu
+  // phẩy — một hoá đơn dài có thể chụp làm nhiều tấm.
+  //
+  // Có ảnh bên cạnh form là cách duy nhất bắt được lỗi OCR sau khi đã duyệt:
+  // ngày đọc sai thì con số vẫn đúng, tổng vẫn khớp, không có gì gợn lên để
+  // nghi ngờ. Chỉ nhìn lại tờ hoá đơn mới thấy.
+  const receiptIds = String(initialData?.driveFileId || "")
+    .split(",")
+    .map((x: string) => x.trim())
+    .filter(Boolean);
 
   // Reset form when initialData changes or modal opens
   React.useEffect(() => {
@@ -199,7 +210,11 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col">
+      <div
+        className={`bg-[var(--color-surface)] rounded-3xl w-full max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col ${
+          receiptIds.length > 0 ? "max-w-5xl" : "max-w-2xl"
+        }`}
+      >
         <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-center gap-3">
           <h2 className="c-h3 text-[var(--color-text)]">
             {initialData?.id ? t("Chỉnh sửa giao dịch", "Edit transaction") : t("Thêm giao dịch thủ công", "Add manual transaction")}
@@ -213,14 +228,50 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
           </button>
         </div>
         
-        <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6">
+        <div className="flex-1 min-h-0 flex flex-col md:flex-row">
+          {receiptIds.length > 0 && (
+            <div className="shrink-0 md:w-2/5 max-h-56 md:max-h-none overflow-y-auto bg-[var(--color-surface-2)] border-b md:border-b-0 md:border-r border-[var(--color-border)] p-4 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                <Receipt size={14} />
+                {t("Scanned receipt", "Ảnh hoá đơn gốc")}
+              </div>
+              {receiptIds.map((fid: string) => (
+                <a
+                  key={fid}
+                  href={`/api/drive/download?id=${fid}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block"
+                  title={t("Open full size", "Mở ảnh gốc")}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/drive/download?id=${fid}`}
+                    alt={t("Receipt", "Hoá đơn")}
+                    className="w-full rounded-lg border border-[var(--color-border)] shadow-sm"
+                  />
+                </a>
+              ))}
+              <p className="text-[10px] leading-tight text-[var(--color-text-faint)]">
+                {t(
+                  "Check the date and total against the paper before saving.",
+                  "Đối chiếu ngày và tổng tiền với tờ hoá đơn trước khi lưu."
+                )}
+              </p>
+            </div>
+          )}
+
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6">
           {error && <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">{error}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Date */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Ngày", "Ngày")}</label>
               <div className="relative">
-                <input name="date" value={formData.date} onChange={handleChange} type="date" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
+                {/* `appearance-none` + `min-w-0`: trên iOS Safari, input type=date tự
+                    lấy bề rộng theo nội dung và KHÔNG co lại, nên ô ngày phình
+                    rộng hơn mọi ô khác trong cùng lưới. */}
+                <input name="date" value={formData.date} onChange={handleChange} type="date" className="w-full min-w-0 appearance-none bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
               </div>
             </div>
 
@@ -470,6 +521,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                 </div>
               )}
             </div>
+          </div>
           </div>
         </div>
 

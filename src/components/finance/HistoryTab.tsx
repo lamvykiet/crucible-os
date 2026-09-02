@@ -15,6 +15,11 @@ interface Transaction {
   supplier: string;
   amount: number;
   category: string;
+  subGroup: string;
+  paymentMethod: string;
+  source: string;
+  /** Id ảnh trên Drive, nhiều ảnh thì ngăn bằng dấu phẩy. */
+  driveFileId: string | null;
   note: string;
   items?: any[];
 }
@@ -78,7 +83,9 @@ export default function HistoryTab() {
   };
 
   const handleEdit = (tx: Transaction) => {
-    // Map history tx structure to modal structure
+    // Chuyển sang hình dạng mà modal cần. PHẢI mang theo `subGroup` và
+    // `paymentMethod`: thiếu chúng thì form mở ra với ô trống rồi ghi đè mất
+    // giá trị thật khi lưu.
     setSelectedTx({
       id: tx.id,
       date: tx.date,
@@ -86,6 +93,10 @@ export default function HistoryTab() {
       supplier: tx.supplier,
       amount: tx.amount, // Total amount
       categoryGroup: tx.category,
+      subGroup: tx.subGroup,
+      paymentMethod: tx.paymentMethod,
+      source: tx.source,
+      driveFileId: tx.driveFileId,
       notes: tx.note,
       totalAmount: tx.amount,
       items: tx.items
