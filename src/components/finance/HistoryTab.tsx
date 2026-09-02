@@ -6,7 +6,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import TransactionModal from "./TransactionModal";
 import { thisMonthLocalIso } from "@/lib/localDate";
-import PeriodComparison from "./PeriodComparison";
+import TransactionCalendar from "./TransactionCalendar";
 
 interface Transaction {
   id: string;
@@ -30,6 +30,8 @@ export default function HistoryTab() {
   const { t } = useLanguage();
   const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
   const [typeFilter, setTypeFilter] = useState("All");
+  // Ngày đang lọc, chọn bằng cách chạm vào ô trên lịch. Rỗng là xem cả tháng.
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -64,6 +66,14 @@ export default function HistoryTab() {
     return () => controller.abort();
   }, [selectedMonth, typeFilter]);
 
+  // Đổi tháng thì bỏ bộ lọc ngày: giữ lại sẽ trỏ tới một ngày không còn nằm
+  // trong tháng đang xem, và danh sách trống trơn mà không rõ vì sao.
+  const [lastMonth, setLastMonth] = useState(selectedMonth);
+  if (selectedMonth !== lastMonth) {
+    setLastMonth(selectedMonth);
+    setSelectedDay(null);
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm(t("Bạn có chắc chắn muốn xóa giao dịch này không?", "Are you sure you want to delete this transaction?"))) return;
     
@@ -81,6 +91,12 @@ export default function HistoryTab() {
       setIsDeleting(null);
     }
   };
+
+  // Lịch lọc danh sách bên dưới, chứ không tải lại từ máy chủ: dữ liệu của cả
+  // tháng đã nằm sẵn trong `transactions`.
+  const shown = selectedDay
+    ? transactions.filter((tx) => tx.date === selectedDay)
+    : transactions;
 
   const handleEdit = (tx: Transaction) => {
     // Chuyển sang hình dạng mà modal cần. PHẢI mang theo `subGroup` và
@@ -130,8 +146,11 @@ export default function HistoryTab() {
         </div>
       </div>
 
-      <PeriodComparison
-        metrics={["count", "expense", "income", "cashOut"]}
+      <TransactionCalendar
+        month={selectedMonth}
+        transactions={transactions}
+        selectedDay={selectedDay}
+        onSelectDay={setSelectedDay}
       />
 
       <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
@@ -154,7 +173,7 @@ export default function HistoryTab() {
             <span className="animate-spin text-4xl leading-none">⍥</span>
             <span className="ml-3 font-bold">{t("Loading...", "Đang tải...")}</span>
           </div>
-        ) : transactions.length === 0 ? (
+        ) : shown.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
             <p className="text-[var(--color-text-muted)]">
               {t("No transactions found for this period.", "Không tìm thấy giao dịch nào trong khoảng thời gian này.")}
@@ -174,7 +193,7 @@ export default function HistoryTab() {
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-[var(--color-border)]">
-                {transactions.map((tx) => (
+                {shown.map((tx) => (
                   <tr key={tx.id} className="hover:bg-[var(--color-surface-2)] transition-colors">
                     <td className="p-4 text-[var(--color-text)] whitespace-nowrap">{tx.date}</td>
                     <td className="p-4">
