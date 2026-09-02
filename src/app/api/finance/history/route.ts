@@ -10,14 +10,15 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const month = searchParams.get("month"); // optional
-    const type = searchParams.get("type"); // optional
+    // Tham số `type` đã bỏ: lọc theo loại giao dịch giờ chạy trong bộ nhớ ở
+    // client cùng với các bộ lọc khác. Giữ lại ở đây thì mỗi lần đổi ô lọc là
+    // một vòng gọi mạng thừa, trong khi dữ liệu cả tháng đã nằm sẵn trên máy.
 
     const userId = user.id;
 
     const whereClause: {
       userId: string;
       date?: { gte: Date; lt: Date };
-      type?: string;
     } = { userId };
 
     if (month && /^\d{4}-\d{2}$/.test(month)) {
@@ -29,10 +30,6 @@ export async function GET(req: Request) {
         gte: new Date(Date.UTC(year, monthNum - 1, 1)),
         lt: new Date(Date.UTC(year, monthNum, 1)),
       };
-    }
-
-    if (type && type !== "All") {
-      whereClause.type = type;
     }
 
     const txs = await prisma.transaction.findMany({

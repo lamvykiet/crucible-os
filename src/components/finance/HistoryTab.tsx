@@ -51,7 +51,7 @@ export default function HistoryTab() {
     setIsLoading(true);
     try {
       const monthParam = selectedMonth || thisMonthLocalIso();
-      const res = await fetch(`/api/finance/history?month=${monthParam}&type=${typeFilter}`, { 
+      const res = await fetch(`/api/finance/history?month=${monthParam}`, { 
         signal: controller?.signal 
       });
       const result = await res.json().catch(() => null);
@@ -71,7 +71,9 @@ export default function HistoryTab() {
     const controller = new AbortController();
     loadTransactions(controller);
     return () => controller.abort();
-  }, [selectedMonth, typeFilter]);
+    // Chỉ `selectedMonth` mới cần gọi lại máy chủ. Loại giao dịch, nhóm, cách
+    // trả... đều lọc trong bộ nhớ từ cùng một mảng đã tải.
+  }, [selectedMonth]);
 
   // Đổi tháng thì bỏ bộ lọc ngày: giữ lại sẽ trỏ tới một ngày không còn nằm
   // trong tháng đang xem, và danh sách trống trơn mà không rõ vì sao.
@@ -125,6 +127,7 @@ export default function HistoryTab() {
     !tx.subGroup || tx.paymentMethod === "unknown" || !(tx.items?.length);
 
   const shown = transactions
+    .filter((tx) => typeFilter === "All" || tx.type === typeFilter)
     .filter((tx) => !selectedDay || tx.date === selectedDay)
     .filter((tx) => catFilter === "All" || tx.category === catFilter)
     .filter((tx) => payFilter === "All" || tx.paymentMethod === payFilter)
@@ -136,12 +139,14 @@ export default function HistoryTab() {
   // lọc theo một nhóm không xuất hiện trong tháng chỉ cho ra danh sách trống.
   const categories = [...new Set(transactions.map((tx) => tx.category))].sort();
   const activeFilters =
+    (typeFilter !== "All" ? 1 : 0) +
     (catFilter !== "All" ? 1 : 0) +
     (payFilter !== "All" ? 1 : 0) +
     (sourceFilter !== "All" ? 1 : 0) +
     (onlyIncomplete ? 1 : 0);
 
   const clearFilters = () => {
+    setTypeFilter("All");
     setCatFilter("All");
     setPayFilter("All");
     setSourceFilter("All");
@@ -181,19 +186,10 @@ export default function HistoryTab() {
             {t("View all your recorded transactions", "Xem tất cả giao dịch đã ghi nhận")}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <select 
-            value={typeFilter} 
-            onChange={e => setTypeFilter(e.target.value)}
-            className="bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] rounded-lg px-3 py-2 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-success)]"
-          >
-            <option value="All">{t("All Types", "Tất cả các loại")}</option>
-            <option value="Income">{t("Income", "Thu nhập")}</option>
-            <option value="Expense">{t("Expense", "Chi phí")}</option>
-            <option value="Refund">{t("Refund", "Hoàn tiền")}</option>
-          </select>
-          <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-        </div>
+        {/* Đầu trang chỉ còn chọn tháng — nó quyết định DỮ LIỆU NÀO được tải
+            về. Mọi thứ chỉ thu hẹp danh sách đã có đều nằm trong bảng lọc bên
+            dưới, để không lẫn hai loại điều khiển vào nhau. */}
+        <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
       </div>
 
       <TransactionCalendar
@@ -246,7 +242,24 @@ export default function HistoryTab() {
         {/* Bảng lọc mở rộng theo chiều dọc thay vì popover nổi: trên điện thoại
             popover neo vào một nút 44px rất dễ tràn mép màn hình. */}
         {filterOpen && (
-          <div className="p-4 border-b border-[var(--color-border)] bg-[var(--color-surface-2)] grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="p-4 border-b border-[var(--color-border)] bg-[var(--color-surface-2)] grid grid-cols-1 md:grid-cols-4 gap-3">
+            <label className="space-y-1.5">
+              <span className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                {t("Type", "Loại")}
+              </span>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+              >
+                <option value="All">{t("All types", "Tất cả các loại")}</option>
+                <option value="Income">{t("Income", "Thu nhập")}</option>
+                <option value="Expense">{t("Expense", "Chi phí")}</option>
+                <option value="Transfer">{t("Transfer", "Chuyển khoản")}</option>
+                <option value="Refund">{t("Refund", "Hoàn tiền")}</option>
+              </select>
+            </label>
+
             <label className="space-y-1.5">
               <span className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
                 {t("Category", "Nhóm chi tiêu")}
@@ -295,7 +308,7 @@ export default function HistoryTab() {
               </select>
             </label>
 
-            <div className="md:col-span-3 flex flex-wrap items-center gap-4">
+            <div className="md:col-span-4 flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2 min-h-11 cursor-pointer">
                 <input
                   type="checkbox"
