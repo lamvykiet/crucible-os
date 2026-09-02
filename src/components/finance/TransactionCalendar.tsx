@@ -5,9 +5,14 @@ import { todayLocalIso } from "@/lib/localDate";
 
 // Lịch tháng cho tab Lịch sử.
 //
-// Danh sách phẳng trả lời "có những giao dịch nào", còn lịch trả lời câu khác:
-// tiền rơi vào những ngày nào, ngày nào trống, ngày nào dồn cục. Nhìn 30 dòng
-// xếp dọc không thấy được nhịp đó.
+// Trả lời đúng hai câu mà danh sách phẳng không trả lời được:
+//
+//   1. NGÀY NÀY BAO NHIÊU TIỀN — mỗi ô hiện tổng chi (và tổng thu) của ngày.
+//   2. CÓ SÓT NGÀY NÀO KHÔNG — ngày đã qua mà chưa ghi khoản nào thì tô nền
+//      cảnh báo, nhìn lướt là thấy ngay chỗ thủng.
+//
+// Ngày CHƯA TỚI không bị tô: chưa tới thì không thể sót. Tháng đã đóng thì mọi
+// ngày đều tính là đã qua.
 //
 // Không gọi API riêng: tab Lịch sử vốn đã tải toàn bộ giao dịch của tháng đang
 // xem, lịch chỉ xếp lại đúng mảng ấy theo ngày.
@@ -73,6 +78,14 @@ export default function TransactionCalendar({
   }
 
   const today = todayLocalIso();
+  // Ngày đã qua = nhỏ hơn hoặc bằng hôm nay. So chuỗi ISO là đủ và đúng vì
+  // định dạng YYYY-MM-DD xếp theo thứ tự từ điển trùng với thứ tự thời gian.
+  const isPast = (iso: string) => iso <= today;
+
+  const daysPast = Array.from({ length: daysInMonth }, (_, i) =>
+    `${y}-${pad(m)}-${pad(i + 1)}`
+  ).filter(isPast);
+  const missing = daysPast.filter((d) => !byDay.has(d));
   const weekdays = [
     t("Sun", "CN"), t("Mon", "T2"), t("Tue", "T3"), t("Wed", "T4"),
     t("Thu", "T5"), t("Fri", "T6"), t("Sat", "T7"),
@@ -81,9 +94,28 @@ export default function TransactionCalendar({
   return (
     <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-[var(--color-border)] flex flex-wrap items-center justify-between gap-3">
-        <h3 className="c-h5 text-[var(--color-text)]">
-          {t("Month view", "Xem theo tháng")}
-        </h3>
+        <div className="min-w-0">
+          <h3 className="c-h5 text-[var(--color-text)]">
+            {t("Month view", "Xem theo tháng")}
+          </h3>
+          {daysPast.length > 0 && (
+            <p className="text-xs text-[var(--color-text-faint)] mt-1">
+              {t("recorded", "đã ghi")}{" "}
+              <b className="text-[var(--color-text)]">
+                {daysPast.length - missing.length}/{daysPast.length}
+              </b>{" "}
+              {t("days", "ngày")}
+              {missing.length > 0 && (
+                <>
+                  {" · "}
+                  <b className="text-[var(--color-warning)]">
+                    {missing.length} {t("days not recorded", "ngày chưa ghi")}
+                  </b>
+                </>
+              )}
+            </p>
+          )}
+        </div>
         {selectedDay && (
           <button
             onClick={() => onSelectDay(null)}
@@ -120,6 +152,8 @@ export default function TransactionCalendar({
           const spend = list.filter((x) => !isIncome(x)).reduce((s, x) => s + x.amount, 0);
           const earn = list.filter(isIncome).reduce((s, x) => s + x.amount, 0);
           const active = selectedDay === iso;
+          // Ngày đã qua mà không có khoản nào — chỗ thủng cần nhìn thấy ngay.
+          const gap = list.length === 0 && isPast(iso);
 
           return (
             <button
@@ -128,25 +162,47 @@ export default function TransactionCalendar({
               className={`min-h-16 md:min-h-28 border-b border-r border-[var(--color-border)] p-1 md:p-2 text-left align-top transition-colors ${
                 active
                   ? "bg-[var(--color-accent-tint)]"
-                  : "hover:bg-[var(--color-surface-2)]"
+                  : gap
+                    ? "bg-[var(--color-warning-tint)]/40 hover:bg-[var(--color-warning-tint)]"
+                    : "hover:bg-[var(--color-surface-2)]"
               }`}
             >
-              <span
-                className={`inline-flex items-center justify-center min-w-6 h-6 rounded-full text-xs font-bold tabular-nums ${
-                  iso === today
-                    ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] px-1.5"
-                    : "text-[var(--color-text-muted)]"
-                }`}
-              >
-                {day}
-              </span>
+              <div className="flex items-baseline justify-between gap-1">
+                <span
+                  className={`inline-flex items-center justify-center min-w-6 h-6 rounded-full text-xs font-bold tabular-nums ${
+                    iso === today
+                      ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] px-1.5"
+                      : gap
+                        ? "text-[var(--color-warning)]"
+                        : "text-[var(--color-text-muted)]"
+                  }`}
+                >
+                  {day}
+                </span>
+                {/* Tổng chi của ngày, để trả lời "ngày này bao nhiêu" mà không
+                    phải cộng nhẩm các dòng bên dưới. */}
+                {spend > 0 && (
+                  <span className="hidden md:inline text-[11px] font-bold text-[var(--color-text)] tabular-nums">
+                    {short(spend)}
+                  </span>
+                )}
+              </div>
+
+              {gap && (
+                <div className="mt-0.5 text-[10px] leading-tight text-[var(--color-warning)]">
+                  <span className="md:hidden">—</span>
+                  <span className="hidden md:inline">
+                    {t("not recorded", "chưa ghi")}
+                  </span>
+                </div>
+              )}
 
               {list.length > 0 && (
                 <>
                   {/* Điện thoại: ô quá hẹp cho tên nơi chi, chỉ hiện tổng. */}
                   <div className="md:hidden mt-0.5 space-y-0.5">
                     {spend > 0 && (
-                      <div className="text-[10px] font-bold text-[var(--color-warning)] tabular-nums">
+                      <div className="text-[10px] font-bold text-[var(--color-text)] tabular-nums">
                         {short(spend)}
                       </div>
                     )}
@@ -158,6 +214,11 @@ export default function TransactionCalendar({
                   </div>
 
                   <div className="hidden md:block mt-1 space-y-1">
+                    {earn > 0 && (
+                      <div className="text-[10px] font-bold text-[var(--color-success)] tabular-nums px-1">
+                        +{short(earn)} {t("in", "thu")}
+                      </div>
+                    )}
                     {list.slice(0, 3).map((tx) => (
                       <div
                         key={tx.id}
@@ -184,9 +245,13 @@ export default function TransactionCalendar({
         })}
       </div>
 
-      <p className="px-5 py-3 text-xs text-[var(--color-text-faint)]">
-        {t("Tap a day to filter the list below.", "Chạm vào một ngày để lọc danh sách bên dưới.")}
-      </p>
+      <div className="px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--color-text-faint)]">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded border border-[var(--color-border)] bg-[var(--color-warning-tint)]" />
+          {t("day with nothing recorded", "ngày chưa ghi khoản nào")}
+        </span>
+        <span>{t("Tap a day to filter the list below.", "Chạm vào một ngày để lọc danh sách bên dưới.")}</span>
+      </div>
     </div>
   );
 }
