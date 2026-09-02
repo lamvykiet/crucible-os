@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Search, Plus, FileText, Folder, Copy, ThumbsUp, ThumbsDown,
   Grid, MoreVertical, Send, Loader2, AlertCircle, BookOpen, Eye, X,
+  Download, ExternalLink,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useAiChat } from "@/lib/useAiChat";
@@ -56,6 +57,14 @@ interface Props {
 
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 
+interface PreviewInfo {
+  previewable: boolean;
+  /** direct: đẩy thẳng | export/convert: Drive dựng PDF | none: chịu */
+  kind: "direct" | "export" | "convert" | "none";
+  mimeType: string;
+  reason: string | null;
+}
+
 export default function ThreePanelWorkspace({
   title,
   onBack,
@@ -83,6 +92,19 @@ export default function ThreePanelWorkspace({
   // Nội dung tài liệu đã trích, để gửi kèm câu hỏi cho AI.
   const [docContext, setDocContext] = useState<DocContext | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
+
+  // Tài liệu này có dựng được trong iframe không, và nếu không thì vì sao.
+  // Phải hỏi máy chủ trước khi render: nếu cứ trỏ iframe vào một .docx, trình
+  // duyệt không dựng nổi content type đó và **tải file về máy** — đúng lỗi mà
+  // route /api/drive/preview sinh ra để chữa.
+  //
+  // Kết quả được gắn kèm id của tài liệu đã hỏi, và hai giá trị dưới đây suy ra
+  // từ đó. Cách này thay cho việc đặt lại state ngay trong thân effect: vừa
+  // tránh cảnh nháy kết quả của tài liệu trước trong một nhịp render, vừa khỏi
+  // vướng luật react-hooks/set-state-in-effect.
+  const [previewFor, setPreviewFor] = useState<{ id: string; info: PreviewInfo } | null>(null);
+  const preview = previewFor?.id === activeDocument ? previewFor.info : null;
+  const previewLoading = Boolean(activeDocument) && preview === null;
 
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -204,6 +226,42 @@ export default function ThreePanelWorkspace({
       })
       .finally(() => {
         if (!controller.signal.aborted) setContextLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [activeDocument]);
+
+  // Hỏi máy chủ xem tài liệu có dựng được trong iframe không. Chỉ là metadata
+  // (một lượt files.get), không tải nội dung, nên nhẹ hơn hẳn lượt trích text
+  // ở trên.
+  useEffect(() => {
+    if (!activeDocument) return;
+
+    const controller = new AbortController();
+    const id = activeDocument;
+    const settle = (info: PreviewInfo) => {
+      if (!controller.signal.aborted) setPreviewFor({ id, info });
+    };
+
+    fetch(`/api/drive/preview?meta=1&id=${encodeURIComponent(id)}`, {
+      signal: controller.signal,
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        settle(
+          json?.success
+            ? {
+                previewable: Boolean(json.previewable),
+                kind: json.kind,
+                mimeType: json.mimeType,
+                reason: json.reason ?? null,
+              }
+            : { previewable: false, kind: "none", mimeType: "", reason: json?.error ?? null }
+        );
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        settle({ previewable: false, kind: "none", mimeType: "", reason: err.message });
       });
 
     return () => controller.abort();
@@ -420,13 +478,70 @@ export default function ThreePanelWorkspace({
                 {t("Chat about this", "Hỏi AI về tài liệu này")}
               </button>
             </div>
-            {/* iframe thật, thay cho "Trình xem PDF mô phỏng" của bản cũ. */}
+            {/* Trình xem đọc qua /api/drive/preview, KHÔNG qua /api/drive/download.
+                Route download trả đúng MIME type thật, và trình duyệt không dựng
+                được .docx — nó tải file về máy thay vì hiện ra. Route preview
+                nhờ Drive chuyển sang PDF trước. */}
             <div className="flex-1 min-h-0 bg-[var(--color-bg)] rounded-xl overflow-hidden border border-[var(--color-border)]">
-              <iframe
-                src={`/api/drive/download?id=${encodeURIComponent(activeDocument)}#toolbar=0`}
-                className="w-full h-full border-none"
-                title={activeName || "Document viewer"}
-              />
+              {previewLoading || !preview ? (
+                <div className="w-full h-full flex items-center justify-center gap-3 text-[var(--color-text-muted)]">
+                  <Loader2 size={18} className="animate-spin" />
+                  <span className="text-sm font-bold">
+                    {t("Opening document...", "Đang mở tài liệu...")}
+                  </span>
+                </div>
+              ) : preview.previewable ? (
+                <iframe
+                  src={`/api/drive/preview?id=${encodeURIComponent(activeDocument)}#toolbar=0`}
+                  className="w-full h-full border-none"
+                  title={activeName || "Document viewer"}
+                />
+              ) : (
+                // Không xem trước được thì nói thẳng và đưa hai lối ra. Bản cũ
+                // im lặng để trình duyệt tải file về, nên người dùng tưởng bấm
+                // nhầm nút tải.
+                <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center p-6">
+                  <div className="w-14 h-14 rounded-2xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center">
+                    <FileText size={26} />
+                  </div>
+                  <div>
+                    <p className="c-h4 text-[var(--color-text)]">
+                      {t("Can't display this file here", "Không hiển thị được tệp này ở đây")}
+                    </p>
+                    <p className="text-sm text-[var(--color-text-muted)] mt-1 max-w-sm">
+                      {preview.reason ||
+                        t("This format has no in-browser viewer.",
+                          "Định dạng này không có trình xem trong trình duyệt.")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
+                    <a
+                      href={`/api/drive/download?id=${encodeURIComponent(activeDocument)}`}
+                      className="c-btn c-btn-secondary c-btn-sm flex items-center gap-1.5"
+                    >
+                      <Download size={14} /> {t("Download", "Tải về")}
+                    </a>
+                    <a
+                      href={`https://drive.google.com/file/d/${encodeURIComponent(activeDocument)}/view`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="c-btn c-btn-secondary c-btn-sm flex items-center gap-1.5"
+                    >
+                      {t("Open in Drive", "Mở trong Drive")} <ExternalLink size={14} />
+                    </a>
+                  </div>
+                  {/* Chỉ hứa khi giữ được lời hứa. Tệp quá lớn thì bước trích
+                      text cho AI cũng hỏng (trần 20MB riêng của nó), nên nói
+                      "vẫn hỏi AI được" ở mọi trường hợp là nói sai. */}
+                  <p className="text-xs text-[var(--color-text-faint)] max-w-sm">
+                    {docContext?.ready
+                      ? t("You can still ask the AI about it — the text was extracted separately.",
+                          "Bạn vẫn hỏi AI về tài liệu này được — phần chữ đã được trích riêng.")
+                      : t("The AI can't read this file either.",
+                          "Tệp này AI cũng chưa đọc được nội dung.")}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         ) : (
