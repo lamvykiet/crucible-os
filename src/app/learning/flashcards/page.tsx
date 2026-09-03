@@ -41,6 +41,7 @@ function FlashcardSession() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const domain = searchParams.get("domain")?.trim() || null;
+  const deckId = searchParams.get("deck")?.trim() || null;
 
   const [cards, setCards] = useState<Card[]>([]);
   const [index, setIndex] = useState(0);
@@ -58,7 +59,7 @@ function FlashcardSession() {
   // coi là chưa có. Đặt cờ trong thân effect thì đổi lĩnh vực sẽ loé thẻ cũ một
   // nhịp trước khi cờ kịp bật.
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
-  const requestKey = `${reloadKey}:${domain ?? ""}`;
+  const requestKey = `${reloadKey}:${domain ?? ""}:${deckId ?? ""}`;
   const loading = loadedFor !== requestKey;
 
   // Danh sách lĩnh vực để chuyển qua lại. Lấy một lần, không phụ thuộc bộ lọc —
@@ -82,7 +83,11 @@ function FlashcardSession() {
   useEffect(() => {
     const controller = new AbortController();
 
-    const query = domain ? `?domain=${encodeURIComponent(domain)}` : "";
+    const query = deckId
+      ? `?deck=${encodeURIComponent(deckId)}`
+      : domain
+        ? `?domain=${encodeURIComponent(domain)}`
+        : "";
 
     fetch(`/api/learning/flashcards${query}`, { signal: controller.signal })
       .then((res) => res.json())
@@ -104,7 +109,7 @@ function FlashcardSession() {
       });
 
     return () => controller.abort();
-  }, [requestKey, domain]);
+  }, [requestKey, domain, deckId]);
 
   const current = cards[index] ?? null;
 

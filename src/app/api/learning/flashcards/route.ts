@@ -35,13 +35,26 @@ export async function GET(req: Request) {
     const params = new URL(req.url).searchParams;
     const limit = Math.min(Number(params.get("limit")) || DEFAULT_BATCH, 100);
     const domain = params.get("domain")?.trim() || null;
+    const deckId = params.get("deck")?.trim() || null;
     const now = new Date();
 
     // Lĩnh vực nằm trên mục từ điển, không nằm trên thẻ. Thẻ tạo tay (không gắn
     // mục từ điển nào) vì vậy chỉ xuất hiện khi ôn tất cả.
-    const scope = domain
-      ? { dictionaryItem: { is: { domain: { equals: domain, mode: "insensitive" as const } } } }
-      : {};
+    // Lọc theo bộ thẻ chặt hơn lọc theo lĩnh vực, nên nó thắng khi có cả hai.
+    // Bộ đang tạm dừng thì thẻ của nó không vào hàng ôn — trừ khi người dùng
+    // mở thẳng đúng bộ đó, lúc ấy rõ ràng là họ đang cố ý ôn nó.
+    const scope = deckId
+      ? { dictionaryItem: { is: { deckId } } }
+      : domain
+        ? {
+            dictionaryItem: {
+              is: {
+                domain: { equals: domain, mode: "insensitive" as const },
+                OR: [{ deck: { is: { status: "active" } } }, { deckId: null }],
+              },
+            },
+          }
+        : {};
 
     const [due, newCount, total, dueCount] = await Promise.all([
       prisma.flashcard.findMany({

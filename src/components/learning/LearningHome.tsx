@@ -4,7 +4,7 @@ import { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   Brain, BookMarked, ClipboardCheck, FolderOpen, Flame, Loader2, AlertCircle,
-  CheckCircle2, ArrowRight,
+  CheckCircle2, ArrowRight, Languages as LanguagesIcon,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import SubjectsTab from "@/components/learning/SubjectsTab";
@@ -101,6 +101,7 @@ export default function LearningHome() {
   const attempts = data?.attempts ?? [];
 
   const actions = [
+    { href: "/learning/languages", icon: LanguagesIcon, label: t("Languages", "Ngôn ngữ") },
     { href: "/learning/flashcards", icon: Brain, label: t("Review cards", "Ôn thẻ") },
     { href: "/learning/dictionary", icon: BookMarked, label: t("Term bank", "Kho thuật ngữ") },
     { href: "/learning/exam", icon: ClipboardCheck, label: t("Mock exam", "Thi thử") },

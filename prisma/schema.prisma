@@ -30,6 +30,12 @@ model User {
   ExamAttempt        ExamAttempt[]
   VideoItem          VideoItem[]
   Asset              Asset[]
+  Language           Language[]
+  Deck               Deck[]
+  ReviewLog          ReviewLog[]
+  StudyNote          StudyNote[]
+  DailyTask          DailyTask[]
+  LearnerPref        LearnerPref?
 }
 
 // -----------------------------------------
@@ -417,6 +423,22 @@ model DictionaryItem {
   tags               String[]
   crossDomainLinks   String?  // JSON string
 
+  // ── Phần thêm cho module ngôn ngữ ──────────────────────────────────────
+  // `phonetic` giữ nguyên vai trò "cách đọc", nhưng đọc theo hệ nào là do
+  // Language.phoneticSystem quyết định: IPA cho Anh/Pháp, Pinyin cho Quan
+  // Thoại, Jyutping cho Quảng Đông, Romaja cho Hàn. Nhờ vậy không phải đẻ ra
+  // mỗi tiếng một cột.
+  tone               String?  // "3", "2-1"... chỉ dùng cho tiếng có thanh điệu
+  exampleTranslation String?  // bản dịch câu ví dụ
+  imageUrl           String?  // ảnh minh hoạ cho thẻ
+  audioUrl           String?  // file phát âm mẫu
+  orderIndex         Int      @default(0)
+
+  deckId             String?
+  deck               Deck?     @relation(fields: [deckId], references: [id], onDelete: SetNull)
+  languageId         String?
+  language           Language? @relation(fields: [languageId], references: [id], onDelete: SetNull)
+
   userId             String
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
@@ -569,6 +591,186 @@ model Asset {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  MODULE NGÔN NGỮ
+//
+//  Learning Hub phải chạy được cho tiếng Anh, Quan Thoại, Quảng Đông, Hàn và
+//  Pháp — năm thứ tiếng có hình dạng rất khác nhau:
+//
+//    Anh / Pháp     chữ Latin,  phiên âm IPA,      không thanh điệu
+//    Quan Thoại     chữ Hán,    phiên âm Pinyin,   4 thanh + thanh nhẹ
+//    Quảng Đông     chữ Hán,    phiên âm Jyutping, 6 thanh
+//    Hàn            Hangul,     phiên âm Romaja,   không thanh điệu
+//
+//  Nếu viết cứng theo tiếng Anh thì thêm tiếng thứ hai là phải đập đi làm lại.
+//  Nên chỗ khác nhau được đẩy hết vào cấu hình của `Language`, còn thẻ từ vựng
+//  giữ đúng một hình dạng chung. Thêm tiếng thứ sáu = thêm một dòng dữ liệu.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Một thứ tiếng đang học, kèm những quy ước riêng của nó.
+model Language {
+  id         String  @id @default(uuid())
+  code       String  // en, fr, cmn (Quan Thoại), yue (Quảng Đông), ko
+  name       String  // tên hiển thị, ví dụ "Tiếng Quảng Đông"
+  nativeName String? // 廣東話, 한국어...
+
+  /// latin | hanzi | hangul — quyết định có bật phần luyện viết chữ hay không.
+  script         String  @default("latin")
+  /// ipa | pinyin | jyutping | romaja — nhãn hiện trên ô "cách đọc".
+  phoneticSystem String  @default("ipa")
+  /// Có thanh điệu thì mới hiện phần luyện thanh.
+  hasTones       Boolean @default(false)
+  toneCount      Int     @default(0)
+  /// CEFR | HSK | TOPIK — thang cấp độ dùng để xếp bộ thẻ.
+  levelScale     String  @default("CEFR")
+
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  decks Deck[]
+  items DictionaryItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, code])
+}
+
+/// Bộ thẻ. Dùng cho cả ngôn ngữ lẫn các lĩnh vực khác.
+///
+/// `languageId` và `domain` loại trừ nhau: bộ thuộc một thứ tiếng, hoặc thuộc
+/// một lĩnh vực (Finance, 3D Design...). Để chung một bảng là có chủ ý — khi
+/// nhân bản logic sang lĩnh vực khác thì không phải viết lại gì.
+model Deck {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  level       String? // A1..C2, HSK1.., TOPIK1..
+  topic       String?
+
+  /// Vị trí trong lộ trình. Học xong bộ này mới mở bộ có orderIndex kế tiếp.
+  orderIndex  Int       @default(0)
+  /// active | paused — bộ tạm dừng không đưa thẻ vào hàng ôn hằng ngày.
+  status      String    @default("active")
+  isPreset    Boolean   @default(false)
+  completedAt DateTime?
+
+  languageId String?
+  language   Language? @relation(fields: [languageId], references: [id], onDelete: Cascade)
+  domain     String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items DictionaryItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, languageId, orderIndex])
+  @@index([userId, domain])
+}
+
+/// Nhật ký từng lượt ôn.
+///
+/// `Flashcard` chỉ giữ trạng thái hiện tại của thẻ, nên không trả lời được
+/// "hôm 12/08 đã học những gì". Bảng này ghi lại từng lượt để dựng lịch sử
+/// dạng lịch tháng, biểu đồ thống kê, và chuỗi ngày học.
+model ReviewLog {
+  id          String  @id @default(uuid())
+  flashcardId String?
+  itemId      String?
+  deckId      String?
+  languageId  String?
+
+  grade Int // 1..4 theo thang FSRS
+  state Int // trạng thái thẻ SAU lượt ôn này
+  /// flashcard | quick | fill | listen | tone | write | pronounce
+  mode  String  @default("flashcard")
+  correct Boolean?
+
+  reviewedAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, reviewedAt])
+  @@index([userId, languageId, reviewedAt])
+}
+
+/// Giấy nhớ, gắn với một ngày cụ thể để xem lại cùng lịch sử học.
+model StudyNote {
+  id       String   @id @default(uuid())
+  body     String
+  noteDate DateTime
+  color    String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, noteDate])
+}
+
+/// Việc cần làm trong ngày, và thử thách hằng ngày.
+model DailyTask {
+  id       String   @id @default(uuid())
+  taskDate DateTime
+  /// review | newCards | listen | pronounce | read | pomodoro | challenge
+  kind     String
+  label    String?
+  target   Int      @default(1)
+  progress Int      @default(0)
+  reward   Int      @default(0)
+  visible  Boolean  @default(true)
+  color    String?
+
+  completedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, taskDate])
+}
+
+/// Tuỳ chọn học và phần thưởng của người dùng.
+///
+/// Gom một dòng cho mỗi người thay vì rải cột vào `User` — phần này còn phình
+/// thêm khi làm tới ảnh nền, hiệu ứng và cửa hàng.
+model LearnerPref {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Phần thưởng
+  diamonds      Int @default(0)
+  streakShields Int @default(0)
+
+  // Không gian học
+  background          String?  // ảnh nền đang dùng
+  unlockedBackgrounds String[] // những ảnh đã mở khoá
+  videoBackground     String?
+  weatherEffect       String   @default("none")
+  contentAlign        String   @default("center")
+  colorTheme          String   @default("default")
+
+  // Cách học
+  newCardLimit      Int     @default(10)
+  relearnLimit      Int     @default(20)
+  skipExerciseOnNew Boolean @default(true)
+  lowercaseAnswers  Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
