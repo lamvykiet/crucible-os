@@ -19,11 +19,13 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search")?.trim();
     const tag = searchParams.get("tag")?.trim();
+    const domain = searchParams.get("domain")?.trim();
 
     const items = await prisma.dictionaryItem.findMany({
       where: {
         userId: user.id,
         ...(tag ? { tags: { has: tag } } : {}),
+        ...(domain ? { domain: { equals: domain, mode: "insensitive" as const } } : {}),
         ...(search
           ? {
               OR: [
@@ -37,14 +39,25 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    // Danh sách thẻ để lọc lấy từ chính dữ liệu, không phải bảng cố định.
+    // Danh sách thẻ và lĩnh vực để lọc lấy từ chính dữ liệu, không phải bảng cố
+    // định. Lĩnh vực phải đếm trên toàn bộ kho chứ không trên `items` — lọc rồi
+    // thì danh sách lĩnh vực teo lại còn đúng cái đang chọn, và không bấm sang
+    // lĩnh vực khác được nữa.
     const allTags = Array.from(new Set(items.flatMap((i) => i.tags))).sort();
 
-    return NextResponse.json({ success: true, items, tags: allTags });
+    const domainRows = await prisma.dictionaryItem.findMany({
+      where: { userId: user.id, domain: { not: null } },
+      select: { domain: true },
+      distinct: ["domain"],
+      orderBy: { domain: "asc" },
+    });
+    const domains = domainRows.map((d) => d.domain!).filter((d) => d.trim());
+
+    return NextResponse.json({ success: true, items, tags: allTags, domains });
   } catch (error) {
     console.error("List dictionary error:", error);
     return NextResponse.json(
-      { success: false, error: "Server Error", items: [], tags: [] },
+      { success: false, error: "Server Error", items: [], tags: [], domains: [] },
       { status: 500 }
     );
   }

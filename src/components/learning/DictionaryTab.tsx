@@ -33,8 +33,10 @@ export default function DictionaryTab() {
 
   const [items, setItems] = useState<DictionaryItem[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  const [domains, setDomains] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -49,6 +51,7 @@ export default function DictionaryTab() {
     const params = new URLSearchParams();
     if (search.trim()) params.set("search", search.trim());
     if (selectedTag) params.set("tag", selectedTag);
+    if (selectedDomain) params.set("domain", selectedDomain);
 
     // Gõ tới đâu lọc tới đó, nhưng chờ một nhịp để không bắn request mỗi phím.
     const timer = setTimeout(() => {
@@ -59,6 +62,7 @@ export default function DictionaryTab() {
           if (!json?.success) throw new Error(json?.error || "Không tải được từ điển");
           setItems(json.items);
           setTags(json.tags);
+          setDomains(json.domains ?? []);
           setError(null);
         })
         .catch((err) => {
@@ -73,7 +77,7 @@ export default function DictionaryTab() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [search, selectedTag, reloadKey]);
+  }, [search, selectedTag, selectedDomain, reloadKey]);
 
   const lookup = async () => {
     if (!form.term.trim() || looking) return;
@@ -164,7 +168,7 @@ export default function DictionaryTab() {
           </div>
           <button
             onClick={() => setShowForm((v) => !v)}
-            className="c-btn bg-[#66c2c2] hover:bg-[var(--color-success)] text-white rounded-full flex-none font-bold shadow-sm"
+            className="c-btn c-btn-primary c-btn-pill flex-none"
           >
             {showForm ? <X size={18} className="mr-2" /> : <Plus size={18} className="mr-2" />}
             {showForm ? t("Cancel", "Huỷ") : t("Add Term", "Thêm từ")}
@@ -281,27 +285,53 @@ export default function DictionaryTab() {
         </form>
       )}
 
-      {tags.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 hide-scrollbar">
+      {/* Lọc theo lĩnh vực trước, theo thẻ sau.
+          Kho thuật ngữ dùng chung cho mọi mảng học, nên khi đã có vài trăm mục
+          thì lĩnh vực là thứ cần cắt đầu tiên — thẻ chỉ để lọc tiếp bên trong.
+          Danh sách lĩnh vực do máy chủ đếm trên toàn kho, không phải trên phần
+          đang hiện, nên chọn xong vẫn bấm sang lĩnh vực khác được. */}
+      {domains.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
           <Filter size={16} className="text-[var(--color-text-faint)] flex-none" />
           <button
-            onClick={() => setSelectedTag(null)}
-            className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              selectedTag === null
-                ? "bg-[var(--color-success)] text-white"
-                : "bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)]"
+            onClick={() => setSelectedDomain(null)}
+            className={`c-chip whitespace-nowrap ${
+              selectedDomain === null ? "c-chip-solid" : "c-chip-outline"
             }`}
           >
-            {t("All Tags", "Tất cả")}
+            {t("All fields", "Tất cả lĩnh vực")}
+          </button>
+          {domains.map((d) => (
+            <button
+              key={d}
+              onClick={() => setSelectedDomain(d === selectedDomain ? null : d)}
+              className={`c-chip whitespace-nowrap ${
+                selectedDomain === d ? "c-chip-solid" : "c-chip-outline"
+              }`}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tags.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 hide-scrollbar">
+          <TagIcon size={16} className="text-[var(--color-text-faint)] flex-none" />
+          <button
+            onClick={() => setSelectedTag(null)}
+            className={`c-chip whitespace-nowrap ${
+              selectedTag === null ? "c-chip-solid" : "c-chip-outline"
+            }`}
+          >
+            {t("All tags", "Tất cả thẻ")}
           </button>
           {tags.map((tag) => (
             <button
               key={tag}
               onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                selectedTag === tag
-                  ? "bg-[var(--color-success)] text-white"
-                  : "bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)]"
+              className={`c-chip whitespace-nowrap ${
+                selectedTag === tag ? "c-chip-solid" : "c-chip-outline"
               }`}
             >
               # {tag}
@@ -322,12 +352,12 @@ export default function DictionaryTab() {
           </div>
           <div>
             <p className="text-lg font-bold text-[var(--color-text)]">
-              {search || selectedTag
+              {search || selectedTag || selectedDomain
                 ? t("No matching terms", "Không có từ nào khớp")
                 : t("No terms yet", "Chưa có từ nào")}
             </p>
             <p className="text-sm text-[var(--color-text-muted)] mt-1">
-              {search || selectedTag
+              {search || selectedTag || selectedDomain
                 ? t("Try a different search.", "Thử từ khoá khác.")
                 : t("Add the first term — AI can fill in the rest.", "Thêm từ đầu tiên — AI điền hộ phần còn lại.")}
             </p>

@@ -21,31 +21,48 @@ function toCardState(card: {
  * Kèm sẵn khoảng cách dự kiến của cả bốn lựa chọn để nút hiện "3 ngày", "2
  * tháng" thay cho các nhãn viết cứng "(1m) (10m) (1d) (4d)" của bản cũ — những
  * con số đó không liên quan gì tới thẻ đang xem.
+ *
+ * `?domain=` giới hạn phiên ôn trong một lĩnh vực. Learning Hub không phục vụ
+ * riêng một môn, nên ôn "tất cả" sẽ trộn thuật ngữ tài chính với từ vựng tiếng
+ * Anh trong cùng một chồng thẻ — học được, nhưng não phải nhảy ngữ cảnh liên
+ * tục. Lọc theo lĩnh vực cho phép ngồi xuống ôn đúng một mảng.
  */
 export async function GET(req: Request) {
   const { user, response } = await requireUser();
   if (!user) return response;
 
   try {
-    const limit = Math.min(Number(new URL(req.url).searchParams.get("limit")) || DEFAULT_BATCH, 100);
+    const params = new URL(req.url).searchParams;
+    const limit = Math.min(Number(params.get("limit")) || DEFAULT_BATCH, 100);
+    const domain = params.get("domain")?.trim() || null;
     const now = new Date();
 
-    const [due, newCount, total] = await Promise.all([
+    // Lĩnh vực nằm trên mục từ điển, không nằm trên thẻ. Thẻ tạo tay (không gắn
+    // mục từ điển nào) vì vậy chỉ xuất hiện khi ôn tất cả.
+    const scope = domain
+      ? { dictionaryItem: { is: { domain: { equals: domain, mode: "insensitive" as const } } } }
+      : {};
+
+    const [due, newCount, total, dueCount] = await Promise.all([
       prisma.flashcard.findMany({
-        where: { userId: user.id, dueDate: { lte: now } },
+        where: { userId: user.id, dueDate: { lte: now }, ...scope },
         orderBy: [{ state: "desc" }, { dueDate: "asc" }],
         take: limit,
         include: { dictionaryItem: { select: { term: true, domain: true } } },
       }),
-      prisma.flashcard.count({ where: { userId: user.id, state: STATE.NEW } }),
-      prisma.flashcard.count({ where: { userId: user.id } }),
+      prisma.flashcard.count({ where: { userId: user.id, state: STATE.NEW, ...scope } }),
+      prisma.flashcard.count({ where: { userId: user.id, ...scope } }),
+      // Đếm riêng chứ không lấy `due.length`: `due` đã bị `take: limit` cắt, nên
+      // còn 80 thẻ tới hạn thì thanh tiến độ vẫn báo 30.
+      prisma.flashcard.count({ where: { userId: user.id, dueDate: { lte: now }, ...scope } }),
     ]);
 
     return NextResponse.json({
       success: true,
       total,
       newCount,
-      dueCount: due.length,
+      dueCount,
+      domain,
       cards: due.map((c) => ({
         id: c.id,
         front: c.front,
