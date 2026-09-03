@@ -20,12 +20,16 @@ export async function GET(req: Request) {
     const search = searchParams.get("search")?.trim();
     const tag = searchParams.get("tag")?.trim();
     const domain = searchParams.get("domain")?.trim();
+    const deckId = searchParams.get("deck")?.trim();
+    const languageId = searchParams.get("languageId")?.trim();
 
     const items = await prisma.dictionaryItem.findMany({
       where: {
         userId: user.id,
         ...(tag ? { tags: { has: tag } } : {}),
         ...(domain ? { domain: { equals: domain, mode: "insensitive" as const } } : {}),
+        ...(deckId ? { deckId } : {}),
+        ...(languageId ? { languageId } : {}),
         ...(search
           ? {
               OR: [
@@ -83,6 +87,23 @@ export async function POST(req: Request) {
       ? body.tags.map((t: unknown) => String(t).trim()).filter(Boolean).slice(0, 10)
       : [];
 
+    // Bộ thẻ và ngôn ngữ phải là của chính người dùng — nếu không thì một id
+    // đoán mò trong body sẽ nhét được từ vào bộ thẻ của người khác.
+    const deckId = body.deckId ? String(body.deckId) : null;
+    if (deckId) {
+      const owned = await prisma.deck.findFirst({ where: { id: deckId, userId: user.id } });
+      if (!owned) {
+        return NextResponse.json({ success: false, error: "Không tìm thấy bộ thẻ" }, { status: 404 });
+      }
+    }
+    const languageId = body.languageId ? String(body.languageId) : null;
+    if (languageId) {
+      const owned = await prisma.language.findFirst({ where: { id: languageId, userId: user.id } });
+      if (!owned) {
+        return NextResponse.json({ success: false, error: "Không tìm thấy ngôn ngữ" }, { status: 404 });
+      }
+    }
+
     const item = await prisma.dictionaryItem.create({
       data: {
         term,
@@ -90,6 +111,12 @@ export async function POST(req: Request) {
         phonetic: body.phonetic?.trim() || null,
         example: body.example?.trim() || null,
         domain: body.domain?.trim() || null,
+        tone: body.tone?.trim() || null,
+        exampleTranslation: body.exampleTranslation?.trim() || null,
+        imageUrl: body.imageUrl?.trim() || null,
+        audioUrl: body.audioUrl?.trim() || null,
+        deckId,
+        languageId,
         tags,
         userId: user.id,
         // Tạo luôn thẻ ghi nhớ nếu người dùng muốn — quan hệ 1-1 đã có sẵn

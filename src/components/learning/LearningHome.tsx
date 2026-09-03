@@ -4,10 +4,12 @@ import { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   Brain, BookMarked, ClipboardCheck, FolderOpen, Flame, Loader2, AlertCircle,
-  CheckCircle2, ArrowRight, Languages as LanguagesIcon,
+  CheckCircle2, ArrowRight, Languages as LanguagesIcon, CalendarDays, Timer, Palette,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import SubjectsTab from "@/components/learning/SubjectsTab";
+import DailyTasks from "@/components/learning/DailyTasks";
+import StudySpace from "@/components/learning/StudySpace";
 import type { DomainStat } from "@/lib/learningStats";
 
 interface Overview {
@@ -105,10 +107,14 @@ export default function LearningHome() {
     { href: "/learning/flashcards", icon: Brain, label: t("Review cards", "Ôn thẻ") },
     { href: "/learning/dictionary", icon: BookMarked, label: t("Term bank", "Kho thuật ngữ") },
     { href: "/learning/exam", icon: ClipboardCheck, label: t("Mock exam", "Thi thử") },
+    { href: "/learning/history", icon: CalendarDays, label: t("History", "Lịch sử") },
+    { href: "/learning/focus", icon: Timer, label: t("Focus", "Tập trung") },
+    { href: "/learning/space", icon: Palette, label: t("Study space", "Không gian") },
     { href: "/knowledge", icon: FolderOpen, label: t("Documents", "Tài liệu") },
   ];
 
   return (
+    <StudySpace>
     <div className="max-w-7xl mx-auto space-y-10 pb-24">
       {/* Lời chào */}
       <header className="pt-2">
@@ -176,7 +182,7 @@ export default function LearningHome() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-2 gap-5 lg:col-span-1">
           <div className="c-card p-5 flex flex-col justify-between">
             <p className="c-card-kicker flex items-center gap-1.5">
               <Flame size={13} />
@@ -206,6 +212,9 @@ export default function LearningHome() {
           </Link>
         ))}
       </nav>
+
+      {/* Việc hôm nay */}
+      <DailyTasks />
 
       {/* Lĩnh vực — mỗi thư mục Drive là một mảng học riêng */}
       <SubjectsTab stats={data?.domains ?? []} />
@@ -237,5 +246,6 @@ export default function LearningHome() {
         </section>
       )}
     </div>
+    </StudySpace>
   );
 }

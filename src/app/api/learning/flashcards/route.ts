@@ -61,7 +61,15 @@ export async function GET(req: Request) {
         where: { userId: user.id, dueDate: { lte: now }, ...scope },
         orderBy: [{ state: "desc" }, { dueDate: "asc" }],
         take: limit,
-        include: { dictionaryItem: { select: { term: true, domain: true } } },
+        include: {
+          dictionaryItem: {
+            select: {
+              term: true, domain: true, phonetic: true, tone: true,
+              example: true, exampleTranslation: true, imageUrl: true,
+              language: true,
+            },
+          },
+        },
       }),
       prisma.flashcard.count({ where: { userId: user.id, state: STATE.NEW, ...scope } }),
       prisma.flashcard.count({ where: { userId: user.id, ...scope } }),
@@ -69,6 +77,16 @@ export async function GET(req: Request) {
       // còn 80 thẻ tới hạn thì thanh tiến độ vẫn báo 30.
       prisma.flashcard.count({ where: { userId: user.id, dueDate: { lte: now }, ...scope } }),
     ]);
+
+    // Kho nghĩa để làm phương án nhiễu. Lấy trong cùng phạm vi đang ôn thì
+    // phương án sai mới hợp lý — trộn nghĩa tiếng Hàn vào câu tiếng Pháp thì
+    // đoán mò cũng trúng.
+    const distractorRows = await prisma.dictionaryItem.findMany({
+      where: { userId: user.id, ...(scope.dictionaryItem?.is ?? {}) },
+      select: { definition: true },
+      take: 60,
+    });
+    const distractors = [...new Set(distractorRows.map((d) => d.definition))];
 
     return NextResponse.json({
       success: true,
@@ -83,8 +101,31 @@ export async function GET(req: Request) {
         state: c.state,
         reps: c.reps,
         domain: c.dictionaryItem?.domain ?? null,
+        // Phần dựng bài tập: điền khuyết cần biết đáp án là từ nào, luyện thanh
+        // cần số thanh, nghe cần biết đọc bằng thứ tiếng nào.
+        itemId: c.dictionaryItem ? c.itemId : null,
+        term: c.dictionaryItem?.term ?? null,
+        phonetic: c.dictionaryItem?.phonetic ?? null,
+        tone: c.dictionaryItem?.tone ?? null,
+        example: c.dictionaryItem?.example ?? null,
+        exampleTranslation: c.dictionaryItem?.exampleTranslation ?? null,
+        imageUrl: c.dictionaryItem?.imageUrl ?? null,
+        language: c.dictionaryItem?.language
+          ? {
+              id: c.dictionaryItem.language.id,
+              code: c.dictionaryItem.language.code,
+              name: c.dictionaryItem.language.name,
+              script: c.dictionaryItem.language.script,
+              phoneticSystem: c.dictionaryItem.language.phoneticSystem,
+              hasTones: c.dictionaryItem.language.hasTones,
+              toneCount: c.dictionaryItem.language.toneCount,
+            }
+          : null,
         intervals: previewIntervals(toCardState(c), now),
       })),
+      // Nghĩa của các thẻ khác, dùng làm phương án nhiễu cho câu trắc nghiệm.
+      // Lấy sẵn ở đây để mỗi câu không phải bắn thêm một request.
+      distractors,
     });
   } catch (error) {
     console.error("List due cards error:", error);
@@ -101,7 +142,7 @@ export async function POST(req: Request) {
   if (!user) return response;
 
   try {
-    const { id, grade } = await req.json();
+    const { id, grade, mode, correct } = await req.json();
 
     if (!id || ![1, 2, 3, 4].includes(Number(grade))) {
       return NextResponse.json(
@@ -130,6 +171,34 @@ export async function POST(req: Request) {
         dueDate: next.dueDate,
       },
     });
+
+    // Ghi lại lượt ôn. `Flashcard` chỉ giữ trạng thái hiện tại, nên thiếu bảng
+    // này thì không dựng được lịch sử theo ngày lẫn biểu đồ thống kê.
+    // Ghi hỏng thì cũng không được làm hỏng lượt ôn vừa chấm xong.
+    try {
+      const item = card.itemId
+        ? await prisma.dictionaryItem.findUnique({
+            where: { id: card.itemId },
+            select: { deckId: true, languageId: true },
+          })
+        : null;
+
+      await prisma.reviewLog.create({
+        data: {
+          flashcardId: card.id,
+          itemId: card.itemId,
+          deckId: item?.deckId ?? null,
+          languageId: item?.languageId ?? null,
+          grade: Number(grade),
+          state: next.state,
+          mode: typeof mode === "string" ? mode : "flashcard",
+          correct: typeof correct === "boolean" ? correct : null,
+          userId: user.id,
+        },
+      });
+    } catch (logError) {
+      console.error("Review log write failed:", logError);
+    }
 
     return NextResponse.json({
       success: true,

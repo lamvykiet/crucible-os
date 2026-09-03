@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Plus, Loader2, AlertCircle, Trash2, Pause, Play, Lock, Check,
-  Layers, Brain, Pencil, X,
+  Layers, Brain, Pencil, X, Upload,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import ImportDialog from "@/components/learning/ImportDialog";
 
 interface Deck {
   id: string;
@@ -56,6 +57,9 @@ export default function DeckManager({ languageId, domain, levels = [] }: Props) 
 
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+
+  // Bộ thẻ đang được nhập từ vào. `null` = hộp thoại đóng.
+  const [importInto, setImportInto] = useState<string | null>(null);
 
   const scope = languageId ? `languageId=${languageId}` : `domain=${encodeURIComponent(domain ?? "")}`;
 
@@ -278,6 +282,13 @@ export default function DeckManager({ languageId, domain, levels = [] }: Props) 
                     </Link>
                   )}
                   <button
+                    onClick={() => setImportInto(deck.id)}
+                    title={t("Add words in bulk", "Thêm từ hàng loạt")}
+                    className="c-btn c-btn-secondary c-btn-icon"
+                  >
+                    <Upload size={14} />
+                  </button>
+                  <button
                     onClick={() => { setEditing(deck.id); setEditName(deck.name); }}
                     title={t("Rename", "Đổi tên")}
                     className="c-btn c-btn-secondary c-btn-icon"
@@ -310,6 +321,17 @@ export default function DeckManager({ languageId, domain, levels = [] }: Props) 
             );
           })}
         </ul>
+      )}
+
+      {importInto && (
+        <ImportDialog
+          deckId={importInto}
+          languageId={languageId}
+          domain={domain}
+          levels={levels}
+          onDone={() => setReloadKey((k) => k + 1)}
+          onClose={() => setImportInto(null)}
+        />
       )}
     </section>
   );

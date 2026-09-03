@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -9,33 +9,40 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import type { DomainStat } from "@/lib/learningStats";
+import ExerciseCard, {
+  seededShuffle, type StudyCard, type ExerciseMode,
+} from "@/components/learning/ExerciseCard";
 
-interface Card {
-  id: string;
-  front: string;
-  back: string;
-  state: number;
-  reps: number;
-  domain: string | null;
-  intervals: Record<string, string>;
-}
-
-type Mode = "detail" | "quick";
+type Mode = "detail" | "quick" | "exercise";
 
 /**
- * Ôn tập thẻ ghi nhớ theo lịch FSRS.
+ * Chọn kiểu bài tập hợp với thẻ này.
  *
- * Bản cũ có ba thẻ viết cứng ngay trong file (Glassmorphism, FSRS, Supabase),
- * và cả bốn nút "Quên / Khó / Tốt / Dễ" đều gọi đúng một hàm chuyển thẻ — chấm
- * điểm không hề ảnh hưởng tới bất cứ thứ gì. Các nhãn "(1m) (10m) (1d) (4d)"
- * cũng viết cứng, không liên quan tới thẻ đang xem.
+ * Không phải kiểu nào cũng dùng được cho mọi thẻ: luyện thanh cần thứ tiếng có
+ * thanh VÀ thẻ phải ghi sẵn số thanh; luyện viết chỉ hợp chữ Hán và Hangul;
+ * trắc nghiệm cần đủ nghĩa của thẻ khác làm phương án nhiễu. Lọc trước rồi mới
+ * bốc ngẫu nhiên, để không bao giờ rơi vào câu không trả lời được.
  *
- * Bản này thêm hai thứ mà một hub đa lĩnh vực cần:
- *  - Lọc theo lĩnh vực (`?domain=`), để ngồi xuống ôn đúng một mảng thay vì bị
- *    trộn thuật ngữ tài chính với từ vựng tiếng Anh trong cùng một chồng thẻ.
- *  - Chế độ "Nhanh": chỉ Quên / Nhớ. Bốn mức của FSRS là chính xác nhưng bắt
- *    phải cân nhắc mỗi thẻ; lúc chỉ có năm phút thì hai lựa chọn xong nhanh hơn.
+ * Thẻ mới gặp lần đầu chỉ cho trắc nghiệm — bắt gõ lại một từ vừa nhìn lần đầu
+ * thì chỉ tổ làm nản.
  */
+function pickExercise(card: StudyCard, distractorCount: number): ExerciseMode {
+  const lang = card.language;
+  const pool: ExerciseMode[] = [];
+
+  if (distractorCount >= 3) pool.push("choice");
+  if (card.state === 0) return pool[0] ?? "fill";
+
+  pool.push("fill");
+  if (lang?.hasTones && card.tone) pool.push("tone");
+  if (lang && lang.script !== "latin") pool.push("write");
+  if (lang) pool.push("listen");
+
+  // Bốc theo id thẻ chứ không theo Math.random(): render lại cùng một thẻ mà
+  // đổi luôn kiểu bài tập thì người học đang gõ dở sẽ mất trắng câu trả lời.
+  return seededShuffle(pool, card.id)[0] ?? "fill";
+}
+
 function FlashcardSession() {
   const { t } = useLanguage();
   const router = useRouter();
@@ -43,7 +50,9 @@ function FlashcardSession() {
   const domain = searchParams.get("domain")?.trim() || null;
   const deckId = searchParams.get("deck")?.trim() || null;
 
-  const [cards, setCards] = useState<Card[]>([]);
+  const [cards, setCards] = useState<StudyCard[]>([]);
+  const [distractors, setDistractors] = useState<string[]>([]);
+  const [intervals, setIntervals] = useState<Record<string, Record<string, string>>>({});
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [grading, setGrading] = useState(false);
@@ -53,32 +62,37 @@ function FlashcardSession() {
   const [reloadKey, setReloadKey] = useState(0);
   const [mode, setMode] = useState<Mode>("detail");
   const [domains, setDomains] = useState<DomainStat[]>([]);
+  const [lowercaseAnswers, setLowercaseAnswers] = useState(false);
 
-  // "Đang tải" là suy ra chứ không phải một biến trạng thái riêng: mẻ thẻ trên
-  // màn hình hoặc thuộc đúng bộ lọc hiện tại, hoặc là của bộ lọc cũ và phải bị
-  // coi là chưa có. Đặt cờ trong thân effect thì đổi lĩnh vực sẽ loé thẻ cũ một
-  // nhịp trước khi cờ kịp bật.
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const requestKey = `${reloadKey}:${domain ?? ""}:${deckId ?? ""}`;
   const loading = loadedFor !== requestKey;
 
-  // Danh sách lĩnh vực để chuyển qua lại. Lấy một lần, không phụ thuộc bộ lọc —
-  // nếu lấy theo bộ lọc thì chọn xong sẽ không còn lĩnh vực nào để bấm sang.
   useEffect(() => {
     const controller = new AbortController();
     fetch("/api/learning/overview", { signal: controller.signal })
       .then((res) => res.json())
       .then((json) => {
         if (controller.signal.aborted || !json?.success) return;
-        setDomains(
-          (json.domains as DomainStat[]).filter((d) => d.domain.trim() && d.cardCount > 0)
-        );
+        setDomains((json.domains as DomainStat[]).filter((d) => d.domain.trim() && d.cardCount > 0));
       })
-      .catch(() => {
-        // Không có danh sách lĩnh vực thì vẫn ôn được, chỉ là không chuyển nhanh.
-      });
+      .catch(() => {});
     return () => controller.abort();
   }, [reloadKey]);
+
+  // Tuỳ chọn "gõ đáp án bằng chữ thường" ảnh hưởng tới ô nhập của bài tập.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/learning/prefs", { signal: controller.signal })
+      .then((res) => res.json())
+      .then((json) => {
+        if (!controller.signal.aborted && json?.success) {
+          setLowercaseAnswers(Boolean(json.pref?.lowercaseAnswers));
+        }
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -95,6 +109,14 @@ function FlashcardSession() {
         if (controller.signal.aborted) return;
         if (!json?.success) throw new Error(json?.error || "Không tải được thẻ");
         setCards(json.cards);
+        setDistractors(json.distractors ?? []);
+        setIntervals(
+          Object.fromEntries(
+            (json.cards as Array<{ id: string; intervals: Record<string, string> }>).map((c) => [
+              c.id, c.intervals,
+            ])
+          )
+        );
         setStats({ total: json.total, newCount: json.newCount, dueCount: json.dueCount });
         setIndex(0);
         setFlipped(false);
@@ -113,13 +135,18 @@ function FlashcardSession() {
 
   const current = cards[index] ?? null;
 
-  /** Đổi lĩnh vực qua URL để tải lại trang hoặc chia sẻ link vẫn giữ nguyên bộ lọc. */
+  // Kiểu bài tập chốt theo thẻ, không đổi giữa chừng khi component render lại.
+  const exercise = useMemo(
+    () => (current && mode === "exercise" ? pickExercise(current, distractors.length) : null),
+    [current, mode, distractors.length]
+  );
+
   const pickDomain = (next: string | null) => {
     router.replace(next ? `/learning/flashcards?domain=${encodeURIComponent(next)}` : "/learning/flashcards");
   };
 
   const grade = useCallback(
-    async (value: 1 | 2 | 3 | 4) => {
+    async (value: 1 | 2 | 3 | 4, meta?: { mode: string; correct?: boolean }) => {
       if (!current || grading) return;
       setGrading(true);
       setError(null);
@@ -127,15 +154,19 @@ function FlashcardSession() {
         const res = await fetch("/api/learning/flashcards", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: current.id, grade: value }),
+          body: JSON.stringify({
+            id: current.id,
+            grade: value,
+            mode: meta?.mode ?? mode,
+            correct: meta?.correct,
+          }),
         });
         const json = await res.json();
         if (!json?.success) throw new Error(json?.error || "Không lưu được kết quả");
 
         setReviewed((n) => n + 1);
         setFlipped(false);
-        // Thẻ chấm "Quên" hoặc "Khó" quay lại cuối hàng để ôn tiếp trong phiên;
-        // đúng tinh thần các bước học ngắn của FSRS.
+        // Thẻ chấm "Quên" hoặc "Khó" quay lại cuối hàng để ôn tiếp trong phiên.
         setCards((prev) => {
           const rest = prev.filter((_, i) => i !== index);
           return value <= 2 ? [...rest, prev[index]] : rest;
@@ -147,8 +178,12 @@ function FlashcardSession() {
         setGrading(false);
       }
     },
-    [current, grading, index]
+    [current, grading, index, mode]
   );
+
+  /** Bài tập chỉ cho hai tín hiệu, quy về mức 1 (quên) và mức 3 (tốt). */
+  const answerExercise = (correct: boolean) =>
+    grade(correct ? 3 : 1, { mode: exercise ?? "exercise", correct });
 
   const removeCard = async () => {
     if (!current) return;
@@ -159,8 +194,8 @@ function FlashcardSession() {
     setFlipped(false);
   };
 
-  // Bàn phím: cách ôn nhanh nhất là không phải rời tay khỏi phím.
   useEffect(() => {
+    if (mode === "exercise") return; // bài tập tự nhận phím trong ô nhập
     const onKey = (e: KeyboardEvent) => {
       if (!current) return;
       if (e.code === "Space") {
@@ -192,7 +227,6 @@ function FlashcardSession() {
 
   return (
     <div className="max-w-3xl mx-auto pb-24">
-      {/* Thanh điều khiển phiên ôn */}
       <div className="space-y-4 mb-8">
         <Link href="/learning" className="c-btn c-btn-tertiary c-btn-sm -ml-3">
           <ArrowLeft size={16} />
@@ -215,22 +249,20 @@ function FlashcardSession() {
           </div>
 
           <div className="c-seg">
-            <button
-              className={`c-seg-opt ${mode === "detail" ? "active" : ""}`}
-              onClick={() => setMode("detail")}
-            >
-              {t("Detailed", "Chi tiết")}
-            </button>
-            <button
-              className={`c-seg-opt ${mode === "quick" ? "active" : ""}`}
-              onClick={() => setMode("quick")}
-            >
-              {t("Quick", "Nhanh")}
-            </button>
+            {(["detail", "quick", "exercise"] as const).map((m) => (
+              <button
+                key={m}
+                className={`c-seg-opt ${mode === m ? "active" : ""}`}
+                onClick={() => setMode(m)}
+              >
+                {m === "detail" && t("Detailed", "Chi tiết")}
+                {m === "quick" && t("Quick", "Nhanh")}
+                {m === "exercise" && t("Exercises", "Bài tập")}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Chuyển lĩnh vực. Ẩn khi chỉ có một mảng — lúc đó bộ lọc là thừa. */}
         {domains.length > 1 && (
           <div className="flex flex-wrap gap-2">
             <button
@@ -289,8 +321,8 @@ function FlashcardSession() {
             <p className="c-card-body mt-1 max-w-md">
               {stats.total === 0
                 ? t(
-                    "Open a document in the Knowledge Hub and use Studio → Flashcards to create some.",
-                    "Mở một tài liệu ở Knowledge Hub rồi dùng Studio → Thẻ ghi nhớ để tạo."
+                    "Add words in the term bank, or import a batch.",
+                    "Thêm từ ở kho thuật ngữ, hoặc nhập hàng loạt."
                   )
                 : t(
                     "Come back later, or switch to another field.",
@@ -302,7 +334,7 @@ function FlashcardSession() {
             <Link href="/learning" className="c-btn c-btn-primary c-btn-sm">
               {t("Back to Hub", "Về Learning Hub")}
             </Link>
-            {domain && (
+            {(domain || deckId) && (
               <button onClick={() => pickDomain(null)} className="c-btn c-btn-secondary c-btn-sm">
                 {t("Review all fields", "Ôn tất cả lĩnh vực")}
               </button>
@@ -314,6 +346,16 @@ function FlashcardSession() {
             )}
           </div>
         </div>
+      ) : mode === "exercise" && exercise ? (
+        <ExerciseCard
+          key={current.id}
+          card={current}
+          mode={exercise}
+          distractors={distractors}
+          lowercaseAnswers={lowercaseAnswers}
+          onAnswer={answerExercise}
+          busy={grading}
+        />
       ) : (
         <div className="flex flex-col items-center">
           <div
@@ -325,8 +367,9 @@ function FlashcardSession() {
                 flipped ? "rotate-y-180" : ""
               }`}
             >
-              <div className="absolute inset-0 backface-hidden bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[32px] shadow-lg flex items-center justify-center p-8 text-center">
+              <div className="absolute inset-0 backface-hidden bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[32px] shadow-lg flex flex-col items-center justify-center p-8 text-center gap-2">
                 <h2 className="c-h2 text-[var(--color-text)]">{current.front}</h2>
+                {current.phonetic && <p className="c-stat-label">{current.phonetic}</p>}
                 <div className="absolute bottom-6 text-xs uppercase tracking-widest opacity-40 font-semibold">
                   {t("Click or press Space", "Bấm hoặc nhấn Space")}
                 </div>
@@ -335,13 +378,24 @@ function FlashcardSession() {
                     {t("New", "Thẻ mới")}
                   </span>
                 )}
-                {current.domain && (
-                  <span className="absolute top-5 right-5 c-stat-label">{current.domain}</span>
+                {current.language && (
+                  <span className="absolute top-5 right-5 c-stat-label">{current.language.name}</span>
                 )}
               </div>
 
-              <div className="absolute inset-0 backface-hidden rotate-y-180 bg-[var(--color-primary)] text-[var(--color-on-primary)] rounded-[32px] shadow-xl flex items-center justify-center p-10 text-center overflow-y-auto">
+              <div className="absolute inset-0 backface-hidden rotate-y-180 bg-[var(--color-primary)] text-[var(--color-on-primary)] rounded-[32px] shadow-xl flex flex-col items-center justify-center p-10 text-center overflow-y-auto gap-3">
                 <p className="text-lg leading-relaxed whitespace-pre-wrap">{current.back}</p>
+                {current.example && (
+                  <p className="text-sm opacity-75 leading-relaxed">
+                    {current.example}
+                    {current.exampleTranslation && (
+                      <>
+                        <br />
+                        {current.exampleTranslation}
+                      </>
+                    )}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -356,35 +410,26 @@ function FlashcardSession() {
                 {buttons.map(({ g, label, icon: Icon, color }) => (
                   <button
                     key={g}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      grade(g);
-                    }}
+                    onClick={(e) => { e.stopPropagation(); grade(g); }}
                     disabled={grading}
                     className={`flex flex-col items-center gap-2 text-[var(--color-${color})] hover:opacity-80 transition-opacity disabled:opacity-40`}
                   >
-                    <div
-                      className={`w-14 h-14 rounded-full bg-[var(--color-${color}-tint)] flex items-center justify-center`}
-                    >
+                    <div className={`w-14 h-14 rounded-full bg-[var(--color-${color}-tint)] flex items-center justify-center`}>
                       {grading ? <Loader2 size={22} className="animate-spin" /> : <Icon size={24} />}
                     </div>
                     <span className="text-xs font-semibold">{label}</span>
                     {/* Khoảng cách thật do FSRS tính cho CHÍNH thẻ này. */}
                     <span className="text-[10px] text-[var(--color-text-faint)]">
-                      {current.intervals[g]}
+                      {intervals[current.id]?.[g]}
                     </span>
                   </button>
                 ))}
               </div>
             ) : (
-              /* Chế độ nhanh vẫn ghi vào FSRS như thường: Quên = mức 1, Nhớ = mức 3.
-                 Không có đường tắt nào bỏ qua thuật toán — chỉ là ít lựa chọn hơn. */
+              /* Chế độ nhanh vẫn ghi vào FSRS như thường: Quên = mức 1, Nhớ = mức 3. */
               <div className="flex items-center gap-4">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    grade(1);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); grade(1); }}
                   disabled={grading}
                   className="c-btn c-btn-danger c-btn-lg min-w-[160px] justify-center"
                 >
@@ -393,10 +438,7 @@ function FlashcardSession() {
                   <span className="text-xs opacity-60">←</span>
                 </button>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    grade(3);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); grade(3); }}
                   disabled={grading}
                   className="c-btn c-btn-success c-btn-lg min-w-[160px] justify-center"
                 >
