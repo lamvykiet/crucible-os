@@ -5,6 +5,7 @@ import { Loader2, X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DEFAULT_LIFE_MONTHS } from "@/lib/assets";
 import { todayLocalIso } from "@/lib/localDate";
+import AmountInput from "@/components/ui/AmountInput";
 
 // Thêm / sửa một tài sản.
 //
@@ -117,13 +118,9 @@ export default function AssetModal({
       <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
         {label}
       </label>
-      <input
-        type="number"
-        inputMode="numeric"
-        value={String(draft[key] ?? "")}
-        onChange={(e) =>
-          set(key, (e.target.value === "" ? null : Number(e.target.value)) as AssetDraft[typeof key])
-        }
+      <AmountInput
+        value={draft[key] as number | null}
+        onValueChange={(v) => set(key, (v === "" ? null : Number(v)) as AssetDraft[typeof key])}
         className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
       />
       {hint && <p className="text-[10px] leading-tight text-[var(--color-text-faint)]">{hint}</p>}

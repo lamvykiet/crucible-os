@@ -7,6 +7,7 @@ import { useCategories } from "@/lib/useCategories";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 import { invalidateSuppliers, type SupplierSuggestion } from "@/lib/useSuppliers";
 import SupplierInput from "./SupplierInput";
+import AmountInput from "@/components/ui/AmountInput";
 import { todayLocalIso } from "@/lib/localDate";
 
 interface LineItem {
@@ -331,7 +332,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
             {/* Amount */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Số tiền (VND)", "Số tiền (VND)")}</label>
-              <input name="amount" value={formData.amount} onChange={handleChange} type="number" inputMode="numeric" placeholder="125000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
+              <AmountInput name="amount" value={formData.amount} onValueChange={(v) => setFormData((prev) => ({ ...prev, amount: v }))} placeholder="125.000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
               {totalMismatch && (
                 <button
                   type="button"
@@ -409,20 +410,16 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                         />
                       </td>
                       <td className="px-2 py-2">
-                        <input
-                          type="number"
-                          inputMode="numeric"
+                        <AmountInput
                           value={item.unitPrice}
-                          onChange={(e) => handleItemChange(idx, "unitPrice", e.target.value)}
+                          onValueChange={(v) => handleItemChange(idx, "unitPrice", v)}
                           className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-accent)] rounded outline-none text-right text-[var(--color-text)]"
                         />
                       </td>
                       <td className="px-2 py-2">
-                        <input
-                          type="number"
-                          inputMode="numeric"
+                        <AmountInput
                           value={item.totalPrice}
-                          onChange={(e) => handleItemChange(idx, "totalPrice", e.target.value)}
+                          onValueChange={(v) => handleItemChange(idx, "totalPrice", v)}
                           className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-accent)] rounded outline-none text-right text-[var(--color-text)]"
                         />
                       </td>
@@ -491,11 +488,9 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                       <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
                         {t("Đơn giá", "Unit price")}
                       </label>
-                      <input
-                        type="number"
-                        inputMode="numeric"
+                      <AmountInput
                         value={item.unitPrice}
-                        onChange={(e) => handleItemChange(idx, "unitPrice", e.target.value)}
+                        onValueChange={(v) => handleItemChange(idx, "unitPrice", v)}
                         className={mobileItemInput}
                       />
                     </div>
@@ -505,11 +500,9 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                     <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
                       {t("Thành tiền", "Line total")}
                     </label>
-                    <input
-                      type="number"
-                      inputMode="numeric"
+                    <AmountInput
                       value={item.totalPrice}
-                      onChange={(e) => handleItemChange(idx, "totalPrice", e.target.value)}
+                      onValueChange={(v) => handleItemChange(idx, "totalPrice", v)}
                       className={mobileItemInput}
                     />
                   </div>

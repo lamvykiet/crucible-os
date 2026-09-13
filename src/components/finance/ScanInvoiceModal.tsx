@@ -8,6 +8,7 @@ import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 import { type SupplierSuggestion } from "@/lib/useSuppliers";
 import SupplierInput from "./SupplierInput";
 import { todayLocalIso } from "@/lib/localDate";
+import AmountInput from "@/components/ui/AmountInput";
 
 interface ScanInvoiceModalProps {
   isOpen: boolean;
@@ -520,32 +521,31 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={labelClass}>{t("Tạm tính", "Subtotal")}</label>
-                      <input type="number" name="subtotal" value={formData.subtotal} onChange={handleFormChange} className={inputClass} />
+                      <AmountInput name="subtotal" value={formData.subtotal} onValueChange={(v) => setFormData((prev) => ({ ...prev, subtotal: v }))} className={inputClass} />
                     </div>
                     <div>
                       <label className={labelClass}>{t("Thuế", "Tax")}</label>
-                      <input type="number" name="tax" value={formData.tax} onChange={handleFormChange} className={inputClass} />
+                      <AmountInput name="tax" value={formData.tax} onValueChange={(v) => setFormData((prev) => ({ ...prev, tax: v }))} className={inputClass} />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={labelClass}>{t("Phí dịch vụ", "Service charge")}</label>
-                      <input type="number" name="serviceCharge" value={formData.serviceCharge} onChange={handleFormChange} className={inputClass} />
+                      <AmountInput name="serviceCharge" value={formData.serviceCharge} onValueChange={(v) => setFormData((prev) => ({ ...prev, serviceCharge: v }))} className={inputClass} />
                     </div>
                     <div>
                       <label className={labelClass}>{t("Giảm giá", "Discount")}</label>
-                      <input type="number" name="discount" value={formData.discount} onChange={handleFormChange} className={inputClass} />
+                      <AmountInput name="discount" value={formData.discount} onValueChange={(v) => setFormData((prev) => ({ ...prev, discount: v }))} className={inputClass} />
                     </div>
                   </div>
 
                   <div>
                     <label className={labelClass}>{t("Tổng tiền", "Total")}</label>
-                    <input
-                      type="number"
+                    <AmountInput
                       name="totalAmount"
                       value={formData.totalAmount}
-                      onChange={handleFormChange}
+                      onValueChange={(v) => setFormData((prev) => ({ ...prev, totalAmount: v }))}
                       className={`${inputClass} font-bold text-lg`}
                     />
                     {totalMismatch && (
@@ -610,18 +610,16 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                             />
                           </td>
                           <td className="px-2 py-2">
-                            <input
-                              type="number"
+                            <AmountInput
                               value={item.unitPrice}
-                              onChange={(e) => handleItemChange(idx, "unitPrice", e.target.value)}
+                              onValueChange={(v) => handleItemChange(idx, "unitPrice", v)}
                               className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded text-right"
                             />
                           </td>
                           <td className="px-2 py-2">
-                            <input
-                              type="number"
+                            <AmountInput
                               value={item.totalPrice}
-                              onChange={(e) => handleItemChange(idx, "totalPrice", e.target.value)}
+                              onValueChange={(v) => handleItemChange(idx, "totalPrice", v)}
                               className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded text-right"
                             />
                           </td>

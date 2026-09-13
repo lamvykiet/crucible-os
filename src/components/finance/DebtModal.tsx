@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { X, ChevronDown, Loader2 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { todayLocalIso } from "@/lib/localDate";
+import AmountInput from "@/components/ui/AmountInput";
 
 interface DebtModalProps {
   isOpen: boolean;
@@ -129,19 +130,19 @@ export default function DebtModal({ isOpen, onClose, onSuccess }: DebtModalProps
             {/* Principal */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Tiền gốc ban đầu (VND)", "Principal (VND)")}</label>
-              <input name="principal" value={formData.principal} onChange={handleChange} type="number" placeholder="50000000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
+              <AmountInput name="principal" value={formData.principal} onValueChange={(v) => setFormData({ ...formData, principal: v })} placeholder="50.000.000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
             </div>
 
             {/* Remaining */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Dư nợ hiện tại (VND)", "Remaining (VND)")}</label>
-              <input name="remaining" value={formData.remaining} onChange={handleChange} type="number" placeholder="(Bỏ trống nếu bằng gốc)" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
+              <AmountInput name="remaining" value={formData.remaining} onValueChange={(v) => setFormData({ ...formData, remaining: v })} placeholder="(Bỏ trống nếu bằng gốc)" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
             </div>
 
             {/* Monthly Payment */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Trả góp hàng tháng (VND)", "Monthly Payment (VND)")}</label>
-              <input name="monthlyPayment" value={formData.monthlyPayment} onChange={handleChange} type="number" placeholder="5000000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
+              <AmountInput name="monthlyPayment" value={formData.monthlyPayment} onValueChange={(v) => setFormData({ ...formData, monthlyPayment: v })} placeholder="5.000.000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
             </div>
 
             {/* Interest Rate */}
