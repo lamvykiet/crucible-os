@@ -16,6 +16,7 @@ import TransactionModal from "./TransactionModal";
 import ScanInvoiceModal from "./ScanInvoiceModal";
 import PendingReviewButton from "./PendingReviewButton";
 import DayTransactionsCard from "./DayTransactionsCard";
+import TodaySpendingShare from "./TodaySpendingShare";
 import IncompleteDataModal from "./IncompleteDataModal";
 import PeriodComparison from "./PeriodComparison";
 import { Plus } from "lucide-react";
@@ -391,6 +392,34 @@ export default function DashboardTab() {
         onSaved={() => setRefreshKey((prev) => prev + 1)}
       />
 
+      {/* Mục đầu tiên: hôm nay chi gì (trái) và tỷ trọng theo nhóm (phải).
+          Xem tháng đã qua thì hai thẻ theo ngày cuối cùng có ghi sổ. */}
+      {focusDate ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <DayTransactionsCard
+            date={focusDate}
+            refreshKey={refreshKey}
+            title={isCurrentMonth ? t("Today", "Hôm nay") : undefined}
+            onAddTransaction={() => {
+              setTransactionType("Expense");
+              setIsTransactionModalOpen(true);
+            }}
+          />
+          <TodaySpendingShare
+            date={focusDate}
+            refreshKey={refreshKey}
+            title={isCurrentMonth ? t("Today", "Hôm nay") : undefined}
+          />
+        </div>
+      ) : (
+        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-5">
+          <h3 className="c-h5 text-[var(--color-text)]">{t("Daily detail", "Chi tiết theo ngày")}</h3>
+          <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+            {t("No transactions in this month at all.", "Tháng này chưa có giao dịch nào.")}
+          </p>
+        </div>
+      )}
+
       {/* Main Cards Row 1 */}
       {/* md:grid-cols-4 cũ ép mỗi thẻ còn 96px ở 768px (số tiền cần 155px) vì
           vùng nội dung tablet chỉ rộng ~440px sau khi trừ sidebar 248px. */}
@@ -604,28 +633,9 @@ export default function DashboardTab() {
         </div>
       </div>
 
-      {/* Hôm nay đã ghi gì, và còn thiếu gì */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {focusDate ? (
-          <DayTransactionsCard
-            date={focusDate}
-            refreshKey={refreshKey}
-            title={isCurrentMonth ? t("Today", "Hôm nay") : undefined}
-            onAddTransaction={() => {
-              setTransactionType("Expense");
-              setIsTransactionModalOpen(true);
-            }}
-          />
-        ) : (
-          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-5">
-            <h3 className="c-h5 text-[var(--color-text)]">{t("Daily detail", "Chi tiết theo ngày")}</h3>
-            <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-              {t("No transactions in this month at all.", "Tháng này chưa có giao dịch nào.")}
-            </p>
-          </div>
-        )}
-
-        <div className="space-y-6">
+      {/* Còn thiếu gì: ngày chưa ghi sổ, nợ sắp trả, dữ liệu cần bổ sung. Thẻ
+          "Hôm nay" đã lên đầu trang. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           {/* Ngày chưa ghi sổ. Đây là lỗ hổng lớn nhất và cũng là thứ khó tự
               nhận ra nhất: mọi biểu đồ vẫn vẽ đẹp trên phần dữ liệu ít ỏi. */}
           <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-5">
@@ -742,7 +752,6 @@ export default function DashboardTab() {
               </ul>
             </div>
           )}
-        </div>
       </div>
 
       <PeriodComparison
