@@ -44,6 +44,7 @@ là thứ duy nhất cả năm phiên cùng đọc. Trước khi sửa bất c�
 | Knowledge / Document | `src/app/knowledge/`, `src/components/knowledge/`, `src/components/workspace/`, `api/knowledge/` |
 | Learning | `src/app/learning/`, `src/components/learning/`, `api/learning/`, `src/lib/fsrs.ts` |
 | Video | `api/video/{fetch,queue,resolve}` (trình duyệt) và `api/video/{upload,pending}` (Shortcut iOS) |
+| Thói quen | `src/app/habits/`, `src/components/habits/`, `api/habits/`, `src/lib/habits.ts` |
 | Vỏ giao diện | `MainLayoutWrapper`, `Sidebar`, `MobileNav`, `MobileTopBar`, `src/app/globals.css` |
 
 ## Đổi cái này thì kéo theo cái kia
@@ -83,6 +84,22 @@ thiết kế.
 `api/video/upload` và `api/video/pending` là công khai, xác thực bằng
 `VIDEO_UPLOAD_TOKEN` cho Shortcut iOS — danh sách trong `src/proxy.ts`.
 Đừng nới `PUBLIC_PATHS` để tiện kiểm thử rồi quên hoàn nguyên.
+
+**Thêm mục vào thanh dưới (`MobileNav`)** → thanh này **chỉ chứa năm mục**.
+Ở khổ 375px mục thứ sáu làm nhãn bị bóp và vùng chạm tụt dưới 44px. Khi module
+Thói quen vào, Cài đặt đã dời lên `MobileTopBar` — đó là đường duy nhất vào
+`/settings` trên điện thoại, đừng gỡ.
+
+**Đụng `ReviewLog`, `FocusSession` hay `Transaction`** → thói quen có
+`autoSource` đọc thẳng ba bảng này để tự đếm tiến độ (`review`, `focus`,
+`noSpend`), ở cả `api/habits/route.ts` lẫn `api/habits/reports/route.ts`. Đổi ý
+nghĩa một dòng trong ba bảng đó là đổi luôn số liệu và chuỗi ngày bên Thói quen,
+mà không có gì báo.
+
+**Tính chuỗi ngày / tỷ lệ hoàn thành** → chỉ có một chỗ: `src/lib/habits.ts`.
+Ba quy tắc cố ý và đã có test: ngày ngoài lịch bị bỏ qua, ngày đánh dấu nghỉ
+không phá chuỗi, kỳ hiện tại chưa đủ chỉ tiêu thì chưa tính là đứt. Đừng tính
+lại ở component — hai công thức là hai con số khác nhau trên cùng màn hình.
 
 **Không bao giờ dùng dữ liệu giả.** Màn hình trống thì để trống, đừng bịa số.
 

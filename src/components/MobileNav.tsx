@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Settings, FileText, Database, GraduationCap, LayoutDashboard } from "lucide-react";
+import { FileText, Database, GraduationCap, LayoutDashboard, Repeat } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 /**
@@ -15,6 +15,10 @@ import { useLanguage } from "@/lib/LanguageContext";
  * Dùng `.c-bottomnav` / `.c-bottomnav-item` có sẵn trong design system — chúng
  * đã đặt sẵn vùng chạm tối thiểu 44px và cộng `env(safe-area-inset-bottom)` để
  * không bị thanh Home của iPhone che.
+ *
+ * Đúng **năm** mục, không hơn: thêm mục thứ sáu thì ở khổ 375px nhãn bị bóp và
+ * vùng chạm tụt xuống dưới 44px. Khi module Thói quen vào đây, Cài đặt chuyển
+ * lên `MobileTopBar` thay vì chen thêm vào dải này.
  */
 export default function MobileNav() {
   const pathname = usePathname();
@@ -25,7 +29,7 @@ export default function MobileNav() {
     { href: "/knowledge", icon: Database, label: t("Knowledge", "Kiến thức") },
     { href: "/finance", icon: FileText, label: t("Finance", "Tài chính") },
     { href: "/learning", icon: GraduationCap, label: t("Learning", "Học tập") },
-    { href: "/settings", icon: Settings, label: t("Settings", "Cài đặt") },
+    { href: "/habits", icon: Repeat, label: t("Habits", "Thói quen") },
   ];
 
   return (

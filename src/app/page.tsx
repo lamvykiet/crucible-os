@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { BookOpen, Wallet, Brain, Receipt, Lightbulb, Loader2, ArrowRight } from "lucide-react";
+import { BookOpen, Wallet, Brain, Receipt, Lightbulb, Loader2, ArrowRight, Repeat, Flame } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 /**
@@ -21,11 +21,16 @@ interface Summary {
   pendingInvoices: number;
   dueCards: number;
   totalCards: number;
+  habitsDone: number;
+  habitsDue: number;
+  habitPercent: number;
+  bestStreak: number;
 }
 
 const EMPTY: Summary = {
   documents: 0, staleDocuments: 0, ideas: 0,
   netCashFlow: null, pendingInvoices: 0, dueCards: 0, totalCards: 0,
+  habitsDone: 0, habitsDue: 0, habitPercent: 0, bestStreak: 0,
 };
 
 const formatVnd = (n: number) => `${n > 0 ? "+" : ""}${n.toLocaleString("vi-VN")} ₫`;
@@ -49,8 +54,9 @@ export default function Home() {
       get(`/api/finance/dashboard?month=${month}`),
       get("/api/drive/pending-count"),
       get("/api/learning/flashcards?limit=1"),
+      get("/api/habits"),
     ])
-      .then(([knowledge, finance, pending, cards]) => {
+      .then(([knowledge, finance, pending, cards, habits]) => {
         if (controller.signal.aborted) return;
         setData({
           documents: knowledge?.data?.totalDocuments ?? 0,
@@ -60,6 +66,13 @@ export default function Home() {
           pendingInvoices: pending?.count ?? 0,
           dueCards: cards?.dueCount ?? 0,
           totalCards: cards?.total ?? 0,
+          habitsDone: habits?.doneCount ?? 0,
+          habitsDue: habits?.dueCount ?? 0,
+          habitPercent: habits?.percent ?? 0,
+          bestStreak: (habits?.habits ?? []).reduce(
+            (m: number, h: { streak: number }) => Math.max(m, h.streak),
+            0
+          ),
         });
       })
       .finally(() => {
@@ -118,6 +131,26 @@ export default function Home() {
       badge: null,
       alert: data.dueCards > 0,
     },
+    {
+      key: "habits",
+      kicker: t("Habits", "Thói quen"),
+      icon: Repeat,
+      href: "/habits",
+      cta: t("Open today", "Mở hôm nay"),
+      title: loading ? spinner : `${data.habitPercent}%`,
+      body:
+        data.habitsDue === 0
+          ? t("No habits scheduled for today.", "Hôm nay không có thói quen nào tới lịch.")
+          : t(
+              `${data.habitsDone} of ${data.habitsDue} done today.`,
+              `Hôm nay xong ${data.habitsDone}/${data.habitsDue}.`
+            ),
+      badge:
+        data.bestStreak > 0
+          ? { icon: Flame, text: t(`${data.bestStreak}-day streak`, `chuỗi ${data.bestStreak} ngày`) }
+          : null,
+      alert: false,
+    },
   ];
 
   return (
@@ -127,12 +160,12 @@ export default function Home() {
       </h1>
       <p className="c-card-body mt-2">
         {t(
-          "Your personal OS — Knowledge, Learning and Finance in one place.",
-          "Hệ điều hành cá nhân — Kiến thức, Học tập và Tài chính trong một chỗ."
+          "Your personal OS — Knowledge, Learning, Finance and Habits in one place.",
+          "Hệ điều hành cá nhân — Kiến thức, Học tập, Tài chính và Thói quen trong một chỗ."
         )}
       </p>
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {cards.map((card) => {
           const Icon = card.icon;
           const Badge = card.badge?.icon;
@@ -172,7 +205,8 @@ export default function Home() {
         })}
       </div>
 
-      {!loading && data.staleDocuments === 0 && data.pendingInvoices === 0 && data.dueCards === 0 && (
+      {!loading && data.staleDocuments === 0 && data.pendingInvoices === 0 && data.dueCards === 0 &&
+        data.habitsDone === data.habitsDue && (
         <p className="mt-8 text-sm text-[var(--color-text-faint)]">
           {t("Nothing needs your attention right now.", "Hiện chưa có việc gì cần bạn xử lý.")}
         </p>

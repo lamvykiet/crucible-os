@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Settings, FileText, Database, GraduationCap, LayoutDashboard, Languages, Moon, Sun } from "lucide-react";
+import { Settings, FileText, Database, GraduationCap, LayoutDashboard, Languages, Moon, Sun, Repeat } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
 
@@ -16,6 +16,7 @@ export default function Sidebar() {
     { name: t("Knowledge Hub", "Knowledge Hub"), href: "/knowledge", icon: Database },
     { name: t("Finance OS", "Sổ chi tiêu"), href: "/finance", icon: FileText },
     { name: t("Learning Hub", "Learning Hub"), href: "/learning", icon: GraduationCap },
+    { name: t("Habits", "Thói quen"), href: "/habits", icon: Repeat },
   ];
 
   return (
