@@ -82,6 +82,13 @@
   --color-info-tint: #DFE1DB;
 
   --color-focus: #6E473B;
+
+  /* Bản đồ nhiệt chi tiêu (DashboardTab) tự pha alpha theo độ đậm, nên nó cần
+     màu ở dạng ba thành phần RGB chứ không phải mã hex. Giá trị giữ đúng như
+     lúc còn viết cứng trong component. */
+  --heat-rgb: 251, 146, 60;
+  --heat-empty: #f9fafb;
+  --heat-fg-strong: #fff;
 }
 
 /* Bảng màu tối.

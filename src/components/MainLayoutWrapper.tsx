@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
 import MobileTopBar from "@/components/MobileTopBar";
+import SkinSwitch from "@/components/SkinSwitch";
 
 /**
  * Khung ngoài của ứng dụng.
@@ -37,6 +38,10 @@ export default function MainLayoutWrapper({ children }: { children: React.ReactN
       </div>
 
       <MobileNav />
+
+      {/* Bản thử lớp da "Origin" — xem src/app/origin-skin.css. Gỡ dòng này là
+          gỡ được cả thử nghiệm. */}
+      <SkinSwitch />
     </div>
   );
 }

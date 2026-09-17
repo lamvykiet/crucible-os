@@ -1,0 +1,379 @@
+/* ============================================================================
+ * "Origin Financial" — lớp da thử nghiệm.
+ *
+ * ĐÂY KHÔNG PHẢI design system của Crucible. Design system thật vẫn là bảng
+ * nâu/kem trong globals.css. File này chỉ ánh xạ lại CÁC TOKEN đã có sang bảng
+ * màu và thang chữ của Origin, để xem toàn bộ ứng dụng — dữ liệu thật, màn hình
+ * thật — sẽ trông thế nào nếu thiết kế lại theo hướng đó.
+ *
+ * Bật/tắt bằng `data-skin="origin"` trên <html> (nút ở góc dưới phải, hoặc
+ * ?skin=origin / ?skin=off). Tắt đi là mọi thứ trở về nguyên trạng — không
+ * component nào bị sửa màu.
+ *
+ * VÌ SAO KHÔNG SỬA COMPONENT: gần như toàn bộ dự án đã vẽ qua biến
+ * (`var(--color-*)`, `.c-*`). Cả cây src chỉ còn 15 chỗ `bg-black` và 4 chỗ
+ * `text-white` viết cứng. Nên đổi token là đổi được cả ứng dụng.
+ *
+ * ĐỘ ĐẶC HIỆU: dùng `:root[data-skin="origin"]` (0,2,0) chứ không phải
+ * `[data-skin="origin"]` (0,1,0). Bảng tối trong globals.css nằm sau
+ * `@media (prefers-color-scheme: dark) :root:not([data-theme="light"])` — cũng
+ * là 0,2,0. Bằng điểm thì thứ tự nguồn quyết định, mà file này nhập sau, nên
+ * thắng. Viết 0,1,0 là máy nào để hệ điều hành chế độ tối sẽ thấy màu nâu
+ * lẫn vào giữa.
+ * ========================================================================= */
+
+:root[data-skin="origin"] {
+  color-scheme: dark;
+
+  /* --- Bảng màu gốc của Origin, giữ nguyên tên ------------------------- */
+  --o-iris:        #847dff; /* Iris Gleam   — violet chủ đạo của thẻ mục */
+  --o-cyan:        #00b3dd; /* Cyan Signal  — CHỈ dùng cho đường biểu đồ */
+  --o-pale-iris:   #d1c9ff;
+  --o-deep-iris:   #4b49aa;
+  --o-orchid:      #dd90d8; /* Orchid Bloom — nhóm chi tiêu/lối sống */
+  --o-periwinkle:  #90b8f0;
+  --o-obsidian:    #0f1011; /* nền trang */
+  --o-abyss:       #090a0b;
+  --o-graphite:    #2e2e2e;
+  --o-steel:       #3f4041;
+  --o-silver:      #cacaca;
+  --o-fog:         #6a6b6b;
+  --o-ash:         #9f9fa0;
+  --o-cloud:       #f5f5f7;
+
+  /* --- Ánh xạ sang token ngữ nghĩa của Crucible ------------------------ */
+  --color-bg:         var(--o-obsidian);
+  --color-surface:    #171819;             /* thẻ: nhích hơn nền một bậc */
+  --color-surface-2:  var(--o-graphite);
+  --color-surface-3:  var(--o-steel);
+
+  /* Origin cấm chữ thân bài để trắng tuyệt đối: tiêu đề Cloud, thân Ash. */
+  --color-text:        var(--o-cloud);
+  --color-text-muted:  var(--o-ash);
+  --color-text-faint:  var(--o-fog);
+
+  /* Phân tầng bằng bậc màu chứ không bằng đổ bóng ⇒ viền phải rất mảnh. */
+  --color-border:         rgba(255, 255, 255, .08);
+  --color-border-strong:  rgba(255, 255, 255, .18);
+
+  /* Hành động chính duy nhất: trắng trên đen, tương phản 21:1. */
+  --color-primary:         #ffffff;
+  --color-primary-hover:   #e8e8ea;
+  --color-primary-active:  var(--o-silver);
+  --color-on-primary:      #000000;
+
+  /* Pale Iris chứ không phải Iris Gleam cho liên kết/nhấn nhỏ: Origin dặn
+     không đặt màu bão hoà lên chữ dưới 18px vì nó rung trên nền tối. */
+  --color-accent:       var(--o-pale-iris);
+  --color-accent-tint:  rgba(132, 125, 255, .18);
+
+  /* Origin không có màu trạng thái. Mượn từ chính bảng màu của nó, theo đúng
+     vai trò từng màu được mô tả: cyan = tín hiệu dữ liệu (thu), orchid = nhóm
+     chi tiêu (chi), iris = việc đang chờ xử lý, periwinkle = thông tin. */
+  --color-success:       #57d6f2;
+  --color-success-tint:  rgba(0, 179, 221, .16);
+  --color-warning:       var(--o-orchid);
+  --color-warning-tint:  rgba(221, 144, 216, .16);
+  --color-error:         #ff8f8f;
+  --color-error-tint:    rgba(255, 143, 143, .15);
+  --color-info:          var(--o-periwinkle);
+  --color-info-tint:     rgba(144, 184, 240, .16);
+
+  --color-focus: var(--o-pale-iris);
+
+  /* Bản đồ nhiệt: Iris Gleam trên nền tối, ô trống là một bậc màu chứ không
+     phải mảng trắng. */
+  --heat-rgb: 132, 125, 255;
+  --heat-empty: rgba(255, 255, 255, .05);
+  --heat-fg-strong: #fff;
+
+  /* --- Ba giọng chữ ---------------------------------------------------- */
+  /* Origin dùng Lyon Display 300. Bản thay thế mà tài liệu gợi ý
+     (DM Serif Display) KHÔNG có bộ ký tự tiếng Việt và chỉ có một trọng lượng
+     400 — dùng vào là mất dấu. Cormorant Garamond có cả `vietnamese` lẫn
+     trọng lượng 300, nên giữ được đúng cái "thì thầm" mà Origin lấy làm chữ ký. */
+  --font-display: var(--font-origin-display-src), "Playfair Display", Georgia, serif;
+  --font-body:    var(--font-origin-body-src), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    var(--font-origin-mono-src), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Thang chữ: serif nhẹ, dòng bó sát (0.9) — căng thẳng có chủ ý của Origin. */
+  --text-display:  300 clamp(46px, 8vw, 96px)/.9 var(--font-display);
+  --text-h1:       300 clamp(36px, 6vw, 68px)/.95 var(--font-display);
+  --text-h2:       300 clamp(28px, 4vw, 40px)/1 var(--font-display);
+  --text-h3:       400 clamp(22px, 2.6vw, 28px)/1.15 var(--font-display);
+  --text-h4:       500 15px/1.45 var(--font-body);
+  --text-h5:       500 13px/1.45 var(--font-body);
+  --text-body-lg:  300 18px/1.5 var(--font-body);
+  --text-body:     400 15px/1.55 var(--font-body);
+  --text-body-sm:  400 14px/1.6 var(--font-body);
+  --text-caption:  400 13px/1.45 var(--font-body);
+  --text-overline: 500 11px/1.3 var(--font-mono);
+  --text-stat:     300 clamp(30px, 4vw, 44px)/1 var(--font-display);
+
+  /* --- Hình khối -------------------------------------------------------- */
+  --radius-sm:   8px;   /* nút, ô nhập, mục điều hướng */
+  --radius-md:   8px;
+  --radius-lg:  16px;   /* thẻ */
+  --radius-xl:  30px;   /* thẻ mục có màu */
+  --radius-full: 9999px;
+
+  /* Origin cố ý phẳng: độ nổi thể hiện bằng bậc màu, không bằng bóng. */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+}
+
+/* Serif nhẹ cần chỉnh khoảng chữ bằng tay ở cỡ lớn, đúng như tài liệu dặn. */
+:root[data-skin="origin"] .c-display,
+:root[data-skin="origin"] .c-h1,
+:root[data-skin="origin"] .c-h2,
+:root[data-skin="origin"] h1,
+:root[data-skin="origin"] h2 {
+  letter-spacing: -.015em;
+}
+
+/* Origin dùng chữ đơn cách viết hoa cho MỌI nhãn, huy hiệu và chú thích số.
+   `.uppercase` của Tailwind chính là chỗ dự án đang đánh dấu những nhãn đó —
+   bắt vào đây thì không phải sửa một dòng JSX nào. */
+:root[data-skin="origin"] .uppercase,
+:root[data-skin="origin"] .c-overline,
+:root[data-skin="origin"] .c-card-kicker,
+:root[data-skin="origin"] .c-stat-label,
+:root[data-skin="origin"] .c-table th {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: .14em;
+}
+
+/* Con số là dữ liệu ⇒ giọng thứ ba, và luôn thẳng cột. */
+:root[data-skin="origin"] .tabular-nums,
+:root[data-skin="origin"] .c-table .num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-skin="origin"] .c-stat-value {
+  letter-spacing: -.01em;
+}
+
+/* Liên kết: Origin không tô màu bão hoà lên chữ nhỏ. */
+:root[data-skin="origin"] a { color: var(--color-text); }
+:root[data-skin="origin"] a:hover { color: #fff; text-decoration: underline; }
+
+/* --- Bề mặt phẳng ---------------------------------------------------------
+ * `shadow-sm` của Tailwind không đọc token --shadow-*, nó có biến riêng. Quy
+ * tắc này không nằm trong @layer nào nên thắng mọi utility bất kể độ đặc hiệu.
+ * Chừa :focus lại để vòng lấy nét (cũng vẽ bằng box-shadow) còn thấy được. */
+:root[data-skin="origin"] [class*="shadow"]:not(:focus):not(:focus-within) {
+  box-shadow: none;
+}
+
+/* --- Nút ------------------------------------------------------------------ */
+:root[data-skin="origin"] .c-btn {
+  font: 400 15px/1 var(--font-body);
+  padding: 12px 18px;
+  border-radius: 8px;
+  transition: background .2s ease, color .2s ease, border-color .2s ease;
+}
+:root[data-skin="origin"] .c-btn:active { transform: none; }
+:root[data-skin="origin"] .c-btn-secondary {
+  background: transparent;
+  border-color: rgba(255, 255, 255, .35);
+  color: var(--color-text);
+}
+:root[data-skin="origin"] .c-btn-secondary:hover {
+  background: rgba(255, 255, 255, .08);
+  border-color: #fff;
+}
+:root[data-skin="origin"] .c-btn-sm { padding: 9px 14px; font-size: 14px; }
+:root[data-skin="origin"] .c-btn-lg { padding: 14px 24px; font-size: 16px; border-radius: 8px; }
+
+/* --- Ô nhập: nền đen tuyệt đối, đúng vai trò "Void" trong tài liệu -------- */
+:root[data-skin="origin"] .c-input,
+:root[data-skin="origin"] .c-select,
+:root[data-skin="origin"] .c-textarea,
+:root[data-skin="origin"] input:not([type="checkbox"]):not([type="radio"]),
+:root[data-skin="origin"] select,
+:root[data-skin="origin"] textarea {
+  background: #000;
+  border-color: rgba(255, 255, 255, .12);
+  border-radius: 8px;
+  color: #fafafa;
+}
+:root[data-skin="origin"] .c-input:focus,
+:root[data-skin="origin"] .c-select:focus,
+:root[data-skin="origin"] .c-textarea:focus {
+  border-color: rgba(255, 255, 255, .5);
+  box-shadow: none;
+}
+
+/* --- Thẻ ------------------------------------------------------------------ */
+:root[data-skin="origin"] .c-card {
+  border-radius: 16px;
+  padding: 32px;                   /* card padding của Origin */
+  border-color: rgba(255, 255, 255, .07);
+}
+
+/* --- Chip / huy hiệu: viên thuốc kính mờ --------------------------------- */
+:root[data-skin="origin"] .c-chip {
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  background: rgba(255, 255, 255, .12);
+  border-color: rgba(255, 255, 255, .15);
+}
+:root[data-skin="origin"] .c-badge {
+  font: 500 11px/1 var(--font-mono);
+  background: var(--o-iris);
+  color: #fff;
+}
+
+/* --- Tab / thanh phân đoạn ------------------------------------------------ */
+:root[data-skin="origin"] .c-tab {
+  font: 400 15px/1 var(--font-body);
+}
+:root[data-skin="origin"] .c-seg {
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .1);
+}
+:root[data-skin="origin"] .c-seg-opt.active {
+  background: #fff;
+  color: #000;
+}
+
+/* --- Vỏ giao diện: kính mờ trên nền tối ---------------------------------- */
+:root[data-skin="origin"] .c-sidebar {
+  background: var(--o-abyss);
+  border-right-color: rgba(255, 255, 255, .06);
+}
+:root[data-skin="origin"] .c-sidebar-item.active,
+:root[data-skin="origin"] .c-bottomnav-item.active {
+  background: #fff;
+  color: #000;
+}
+:root[data-skin="origin"] .c-bottomnav,
+:root[data-skin="origin"] header.sticky {
+  background: rgba(15, 16, 17, .72);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-color: rgba(255, 255, 255, .08);
+}
+:root[data-skin="origin"] .c-bottomnav-item {
+  /* Chữ đơn cách rộng hơn chữ tỷ lệ ở cùng cỡ. Ở 375px, năm nhãn cộng thêm
+     tracking là vừa đủ chạm nhau — nên nhãn dưới chỉ lấy giọng mono, không lấy
+     tracking. */
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: 0;
+}
+:root[data-skin="origin"] .c-bottomnav-item.active {
+  color: #000;
+  padding: 6px 10px;
+}
+
+/* --- Thanh tiến trình, bảng ---------------------------------------------- */
+:root[data-skin="origin"] .c-progress { background: rgba(255, 255, 255, .1); }
+:root[data-skin="origin"] .c-progress > span { background: var(--o-iris); }
+:root[data-skin="origin"] .c-table th { border-bottom-color: rgba(255, 255, 255, .16); }
+:root[data-skin="origin"] .c-table tr:hover td { background: rgba(255, 255, 255, .04); }
+
+/* --- Thẻ mục có màu -------------------------------------------------------
+ * Chữ ký thật sự của Origin: mảng màu tràn viền, bo 30px, không viền không
+ * bóng — màu là thứ duy nhất phân biệt các nhóm.
+ *
+ * Các class này KHÔNG có tác dụng gì khi tắt skin (mọi quy tắc đều nằm sau
+ * `:root[data-skin="origin"]`), nên gắn chúng vào JSX là an toàn. */
+:root[data-skin="origin"] .o-tile {
+  border-radius: 30px !important;
+  border-color: transparent !important;
+  padding: 24px !important;
+}
+:root[data-skin="origin"] .o-tile * { color: inherit !important; }
+:root[data-skin="origin"] .o-tile [class*="bg-[var(--color-"] {
+  background: rgba(255, 255, 255, .18) !important;
+}
+:root[data-skin="origin"] .o-tile-value {
+  /* Trần 32px chứ không phải 36: "2.355.870 ₫" ở cỡ lớn hơn là xuống dòng và
+     đội cao thẻ cuối lên so với bốn thẻ bên cạnh. */
+  font: 300 clamp(24px, 3vw, 32px)/1.05 var(--font-display) !important;
+  letter-spacing: -.01em;
+  margin-top: 4px;
+}
+:root[data-skin="origin"] .o-tile-iris   { background: var(--o-iris) !important;   color: #fff !important; }
+:root[data-skin="origin"] .o-tile-cyan   { background: var(--o-cyan) !important;   color: #fff !important; }
+:root[data-skin="origin"] .o-tile-deep   { background: var(--o-deep-iris) !important; color: #fff !important; }
+:root[data-skin="origin"] .o-tile-orchid { background: var(--o-orchid) !important; color: #0f1011 !important; }
+:root[data-skin="origin"] .o-tile-peri   { background: var(--o-periwinkle) !important; color: #0f1011 !important; }
+:root[data-skin="origin"] .o-tile-pale   { background: var(--o-pale-iris) !important; color: #0f1011 !important; }
+:root[data-skin="origin"] .o-tile-orchid [class*="bg-[var(--color-"],
+:root[data-skin="origin"] .o-tile-peri   [class*="bg-[var(--color-"],
+:root[data-skin="origin"] .o-tile-pale   [class*="bg-[var(--color-"] {
+  background: rgba(0, 0, 0, .12) !important;
+}
+
+/* --- Biểu đồ --------------------------------------------------------------
+ * Recharts nhận màu qua thuộc tính trình bày (fill=, stroke=) mà các component
+ * đang viết cứng bằng mã hex. Thuộc tính trình bày có độ ưu tiên THẤP NHẤT
+ * trong CSS, nên chỉ cần vẽ đè ở đây là đủ cho một bản thử. (Nếu thật sự đổi
+ * sang bảng này thì phải đưa màu biểu đồ vào token, chứ không để ở đây.) */
+:root[data-skin="origin"] .recharts-cartesian-grid line { stroke: rgba(255, 255, 255, .07); }
+:root[data-skin="origin"] .recharts-text {
+  fill: var(--o-fog);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+:root[data-skin="origin"] .recharts-cartesian-axis-line,
+:root[data-skin="origin"] .recharts-cartesian-axis-tick-line { stroke: rgba(255, 255, 255, .12); }
+:root[data-skin="origin"] .recharts-line-curve { stroke: var(--o-cyan); }
+:root[data-skin="origin"] .recharts-line:nth-of-type(2) .recharts-line-curve,
+:root[data-skin="origin"] .recharts-area:nth-of-type(2) .recharts-area-curve { stroke: var(--o-orchid); }
+:root[data-skin="origin"] .recharts-line-dot { fill: var(--o-cyan); stroke: none; }
+:root[data-skin="origin"] .recharts-area-curve { stroke: var(--o-cyan); }
+:root[data-skin="origin"] .recharts-area-area { fill: currentColor; opacity: .12; }
+:root[data-skin="origin"] .recharts-bar-rectangle path { fill: var(--o-iris); }
+:root[data-skin="origin"] .recharts-default-tooltip {
+  background: var(--o-graphite) !important;
+  border: 1px solid rgba(255, 255, 255, .12) !important;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+/* Sáu mảng màu cho biểu đồ tròn — đúng bằng số màu sắc Origin dành cho nhóm. */
+:root[data-skin="origin"] .recharts-pie-sector:nth-of-type(6n + 1) path { fill: var(--o-iris); }
+:root[data-skin="origin"] .recharts-pie-sector:nth-of-type(6n + 2) path { fill: var(--o-cyan); }
+:root[data-skin="origin"] .recharts-pie-sector:nth-of-type(6n + 3) path { fill: var(--o-orchid); }
+:root[data-skin="origin"] .recharts-pie-sector:nth-of-type(6n + 4) path { fill: var(--o-periwinkle); }
+:root[data-skin="origin"] .recharts-pie-sector:nth-of-type(6n + 5) path { fill: var(--o-pale-iris); }
+:root[data-skin="origin"] .recharts-pie-sector:nth-of-type(6n + 6) path { fill: var(--o-deep-iris); }
+
+/* --- Chuyển động: 0.2s ease, không nảy, không đổ dốc --------------------- */
+:root[data-skin="origin"] * { transition-timing-function: ease; }
+
+/* --- Nút bật/tắt lớp da (chỉ có trong bản thử) --------------------------- */
+.o-skin-switch {
+  position: fixed;
+  right: 16px;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+:root[data-skin="origin"] .o-skin-switch {
+  font-family: var(--font-mono);
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+@media (min-width: 768px) {
+  .o-skin-switch { bottom: 24px; right: 24px; }
+}

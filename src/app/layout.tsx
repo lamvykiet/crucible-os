@@ -1,6 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
+import {
+  Playfair_Display,
+  Plus_Jakarta_Sans,
+  Cormorant_Garamond,
+  Inter,
+  Roboto_Mono,
+} from "next/font/google";
 import "./globals.css";
+import "./origin-skin.css";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import { ThemeProvider } from "@/lib/ThemeContext";
 
@@ -17,6 +24,30 @@ const playfair = Playfair_Display({
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-body-src",
+  display: "swap",
+});
+
+// Ba giọng chữ của lớp da thử nghiệm "Origin" (xem src/app/origin-skin.css).
+// Chỉ có tác dụng khi <html data-skin="origin">; ngoài ra chúng chỉ nằm im.
+// Cormorant Garamond thay cho Lyon Display: đây là serif duy nhất trên Google
+// Fonts vừa có trọng lượng 300 vừa có bộ ký tự tiếng Việt. Bản thay thế mà
+// tài liệu Origin gợi ý (DM Serif Display) không có dấu tiếng Việt.
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin", "vietnamese"],
+  weight: ["300", "400"],
+  variable: "--font-origin-display-src",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-origin-body-src",
+  display: "swap",
+});
+
+const robotoMono = Roboto_Mono({
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-origin-mono-src",
   display: "swap",
 });
 
@@ -53,7 +84,7 @@ export default function RootLayout({
     // THEME_INIT_SCRIPT sẽ đặt thuộc tính này trước khi trình duyệt vẽ.
     <html
       lang="vi"
-      className={`${playfair.variable} ${jakarta.variable}`}
+      className={`${playfair.variable} ${jakarta.variable} ${cormorant.variable} ${inter.variable} ${robotoMono.variable}`}
       suppressHydrationWarning
     >
       {/* Không cần script khởi tạo theme: chế độ tối mặc định do
