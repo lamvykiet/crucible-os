@@ -1,81 +1,30 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Playfair_Display,
-  Plus_Jakarta_Sans,
-  Cormorant_Garamond,
-  Inter,
-  Roboto_Mono,
-  Source_Serif_4,
-  Archivo,
-} from "next/font/google";
+import { Archivo, Inter } from "next/font/google";
 import "./globals.css";
-import "./skin-layout.css";
-import "./origin-skin.css";
-import "./steep-skin.css";
-import "./mercury-skin.css";
-import "./monopo-skin.css";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import { ThemeProvider } from "@/lib/ThemeContext";
+import MainLayoutWrapper from "@/components/MainLayoutWrapper";
 
-// Trước đây font được nạp bằng `@import url(fonts.googleapis.com)` ở dòng đầu
-// globals.css. CSS @import chặn render: trình duyệt phải tải xong stylesheet
-// của Google rồi mới vẽ. next/font tự host file font và nội tuyến khai báo
-// @font-face, nên bỏ được một round-trip tới domain khác.
-const playfair = Playfair_Display({
+// Font nạp bằng next/font chứ không phải `@import url(fonts.googleapis.com)`:
+// CSS @import chặn render — trình duyệt phải tải xong stylesheet của Google rồi
+// mới vẽ. next/font tự host file font và nội tuyến @font-face, bỏ được một
+// round-trip sang domain khác.
+
+// Chữ tiêu đề. Mở trục `wdth` để kéo rộng ra (xem --display-width trong
+// globals.css): bề ngang lớn hơn mặc định chính là thứ tạo ra cảm giác
+// "wide-set, architectural" của hệ. Đóng trục này lại là chữ lớn mất tính cách.
+const archivo = Archivo({
   subsets: ["latin", "vietnamese"],
+  axes: ["wdth"],
   variable: "--font-display-src",
   display: "swap",
 });
 
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-body-src",
-  display: "swap",
-});
-
-// Chữ cho hai lớp da thử nghiệm (origin-skin.css, steep-skin.css). Chỉ có tác
-// dụng khi <html data-skin="...">; ngoài ra chúng chỉ nằm im.
-// Cormorant Garamond thay cho Lyon Display: đây là serif duy nhất trên Google
-// Fonts vừa có trọng lượng 300 vừa có bộ ký tự tiếng Việt. Bản thay thế mà
-// tài liệu Origin gợi ý (DM Serif Display) không có dấu tiếng Việt.
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin", "vietnamese"],
-  weight: ["300", "400"],
-  variable: "--font-origin-display-src",
-  display: "swap",
-});
-
-// Sohne của Steep và Suisse Int'l của Origin đều là neo-grotesque; Inter thay
-// được cả hai, nên hai lớp da dùng chung một biến.
+// Chữ thân bài và giao diện. Font biến thiên nên đặt thẳng được trọng lượng
+// 480 — nấc giữa regular và semibold, và là chữ ký của hệ.
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
-  variable: "--font-skin-sans-src",
-  display: "swap",
-});
-
-// Signifier → Source Serif 4: chính là bản thay thế tài liệu Steep gợi ý, và
-// có bộ ký tự tiếng Việt. Chỉ nạp trọng lượng 400 vì Steep không bao giờ đặt
-// serif ở trọng lượng khác.
-const sourceSerif = Source_Serif_4({
-  subsets: ["latin", "vietnamese"],
-  weight: ["400"],
-  variable: "--font-steep-display-src",
-  display: "swap",
-});
-
-const robotoMono = Roboto_Mono({
-  subsets: ["latin", "vietnamese"],
-  variable: "--font-origin-mono-src",
-  display: "swap",
-});
-
-// arcadiaDisplay của Mercury là chữ riêng; tài liệu gợi ý Söhne Breit, không
-// có trên Google Fonts. Archivo mở trục `wdth` nên kéo rộng ra được — đúng chất
-// "wide-set, architectural" mà Mercury mô tả, thay vì bó hẹp lại.
-const archivo = Archivo({
-  subsets: ["latin", "vietnamese"],
-  axes: ["wdth"],
-  variable: "--font-mercury-display-src",
+  variable: "--font-body-src",
   display: "swap",
 });
 
@@ -84,21 +33,18 @@ export const metadata: Metadata = {
   description: "Personal Second Brain & Financial OS",
 };
 
-// Next tự chèn thẻ viewport mặc định, nhưng mặc định đó KHÔNG có viewport-fit=cover.
-// Thiếu nó thì env(safe-area-inset-*) luôn trả 0, và thanh nav dưới cùng nằm lọt
-// dưới vạch home indicator của iPhone.
-// themeColor để thanh trạng thái trình duyệt khớp nền app ở cả hai bảng màu.
+// Next tự chèn thẻ viewport mặc định, nhưng mặc định đó KHÔNG có
+// viewport-fit=cover. Thiếu nó thì env(safe-area-inset-*) luôn trả 0, và thanh
+// nav dưới cùng nằm lọt dưới vạch home indicator của iPhone.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F6F0E4" },
-    { media: "(prefers-color-scheme: dark)", color: "#291C0E" },
+    { media: "(prefers-color-scheme: light)", color: "#171721" },
+    { media: "(prefers-color-scheme: dark)", color: "#171721" },
   ],
 };
-
-import MainLayoutWrapper from "@/components/MainLayoutWrapper";
 
 export default function RootLayout({
   children,
@@ -106,19 +52,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // Không đặt cứng data-theme ở đây nữa. Bản cũ ghi thẳng data-theme="dark",
-    // nên toàn bộ token màu chạy ở bảng tối trong khi các component lại viết
-    // cứng nền trắng và chữ xám đậm — chính là nguyên nhân giao diện nhìn vỡ.
-    // THEME_INIT_SCRIPT sẽ đặt thuộc tính này trước khi trình duyệt vẽ.
+    // Nền tối là mặc định của hệ, và nó do `:root` trong globals.css áp ngay
+    // lúc trình duyệt phân tích CSS — không nháy màu, không cần script khởi
+    // tạo. ThemeProvider chỉ đặt data-theme khi người dùng chọn tay.
     <html
       lang="vi"
-      className={`${playfair.variable} ${jakarta.variable} ${cormorant.variable} ${inter.variable} ${robotoMono.variable} ${sourceSerif.variable} ${archivo.variable}`}
+      className={`${archivo.variable} ${inter.variable}`}
       suppressHydrationWarning
     >
-      {/* Không cần script khởi tạo theme: chế độ tối mặc định do
-          @media (prefers-color-scheme: dark) trong globals.css lo, nên không
-          bao giờ nháy màu. ThemeProvider chỉ đặt data-theme khi người dùng
-          bấm nút chọn tay. */}
       <body suppressHydrationWarning>
         <ThemeProvider>
           <LanguageProvider>

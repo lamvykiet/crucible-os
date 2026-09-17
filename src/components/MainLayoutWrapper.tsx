@@ -1,47 +1,36 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
+import TopNav from "@/components/TopNav";
 import MobileNav from "@/components/MobileNav";
 import MobileTopBar from "@/components/MobileTopBar";
-import SkinSwitch from "@/components/SkinSwitch";
 
 /**
  * Khung ngoài của ứng dụng.
  *
- * Bản cũ dựng cứng một flex row: sidebar 256px + `padding: 32px 40px`, không có
- * một điểm ngắt nào. Trên điện thoại 390px, sidebar chiếm 256px và padding ăn
- * thêm 80px, chỉ còn ~54px cho nội dung — chữ vỡ từng dòng một.
+ * Xếp DỌC: thanh điều hướng trên cùng, rồi nội dung. Bản cũ xếp ngang với
+ * sidebar 248px bên trái — design system hiện tại không có sidebar, toàn bộ
+ * điều hướng nằm trên thanh trên (xem `TopNav`).
  *
- * Theo design system: desktop dùng sidebar 248px bên trái, mobile dùng thanh
- * điều hướng dưới cùng 5 mục.
+ * Trên điện thoại: `MobileTopBar` ở trên (chủ đề / ngôn ngữ / cài đặt) và
+ * `MobileNav` năm mục ở dưới.
+ *
+ * Đệm, bề rộng khung và nhịp dọc của `<main>` do `.c-main` trong globals.css
+ * quy định, không đặt bằng utility ở đây — để mọi trang có cùng một nhịp.
  */
 export default function MainLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   if (pathname === "/login") {
-    // Token tên là --color-bg, không phải --color-background (biến đó không tồn
-    // tại nên nền không được áp).
     return <main className="min-h-screen w-full bg-[var(--color-bg)]">{children}</main>;
   }
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-
-      <div className="flex-1 min-w-0 flex flex-col">
-        <MobileTopBar />
-        {/* pb-24 chừa chỗ cho thanh nav dưới; từ md trở lên nav ẩn nên bỏ. */}
-        <main className="flex-1 min-w-0 px-4 py-5 pb-24 md:px-10 md:py-8 md:pb-8">
-          {children}
-        </main>
-      </div>
-
+    <div className="c-shell">
+      <TopNav />
+      <MobileTopBar />
+      <main className="c-main">{children}</main>
       <MobileNav />
-
-      {/* Bản thử lớp da "Origin" — xem src/app/origin-skin.css. Gỡ dòng này là
-          gỡ được cả thử nghiệm. */}
-      <SkinSwitch />
     </div>
   );
 }

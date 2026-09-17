@@ -584,62 +584,62 @@ export default function DashboardTab() {
           <Calendar size={24} /> {t("Today's Metrics", "Chỉ số hôm nay")}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm o-tile o-tile-cyan">
+          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-lg bg-[var(--color-success-tint)] text-[var(--color-success)] flex items-center justify-center">
                 <DollarSign size={16} />
               </div>
               <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Daily Income", "Thu nhập ngày")}</div>
             </div>
-            <div className="o-tile-value text-lg font-bold text-[var(--color-success)]">{formatVND(dailyIncome)}</div>
+            <div className="c-metric-value text-[var(--color-success)]">{formatVND(dailyIncome)}</div>
             <div className="text-xs text-[var(--color-text-faint)] mt-1">{t("today", "hôm nay")}</div>
           </div>
 
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm o-tile o-tile-orchid">
+          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-lg bg-[var(--color-warning-tint)] text-[var(--color-warning)] flex items-center justify-center">
                 <CreditCard size={16} />
               </div>
               <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Daily Expense", "Chi tiêu ngày")}</div>
             </div>
-            <div className="o-tile-value text-lg font-bold text-[var(--color-warning)]">{formatVND(dailyExpense)}</div>
+            <div className="c-metric-value text-[var(--color-warning)]">{formatVND(dailyExpense)}</div>
             <div className="text-xs text-[var(--color-text-faint)] mt-1">{t("today", "hôm nay")}</div>
           </div>
 
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm o-tile o-tile-peri">
+          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-lg bg-[var(--color-info-tint)] text-[var(--color-info)] flex items-center justify-center">
                 <ArrowLeftRight size={16} />
               </div>
               <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Daily Cash Flow", "Dòng tiền ngày")}</div>
             </div>
-            <div className={`o-tile-value text-lg font-bold ${dailyCashFlow < 0 ? "text-[var(--color-error)]" : "text-[var(--color-info)]"}`}>
+            <div className={`c-metric-value ${dailyCashFlow < 0 ? "text-[var(--color-error)]" : "text-[var(--color-info)]"}`}>
               {formatVND(dailyCashFlow)}
             </div>
             <div className="text-xs text-[var(--color-text-faint)] mt-1">{t("today", "hôm nay")}</div>
           </div>
 
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm o-tile o-tile-pale">
+          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-lg bg-[var(--color-success-tint)] text-[var(--color-success)] flex items-center justify-center">
                 <Calendar size={16} />
               </div>
               <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Avg Daily Expense", "Chi tiêu TB/Ngày")}</div>
             </div>
-            <div className="o-tile-value text-lg font-bold text-[var(--color-text)]">{formatVND(avgDailyExpense)}</div>
+            <div className="c-metric-value text-[var(--color-text)]">{formatVND(avgDailyExpense)}</div>
             <div className="text-xs text-[var(--color-text-faint)] mt-1">
               {t("over", "qua")} {elapsedDays} {t("days", "ngày")}
             </div>
           </div>
 
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm o-tile o-tile-iris">
+          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-lg bg-[var(--color-info-tint)] text-[var(--color-info)] flex items-center justify-center">
                 <TrendingUp size={16} />
               </div>
               <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("End of Month Forecast", "Dự báo chi cuối tháng")}</div>
             </div>
-            <div className="o-tile-value text-lg font-bold text-[var(--color-text)]">{formatVND(eomForecast)}</div>
+            <div className="c-metric-value text-[var(--color-text)]">{formatVND(eomForecast)}</div>
             <div className="text-xs text-[var(--color-text-faint)] mt-1">{t("at current rate", "theo nhịp chi hiện tại")}</div>
           </div>
         </div>

@@ -45,7 +45,7 @@ là thứ duy nhất cả năm phiên cùng đọc. Trước khi sửa bất c�
 | Learning | `src/app/learning/`, `src/components/learning/`, `api/learning/`, `src/lib/fsrs.ts` |
 | Video | `api/video/{fetch,queue,resolve}` (trình duyệt) và `api/video/{upload,pending}` (Shortcut iOS) |
 | Thói quen | `src/app/habits/`, `src/components/habits/`, `api/habits/`, `src/lib/habits.ts` |
-| Vỏ giao diện | `MainLayoutWrapper`, `Sidebar`, `MobileNav`, `MobileTopBar`, `src/app/globals.css` |
+| Vỏ giao diện | `MainLayoutWrapper`, `TopNav`, `MobileNav`, `MobileTopBar`, `src/app/globals.css` |
 
 ## Đổi cái này thì kéo theo cái kia
 
@@ -60,11 +60,43 @@ không báo lỗi gì**. Phải dời trong cùng một `$transaction` — xem
 Hook cache ở cấp module, không xoá thì mọi modal vẫn hiện danh sách cũ tới khi
 tải lại trang.
 
+**Design system là "Mercury"** → nền onyx `#171721`, thẻ graphite `#1e1e2a`,
+chữ ngà `#ededf3`, và **một** màu cobalt `#5266eb`. Ba luật: cobalt chỉ dành cho
+hành động chính và mục điều hướng đang mở (không tô icon, không tô nút phụ);
+không đổ bóng, phân tầng bằng bậc giá trị; nút/ô nhập/mục điều hướng luôn là
+viên thuốc 32–40px, thẻ 12px, góc 4px chỉ cho chi tiết cấu trúc.
+
+Bốn màu ngữ nghĩa (`--color-success/warning/error/info`) là chỗ **cố ý lệch**
+khỏi bản tham chiếu, vì sổ thu chi cần phân biệt thu/chi trong một nháy mắt.
+Chúng chỉ được phép xuất hiện trên **con số, icon và nền tint** — không bao giờ
+trên nền thẻ, nút hay thanh điều hướng.
+
+**Tối là mặc định, không theo hệ điều hành.** Bảng tối nằm thẳng trên `:root`;
+bảng sáng chỉ áp khi người dùng bấm nút (`[data-theme="light"]`). Bản cũ phải
+viết bảng tối hai lần và bắt hai khối giống hệt nhau — cái bẫy đó không còn.
+
+**Không có sidebar.** Toàn bộ điều hướng nằm trên `TopNav` (thanh ngang dính
+đỉnh, từ 768px). Điện thoại dùng `MobileTopBar` + `MobileNav`.
+
+**Bán kính `--radius-sm/md/lg/xl/2xl` TRÙNG TÊN với thang của Tailwind v4** ⇒
+đổi chúng là đổi luôn mọi `rounded-*` trong JSX. Giữ thang này ở cỡ "thẻ"; bán
+kính viên thuốc đặt riêng trong `.c-btn` / `.c-input`. Đã có tiền lệ: đặt
+`--radius-md: 16px` cho ô nhập làm mọi ô `rounded-md` 31px của bản đồ nhiệt
+biến thành hình tròn.
+
+**Nhịp trang do `.c-main` quy định**, không phải từng trang tự đặt: khung
+1200px, 72px giữa các khối lớn, 32px đệm thẻ lớn. Đừng chồng `max-w-*` hay
+`py-*` lên `<main>`.
+
 **Đặt cỡ chữ** → dùng thang `.c-display / .c-h1….c-h5`, đừng dùng `text-*` của
 Tailwind cho heading. Mặc định thẻ nằm trong `@layer base`, thang chữ nằm trong
 `@layer components`. Viết mặc định thẻ **ngoài** mọi `@layer` sẽ nuốt sạch utility
 — đã từng làm 83 heading và 58 thẻ `<p>` mất tác dụng, không linter nào báo.
-Ngoại lệ có chủ ý: `.c-sidebar` cố tình nằm ngoài layer để thắng `hidden md:flex`.
+Ngoại lệ có chủ ý: `.c-topnav`, `.c-bottomnav` và khối nhịp trang (`.c-main`)
+cố tình nằm ngoài mọi layer để thắng utility viết thẳng trong JSX —
+`hidden md:flex`, `space-y-8`, `p-5`, `gap-6`. Có media query ở cuối
+`globals.css` lo phần ẩn/hiện theo bề ngang; bỏ nó đi là thanh điều hướng dưới
+của điện thoại hiện nguyên trên máy tính.
 
 **Sửa modal bất kỳ trong Finance** → khổ chính là **375px**, không phải desktop.
 Modal phải cuộn được tới trường cuối và nút lưu luôn thấy. Ba lỗi mobile đã sửa:
