@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  Plus, DollarSign, Clock, Users, Tag, Target, TrendingUp, TrendingDown,
+  DollarSign, Clock, Users, Tag, Target, TrendingUp, TrendingDown, ArrowDownLeft,
   AlertCircle, CalendarX,
 } from "lucide-react";
 import {
@@ -140,9 +140,11 @@ export default function IncomeTab() {
             <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
             <button 
               onClick={() => setIsIncomeModalOpen(true)}
-              className="c-btn c-btn-success shadow-sm"
+              aria-label={t("Add Income", "Thêm thu nhập")}
+              title={t("Add Income", "Thêm thu nhập")}
+              className="c-btn c-btn-success shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
             >
-              <Plus size={16} /> {t("Add Income", "Thêm thu nhập")}
+              <ArrowDownLeft size={16} /> <span className="hidden md:inline">{t("Add Income", "Thêm thu nhập")}</span>
             </button>
             <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
           </div>
@@ -184,9 +186,11 @@ export default function IncomeTab() {
           <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
           <button 
             onClick={() => setIsIncomeModalOpen(true)}
-            className="c-btn c-btn-success shadow-sm"
+            aria-label={t("Add Income", "Thêm thu nhập")}
+            title={t("Add Income", "Thêm thu nhập")}
+            className="c-btn c-btn-success shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
           >
-            <Plus size={16} /> {t("Add Income", "Thêm thu nhập")}
+            <ArrowDownLeft size={16} /> <span className="hidden md:inline">{t("Add Income", "Thêm thu nhập")}</span>
           </button>
           <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
         </div>

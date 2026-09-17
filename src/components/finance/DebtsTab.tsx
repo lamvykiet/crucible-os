@@ -106,9 +106,11 @@ export default function DebtsTab() {
           <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
           <button 
             onClick={() => setIsDebtModalOpen(true)}
-            className="c-btn c-btn-primary shadow-sm"
+            aria-label={t("Add Debt", "Thêm khoản nợ")}
+            title={t("Add Debt", "Thêm khoản nợ")}
+            className="c-btn c-btn-primary shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
           >
-            <Plus size={16} /> {t("Add Debt", "Thêm khoản nợ")}
+            <Plus size={16} /> <span className="hidden md:inline">{t("Add Debt", "Thêm khoản nợ")}</span>
           </button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, Plus, CreditCard, LineChart as LineChartIcon, Tag, Receipt, ChevronDown, AlertCircle, ListChecks } from "lucide-react";
+import { Calendar, CreditCard, LineChart as LineChartIcon, Tag, Receipt, ChevronDown, AlertCircle, ListChecks, ArrowUpRight } from "lucide-react";
 import { BarChart, Bar, LineChart as RechartsLineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
@@ -128,15 +128,19 @@ export default function ExpenseTab() {
           <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="c-btn c-btn-accent shadow-sm"
+            aria-label={t("Add Expense", "Thêm chi tiêu")}
+            title={t("Add Expense", "Thêm chi tiêu")}
+            className="c-btn c-btn-accent shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
           >
-            <Plus size={16} /> {t("Add Expense", "Thêm chi tiêu")}
+            <ArrowUpRight size={16} /> <span className="hidden md:inline">{t("Add Expense", "Thêm chi tiêu")}</span>
           </button>
           <button 
             onClick={() => setIsScanModalOpen(true)}
-            className="c-btn bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-2)] text-[var(--color-text)] rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+            aria-label={t("Scan Invoice", "Quét hóa đơn")}
+            title={t("Scan Invoice", "Quét hóa đơn")}
+            className="c-btn c-btn-secondary shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
           >
-            <Receipt size={16} className="text-[var(--color-success)]" /> {t("Scan Invoice", "Quét hóa đơn")}
+            <Receipt size={16} className="text-[var(--color-success)]" /> <span className="hidden md:inline">{t("Scan Invoice", "Quét hóa đơn")}</span>
           </button>
           <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(k => k + 1)} />
         </div>

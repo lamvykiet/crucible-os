@@ -170,9 +170,13 @@ export default function AssetsTab() {
             )}
           </p>
         </div>
-        <button onClick={() => openNew()} className="c-btn c-btn-primary c-btn-pill shadow-sm">
-          <Plus size={16} />
-          {t("Add asset", "Thêm tài sản")}
+        <button
+          onClick={() => openNew()}
+          aria-label={t("Add asset", "Thêm tài sản")}
+          title={t("Add asset", "Thêm tài sản")}
+          className="c-btn c-btn-primary c-btn-pill shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
+        >
+          <Plus size={16} /> <span className="hidden md:inline">{t("Add asset", "Thêm tài sản")}</span>
         </button>
       </div>
 

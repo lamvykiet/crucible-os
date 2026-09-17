@@ -45,9 +45,20 @@ export default function PendingReviewButton({ refreshKey = 0, onProcessed }: Pen
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="c-btn c-btn-warning shadow-sm"
+        aria-label={t(`Duyệt hóa đơn (${count})`, `Review invoices (${count})`)}
+        title={t(`Duyệt hóa đơn (${count})`, `Review invoices (${count})`)}
+        className="c-btn c-btn-warning shadow-sm gap-1.5 px-2.5! [&>svg]:shrink-0 min-w-11 h-11 md:min-w-0 md:h-auto md:px-5! md:py-2.5!"
       >
-        <ListTodo size={16} /> {t(`Duyệt hóa đơn (${count})`, `Review invoices (${count})`)}
+        {/* Thu về icon trên mobile, nhưng SỐ hoá đơn chờ thì giữ: đó mới là
+            thứ nút này nói, icon không thay được.
+
+            Dấu `!` ở px-2.5!/md:px-5! là bắt buộc: .c-btn nằm NGOÀI mọi @layer
+            trong globals.css nên nó thắng utility của Tailwind. Bỏ dấu `!` thì
+            padding 20px của .c-btn giữ nguyên, ô chứa icon còn 4px và icon bị
+            bóp còn 2px — nút thành một chấm mờ, không lỗi, không cảnh báo. */}
+        <ListTodo size={16} />
+        <span className="md:hidden text-xs font-bold tabular-nums">{count}</span>
+        <span className="hidden md:inline">{t(`Duyệt hóa đơn (${count})`, `Review invoices (${count})`)}</span>
       </button>
 
       <ReviewQueueModal

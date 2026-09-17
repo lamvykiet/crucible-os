@@ -19,7 +19,7 @@ import DayTransactionsCard from "./DayTransactionsCard";
 import TodaySpendingShare from "./TodaySpendingShare";
 import IncompleteDataModal from "./IncompleteDataModal";
 import PeriodComparison from "./PeriodComparison";
-import { Plus } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { thisMonthLocalIso, todayLocalIso } from "@/lib/localDate";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
@@ -222,24 +222,30 @@ export default function DashboardTab() {
                 setTransactionType("Income");
                 setIsTransactionModalOpen(true);
               }}
-              className="c-btn c-btn-success shadow-sm"
+              aria-label={t("Add Income", "Thu nhập")}
+              title={t("Add Income", "Thu nhập")}
+              className="c-btn c-btn-success shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
             >
-              <Plus size={16} /> {t("Add Income", "Thu nhập")}
+              <ArrowDownLeft size={16} /> <span className="hidden md:inline">{t("Add Income", "Thu nhập")}</span>
             </button>
             <button 
               onClick={() => {
                 setTransactionType("Expense");
                 setIsTransactionModalOpen(true);
               }}
-              className="c-btn c-btn-accent shadow-sm"
+              aria-label={t("Add Expense", "Chi phí")}
+              title={t("Add Expense", "Chi phí")}
+              className="c-btn c-btn-accent shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
             >
-              <Plus size={16} /> {t("Add Expense", "Chi phí")}
+              <ArrowUpRight size={16} /> <span className="hidden md:inline">{t("Add Expense", "Chi phí")}</span>
             </button>
             <button 
               onClick={() => setIsScanModalOpen(true)}
-              className="c-btn c-btn-secondary shadow-sm"
+              aria-label={t("Scan Invoice", "Quét hóa đơn")}
+              title={t("Scan Invoice", "Quét hóa đơn")}
+              className="c-btn c-btn-secondary shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
             >
-              <Receipt size={16} className="text-[var(--color-success)]" /> {t("Scan Invoice", "Quét hóa đơn")}
+              <Receipt size={16} className="text-[var(--color-success)]" /> <span className="hidden md:inline">{t("Scan Invoice", "Quét hóa đơn")}</span>
             </button>
             <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
           </div>
@@ -345,24 +351,30 @@ export default function DashboardTab() {
               setTransactionType("Income");
               setIsTransactionModalOpen(true);
             }}
-            className="c-btn c-btn-success shadow-sm"
+            aria-label={t("Add Income", "Thu nhập")}
+            title={t("Add Income", "Thu nhập")}
+            className="c-btn c-btn-success shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
           >
-            <Plus size={16} /> {t("Add Income", "Thu nhập")}
+            <ArrowDownLeft size={16} /> <span className="hidden md:inline">{t("Add Income", "Thu nhập")}</span>
           </button>
           <button 
             onClick={() => {
               setTransactionType("Expense");
               setIsTransactionModalOpen(true);
             }}
-            className="c-btn c-btn-accent shadow-sm"
+            aria-label={t("Add Expense", "Chi phí")}
+            title={t("Add Expense", "Chi phí")}
+            className="c-btn c-btn-accent shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
           >
-            <Plus size={16} /> {t("Add Expense", "Chi phí")}
+            <ArrowUpRight size={16} /> <span className="hidden md:inline">{t("Add Expense", "Chi phí")}</span>
           </button>
           <button 
             onClick={() => setIsScanModalOpen(true)}
-            className="c-btn c-btn-secondary shadow-sm"
+            aria-label={t("Scan Invoice", "Quét hóa đơn")}
+            title={t("Scan Invoice", "Quét hóa đơn")}
+            className="c-btn c-btn-secondary shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
           >
-            <Receipt size={16} className="text-[var(--color-success)]" /> {t("Scan Invoice", "Quét hóa đơn")}
+            <Receipt size={16} className="text-[var(--color-success)]" /> <span className="hidden md:inline">{t("Scan Invoice", "Quét hóa đơn")}</span>
           </button>
           <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
         </div>
