@@ -1,0 +1,376 @@
+/* ============================================================================
+ * "Mercury" — lớp da thử nghiệm thứ ba. Ngân hàng vùng núi lúc chạng vạng.
+ *
+ * Khác hai bản trước ở chỗ bản này KHÔNG chỉ đổi token: nó lấy cả những thiết
+ * lập về bố cục mà tài liệu quy định — khung 1200px, nhịp dọc 72px, đệm thẻ
+ * 32px — và, quan trọng nhất, bỏ hẳn sidebar. Tài liệu viết rõ: "No sidebar
+ * navigation; all navigation lives in the top bar". Phần biến hình cột trái
+ * thành thanh trên nằm ở skin-layout.css.
+ *
+ * Kỷ luật màu của Mercury khắt khe hơn cả Steep: đúng MỘT màu cobalt, và chỉ
+ * cho hành động chính. Xem chú thích ở khối trạng thái bên dưới.
+ * ========================================================================= */
+
+:root[data-skin="mercury"] {
+  color-scheme: dark;
+
+  /* --- Bảng màu gốc ---------------------------------------------------- */
+  --m-onyx:     #171721; /* Onyx Canvas      — nền trang */
+  --m-graphite: #1e1e2a; /* Graphite Card    — mặt thẻ, nhích đúng một bậc */
+  --m-obsidian: #272735; /* Obsidian Button  — mặt tương tác phụ */
+  --m-slate:    #70707d; /* Slate Border     — vách ngăn */
+  --m-mist:     #e2e3ed; /* Mist Border      — viền tóc sáng trên nền tối */
+  --m-ash:      #c3c3cc; /* Ash Text         — chữ phụ */
+  --m-ivory:    #ededf3; /* Ivory Text       — chữ chính, KHÔNG phải trắng */
+  --m-cobalt:   #5266eb; /* Cobalt           — màu duy nhất của hệ */
+
+  /* --- Ánh xạ ------------------------------------------------------------ */
+  --color-bg:        var(--m-onyx);
+  --color-surface:   var(--m-graphite);
+  --color-surface-2: var(--m-obsidian);
+  --color-surface-3: #32323f;
+
+  /* "Do not use #ffffff for body text — always #ededf3 Ivory; pure white on
+     dark creates harsh, cold contrast." */
+  --color-text:       var(--m-ivory);
+  --color-text-muted: var(--m-ash);
+  --color-text-faint: #8c8c99;
+
+  /* Thẻ không có viền — tách nhau bằng một bậc giá trị. Viền chỉ dành cho nút
+     ghost và ô nhập, nên token viền để rất mờ. */
+  --color-border:        rgba(226, 227, 237, .1);
+  --color-border-strong: var(--m-mist);
+
+  /* Cobalt là hành động chính, và chỉ có thế. */
+  --color-primary:        var(--m-cobalt);
+  --color-primary-hover:  #6478f0;
+  --color-primary-active: #4356d4;
+  --color-on-primary:     #ffffff;
+
+  --color-accent:      var(--m-ivory);
+  --color-accent-tint: rgba(237, 237, 243, .1);
+
+  /* CHỖ ĐAU CỦA MERCURY TRONG MỘT CUỐN SỔ THU CHI.
+     Tài liệu cấm thẳng: "introducing greens, reds, or oranges breaks the
+     monochrome discipline", và cobalt thì "never as a decorative accent".
+     Nghĩa là thu và chi chỉ còn cách phân biệt bằng sắc độ: THU = ngà sáng,
+     CHI = tro xỉn. Đọc được, nhưng không bật ra như xanh/đỏ. Đây là điều cần
+     cân nhắc nhất trước khi chọn bản này — xem phần báo cáo. */
+  --color-success:      var(--m-ivory);
+  --color-success-tint: rgba(237, 237, 243, .1);
+  --color-warning:      var(--m-ash);
+  --color-warning-tint: rgba(195, 195, 204, .1);
+  --color-error:        var(--m-ash);
+  --color-error-tint:   rgba(195, 195, 204, .1);
+  --color-info:         var(--m-ash);
+  --color-info-tint:    rgba(114, 122, 180, .16);
+
+  --color-focus: var(--m-cobalt);
+
+  /* Bản đồ nhiệt là nơi duy nhất cobalt được phép chuyển sắc — nó là dữ liệu,
+     không phải trang trí. */
+  --heat-rgb: 82, 102, 235;
+  --heat-empty: rgba(255, 255, 255, .04);
+  --heat-fg-strong: #fff;
+
+  /* --- Chữ ---------------------------------------------------------------
+   * arcadia / arcadiaDisplay là chữ riêng của Mercury. Tài liệu gợi ý Inter
+   * cho phần thân. Phần display gợi ý Söhne Breit — không có trên Google
+   * Fonts, nên dùng Archivo mở trục `wdth` và kéo rộng ra 105–112: đúng cái
+   * chất "wide-set, architectural" mà tài liệu mô tả, thay vì bó hẹp lại như
+   * serif tạp chí.
+   *
+   * Trọng lượng 480 không phải làm tròn thành 500: Inter và Archivo đều là
+   * font biến thiên nên đặt thẳng 480 được, và đó chính là chữ ký của Mercury
+   * ("heavier than regular but distinctly lighter than semibold"). */
+  --font-display: var(--font-mercury-display-src), ui-sans-serif, system-ui, sans-serif;
+  --font-body:    var(--font-skin-sans-src), ui-sans-serif, system-ui, sans-serif;
+
+  /* Dòng bó (1.1–1.2) + giãn chữ DƯƠNG (0.01–0.02em) — ngược hẳn Steep. */
+  --text-display:  480 clamp(40px, 6vw, 65px)/1.1 var(--font-display);
+  --text-h1:       480 clamp(34px, 4.6vw, 49px)/1.15 var(--font-display);
+  --text-h2:       480 clamp(28px, 3.4vw, 42px)/1.15 var(--font-display);
+  --text-h3:       480 clamp(22px, 2.2vw, 28px)/1.2 var(--font-display);
+  --text-h4:       480 18px/1.35 var(--font-body);
+  --text-h5:       480 16px/1.4 var(--font-body);
+  --text-body-lg:  400 18px/1.35 var(--font-body);
+  --text-body:     400 16px/1.5 var(--font-body);
+  --text-body-sm:  400 14px/1.5 var(--font-body);
+  --text-caption:  400 12px/1.35 var(--font-body);
+  --text-overline: 480 12px/1.35 var(--font-body);
+  --text-stat:     480 clamp(28px, 3.2vw, 42px)/1.15 var(--font-display);
+
+  /* --- Hình khối ---------------------------------------------------------
+   * Thẻ 12px, nút và ô nhập 32px (viên thuốc), điều hướng 40px, cấu trúc 4px.
+   * Nhắc lại cái bẫy đã gặp ở Steep: mấy biến này trùng tên với thang bán kính
+   * dựng sẵn của Tailwind v4 nên còn điều khiển luôn mọi `rounded-*` trong JSX
+   * — giữ chúng ở thang "thẻ", bán kính viên thuốc đặt riêng ở `.c-btn`. */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:  12px;
+  --radius-xl:  12px;
+  --radius-2xl: 12px;
+  --radius-3xl: 12px;
+  --radius-full: 9999px;
+
+  /* "All elevation is communicated through value contrast alone." */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+
+  /* --- Bố cục (tiêu thụ bởi skin-layout.css) ---------------------------- */
+  --skin-page-max:    1200px;
+  --skin-main-pad-x:  40px;
+  --skin-main-pad-y:  56px;
+  --skin-section-gap: 72px;   /* "Maintain 72px vertical rhythm" */
+  --skin-block-gap:   40px;
+  --skin-grid-gap:    24px;
+  --skin-card-pad:    32px;   /* "32px padding on all sides" */
+  --skin-ease:        cubic-bezier(.4, 0, .2, 1);
+  --skin-dur:         .22s;
+}
+
+@media (max-width: 767px) {
+  :root[data-skin="mercury"] {
+    --skin-main-pad-x: 20px;
+    --skin-main-pad-y: 24px;
+    --skin-section-gap: 48px;
+    --skin-block-gap: 28px;
+    --skin-grid-gap: 16px;
+    --skin-card-pad: 20px;
+  }
+}
+
+/* Giãn chữ dương ở cỡ lớn + kéo rộng trục `wdth` của Archivo. */
+:root[data-skin="mercury"] .c-display,
+:root[data-skin="mercury"] .c-h1,
+:root[data-skin="mercury"] .c-h2,
+:root[data-skin="mercury"] .c-h3,
+:root[data-skin="mercury"] .c-page-title,
+:root[data-skin="mercury"] h1,
+:root[data-skin="mercury"] h2,
+:root[data-skin="mercury"] h3 {
+  letter-spacing: .015em;
+  font-variation-settings: "wdth" 108;
+}
+
+/* Tiêu đề trang thành tuyên ngôn 49–65px, có chỗ thở phía dưới. */
+:root[data-skin="mercury"] .c-page-title {
+  font: 480 clamp(38px, 5.4vw, 65px)/1.1 var(--font-display);
+  letter-spacing: .01em;
+  margin-bottom: 8px;
+}
+
+/* Nhãn: 12px trọng lượng 480, giãn nhẹ — không viết hoa toàn bộ, Mercury
+   không dùng nhãn viết hoa kiểu kỹ thuật. */
+:root[data-skin="mercury"] main .uppercase,
+:root[data-skin="mercury"] .c-overline,
+:root[data-skin="mercury"] .c-card-kicker,
+:root[data-skin="mercury"] .c-table th {
+  font-family: var(--font-body);
+  font-weight: 480;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: .01em;
+  color: var(--m-ash);
+}
+
+:root[data-skin="mercury"] a { color: var(--m-ivory); }
+:root[data-skin="mercury"] a:hover { color: #fff; text-decoration: underline; }
+
+/* Phẳng tuyệt đối. */
+:root[data-skin="mercury"] [class*="shadow"]:not(:focus):not(:focus-within) {
+  box-shadow: none;
+}
+
+/* Thẻ: không viền, tách nhau bằng đúng một bậc giá trị. */
+:root[data-skin="mercury"] .c-card,
+:root[data-skin="mercury"] main .rounded-2xl[class*="border"] {
+  border-color: transparent;
+  border-radius: 12px;
+}
+:root[data-skin="mercury"] .c-card { padding: 32px; }
+
+/* --- Nút: viên thuốc 32px, cobalt đặc hoặc viền ngà -------------------- */
+:root[data-skin="mercury"] .c-btn {
+  font: 400 16px/1 var(--font-body);
+  padding: 12px 24px;
+  border-radius: 32px;
+}
+:root[data-skin="mercury"] .c-btn:active { transform: none; }
+:root[data-skin="mercury"] .c-btn-secondary,
+:root[data-skin="mercury"] .c-btn-success,
+:root[data-skin="mercury"] .c-btn-accent,
+:root[data-skin="mercury"] .c-btn-warning,
+:root[data-skin="mercury"] .c-btn-danger {
+  /* Mọi hành động phụ đều là nút ghost viền ngà. "never use a chromatic color
+     for secondary actions" — nên bốn biến thể theo ngữ nghĩa gộp làm một. */
+  background: transparent;
+  border-color: var(--m-mist);
+  color: var(--m-ivory);
+}
+:root[data-skin="mercury"] .c-btn-secondary:hover,
+:root[data-skin="mercury"] .c-btn-success:hover,
+:root[data-skin="mercury"] .c-btn-accent:hover,
+:root[data-skin="mercury"] .c-btn-warning:hover,
+:root[data-skin="mercury"] .c-btn-danger:hover {
+  background: var(--m-obsidian);
+  color: var(--m-ivory);
+}
+:root[data-skin="mercury"] .c-btn-sm { padding: 9px 18px; font-size: 15px; }
+:root[data-skin="mercury"] .c-btn-lg { padding: 15px 30px; font-size: 17px; border-radius: 32px; }
+
+/* --- Ô nhập: viên thuốc 32px, viền ngà ---------------------------------- */
+:root[data-skin="mercury"] .c-input,
+:root[data-skin="mercury"] .c-select,
+:root[data-skin="mercury"] .c-textarea,
+:root[data-skin="mercury"] input:not([type="checkbox"]):not([type="radio"]),
+:root[data-skin="mercury"] select {
+  background: var(--m-obsidian);
+  border: 1px solid rgba(226, 227, 237, .25);
+  border-radius: 32px;
+  color: var(--m-ivory);
+  padding: 12px 20px;
+}
+:root[data-skin="mercury"] .c-textarea { border-radius: 16px; }
+:root[data-skin="mercury"] .c-input:focus,
+:root[data-skin="mercury"] .c-select:focus,
+:root[data-skin="mercury"] .c-textarea:focus {
+  border-color: var(--m-mist);
+  box-shadow: none;
+}
+
+/* --- Chip / huy hiệu: viên thuốc 40px ----------------------------------- */
+:root[data-skin="mercury"] .c-chip {
+  font: 400 14px/1 var(--font-body);
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 7px 16px;
+  border-radius: 40px;
+  background: var(--m-obsidian);
+  color: var(--m-ivory);
+  border-color: transparent;
+}
+:root[data-skin="mercury"] .c-badge {
+  font: 480 12px/1 var(--font-body);
+  background: var(--m-cobalt);
+  color: #fff;
+}
+
+/* --- Tab / thanh phân đoạn / điều hướng --------------------------------- */
+:root[data-skin="mercury"] .c-tab { font: 400 16px/1 var(--font-body); }
+:root[data-skin="mercury"] .c-seg {
+  background: var(--m-graphite);
+  border: none;
+  padding: 6px;
+}
+:root[data-skin="mercury"] .c-seg-opt { border-radius: 40px; }
+:root[data-skin="mercury"] .c-seg-opt.active { background: var(--m-cobalt); color: #fff; }
+
+:root[data-skin="mercury"] .c-sidebar {
+  /* Thanh trên trong suốt + kính mờ, đúng mô tả "transparent top bar ...
+     backdrop-blur on scroll". */
+  background: rgba(23, 23, 33, .72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: rgba(226, 227, 237, .08);
+}
+:root[data-skin="mercury"] .c-sidebar-item {
+  border-radius: 40px;
+  font: 400 16px/1 var(--font-body);
+  color: var(--m-ash);
+  padding: 9px 20px;
+}
+:root[data-skin="mercury"] .c-sidebar-item:hover { background: var(--m-obsidian); color: var(--m-ivory); }
+:root[data-skin="mercury"] .c-sidebar-item.active { background: var(--m-cobalt); color: #fff; }
+
+:root[data-skin="mercury"] .c-bottomnav,
+:root[data-skin="mercury"] header.sticky {
+  background: rgba(23, 23, 33, .78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: rgba(226, 227, 237, .08);
+}
+:root[data-skin="mercury"] .c-bottomnav-item { border-radius: 40px; }
+:root[data-skin="mercury"] .c-bottomnav-item.active { color: var(--m-cobalt); }
+
+:root[data-skin="mercury"] .c-progress { background: var(--m-obsidian); }
+:root[data-skin="mercury"] .c-progress > span { background: var(--m-cobalt); }
+:root[data-skin="mercury"] .c-table th { border-bottom-color: rgba(226, 227, 237, .16); }
+:root[data-skin="mercury"] .c-table td { border-bottom-color: rgba(226, 227, 237, .07); }
+:root[data-skin="mercury"] .c-table tr:hover td { background: rgba(255, 255, 255, .03); }
+
+/* --- Thẻ "Chỉ số hôm nay" -------------------------------------------------
+ * Mercury không có thẻ mục nhiều màu. Cả năm thẻ đều là Graphite phẳng 12px,
+ * và cobalt không được phép xuất hiện ở đây ("never as a decorative accent").
+ * Thứ thay cho màu là cỡ chữ: con số lên 42px trọng lượng 480. */
+:root[data-skin="mercury"] .o-tile {
+  background: var(--m-graphite) !important;
+  border-color: transparent !important;
+  border-radius: 12px !important;
+  padding: 32px !important;
+}
+:root[data-skin="mercury"] .o-tile [class*="bg-[var(--color-"] {
+  background: var(--m-obsidian) !important;
+}
+:root[data-skin="mercury"] .o-tile-value {
+  font: 480 clamp(24px, 2.6vw, 32px)/1.15 var(--font-display) !important;
+  letter-spacing: .01em;
+  margin-top: 10px;
+}
+
+/* --- Biểu đồ: đơn sắc, cobalt là chuỗi chính --------------------------- */
+:root[data-skin="mercury"] .recharts-cartesian-grid line { stroke: rgba(226, 227, 237, .07); }
+:root[data-skin="mercury"] .recharts-text {
+  fill: var(--m-ash);
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+:root[data-skin="mercury"] .recharts-cartesian-axis-line,
+:root[data-skin="mercury"] .recharts-cartesian-axis-tick-line { stroke: rgba(226, 227, 237, .12); }
+:root[data-skin="mercury"] .recharts-line-curve,
+:root[data-skin="mercury"] .recharts-area-curve { stroke: var(--m-cobalt); }
+:root[data-skin="mercury"] .recharts-line:nth-of-type(2) .recharts-line-curve,
+:root[data-skin="mercury"] .recharts-area:nth-of-type(2) .recharts-area-curve { stroke: var(--m-ash); }
+:root[data-skin="mercury"] .recharts-line-dot { fill: var(--m-cobalt); stroke: none; }
+:root[data-skin="mercury"] .recharts-area-area { fill: var(--m-cobalt); opacity: .14; }
+:root[data-skin="mercury"] .recharts-bar-rectangle path { fill: var(--m-cobalt); }
+:root[data-skin="mercury"] .recharts-default-tooltip {
+  background: var(--m-obsidian) !important;
+  border: none !important;
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+/* Biểu đồ tròn: một nấc cobalt rồi chuyển hẳn sang thang xám — hệ chỉ có một
+   màu, phần còn lại buộc phải phân biệt bằng sắc độ. */
+:root[data-skin="mercury"] .recharts-pie-sector:nth-of-type(6n + 1) path { fill: var(--m-cobalt); }
+:root[data-skin="mercury"] .recharts-pie-sector:nth-of-type(6n + 2) path { fill: var(--m-ivory); }
+:root[data-skin="mercury"] .recharts-pie-sector:nth-of-type(6n + 3) path { fill: var(--m-ash); }
+:root[data-skin="mercury"] .recharts-pie-sector:nth-of-type(6n + 4) path { fill: var(--m-slate); }
+:root[data-skin="mercury"] .recharts-pie-sector:nth-of-type(6n + 5) path { fill: #3f4054; }
+:root[data-skin="mercury"] .recharts-pie-sector:nth-of-type(6n + 6) path { fill: var(--m-obsidian); }
+
+:root[data-skin="mercury"] .o-skin-switch {
+  background: var(--m-cobalt);
+  color: #fff;
+  border-color: var(--m-cobalt);
+  border-radius: 32px;
+  font-family: var(--font-body);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 14px;
+}
+
+/* Liên kết điều hướng trên thanh trên. Chúng không dùng `.c-sidebar-item` mà
+   viết thẳng bằng utility, nên phải nhắm qua vị trí trong <nav>. */
+@media (min-width: 768px) {
+  :root[data-skin="mercury"] .c-sidebar > nav > a {
+    border-radius: 40px;      /* "nav: 40px" */
+    font-size: 15px;
+    font-weight: 400;
+    padding: 9px 16px;
+  }
+  :root[data-skin="mercury"] .c-sidebar > div:last-child > * { border-radius: 40px; }
+}

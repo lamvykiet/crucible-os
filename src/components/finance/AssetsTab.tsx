@@ -162,7 +162,7 @@ export default function AssetsTab() {
     <div className="space-y-8 animate-in fade-in duration-300">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="c-h2 text-[var(--color-text)]">{t("Assets", "Tài sản")}</h2>
+          <h2 className="c-h2 c-page-title text-[var(--color-text)]">{t("Assets", "Tài sản")}</h2>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
             {t(
               "What you own, what it is worth today, and how much of it is really yours",

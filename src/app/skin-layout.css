@@ -1,0 +1,165 @@
+/* ============================================================================
+ * Tầng BỐ CỤC dùng chung cho mọi lớp da thử nghiệm.
+ *
+ * Hai bản đầu (Origin, Steep) chỉ đổi token nên nhìn vẫn ra "bản gốc tô màu
+ * khác": mật độ, nhịp dọc, bề rộng khung và cách điều hướng vẫn y nguyên.
+ * File này lấy nốt những con số mà mỗi bản tham chiếu quy định — page
+ * max-width, section gap, card padding, đường cong chuyển động — và áp thật.
+ *
+ * Mỗi lớp da khai báo các biến `--skin-*` dưới đây; quy tắc thì viết một lần
+ * ở đây. Không lớp da nào phải chép lại bố cục.
+ *
+ *   --skin-page-max     bề rộng khung nội dung
+ *   --skin-main-pad-x   đệm ngang của <main>
+ *   --skin-main-pad-y   đệm dọc của <main>
+ *   --skin-section-gap  khoảng cách giữa các khối lớn (space-y-8)
+ *   --skin-block-gap    khoảng cách giữa các khối vừa (space-y-6)
+ *   --skin-grid-gap     khoảng cách lưới thẻ
+ *   --skin-card-pad     đệm trong thẻ
+ *   --skin-ease         đường cong chuyển động
+ *   --skin-dur          thời lượng chuyển động
+ *
+ * Vì sao không nằm trong @layer nào: khai báo ngoài layer thắng mọi thứ trong
+ * @layer utilities của Tailwind bất kể độ đặc hiệu — đó là cách duy nhất đè
+ * được `md:px-10`, `gap-6`, `p-5` viết thẳng trong JSX mà không phải sửa JSX.
+ * ========================================================================= */
+
+/* Khung trang và đệm ngoài */
+:root[data-skin] main {
+  padding-left: var(--skin-main-pad-x);
+  padding-right: var(--skin-main-pad-x);
+  padding-top: var(--skin-main-pad-y);
+}
+:root[data-skin] .max-w-7xl { max-width: var(--skin-page-max); }
+
+/* Nhịp dọc. `space-y-*` của Tailwind đặt margin lên phần tử sau, nên chỉ cần
+   ghi đè đúng margin đó. Chỉ áp trong <main> để không đụng tới nhịp bên trong
+   modal (modal có ràng buộc chiều cao riêng ở khổ 375px). */
+:root[data-skin] main .space-y-8 > * + * { margin-top: var(--skin-section-gap); }
+:root[data-skin] main .space-y-6 > * + * { margin-top: var(--skin-block-gap); }
+
+/* Khoảng cách lưới. Chỉ bắt vào `.grid` — `gap-4` còn được dùng cho mấy cụm
+   flex nhỏ (icon + nhãn), nới ở đó là làm vỡ cụm chứ không phải làm thoáng. */
+:root[data-skin] main .grid.gap-4,
+:root[data-skin] main .grid.gap-6 { gap: var(--skin-grid-gap); }
+
+/* Đệm trong thẻ. Cũng chỉ bắt vào thứ đã bo góc như một cái thẻ. */
+:root[data-skin] main .rounded-2xl.p-5,
+:root[data-skin] main .rounded-2xl.p-6,
+:root[data-skin] main .rounded-2xl.p-4 { padding: var(--skin-card-pad); }
+
+/* Chuyển động: mỗi hệ có tính cách riêng, và đó là một thiết lập thật trong
+   tài liệu chứ không phải chi tiết trang trí. Chừa nút đổi lớp da ra. */
+:root[data-skin] *:not(.o-skin-switch) {
+  transition-timing-function: var(--skin-ease);
+  transition-duration: var(--skin-dur);
+}
+
+/* ---------------------------------------------------------------------------
+ * Tiêu đề trang.
+ *
+ * `.c-page-title` là mốc đánh dấu "đây là tiêu đề của CẢ TRANG", để phân biệt
+ * với `c-h2`/`c-h3` đang dùng chung cho cả tiêu đề thẻ và tiêu đề modal
+ * (riêng `c-h3` có 20 chỗ dùng, phần lớn là tiêu đề thẻ). Không có mốc này thì
+ * phóng tiêu đề trang lên 65–94px sẽ phóng luôn tiêu đề của mọi cái thẻ.
+ *
+ * Bảng màu mặc định không khai báo gì cho class này — nó chỉ có tác dụng dưới
+ * các lớp da thử nghiệm.
+ * ------------------------------------------------------------------------ */
+
+/* ---------------------------------------------------------------------------
+ * Điều hướng: cột trái → thanh trên.
+ *
+ * Mercury và monopo saigon đều KHÔNG có sidebar — cả hai đặt toàn bộ điều
+ * hướng lên một thanh ngang trong suốt ở đỉnh trang. Đây là thay đổi cấu trúc
+ * thật, không phải đổi màu: khung ngoài `flex` đổi sang xếp dọc, `.c-sidebar`
+ * duỗi thành một hàng ngang, nhóm nút cuối đẩy về bên phải.
+ *
+ * Chỉ áp từ 768px trở lên. Dưới mốc đó `.c-sidebar` vốn đã `display: none` và
+ * điều hướng nằm ở thanh dưới — đụng vào là hỏng mobile.
+ * ------------------------------------------------------------------------ */
+@media (min-width: 768px) {
+  :root[data-skin="mercury"] body > div.flex.min-h-screen,
+  :root[data-skin="monopo"] body > div.flex.min-h-screen {
+    flex-direction: column;
+  }
+
+  :root[data-skin="mercury"] .c-sidebar,
+  :root[data-skin="monopo"] .c-sidebar {
+    width: 100%;
+    min-height: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 14px var(--skin-main-pad-x);
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    /* Năm mục điều hướng + ba nút điều khiển vốn xếp dọc trong cột 248px; dồn
+       hết lên một hàng thì ở 1280px "Cài đặt" bị cắt mất ở mép phải. Cho cuộn
+       ngang thay vì cắt, và giấu thanh cuộn như các dải tab khác trong dự án. */
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  :root[data-skin="mercury"] .c-sidebar::-webkit-scrollbar,
+  :root[data-skin="monopo"] .c-sidebar::-webkit-scrollbar { display: none; }
+
+  /* Ô logo vốn cao 64px và có `mt-4` cho cột dọc. */
+  :root[data-skin="mercury"] .c-sidebar > div:first-child,
+  :root[data-skin="monopo"] .c-sidebar > div:first-child {
+    height: auto;
+    margin-top: 0;
+    padding: 0;
+    flex: none;
+  }
+
+  /* Danh sách liên kết: `flex-1 px-4 py-8 space-y-2` → một hàng ngang. */
+  :root[data-skin="mercury"] .c-sidebar > nav,
+  :root[data-skin="monopo"] .c-sidebar > nav {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex: 1;
+    padding: 0 0 0 12px;
+    gap: 2px;
+  }
+  :root[data-skin="mercury"] .c-sidebar > nav > * + *,
+  :root[data-skin="monopo"] .c-sidebar > nav > * + * { margin-top: 0; }
+
+  /* Nhãn điều hướng vốn xuống dòng thoải mái trong cột 248px; nằm ngang thì
+     "Knowledge Hub" vỡ làm hai dòng và đội cao cả thanh.
+     Lưu ý: các liên kết trong Sidebar KHÔNG dùng class `.c-sidebar-item` —
+     chúng viết thẳng bằng utility Tailwind, nên phải nhắm qua vị trí. */
+  :root[data-skin="mercury"] .c-sidebar > nav > a,
+  :root[data-skin="monopo"] .c-sidebar > nav > a,
+  :root[data-skin="mercury"] .c-sidebar > div:last-child > *,
+  :root[data-skin="monopo"] .c-sidebar > div:last-child > * { white-space: nowrap; }
+
+  /* Nhóm cuối (chủ đề / ngôn ngữ / cài đặt): `p-4 border-t space-y-2`. */
+  :root[data-skin="mercury"] .c-sidebar > div:last-child,
+  :root[data-skin="monopo"] .c-sidebar > div:last-child {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border-top: none;
+    flex: none;
+  }
+  :root[data-skin="mercury"] .c-sidebar > div:last-child > * + *,
+  :root[data-skin="monopo"] .c-sidebar > div:last-child > * + * { margin-top: 0; }
+  :root[data-skin="mercury"] .c-sidebar > div:last-child > *,
+  :root[data-skin="monopo"] .c-sidebar > div:last-child > * {
+    width: auto;
+    white-space: nowrap;
+  }
+
+  /* Thanh trên rồi thì <main> không cần đệm ngang gấp đôi nữa. */
+  :root[data-skin="mercury"] main,
+  :root[data-skin="monopo"] main {
+    width: 100%;
+    margin: 0 auto;
+  }
+}

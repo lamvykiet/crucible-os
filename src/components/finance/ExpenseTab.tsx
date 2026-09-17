@@ -121,7 +121,7 @@ export default function ExpenseTab() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="c-h2 text-[var(--color-text)]">{t("Expense", "Chi tiêu")}</h2>
+          <h2 className="c-h2 c-page-title text-[var(--color-text)]">{t("Expense", "Chi tiêu")}</h2>
           <p className="text-[var(--color-text-muted)] text-sm mt-1">{t("Categories & spending trends", "Danh mục & xu hướng chi tiêu")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

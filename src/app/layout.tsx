@@ -6,10 +6,14 @@ import {
   Inter,
   Roboto_Mono,
   Source_Serif_4,
+  Archivo,
 } from "next/font/google";
 import "./globals.css";
+import "./skin-layout.css";
 import "./origin-skin.css";
 import "./steep-skin.css";
+import "./mercury-skin.css";
+import "./monopo-skin.css";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import { ThemeProvider } from "@/lib/ThemeContext";
 
@@ -65,6 +69,16 @@ const robotoMono = Roboto_Mono({
   display: "swap",
 });
 
+// arcadiaDisplay của Mercury là chữ riêng; tài liệu gợi ý Söhne Breit, không
+// có trên Google Fonts. Archivo mở trục `wdth` nên kéo rộng ra được — đúng chất
+// "wide-set, architectural" mà Mercury mô tả, thay vì bó hẹp lại.
+const archivo = Archivo({
+  subsets: ["latin", "vietnamese"],
+  axes: ["wdth"],
+  variable: "--font-mercury-display-src",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Crucible OS",
   description: "Personal Second Brain & Financial OS",
@@ -98,7 +112,7 @@ export default function RootLayout({
     // THEME_INIT_SCRIPT sẽ đặt thuộc tính này trước khi trình duyệt vẽ.
     <html
       lang="vi"
-      className={`${playfair.variable} ${jakarta.variable} ${cormorant.variable} ${inter.variable} ${robotoMono.variable} ${sourceSerif.variable}`}
+      className={`${playfair.variable} ${jakarta.variable} ${cormorant.variable} ${inter.variable} ${robotoMono.variable} ${sourceSerif.variable} ${archivo.variable}`}
       suppressHydrationWarning
     >
       {/* Không cần script khởi tạo theme: chế độ tối mặc định do

@@ -121,6 +121,37 @@
   --shadow-sm: none;
   --shadow-md: none;
   --shadow-lg: none;
+
+  /* --- Bố cục (tiêu thụ bởi skin-layout.css) ----------------------------
+   * Bản đầu chỉ đổi token nên nhìn vẫn ra "bản gốc tô màu khác". Đây là những
+   * con số bố cục mà tài liệu Origin quy định, giờ mới được áp thật. */
+  --skin-page-max:    1200px;
+  --skin-main-pad-x:  40px;
+  --skin-main-pad-y:  48px;
+  --skin-section-gap: 80px;   /* "Section gap: 80px" */
+  --skin-block-gap:   40px;
+  --skin-grid-gap:    16px;
+  --skin-card-pad:    32px;   /* "Card padding: 32px" */
+  --skin-ease:        ease;   /* "0.2s ease on all hover/focus states" */
+  --skin-dur:         .2s;
+}
+
+@media (max-width: 767px) {
+  :root[data-skin="origin"] {
+    --skin-main-pad-x: 20px;
+    --skin-main-pad-y: 24px;
+    --skin-section-gap: 48px;
+    --skin-block-gap: 28px;
+    --skin-grid-gap: 12px;
+    --skin-card-pad: 20px;
+  }
+}
+
+/* Tiêu đề trang: Origin sống bằng tiêu đề 80–96px, không phải 28px. */
+:root[data-skin="origin"] .c-page-title {
+  font: 300 clamp(40px, 6.4vw, 80px)/.95 var(--font-display);
+  letter-spacing: -.02em;
+  margin-bottom: 8px;
 }
 
 /* Serif nhẹ cần chỉnh khoảng chữ bằng tay ở cỡ lớn, đúng như tài liệu dặn. */
@@ -135,7 +166,7 @@
 /* Origin dùng chữ đơn cách viết hoa cho MỌI nhãn, huy hiệu và chú thích số.
    `.uppercase` của Tailwind chính là chỗ dự án đang đánh dấu những nhãn đó —
    bắt vào đây thì không phải sửa một dòng JSX nào. */
-:root[data-skin="origin"] .uppercase,
+:root[data-skin="origin"] main .uppercase,
 :root[data-skin="origin"] .c-overline,
 :root[data-skin="origin"] .c-card-kicker,
 :root[data-skin="origin"] .c-stat-label,

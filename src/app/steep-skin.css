@@ -117,6 +117,35 @@
   --shadow-sm: none;
   --shadow-md: oklab(0 0 0 / .05) 0 0 0 1px, rgba(0, 0, 0, .08) 0 4px 24px 0;
   --shadow-lg: oklab(0 0 0 / .05) 0 0 0 1px, rgba(0, 0, 0, .1) 0 8px 40px 0;
+
+  /* --- Bố cục (tiêu thụ bởi skin-layout.css) ---------------------------- */
+  --skin-page-max:    1200px;
+  --skin-main-pad-x:  40px;
+  --skin-main-pad-y:  56px;
+  --skin-section-gap: 80px;   /* "Section gap: 80px" */
+  --skin-block-gap:   40px;
+  --skin-grid-gap:    24px;
+  --skin-card-pad:    24px;
+  --skin-ease:        ease;
+  --skin-dur:         .25s;
+}
+
+@media (max-width: 767px) {
+  :root[data-skin="steep"] {
+    --skin-main-pad-x: 20px;
+    --skin-main-pad-y: 28px;
+    --skin-section-gap: 48px;
+    --skin-block-gap: 28px;
+    --skin-grid-gap: 16px;
+    --skin-card-pad: 20px;
+  }
+}
+
+/* Tiêu đề trang: Steep đặt tiêu đề mục ở 44–64px serif, không phải 26px. */
+:root[data-skin="steep"] .c-page-title {
+  font: 400 clamp(38px, 5vw, 64px)/1.15 var(--font-display);
+  letter-spacing: -.015em;
+  margin-bottom: 8px;
 }
 
 /* Khoảng chữ bó dần theo cỡ. */
@@ -137,7 +166,7 @@
  * Hệ quả cần biết: huy hiệu ngôn ngữ ở Sidebar in thẳng giá trị "en"/"vi" và
  * trông cậy vào `uppercase` để thành "EN"/"VI" — dưới lớp da này nó sẽ hiện
  * chữ thường. */
-:root[data-skin="steep"] .uppercase,
+:root[data-skin="steep"] main .uppercase,
 :root[data-skin="steep"] .c-overline,
 :root[data-skin="steep"] .c-card-kicker,
 :root[data-skin="steep"] .c-table th,

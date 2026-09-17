@@ -7,22 +7,30 @@ import { useLanguage } from "@/lib/LanguageContext";
  * Nút đổi qua lại giữa design system thật và hai lớp da thử nghiệm.
  *
  * Chỉ ghi một thuộc tính `data-skin` lên <html>; toàn bộ phần nhìn do
- * `src/app/origin-skin.css` và `src/app/steep-skin.css` lo. Không component
- * nào khác biết tới nó, nên gỡ bản thử đi chỉ là xoá file này, hai dòng import
- * CSS và một dòng trong MainLayoutWrapper.
+ * `skin-layout.css` (bố cục dùng chung) và bốn file `*-skin.css` lo. Không
+ * component nào khác biết tới nó, nên gỡ bản thử đi chỉ là xoá file này, năm
+ * dòng import CSS và một dòng trong MainLayoutWrapper.
  *
- * Cũng nhận `?skin=origin` / `?skin=steep` / `?skin=off` để mở thẳng bằng
- * đường dẫn (tiện khi cần chụp màn hình hoặc gửi link cho người khác xem).
+ * Cũng nhận `?skin=origin|steep|mercury|monopo|off` để mở thẳng bằng đường dẫn
+ * (tiện khi cần chụp màn hình hoặc gửi link cho người khác xem).
  */
 
 const SKIN_STORAGE_KEY = "app_skin_experiment";
 
-/** Thứ tự bấm: bản thật → Origin → Steep → bản thật. */
-const SKINS = ["off", "origin", "steep"] as const;
+/** Thứ tự bấm: bản thật → Origin → Steep → Mercury → monopo → bản thật. */
+const SKINS = ["off", "origin", "steep", "mercury", "monopo"] as const;
 type Skin = (typeof SKINS)[number];
 
+const LABELS: Record<Skin, string> = {
+  off: "Crucible",
+  origin: "Origin",
+  steep: "Steep",
+  mercury: "Mercury",
+  monopo: "monopo",
+};
+
 function isSkin(v: string | null): v is Skin {
-  return v === "off" || v === "origin" || v === "steep";
+  return v !== null && (SKINS as readonly string[]).includes(v);
 }
 
 function apply(skin: Skin) {
@@ -73,20 +81,17 @@ export default function SkinSwitch() {
     });
   }, []);
 
-  const label =
-    skin === "origin" ? "Origin" : skin === "steep" ? "Steep" : "Crucible";
-
   return (
     <button
       type="button"
       onClick={toggle}
       className="o-skin-switch"
       title={t(
-        "Experimental skins — cycle Crucible → Origin → Steep",
-        "Lớp da thử nghiệm — bấm để đổi Crucible → Origin → Steep"
+        "Experimental skins — cycle Crucible → Origin → Steep → Mercury → monopo",
+        "Lớp da thử nghiệm — bấm để đổi Crucible → Origin → Steep → Mercury → monopo"
       )}
     >
-      {label}
+      {LABELS[skin]}
     </button>
   );
 }

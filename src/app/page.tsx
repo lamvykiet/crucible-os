@@ -155,7 +155,7 @@ export default function Home() {
 
   return (
     <div className="max-w-6xl mx-auto pb-20">
-      <h1 className="c-h1">
+      <h1 className="c-h1 c-page-title">
         Crucible OS
       </h1>
       <p className="c-card-body mt-2">

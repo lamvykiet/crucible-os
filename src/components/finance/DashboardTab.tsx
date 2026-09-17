@@ -212,7 +212,7 @@ export default function DashboardTab() {
             nó. Xếp chồng dưới 768px, giống các tab Expense/Debts. */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
           <div>
-            <h3 className="c-h3 text-[var(--color-text)]">Dashboard</h3>
+            <h3 className="c-h3 c-page-title text-[var(--color-text)]">Dashboard</h3>
             <p className="text-sm text-[var(--color-text-muted)] mt-1">{t("Your financial overview", "Tổng quan tài chính")}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -341,7 +341,7 @@ export default function DashboardTab() {
       {/* Xem chú thích ở nhánh "chưa có dữ liệu" phía trên — cùng một header. */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <div>
-          <h3 className="c-h3 text-[var(--color-text)]">Dashboard</h3>
+          <h3 className="c-h3 c-page-title text-[var(--color-text)]">Dashboard</h3>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">{t("Your financial overview", "Tổng quan tài chính")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

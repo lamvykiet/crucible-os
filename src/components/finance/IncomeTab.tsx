@@ -129,7 +129,7 @@ export default function IncomeTab() {
       <div className="space-y-8 animate-in fade-in">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h2 className="c-h2 text-[var(--color-text)]">
+            <h2 className="c-h2 c-page-title text-[var(--color-text)]">
               {t("Income", "Thu nhập")}
             </h2>
             <p className="text-[var(--color-text-muted)] text-sm mt-1">
