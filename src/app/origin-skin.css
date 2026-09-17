@@ -93,7 +93,7 @@
      400 — dùng vào là mất dấu. Cormorant Garamond có cả `vietnamese` lẫn
      trọng lượng 300, nên giữ được đúng cái "thì thầm" mà Origin lấy làm chữ ký. */
   --font-display: var(--font-origin-display-src), "Playfair Display", Georgia, serif;
-  --font-body:    var(--font-origin-body-src), ui-sans-serif, system-ui, sans-serif;
+  --font-body:    var(--font-skin-sans-src), ui-sans-serif, system-ui, sans-serif;
   --font-mono:    var(--font-origin-mono-src), ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Thang chữ: serif nhẹ, dòng bó sát (0.9) — căng thẳng có chủ ý của Origin. */

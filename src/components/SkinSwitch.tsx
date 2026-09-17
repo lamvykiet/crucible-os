@@ -4,61 +4,77 @@ import { useCallback, useEffect, useState } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 /**
- * Nút bật/tắt lớp da thử nghiệm "Origin".
+ * Nút đổi qua lại giữa design system thật và hai lớp da thử nghiệm.
  *
  * Chỉ ghi một thuộc tính `data-skin` lên <html>; toàn bộ phần nhìn do
- * `src/app/origin-skin.css` lo. Không component nào khác biết tới nó, nên gỡ
- * bản thử đi chỉ là xoá file này, dòng import CSS và một dòng trong
- * MainLayoutWrapper.
+ * `src/app/origin-skin.css` và `src/app/steep-skin.css` lo. Không component
+ * nào khác biết tới nó, nên gỡ bản thử đi chỉ là xoá file này, hai dòng import
+ * CSS và một dòng trong MainLayoutWrapper.
  *
- * Cũng nhận `?skin=origin` / `?skin=off` để mở thẳng bằng đường dẫn (tiện khi
- * cần chụp màn hình hoặc gửi link cho người khác xem).
+ * Cũng nhận `?skin=origin` / `?skin=steep` / `?skin=off` để mở thẳng bằng
+ * đường dẫn (tiện khi cần chụp màn hình hoặc gửi link cho người khác xem).
  */
 
 const SKIN_STORAGE_KEY = "app_skin_experiment";
 
+/** Thứ tự bấm: bản thật → Origin → Steep → bản thật. */
+const SKINS = ["off", "origin", "steep"] as const;
+type Skin = (typeof SKINS)[number];
+
+function isSkin(v: string | null): v is Skin {
+  return v === "off" || v === "origin" || v === "steep";
+}
+
+function apply(skin: Skin) {
+  if (skin === "off") delete document.documentElement.dataset.skin;
+  else document.documentElement.dataset.skin = skin;
+}
+
+function remember(skin: Skin) {
+  try {
+    localStorage.setItem(SKIN_STORAGE_KEY, skin);
+  } catch {
+    // Chế độ riêng tư chặn localStorage — lựa chọn chỉ sống trong lần tải này.
+  }
+}
+
 export default function SkinSwitch() {
   const { t } = useLanguage();
-  const [on, setOn] = useState(false);
+  const [skin, setSkin] = useState<Skin>("off");
 
   useEffect(() => {
-    const fromUrl = new URLSearchParams(window.location.search).get("skin");
-    let next = false;
+    let next: Skin = "off";
     try {
-      next = localStorage.getItem(SKIN_STORAGE_KEY) === "origin";
+      const stored = localStorage.getItem(SKIN_STORAGE_KEY);
+      if (isSkin(stored)) next = stored;
     } catch {
-      // Chế độ riêng tư chặn localStorage — vẫn phải bật được bằng URL.
-    }
-    if (fromUrl === "origin" || fromUrl === "off") {
-      next = fromUrl === "origin";
-      // Ghi luôn xuống localStorage: mở bằng ?skin=origin rồi bấm sang trang
-      // khác mà lại quay về bảng nâu thì không so sánh được gì.
-      try {
-        localStorage.setItem(SKIN_STORAGE_KEY, fromUrl);
-      } catch {
-        // Không lưu được thì lựa chọn chỉ sống trong lần tải trang này.
-      }
+      // Không đọc được thì coi như chưa chọn gì.
     }
 
-    if (next) document.documentElement.dataset.skin = "origin";
-    else delete document.documentElement.dataset.skin;
+    const fromUrl = new URLSearchParams(window.location.search).get("skin");
+    if (isSkin(fromUrl)) {
+      next = fromUrl;
+      // Ghi luôn xuống localStorage: mở bằng ?skin=... rồi bấm sang trang khác
+      // mà lại quay về bản thật thì không so sánh được gì.
+      remember(next);
+    }
+
+    apply(next);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setOn(next);
+    setSkin(next);
   }, []);
 
   const toggle = useCallback(() => {
-    setOn((prev) => {
-      const next = !prev;
-      if (next) document.documentElement.dataset.skin = "origin";
-      else delete document.documentElement.dataset.skin;
-      try {
-        localStorage.setItem(SKIN_STORAGE_KEY, next ? "origin" : "off");
-      } catch {
-        // Không lưu được thì thôi, phiên này vẫn đổi.
-      }
+    setSkin((prev) => {
+      const next = SKINS[(SKINS.indexOf(prev) + 1) % SKINS.length];
+      apply(next);
+      remember(next);
       return next;
     });
   }, []);
+
+  const label =
+    skin === "origin" ? "Origin" : skin === "steep" ? "Steep" : "Crucible";
 
   return (
     <button
@@ -66,11 +82,11 @@ export default function SkinSwitch() {
       onClick={toggle}
       className="o-skin-switch"
       title={t(
-        "Experimental skin — toggle between the Crucible palette and Origin Financial",
-        "Lớp da thử nghiệm — đổi qua lại giữa bảng màu Crucible và Origin Financial"
+        "Experimental skins — cycle Crucible → Origin → Steep",
+        "Lớp da thử nghiệm — bấm để đổi Crucible → Origin → Steep"
       )}
     >
-      {on ? t("Origin", "Origin") : t("Crucible", "Crucible")}
+      {label}
     </button>
   );
 }

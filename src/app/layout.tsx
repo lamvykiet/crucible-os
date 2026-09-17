@@ -5,9 +5,11 @@ import {
   Cormorant_Garamond,
   Inter,
   Roboto_Mono,
+  Source_Serif_4,
 } from "next/font/google";
 import "./globals.css";
 import "./origin-skin.css";
+import "./steep-skin.css";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import { ThemeProvider } from "@/lib/ThemeContext";
 
@@ -27,8 +29,8 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-// Ba giọng chữ của lớp da thử nghiệm "Origin" (xem src/app/origin-skin.css).
-// Chỉ có tác dụng khi <html data-skin="origin">; ngoài ra chúng chỉ nằm im.
+// Chữ cho hai lớp da thử nghiệm (origin-skin.css, steep-skin.css). Chỉ có tác
+// dụng khi <html data-skin="...">; ngoài ra chúng chỉ nằm im.
 // Cormorant Garamond thay cho Lyon Display: đây là serif duy nhất trên Google
 // Fonts vừa có trọng lượng 300 vừa có bộ ký tự tiếng Việt. Bản thay thế mà
 // tài liệu Origin gợi ý (DM Serif Display) không có dấu tiếng Việt.
@@ -39,9 +41,21 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
+// Sohne của Steep và Suisse Int'l của Origin đều là neo-grotesque; Inter thay
+// được cả hai, nên hai lớp da dùng chung một biến.
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
-  variable: "--font-origin-body-src",
+  variable: "--font-skin-sans-src",
+  display: "swap",
+});
+
+// Signifier → Source Serif 4: chính là bản thay thế tài liệu Steep gợi ý, và
+// có bộ ký tự tiếng Việt. Chỉ nạp trọng lượng 400 vì Steep không bao giờ đặt
+// serif ở trọng lượng khác.
+const sourceSerif = Source_Serif_4({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400"],
+  variable: "--font-steep-display-src",
   display: "swap",
 });
 
@@ -84,7 +98,7 @@ export default function RootLayout({
     // THEME_INIT_SCRIPT sẽ đặt thuộc tính này trước khi trình duyệt vẽ.
     <html
       lang="vi"
-      className={`${playfair.variable} ${jakarta.variable} ${cormorant.variable} ${inter.variable} ${robotoMono.variable}`}
+      className={`${playfair.variable} ${jakarta.variable} ${cormorant.variable} ${inter.variable} ${robotoMono.variable} ${sourceSerif.variable}`}
       suppressHydrationWarning
     >
       {/* Không cần script khởi tạo theme: chế độ tối mặc định do
