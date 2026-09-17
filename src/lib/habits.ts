@@ -270,3 +270,52 @@ export function elapsedParts(since: Date | string, now: Date = new Date()) {
     seconds: total % 60,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Nguồn tiến độ tự đếm — phần thuần tính toán.
+//
+// Phần đọc DB nằm ở `src/lib/habitAuto.ts`. Tách ra vì đây là chỗ dễ sai nhất
+// (ranh giới ngày tạo, đổi giây sang phút) và tách rồi thì kiểm thử được mà
+// không cần chạm tới database.
+// ---------------------------------------------------------------------------
+
+export interface AutoData {
+  /** Số thẻ đã ôn theo từng ngày lịch. */
+  reviewByDay: Map<string, number>;
+  /** Số giây tập trung theo cặp `habitId|ngày`. */
+  focusSecondsByHabitDay: Map<string, number>;
+  /** Những ngày có ít nhất một khoản chi. */
+  spentDays: Set<string>;
+}
+
+export const EMPTY_AUTO: AutoData = {
+  reviewByDay: new Map(),
+  focusSecondsByHabitDay: new Map(),
+  spentDays: new Set(),
+};
+
+export interface AutoHabit {
+  id: string;
+  autoSource: string;
+  createdAt: Date;
+}
+
+/**
+ * Con số tự đếm của một thói quen trong một ngày, hoặc `null` nếu ngày đó
+ * không có gì để nói.
+ *
+ * **Không đếm ngược về trước ngày tạo thói quen.** Với "ngày không tiêu" điều
+ * này là bắt buộc: sổ chi tiêu trống ở năm ngoái không có nghĩa là năm ngoái
+ * không tiêu đồng nào — nó chỉ có nghĩa là hồi đó chưa ghi sổ. Đếm cả quá khứ
+ * sẽ tặng người dùng một chuỗi 300 ngày chưa từng xảy ra.
+ */
+export function autoAmountFor(habit: AutoHabit, iso: string, data: AutoData): number | null {
+  if (habit.autoSource === "manual") return null;
+  if (iso < dayKey(habit.createdAt)) return null;
+
+  if (habit.autoSource === "review") return data.reviewByDay.get(iso) ?? 0;
+  if (habit.autoSource === "focus")
+    return Math.floor((data.focusSecondsByHabitDay.get(`${habit.id}|${iso}`) ?? 0) / 60);
+  if (habit.autoSource === "noSpend") return data.spentDays.has(iso) ? 0 : 1;
+  return null;
+}

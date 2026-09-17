@@ -5,6 +5,7 @@ import {
   addDays, completionRate, computeStreak, dayKey, dayStart,
   isScheduled, monthDays, periodKey, weekDays, weekdayOf,
 } from "@/lib/habits";
+import { autoAmountFor, loadAutoData } from "@/lib/habitAuto";
 
 export const dynamic = "force-dynamic";
 
@@ -57,48 +58,20 @@ export async function GET(req: Request) {
     const to = dayStart(addDays(days[days.length - 1], 1));
 
     const needs = new Set(habits.map((h) => h.autoSource));
-    const [rawEntries, reviews, sessions, expenses, journals] = await Promise.all([
+    // Lịch sử kéo thêm 220 ngày về trước để chuỗi ngày không bị cắt ở mép dải.
+    const historyFrom = addDays(days[0], -220);
+
+    const [rawEntries, journals, autoData] = await Promise.all([
       prisma.habitEntry.findMany({
-        where: { userId: user.id, entryDate: { gte: dayStart(addDays(days[0], -220)), lt: to } },
+        where: { userId: user.id, entryDate: { gte: dayStart(historyFrom), lt: to } },
         orderBy: { entryDate: "asc" },
       }),
-      needs.has("review")
-        ? prisma.reviewLog.findMany({
-            where: { userId: user.id, reviewedAt: { gte: from, lt: to } },
-            select: { reviewedAt: true },
-          })
-        : Promise.resolve([] as { reviewedAt: Date }[]),
-      needs.has("focus")
-        ? prisma.focusSession.findMany({
-            where: { userId: user.id, endedAt: { gte: from, lt: to } },
-            select: { habitId: true, seconds: true, endedAt: true },
-          })
-        : Promise.resolve([] as { habitId: string | null; seconds: number; endedAt: Date }[]),
-      needs.has("noSpend")
-        ? prisma.transaction.findMany({
-            where: { userId: user.id, type: "Expense", date: { gte: from, lt: to } },
-            select: { date: true },
-          })
-        : Promise.resolve([] as { date: Date }[]),
       prisma.habitJournal.findMany({
         where: { userId: user.id, entryDate: { gte: from, lt: to }, mood: { not: null } },
         select: { entryDate: true, mood: true },
       }),
+      loadAutoData(user.id, needs, historyFrom, today),
     ]);
-
-    // Gom dữ liệu tự đếm về từng ngày lịch trước khi trộn vào lịch sử.
-    const reviewByDay = new Map<string, number>();
-    for (const r of reviews) {
-      const k = dayKey(r.reviewedAt);
-      reviewByDay.set(k, (reviewByDay.get(k) ?? 0) + 1);
-    }
-    const focusByHabitDay = new Map<string, number>();
-    for (const s of sessions) {
-      if (!s.habitId) continue;
-      const k = `${s.habitId}|${dayKey(s.endedAt)}`;
-      focusByHabitDay.set(k, (focusByHabitDay.get(k) ?? 0) + s.seconds);
-    }
-    const spentDays = new Set(expenses.map((e) => e.date.toISOString().slice(0, 10)));
 
     const rows = habits.map((habit) => {
       const own = rawEntries
@@ -111,13 +84,12 @@ export async function GET(req: Request) {
 
       const byDay = new Map(own.map((e) => [e.day, e]));
 
-      // Ngày nào có nguồn tự đếm thì con số của sổ gốc thắng.
+      // Ngày nào có nguồn tự đếm thì con số của sổ gốc thắng — và tính cả phần
+      // lịch sử ngoài dải đang xem, vì chuỗi ngày dựa vào nó.
       if (habit.autoSource !== "manual") {
-        for (const iso of visible) {
-          const amount =
-            habit.autoSource === "review" ? (reviewByDay.get(iso) ?? 0)
-            : habit.autoSource === "focus" ? Math.floor((focusByHabitDay.get(`${habit.id}|${iso}`) ?? 0) / 60)
-            : spentDays.has(iso) ? 0 : 1;
+        for (let iso = historyFrom; iso <= today; iso = addDays(iso, 1)) {
+          const amount = autoAmountFor(habit, iso, autoData);
+          if (amount === null) continue;
           byDay.set(iso, { day: iso, amount, skipped: byDay.get(iso)?.skipped ?? false });
         }
       }

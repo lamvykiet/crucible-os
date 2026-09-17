@@ -6,6 +6,7 @@ import {
   AUTO_SOURCES, COLORS, GROUPS, PERIODS, UNITS,
   addDays, computeStreak, dayKey, dayStart, isScheduled, periodKey,
 } from "@/lib/habits";
+import { autoAmountFor, loadAutoData } from "@/lib/habitAuto";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,8 @@ export async function GET(req: Request) {
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     });
 
-    const from = dayStart(addDays(date, -HISTORY_DAYS));
+    const fromIso = addDays(date, -HISTORY_DAYS);
+    const from = dayStart(fromIso);
     const to = dayStart(addDays(date, 1));
 
     const entries = await prisma.habitEntry.findMany({
@@ -90,50 +92,44 @@ export async function GET(req: Request) {
       orderBy: { entryDate: "asc" },
     });
 
-    // Tiến độ tự đếm: đọc thẳng từ sổ gốc của module khác cho đúng ngày đang xem.
-    const dayFrom = dayStart(date);
-    const dayTo = dayStart(addDays(date, 1));
+    // Nguồn tự đếm phải đọc cả dải lịch sử, không chỉ ngày đang xem: chuỗi ngày
+    // tính từ chính những con số này, chỉ đọc hôm nay thì mọi thói quen tự đếm
+    // vĩnh viễn hiện chuỗi bằng 1.
     const needs = new Set(habits.map((h) => h.autoSource));
-
-    const [reviewCount, sessions, expenseCount] = await Promise.all([
-      needs.has("review")
-        ? prisma.reviewLog.count({ where: { userId: user.id, reviewedAt: { gte: dayFrom, lt: dayTo } } })
-        : Promise.resolve(0),
-      needs.has("focus")
-        ? prisma.focusSession.findMany({
-            where: { userId: user.id, endedAt: { gte: dayFrom, lt: dayTo } },
-            select: { habitId: true, seconds: true },
-          })
-        : Promise.resolve([] as { habitId: string | null; seconds: number }[]),
-      needs.has("noSpend")
-        ? prisma.transaction.count({ where: { userId: user.id, type: "Expense", date: { gte: dayFrom, lt: dayTo } } })
-        : Promise.resolve(0),
-    ]);
-
-    const focusMinutes = (habitId: string) =>
-      Math.floor(sessions.filter((s) => s.habitId === habitId).reduce((sum, s) => sum + s.seconds, 0) / 60);
+    const autoData = await loadAutoData(user.id, needs, fromIso, date);
 
     const rows = habits.map((habit) => {
-      const own = entries
-        .filter((e) => e.habitId === habit.id)
-        .map((e) => ({
-          day: e.entryDate.toISOString().slice(0, 10),
-          amount: e.amount,
-          skipped: e.skipped,
-          note: e.note,
-        }));
+      const byDay = new Map(
+        entries
+          .filter((e) => e.habitId === habit.id)
+          .map((e) => [
+            e.entryDate.toISOString().slice(0, 10),
+            {
+              day: e.entryDate.toISOString().slice(0, 10),
+              amount: e.amount,
+              skipped: e.skipped,
+              note: e.note as string | null,
+            },
+          ])
+      );
 
-      const todayEntry = own.find((e) => e.day === date);
+      if (habit.autoSource !== "manual") {
+        for (let iso = fromIso; iso <= date; iso = addDays(iso, 1)) {
+          const value = autoAmountFor(habit, iso, autoData);
+          if (value === null) continue;
+          const existing = byDay.get(iso);
+          byDay.set(iso, {
+            day: iso,
+            amount: value,
+            skipped: existing?.skipped ?? false,
+            note: existing?.note ?? null,
+          });
+        }
+      }
 
-      // Nguồn tự đếm ghi đè con số bấm tay: sổ gốc luôn đúng hơn.
-      const auto =
-        habit.autoSource === "review" ? reviewCount
-        : habit.autoSource === "focus" ? focusMinutes(habit.id)
-        : habit.autoSource === "noSpend" ? (expenseCount === 0 ? 1 : 0)
-        : null;
-
-      const amount = auto ?? todayEntry?.amount ?? 0;
-      const merged = auto === null ? own : own.map((e) => (e.day === date ? { ...e, amount: auto } : e));
+      const merged = [...byDay.values()].sort((a, b) => a.day.localeCompare(b.day));
+      const todayEntry = byDay.get(date);
+      const amount = todayEntry?.amount ?? 0;
 
       const key = periodKey(date, habit.period);
       const periodAmount = merged
