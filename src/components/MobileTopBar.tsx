@@ -21,14 +21,10 @@ export default function MobileTopBar() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
+    <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-[color-mix(in_srgb,var(--color-bg)_70%,transparent)] backdrop-blur-xl border-b border-[var(--color-border)]">
       <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm bg-[var(--color-primary)] text-[var(--color-on-primary)]">
-          C
-        </div>
-        <span className="font-bold text-lg tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-          Crucible
-        </span>
+        <span className="c-logo-mark w-7 h-7"><span>C</span></span>
+        <span className="c-logo-word">Crucible</span>
       </div>
 
       <div className="flex items-center gap-1">

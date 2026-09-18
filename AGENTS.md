@@ -60,22 +60,21 @@ không báo lỗi gì**. Phải dời trong cùng một `$transaction` — xem
 Hook cache ở cấp module, không xoá thì mọi modal vẫn hiện danh sách cũ tới khi
 tải lại trang.
 
-**Design system là "Mercury"** → nền onyx `#171721`, thẻ graphite `#1e1e2a`,
-chữ ngà `#ededf3`, và **một** màu cobalt `#5266eb`. Ba luật: cobalt chỉ dành cho
-hành động chính và mục điều hướng đang mở (không tô icon, không tô nút phụ);
-không bóng cứng, không viền quanh thẻ — độ sâu là bậc giá trị cộng
-`--shadow-float` khuếch tán; nút/ô nhập/mục điều hướng luôn là viên thuốc
-32–40px, thẻ `rounded-2xl` 18px, góc 4px chỉ cho chi tiết cấu trúc.
+**Design system là "AuthKit"** → nền midnight `#05060f` có lưới bản vẽ 80px
+và luồng sáng rọi từ đỉnh (vẽ bằng `body::before/::after`, nên **nền màu đặt
+trên `<html>`, `<body>` phải trong suốt** — cho `<body>` một nền là lưới biến
+mất). Thẻ là tấm kính: nền sương 3.5% + mép tóc + bộ bóng lõm (`--shadow-glass`),
+không viền đặc, không bóng thường. Tiêu đề trang (`.c-page-title`) tô gradient
+Skywash. Bốn luật: tím `#663af3` **chỉ** cho hành động chính — tab đang chọn,
+mục điều hướng đang mở, logo đều sáng lên bằng lớp sương, **không** tô tím;
+mép của mọi thứ là đường tóc rgba(186,215,247,.12); nút luôn viên thuốc 999px,
+thẻ 16px, ô nhập/huy hiệu 6px, khung icon tròn; nhãn nhỏ viết hoa là mono giãn .1em.
 
-**Nhãn viết chữ thường.** Trong `<main>`, `.uppercase` bị gỡ và
-`font-bold`/`tracking-wider` bị hạ giọng qua biến theme của Tailwind
-(`--font-weight-bold: 560`, `--tracking-wider: .01em`) — đừng "sửa" bằng cách
-viết `font-extrabold` hay `uppercase` mới, chúng cũng bị hạ theo.
-
-Bốn màu ngữ nghĩa (`--color-success/warning/error/info`) là chỗ **cố ý lệch**
-khỏi bản tham chiếu, vì sổ thu chi cần phân biệt thu/chi trong một nháy mắt.
-Chúng chỉ được phép xuất hiện trên **con số, icon và nền tint** — không bao giờ
-trên nền thẻ, nút hay thanh điều hướng.
+Màu ngữ nghĩa (`--color-success/warning/error/info`) là chỗ **cố ý lệch** khỏi
+bản tham chiếu, lấy từ chính ô màu mẫu của AuthKit. Chỉ được xuất hiện trên
+**con số, icon và nền tint** — không bao giờ trên nền thẻ, nút hay thanh
+điều hướng. Modal (`.fixed.inset-0 > …`) dùng mặt "Deep Glass" gần đục, không
+dùng kính trong — đừng để quy tắc thẻ kính lan vào modal.
 
 **Tối là mặc định, không theo hệ điều hành.** Bảng tối nằm thẳng trên `:root`;
 bảng sáng chỉ áp khi người dùng bấm nút (`[data-theme="light"]`). Bản cũ phải
@@ -91,7 +90,7 @@ kính viên thuốc đặt riêng trong `.c-btn` / `.c-input`. Đã có tiền l
 biến thành hình tròn.
 
 **Nhịp trang do `.c-main` quy định**, không phải từng trang tự đặt: khung
-1200px, 72px giữa các khối lớn, 32px đệm thẻ lớn. Đừng chồng `max-w-*` hay
+1200px, 96px giữa các khối lớn, 24px đệm thẻ. Đừng chồng `max-w-*` hay
 `py-*` lên `<main>`.
 
 **Đặt cỡ chữ** → dùng thang `.c-display / .c-h1….c-h5`, đừng dùng `text-*` của

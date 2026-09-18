@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Inter } from "next/font/google";
+import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import { ThemeProvider } from "@/lib/ThemeContext";
@@ -10,21 +10,30 @@ import MainLayoutWrapper from "@/components/MainLayoutWrapper";
 // mới vẽ. next/font tự host file font và nội tuyến @font-face, bỏ được một
 // round-trip sang domain khác.
 
-// Chữ tiêu đề. Mở trục `wdth` để kéo rộng ra (xem --display-width trong
-// globals.css): bề ngang lớn hơn mặc định chính là thứ tạo ra cảm giác
-// "wide-set, architectural" của hệ. Đóng trục này lại là chữ lớn mất tính cách.
-const archivo = Archivo({
+// Ba giọng chữ của hệ AuthKit. Cả ba đều là bản thay thế mà tài liệu gợi ý
+// cho chữ riêng của họ, và cả ba đều có bộ ký tự tiếng Việt.
+//
+// Tiêu đề — aeonikPro → Space Grotesk. Chỉ dùng 400/500: chữ display của hệ
+// có uy lực nhờ cỡ lớn ở trọng lượng 500, không nhờ đậm.
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin", "vietnamese"],
-  axes: ["wdth"],
+  weight: ["400", "500", "600"],
   variable: "--font-display-src",
   display: "swap",
 });
 
-// Chữ thân bài và giao diện. Font biến thiên nên đặt thẳng được trọng lượng
-// 480 — nấc giữa regular và semibold, và là chữ ký của hệ.
+// Thân bài và giao diện — Untitled Sans → Inter.
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
   variable: "--font-body-src",
+  display: "swap",
+});
+
+// Nhãn mắt viết hoa giãn chữ — dotDigital → JetBrains Mono.
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500"],
+  variable: "--font-mono-src",
   display: "swap",
 });
 
@@ -41,8 +50,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#171721" },
-    { media: "(prefers-color-scheme: dark)", color: "#171721" },
+    { media: "(prefers-color-scheme: light)", color: "#05060f" },
+    { media: "(prefers-color-scheme: dark)", color: "#05060f" },
   ],
 };
 
@@ -57,7 +66,7 @@ export default function RootLayout({
     // tạo. ThemeProvider chỉ đặt data-theme khi người dùng chọn tay.
     <html
       lang="vi"
-      className={`${archivo.variable} ${inter.variable}`}
+      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <body suppressHydrationWarning>

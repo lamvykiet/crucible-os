@@ -1,30 +1,40 @@
 @import "tailwindcss";
 
 /* ============================================================================
- * Crucible OS — design system.
+ * Crucible OS — design system "AuthKit".
  *
- * Bảng màu nâu/kem cũ đã được thay bằng hệ "Mercury": nền onyx gần đen, thẻ
- * graphite nhích đúng một bậc, chữ ngà, và MỘT màu cobalt duy nhất cho hành
- * động chính. Bốn bản thử (Origin / Steep / Mercury / monopo) nằm trong lịch
- * sử git nếu cần xem lại — commit 6466ddc, 226139c, 54071ad.
+ * Nhà thờ kính mờ lúc nửa đêm: nền gần đen, một lưới kẻ bản vẽ mờ phủ khắp
+ * trang, một luồng sáng rọi từ đỉnh xuống, và các thẻ trông như TẤM KÍNH được
+ * chiếu sáng từ phía sau chứ không phải tờ giấy. Chữ phát sáng xanh-trắng;
+ * tiêu đề lớn tô gradient "Skywash". Đúng MỘT màu tím cho hành động chính.
  *
- * Ba nguyên tắc của hệ, đừng phá:
+ * Thay cho hệ Mercury (commit 1b990bc, 3a40064). Các bản thử cũ nằm trong
+ * lịch sử git: 6466ddc, 226139c, 54071ad.
  *
- *   1. Cobalt CHỈ dành cho hành động chính và mục điều hướng đang mở. Không
- *      dùng làm màu trang trí, không tô lên icon, không tô lên nút phụ.
- *   2. Không có bóng CỨNG, không viền quanh thẻ. Độ sâu đến từ bậc giá trị,
- *      cộng một lớp bóng khuếch tán rất rộng và rất nhạt (`--shadow-float`)
- *      để thẻ trông như "nổi" trên nền chứ không như ô kẻ — đúng cách Mercury
- *      trình bày giao diện sản phẩm của họ trên nền sáng.
- *   3. Nút, ô nhập và mục điều hướng luôn là viên thuốc (32–40px). Góc 4px
- *      chỉ dành cho chi tiết cấu trúc, 12px cho thẻ.
+ * Bốn nguyên tắc, đừng phá:
  *
- * MỘT CHỖ CỐ Ý LỆCH KHỎI BẢN THAM CHIẾU: Mercury cấm mọi màu ngoài cobalt.
- * Quy định đó viết cho một trang tiếp thị, nơi không có hai cột số cần so.
- * Sổ thu chi thì có — thu và chi phải phân biệt được trong một nháy mắt. Nên
- * hệ này giữ nguyên kỷ luật đơn sắc cho MẶT PHẲNG và VỎ GIAO DIỆN, còn bốn
- * màu ngữ nghĩa bên dưới chỉ được phép xuất hiện trên CON SỐ, ICON và nền
- * tint — không bao giờ trên nền thẻ, nút hay thanh điều hướng.
+ *   1. Tím #663af3 CHỈ cho hành động chính (Lưu, Thêm giao dịch, Tạo…). Không
+ *      tô tab đang chọn, không tô logo, không tô icon. Mục đang chọn của điều
+ *      hướng/tab sáng lên bằng lớp sương đậm hơn, không bằng màu.
+ *   2. Không viền đặc. Mép của mọi thứ là một đường tóc sương xanh-trắng
+ *      rgba(186,215,247,.12) — đó là ngôn ngữ đường viền của cả hệ.
+ *   3. Độ nổi = đường sáng 1px ở mép trên + quầng sáng lõm bên trong + bóng
+ *      rơi tối lạnh. Không có bóng đổ thông thường.
+ *   4. Hình khối theo loại, không trộn: mọi nút là viên thuốc 999px, mọi thẻ
+ *      16px, ô nhập và huy hiệu 6px, khung icon là hình tròn.
+ *
+ * HAI CHỖ CỐ Ý LỆCH KHỎI BẢN THAM CHIẾU:
+ *
+ *   - Màu ngữ nghĩa. AuthKit cấm thêm màu, nhưng sổ thu chi phải phân biệt
+ *     thu/chi trong một nháy mắt. Bốn màu dưới đây KHÔNG phát minh mới — chúng
+ *     là chính mấy ô màu mẫu trong bảng của AuthKit (Deep Teal, Ember Glow,
+ *     Signal Blue), nâng sáng cho đọc được trên nền đen. Chỉ được xuất hiện
+ *     trên CON SỐ, ICON và nền tint; không bao giờ trên nền thẻ, nút hay
+ *     thanh điều hướng.
+ *   - Bảng sáng. Tài liệu chỉ có bảng tối ("light-mode demos are a product
+ *     feature, not a design-system palette"). Bảng sáng ở đây giữ nguyên ngôn
+ *     ngữ kính mờ — lưới, luồng sáng, mép tóc, tím — chỉ đảo nền sang ban
+ *     ngày.
  * ========================================================================= */
 
 :root {
@@ -33,199 +43,211 @@
      vì phải tải xong stylesheet của Google rồi trình duyệt mới vẽ. */
   --font-display: var(--font-display-src), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-body-src), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-src), ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Thang chữ.
-   *
-   * Trọng lượng 480 là chữ ký của hệ: nặng hơn regular nhưng nhẹ hơn hẳn
-   * semibold. Không làm tròn thành 500 — Inter và Archivo đều là font biến
-   * thiên nên đặt thẳng 480 được. Cỡ lớn dùng dòng bó (1.1–1.15) và giãn chữ
-   * DƯƠNG, cho chữ cái tách ra kiểu kiến trúc thay vì nén lại kiểu tạp chí. */
-  --text-display: 480 clamp(40px, 6vw, 65px)/1.1 var(--font-display);
-  --text-h1: 480 clamp(32px, 4.4vw, 49px)/1.15 var(--font-display);
-  --text-h2: 480 clamp(26px, 3.2vw, 36px)/1.15 var(--font-display);
-  --text-h3: 480 clamp(19px, 1.9vw, 22px)/1.25 var(--font-display);
-  --text-h4: 480 17px/1.4 var(--font-body);
+   * Tiêu đề: Space Grotesk ở 500 — "calm presence rather than a bold shout".
+   * Không bao giờ 600+ cho chữ display. Thân bài: Inter, giãn chữ âm nhẹ. */
+  --text-display: 500 clamp(40px, 5.6vw, 64px)/1.1 var(--font-display);
+  --text-h1: 500 clamp(32px, 4.2vw, 48px)/1.16 var(--font-display);
+  --text-h2: 500 clamp(26px, 3vw, 36px)/1.16 var(--font-display);
+  --text-h3: 500 clamp(19px, 1.8vw, 22px)/1.2 var(--font-display);
+  --text-h4: 600 16px/1.35 var(--font-body);
   /* Nấc nhỏ nhất của thang tiêu đề: nhãn mục trong thẻ/bảng điều khiển.
      29 chỗ trong dự án cần cỡ này. */
-  --text-h5: 480 15px/1.4 var(--font-body);
+  --text-h5: 600 14px/1.4 var(--font-body);
   --text-body-lg: 400 17px/1.5 var(--font-body);
-  --text-body: 400 15px/1.55 var(--font-body);
-  --text-body-sm: 400 14px/1.5 var(--font-body);
-  --text-caption: 400 13px/1.4 var(--font-body);
-  --text-overline: 480 13px/1.35 var(--font-body); /* chữ thường — hệ không dùng nhãn viết hoa */
-  --text-stat: 480 clamp(26px, 3vw, 34px)/1.15 var(--font-display);
+  --text-body: 400 15px/1.5 var(--font-body);
+  --text-body-sm: 400 14px/1.43 var(--font-body);
+  --text-caption: 400 12px/1.33 var(--font-body);
+  /* Nhãn mắt (eyebrow): mono, VIẾT HOA, giãn .1em — dấu mốc lặng giữa tiêu đề
+     và thân bài. Cần thêm letter-spacing + text-transform, xem `.c-overline`. */
+  --text-overline: 400 11px/1.2 var(--font-mono);
+  --text-stat: 500 clamp(26px, 3vw, 34px)/1.12 var(--font-display);
 
-  /* Hạ giọng các utility Tailwind đang rải khắp JSX.
-   *
-   * `font-bold` (700) và `tracking-wider` (0.05em) có ở hàng trăm chỗ, và
-   * chính chúng làm giao diện trông như một bảng quản trị: nhãn đậm, giãn,
-   * la to. Mercury không bao giờ vượt quá ~530. Tailwind v4 dựng các utility
-   * này từ biến theme (`font-weight: var(--font-weight-bold)`), nên đổi biến
-   * ở đây là đổi được toàn bộ mà không sửa một dòng JSX — cùng cơ chế với cái
-   * bẫy `--radius-*` ghi ở dưới, lần này dùng có chủ đích. */
-  --font-weight-medium: 480;
-  --font-weight-semibold: 520;
-  --font-weight-bold: 560;
-  --font-weight-extrabold: 600;
-  --font-weight-black: 640;
-  --tracking-wide: .005em;
-  --tracking-wider: .01em;
-  --tracking-widest: .03em;
-
-  /* Trục bề rộng của Archivo. Kéo rộng hơn mặc định một chút là thứ tạo ra
-     cảm giác "wide-set, architectural" của hệ; dưới 100 là chữ bó lại và mất
-     hẳn tính cách. */
-  --display-width: 108;
+  /* Hạ giọng `font-bold` (700) và `font-extrabold` đang rải khắp JSX: ở nền
+     tối, chữ 700 phát sáng thành khối nhoè. Tailwind v4 dựng các utility này
+     từ biến theme (`font-weight: var(--font-weight-bold)`), nên đổi biến ở đây
+     là đổi được toàn bộ mà không sửa một dòng JSX. */
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 640;
+  --font-weight-black: 680;
 }
 
-/* Thang tiêu đề trên mobile.
-   `--text-display/h1/h2` đã co giãn sẵn bằng clamp() nên không cần đụng tới.
-   Riêng h3 hạ sàn xuống một nấc để tiêu đề thẻ ở 375px không chiếm hai dòng. */
 @media (max-width: 767px) {
-  :root { --text-h3: 480 19px/1.3 var(--font-display); }
+  :root { --text-h3: 500 19px/1.25 var(--font-display); }
 }
 
 /* ---------------------------------------------------------------------------
  * Bảng màu.
  *
- * TỐI LÀ MẶC ĐỊNH, không phải tuỳ chọn — nền onyx chính là bản sắc của hệ.
- * Người dùng bấm nút thì mới sang bảng sáng, và lựa chọn đó ghi vào
- * `[data-theme="light"]`.
- *
- * Cách này bỏ được cái bẫy của bản cũ: hồi đó bảng tối phải viết HAI LẦN
- * (một trong `@media (prefers-color-scheme: dark)`, một trong
- * `[data-theme="dark"]`) và hai khối bắt buộc giống hệt nhau — sửa một chỗ
- * quên chỗ kia là hai chế độ lệch màu mà không có gì báo. Giờ mỗi bảng chỉ
- * còn đúng một khối.
+ * TỐI LÀ MẶC ĐỊNH, không theo cài đặt hệ điều hành — bảng tối nằm thẳng trên
+ * `:root` nên được áp ngay lúc trình duyệt phân tích CSS, không nháy màu.
+ * Bảng sáng chỉ áp khi người dùng bấm nút (`[data-theme="light"]`). Mỗi bảng
+ * đúng một khối; đừng tách bảng tối ra hai chỗ như bản cũ từng phải làm.
  * ------------------------------------------------------------------------ */
 :root {
   color-scheme: dark;
 
-  /* Bảng gốc của hệ */
-  --onyx:     #171721; /* nền trang */
-  --graphite: #1e1e2a; /* mặt thẻ — nhích đúng một bậc khỏi nền */
-  --obsidian: #272735; /* mặt tương tác phụ */
-  --slate:    #70707d;
-  --mist:     #e2e3ed; /* viền tóc sáng trên nền tối */
-  --ash:      #c3c3cc;
-  --ivory:    #ededf3; /* chữ chính — KHÔNG phải #fff */
-  --cobalt:   #5266eb;
+  /* Bảng gốc */
+  --midnight: #05060f;
+  --steel:    #2f343e;
+  --violet:   #663af3;
 
-  --color-bg: var(--onyx);
-  --color-surface: var(--graphite);
-  --color-surface-2: var(--obsidian);
-  --color-surface-3: #32323f;
+  --color-bg: var(--midnight);
+  /* Mặt đặc (modal, menu thả xuống): "Deep Glass" — gần như đục để chữ đọc
+     được khi nằm đè lên nội dung. Thẻ trên trang thì trong suốt hơn nhiều,
+     xem `--glass` và khối thẻ ở cuối file. */
+  --color-surface: #0a0c18;
+  --color-surface-2: rgba(186, 214, 247, .06);  /* lớp sương: hover, ô nhập, nút ghost */
+  --color-surface-3: rgba(186, 214, 247, .12);
 
-  /* "Do not use #ffffff for body text — pure white on dark creates harsh,
-     cold contrast." Chữ chính là ngà, chữ phụ là tro. */
-  --color-text: var(--ivory);
-  --color-text-muted: var(--ash);
-  --color-text-faint: #8c8e9e;
+  /* Chuỗi sáng của chữ: Ice → Frost → Moon Mist → Fog Veil. Tài liệu đặt bốn
+     nấc rất sát nhau; ứng dụng thật cần phân cấp rõ hơn trang tiếp thị nên hai
+     nấc dưới được hạ thêm một chút. */
+  --color-text: #d8ecf8;
+  --color-text-muted: #a9b6cd;
+  --color-text-faint: #717d94;
 
-  /* Thẻ không có viền — chúng tách nhau bằng bậc giá trị. Viền chỉ dành cho
-     nút ghost và ô nhập, nên token viền thường để rất mờ. */
-  --color-border: rgba(226, 227, 237, .1);
-  --color-border-strong: rgba(226, 227, 237, .28);
+  --color-border: rgba(186, 215, 247, .12);
+  --color-border-strong: rgba(186, 215, 247, .24);
 
-  --color-primary: var(--cobalt);
-  --color-primary-hover: #6478f0;
-  --color-primary-active: #4356d4;
+  --color-primary: var(--violet);
+  --color-primary-hover: #7652f6;
+  --color-primary-active: #5a2fe0;
   --color-on-primary: #ffffff;
 
-  /* Hành động phụ là nút ghost viền ngà — "never use a chromatic color for
-     secondary actions". */
-  --color-accent: var(--ivory);
-  --color-accent-tint: rgba(226, 227, 237, .1);
+  --color-accent: #d1e4fa;
+  --color-accent-tint: rgba(186, 214, 247, .08);
 
-  /* Bốn màu ngữ nghĩa. Chỉ dùng cho chữ số, icon và nền tint — xem chú thích
-     ở đầu file. Cả bốn đều lạnh và giảm bão hoà để đứng cạnh cobalt mà không
-     tranh nhau. */
-  --color-success: #4fd6a6;                     /* thu */
-  --color-success-tint: rgba(79, 214, 166, .14);
-  --color-warning: #e8b767;                     /* chờ xử lý, chạm ngưỡng */
-  --color-warning-tint: rgba(232, 183, 103, .14);
-  --color-error: #ef7089;                       /* chi, vượt hạn mức */
-  --color-error-tint: rgba(239, 112, 137, .14);
-  --color-info: #8fa4f3;
-  --color-info-tint: rgba(143, 164, 243, .14);
+  /* Màu ngữ nghĩa — lấy từ ô màu mẫu của AuthKit, nâng sáng. */
+  --color-success: #4fcab2;                     /* Deep Teal — thu */
+  --color-success-tint: rgba(79, 202, 178, .12);
+  --color-warning: #f2b47a;                     /* Ember nhạt — chờ xử lý */
+  --color-warning-tint: rgba(242, 180, 122, .12);
+  --color-error: #f08466;                       /* Ember Glow — chi, vượt mức */
+  --color-error-tint: rgba(240, 132, 102, .12);
+  --color-info: #6fb3f7;                        /* Signal Blue */
+  --color-info-tint: rgba(111, 179, 247, .12);
 
-  --color-focus: var(--cobalt);
+  --color-focus: #98c0ef;
 
-  /* Hành động chính phát sáng nhẹ bằng chính màu của nó, cộng một đường sáng
-     ở mép trên — nút cobalt trong ảnh Mercury trông như có ánh đèn. */
+  /* Kính */
+  --glass: rgba(186, 214, 247, .035);
+  --glass-blur: 14px;
+  --shadow-glass:
+    inset 0 0 0 1px rgba(186, 215, 247, .08),
+    inset 0 1px 1px rgba(199, 211, 234, .12),
+    inset 0 24px 48px rgba(199, 211, 234, .04),
+    0 24px 32px -8px rgba(6, 6, 14, .7);
+  --shadow-deep-glass:
+    inset 0 0 0 1px rgba(186, 215, 247, .1),
+    inset 0 1px 1px rgba(216, 236, 248, .2),
+    inset 0 24px 48px rgba(168, 216, 245, .06),
+    0 16px 32px rgba(0, 0, 0, .45);
+  --hairline: inset 0 0 0 1px rgba(186, 215, 247, .12);
+  --hairline-strong: inset 0 0 0 1px rgba(186, 215, 247, .26);
+
+  /* Nút tím: đường sáng trên mép + quầng tím mờ. */
   --glow-primary:
-    inset 0 1px 0 rgba(255, 255, 255, .22),
-    0 8px 22px -10px rgba(82, 102, 235, .75);
+    inset 0 1px 0 rgba(255, 255, 255, .24),
+    0 0 0 1px rgba(102, 58, 243, .55),
+    0 10px 28px -10px rgba(102, 58, 243, .75);
 
-  /* Bản đồ nhiệt chi tiêu tự pha alpha theo độ đậm nên cần màu dạng ba thành
-     phần RGB chứ không phải mã hex. */
-  --heat-rgb: 82, 102, 235;
-  --heat-empty: rgba(226, 227, 237, .05);
-  --heat-fg-strong: #ffffff;
+  /* Skywash — CHỈ cho tiêu đề trang và chữ display. */
+  --skywash: linear-gradient(180deg, #e4f2fb 0%, #d8ecf8 35%, #98c0ef 100%);
+  --skywash-glow: drop-shadow(0 0 14px rgba(186, 207, 247, .22));
 
-  /* Độ sâu trên nền tối: một đường sáng 1px ở mép trên (như mặt kính bắt
-     sáng) cộng bóng rơi rất rộng. Không có đường sáng đó thì thẻ graphite
-     trên nền onyx trông như bị dán phẳng xuống. */
-  --shadow-float:
-    inset 0 1px 0 rgba(255, 255, 255, .05),
-    0 24px 48px -28px rgba(0, 0, 0, .7);
-  --card-sheen: linear-gradient(180deg, rgba(255, 255, 255, .028), rgba(255, 255, 255, 0) 55%);
-  /* "Blue hour": quầng cobalt và tím lạnh ở đỉnh trang, như bầu trời lúc
-     chạng vạng trong ảnh hero của Mercury. */
-  --glow-a: rgba(82, 102, 235, .24);
-  --glow-b: rgba(150, 120, 255, .12);
-  --glow-c: rgba(90, 170, 255, .08);
+  /* Không khí: lưới bản vẽ + luồng sáng rọi từ đỉnh. */
+  --grid-line: rgba(186, 215, 247, .055);
+  --spotlight: rgba(124, 145, 182, .5);
+  --halo: rgba(124, 145, 182, .22);
+
+  /* Dữ liệu: đơn sắc xanh băng. */
+  --chart-1: #98c0ef;
+  --chart-2: #d8ecf8;
+  --chart-3: #6f8fb8;
+  --chart-4: #4a5b7c;
+  --chart-5: #2f343e;
+  --chart-6: #1c2130;
+  --progress: linear-gradient(90deg, #6f8fb8, #b6d9fc);
+
+  --heat-rgb: 152, 192, 239;
+  --heat-empty: rgba(186, 214, 247, .04);
+  --heat-fg-strong: #05060f;
 }
 
-/* Bảng sáng — chỉ áp khi người dùng chọn tay. Vẫn là Mercury: cùng cobalt,
-   cùng chữ onyx, chỉ đảo mặt phẳng. */
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Giấy ẤM, không phải xám lạnh. Nền xám xanh #f5f6fa của bản đầu làm cả
-     trang trông vô trùng như bảng quản trị; nền sản phẩm của Mercury là một
-     tông kem rất nhạt, và cobalt đứng trên nền ấm thì mới "sáng" lên được. */
-  --color-bg: #f6f4ef;
+  --color-bg: #f3f5fa;
   --color-surface: #ffffff;
-  --color-surface-2: #f1eee8;
-  --color-surface-3: #e6e2da;
+  --color-surface-2: rgba(40, 70, 130, .05);
+  --color-surface-3: rgba(40, 70, 130, .1);
 
-  --color-text: #1b1a22;
-  --color-text-muted: #5f5c66;
-  --color-text-faint: #95919b;
+  --color-text: #0d1428;
+  --color-text-muted: #4a5670;
+  --color-text-faint: #808aa2;
 
-  --color-border: rgba(40, 30, 20, .08);
-  --color-border-strong: rgba(40, 30, 20, .2);
+  --color-border: rgba(40, 70, 130, .12);
+  --color-border-strong: rgba(40, 70, 130, .24);
 
-  --color-primary: var(--cobalt);
-  --color-primary-hover: #4356d4;
-  --color-primary-active: #3646b8;
+  --color-primary: var(--violet);
+  --color-primary-hover: #5a2fe0;
+  --color-primary-active: #4c25c7;
   --color-on-primary: #ffffff;
 
-  --color-accent: var(--onyx);
-  --color-accent-tint: rgba(23, 23, 33, .07);
+  --color-accent: #1d2a4a;
+  --color-accent-tint: rgba(40, 70, 130, .07);
 
-  --color-success: #0f8f68;
-  --color-success-tint: rgba(15, 143, 104, .12);
-  --color-warning: #9a6b18;
-  --color-warning-tint: rgba(154, 107, 24, .12);
-  --color-error: #c8405f;
-  --color-error-tint: rgba(200, 64, 95, .12);
-  --color-info: #3b54c9;
-  --color-info-tint: rgba(59, 84, 201, .12);
+  --color-success: #11806d;
+  --color-success-tint: rgba(17, 128, 109, .1);
+  --color-warning: #a4631c;
+  --color-warning-tint: rgba(164, 99, 28, .1);
+  --color-error: #c24d2d;
+  --color-error-tint: rgba(194, 77, 45, .1);
+  --color-info: #1f6fcf;
+  --color-info-tint: rgba(31, 111, 207, .1);
 
-  --heat-rgb: 82, 102, 235;
-  --heat-empty: #f1eee8;
+  --color-focus: #3d5d9a;
+
+  /* Kính ban ngày: tấm kính trắng đục, mép trên bắt sáng, bóng rơi xanh lạnh. */
+  --glass: rgba(255, 255, 255, .64);
+  --shadow-glass:
+    inset 0 0 0 1px rgba(40, 70, 130, .07),
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    0 1px 2px rgba(20, 30, 60, .04),
+    0 18px 40px -20px rgba(40, 60, 120, .22);
+  --shadow-deep-glass:
+    inset 0 0 0 1px rgba(40, 70, 130, .08),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 24px 60px -20px rgba(20, 30, 70, .35);
+  --hairline: inset 0 0 0 1px rgba(40, 70, 130, .14);
+  --hairline-strong: inset 0 0 0 1px rgba(40, 70, 130, .3);
+
+  --glow-primary:
+    inset 0 1px 0 rgba(255, 255, 255, .28),
+    0 0 0 1px rgba(102, 58, 243, .6),
+    0 10px 24px -10px rgba(102, 58, 243, .55);
+
+  --skywash: linear-gradient(180deg, #0d1428 0%, #1d2a4a 45%, #4a6aa6 100%);
+  --skywash-glow: none;
+
+  --grid-line: rgba(40, 70, 130, .065);
+  --spotlight: rgba(120, 140, 210, .32);
+  --halo: rgba(140, 160, 230, .22);
+
+  --chart-1: #3d5d9a;
+  --chart-2: #0d1428;
+  --chart-3: #7f98c8;
+  --chart-4: #b3c3e0;
+  --chart-5: #d6dfee;
+  --chart-6: #e9eef7;
+  --progress: linear-gradient(90deg, #3d5d9a, #7f98c8);
+
+  --heat-rgb: 61, 93, 154;
+  --heat-empty: rgba(40, 70, 130, .05);
   --heat-fg-strong: #ffffff;
-
-  --shadow-float:
-    0 1px 2px rgba(40, 30, 20, .04),
-    0 10px 30px -12px rgba(50, 50, 110, .14),
-    0 30px 60px -30px rgba(70, 70, 160, .12);
-  --card-sheen: none;
-  --glow-a: rgba(110, 125, 255, .22);
-  --glow-b: rgba(255, 186, 140, .24);
-  --glow-c: rgba(190, 170, 255, .18);
 }
 
 /* ---------------------------------------------------------------------------
@@ -233,10 +255,9 @@
  *
  * CẨN THẬN với `--radius-sm/md/lg/xl/2xl`: chúng TRÙNG TÊN với thang bán kính
  * dựng sẵn của Tailwind v4, nên mỗi biến ở đây còn điều khiển luôn mọi
- * utility `rounded-*` viết trong JSX. Vì thế thang này giữ ở cỡ "thẻ"; bán
- * kính viên thuốc của nút và ô nhập đặt riêng trong `.c-btn` / `.c-input`.
- * (Đặt `--radius-md: 16px` cho ô nhập đã từng biến mọi ô `rounded-md` 31px
- * của bản đồ nhiệt thành hình tròn.)
+ * utility `rounded-*` viết trong JSX. Đã có tiền lệ: đặt `--radius-md: 16px`
+ * làm mọi ô `rounded-md` 31px của bản đồ nhiệt biến thành hình tròn. Bán kính
+ * viên thuốc của nút đặt riêng trong `.c-btn`, không đặt qua thang này.
  * ------------------------------------------------------------------------ */
 :root {
   --space-1: 4px;
@@ -250,42 +271,86 @@
   --space-12: 48px;
   --space-16: 64px;
 
-  --radius-sm: 4px;    /* chi tiết cấu trúc */
-  --radius-md: 8px;
-  --radius-lg: 12px;   /* thẻ */
+  --radius-sm: 4px;
+  --radius-md: 6px;    /* ô nhập, huy hiệu */
+  --radius-lg: 10px;
   --radius-xl: 12px;
-  --radius-2xl: 18px;  /* `rounded-2xl` = thẻ trong JSX */
+  --radius-2xl: 16px;  /* thẻ, modal — `rounded-2xl` trong JSX */
   --radius-3xl: 24px;
-  --radius-pill: 32px; /* nút, ô nhập */
-  --radius-nav: 40px;  /* mục điều hướng, chip */
+  --radius-pill: 999px;
   --radius-full: 9999px;
 
-  /* Hệ không có bóng. Ba biến này giữ lại vì còn chỗ tham chiếu, và đều rỗng
-     — phân tầng là việc của bậc màu. */
+  /* Bóng đổ thông thường không tồn tại trong hệ này. */
   --shadow-sm: none;
   --shadow-md: none;
   --shadow-lg: none;
 
-  /* Bố cục */
+  /* Bố cục. Tài liệu đặt 120px giữa các mục — nhịp "nhà thờ" của một trang
+     tiếp thị chỉ có bốn năm mục. Dashboard có hơn chục khối, 120px là cuộn
+     mỏi tay; 96px giữ được cảm giác thoáng mà không kéo dài gấp rưỡi trang. */
   --page-max: 1200px;
-  --section-gap: 72px;
-  --block-gap: 40px;
-  --card-pad: 32px;
+  --section-gap: 96px;
+  --block-gap: 44px;
+  --card-pad: 24px;
+  --grid-gap: 16px;
   --shell-pad-x: 40px;
-  --shell-pad-y: 56px;
+  --shell-pad-y: 64px;
 
-  --ease: cubic-bezier(.4, 0, .2, 1);
-  --dur: .22s;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  --dur: .2s;
 }
 
 @media (max-width: 767px) {
   :root {
-    --section-gap: 44px;
-    --block-gap: 26px;
+    --section-gap: 48px;
+    --block-gap: 28px;
     --card-pad: 20px;
-    --shell-pad-x: 20px;
+    --grid-gap: 12px;
+    --shell-pad-x: 18px;
     --shell-pad-y: 24px;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Nền trang: lưới bản vẽ + luồng sáng.
+ *
+ * Màu nền đặt trên <html>, còn <body> trong suốt. Lý do: hai lớp không khí vẽ
+ * bằng `body::before/::after` với `z-index: -1`. Nếu <body> tự có nền, nền đó
+ * được vẽ ở bước "nền khối trong luồng" — SAU lớp z-index âm — và che mất lưới.
+ * ------------------------------------------------------------------------ */
+html { background: var(--color-bg); }
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Lưới 80px, tan dần ra mép và xuống dưới. */
+body::before {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 80px 80px;
+  background-position: center -1px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 0%, #000 30%, transparent 78%);
+  mask-image: radial-gradient(ellipse 90% 75% at 50% 0%, #000 30%, transparent 78%);
+}
+
+/* Luồng sáng: một tia hình nón hẹp rọi thẳng xuống từ trên đỉnh, cộng quầng
+   sáng tròn quanh gốc tia. Đây là "điểm neo" của cả bố cục. */
+body::after {
+  background:
+    conic-gradient(from 180deg at 50% -8%,
+      transparent 43%, var(--halo) 47.5%, var(--spotlight) 50%,
+      var(--halo) 52.5%, transparent 57%),
+    radial-gradient(ellipse 55% 38% at 50% -6%, var(--halo), transparent 70%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 72%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 72%);
+  opacity: .75;
 }
 
 /* Mặc định cho thẻ HTML — BẮT BUỘC nằm trong @layer base.
@@ -298,33 +363,23 @@
 @layer base {
   body {
     margin: 0;
-    /* Ba quầng sáng rất nhạt thay cho một mảng màu phẳng — thứ tạo ra cái
-       "lung linh" của ảnh giới thiệu Mercury. Cố định theo khung nhìn để cuộn
-       tới đâu ánh sáng cũng nằm yên. */
-    background:
-      radial-gradient(1100px 620px at 12% -12%, var(--glow-a), transparent 62%),
-      radial-gradient(900px 560px at 92% -8%, var(--glow-b), transparent 60%),
-      radial-gradient(1200px 700px at 50% 115%, var(--glow-c), transparent 65%),
-      var(--color-bg);
-    background-attachment: fixed;
+    background: transparent;  /* xem chú thích "Nền trang" ở trên */
     color: var(--color-text);
     font: var(--text-body);
+    letter-spacing: -.01em;
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4, h5 { margin: 0; }
+  h1, h2, h3, h4, h5 { margin: 0; letter-spacing: -.01em; }
   h1 { font: var(--text-h1); }
   h2 { font: var(--text-h2); }
   h3 { font: var(--text-h3); }
   h4 { font: var(--text-h4); }
   h5 { font: var(--text-h5); }
-  /* Giãn chữ dương + kéo rộng trục bề ngang: hai thứ này đi liền với nhau,
-     thiếu một là chữ lớn mất hẳn tính cách. */
-  h1, h2, h3 { letter-spacing: .015em; font-variation-settings: "wdth" var(--display-width); }
   p { margin: 0; }
-  a { color: var(--color-text); text-decoration: none; }
-  a:hover { color: var(--color-primary-hover); text-decoration: underline; }
+  a { color: var(--color-accent); text-decoration: none; }
+  a:hover { color: var(--color-text); text-decoration: underline; }
   :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-  ::selection { background: rgba(82, 102, 235, .35); }
+  ::selection { background: rgba(102, 58, 243, .4); }
 
   /* iOS Safari tự phóng to CẢ TRANG khi chạm vào ô nhập có cỡ chữ dưới 16px.
      Phóng rồi thì mọi thứ trông như bị cắt — kể cả thanh điều hướng
@@ -353,7 +408,7 @@
     min-width: 0;
   }
 
-  /* Bộ chọn ngày/giờ gốc vẽ icon lịch màu đen; trên nền obsidian nó biến mất. */
+  /* Icon lịch gốc vẽ màu đen; trên nền kính tối nó biến mất. */
   input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(.85);
     cursor: pointer;
@@ -366,98 +421,113 @@
 /* Thang tiêu đề dùng chung. Đặt trong @layer components để utility vẫn ghi đè
    được khi thực sự cần — không lặp lại cái bẫy ở trên. */
 @layer components {
-  .c-display { font: var(--text-display); letter-spacing: .01em; font-variation-settings: "wdth" var(--display-width); }
+  .c-display,
+  .c-page-title {
+    font: var(--text-display);
+    letter-spacing: -.02em;
+    background: var(--skywash);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: var(--skywash-glow);
+    /* Chữ tô gradient bị cắt mất phần dấu tiếng Việt nếu hộp chữ bó sát; đệm
+       dưới một chút để dấu nặng/dấu hỏi không bị gọt. */
+    padding-bottom: .06em;
+  }
   .c-h1 { font: var(--text-h1); }
   .c-h2 { font: var(--text-h2); }
   .c-h3 { font: var(--text-h3); }
   .c-h4 { font: var(--text-h4); }
   .c-h5 { font: var(--text-h5); }
 
-  /* Tiêu đề của CẢ TRANG, khác với tiêu đề thẻ.
-     `c-h2`/`c-h3` dùng chung cho tiêu đề thẻ và tiêu đề modal (riêng `c-h3`
-     có 20 chỗ dùng), nên không có mốc riêng này thì không thể phóng tiêu đề
-     trang lên cỡ tuyên ngôn mà không phóng luôn tiêu đề mọi cái thẻ. */
-  /* Nhẹ hơn các tiêu đề khác (420, bề ngang chuẩn): ở cỡ 56px mà vẫn 480 và
-     kéo rộng 108 thì chữ thành một khối đặc — đúng cái nặng nề trong ảnh chụp
-     Knowledge Hub. Tiêu đề hero của Mercury nhẹ và thoáng. */
-  .c-page-title {
-    font: 420 clamp(34px, 4.6vw, 54px)/1.1 var(--font-display);
-    letter-spacing: -.005em;
-    font-variation-settings: "wdth" 100;
+  /* Tiêu đề của CẢ TRANG, khác với tiêu đề thẻ. `c-h2`/`c-h3` dùng chung cho
+     tiêu đề thẻ và tiêu đề modal, nên không có mốc riêng này thì không thể tô
+     Skywash cho tiêu đề trang mà không tô luôn mọi tiêu đề thẻ. Kiểu chữ nằm
+     chung với `.c-display` ở trên; ở đây chỉ chỉnh cỡ. */
+  .c-page-title { font-size: clamp(34px, 4.8vw, 56px); line-height: 1.12; }
+
+  /* Nhãn mắt: mono viết hoa giãn .1em. */
+  .c-overline { font: var(--text-overline); letter-spacing: .1em; text-transform: uppercase; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+  .c-card-kicker { font: var(--text-overline); letter-spacing: .1em; text-transform: uppercase; color: var(--color-text-faint); margin-bottom: 10px; }
+
+  /* Nhãn mắt mở đầu một mục: căn giữa, hai bên là đường kẻ tan dần. */
+  .c-eyebrow {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    font: 400 13px/1.2 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+  .c-eyebrow::before,
+  .c-eyebrow::after {
+    content: ""; flex: 0 1 120px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-border), transparent);
   }
 
-  .c-overline { font: var(--text-overline); color: var(--color-text-muted); }
-  .c-card-kicker { font: var(--text-overline); color: var(--color-text-faint); margin-bottom: 10px; }
   .c-card-title { font: var(--text-h3); margin-bottom: 8px; }
   .c-card-body { font: var(--text-body); color: var(--color-text-muted); }
-  .c-stat-value { font: var(--text-stat); letter-spacing: .01em; font-variation-settings: "wdth" var(--display-width); }
+  .c-stat-value { font: var(--text-stat); letter-spacing: -.02em; }
   .c-stat-label { font: var(--text-caption); color: var(--color-text-muted); }
 
-  /* Con số chính của một thẻ chỉ số. Dùng chữ display để số đọc được từ xa —
-     đây là thứ người dùng liếc vào đầu tiên trên mỗi thẻ. */
+  /* Con số chính của một thẻ chỉ số. */
   .c-metric-value {
-    font: 480 clamp(22px, 2.4vw, 30px)/1.15 var(--font-display);
-    letter-spacing: .01em;
-    font-variation-settings: "wdth" var(--display-width);
+    font: 500 clamp(22px, 2.3vw, 28px)/1.15 var(--font-display);
+    letter-spacing: -.02em;
     font-variant-numeric: tabular-nums;
   }
 }
 
-/* Buttons — viên thuốc 32px. Cobalt cho hành động chính, còn lại là ghost. */
+/* Buttons — mọi nút là viên thuốc. Mặc định là nút ghost phủ sương; chỉ
+   hành động chính mới đặc tím. */
 .c-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  font: 400 15px/1 var(--font-body); padding: 12px 24px; border-radius: var(--radius-pill);
-  border: 1px solid transparent; cursor: pointer; text-decoration: none; white-space: nowrap;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  font: 500 14px/1 var(--font-body); letter-spacing: -.01em;
+  padding: 11px 18px; border-radius: var(--radius-pill);
+  border: none; cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .c-btn:hover { text-decoration: none; }
 .c-btn:disabled, .c-btn[aria-disabled="true"] { opacity: .4; pointer-events: none; }
-.c-btn-primary {
-  background: var(--color-primary); color: var(--color-on-primary);
-  box-shadow: var(--glow-primary);
-}
+.c-btn-primary { background: var(--color-primary); color: var(--color-on-primary); box-shadow: var(--glow-primary); }
 .c-btn-primary:hover { background: var(--color-primary-hover); color: var(--color-on-primary); }
 .c-btn-primary:active { background: var(--color-primary-active); }
 
-/* Mọi hành động phụ đều là một viên thuốc viền ngà. Bốn biến thể theo ngữ
-   nghĩa (thu/chi/chờ duyệt/xoá) cố ý TRÔNG GIỐNG NHAU: màu ngữ nghĩa dành cho
-   con số chứ không dành cho nút. Icon bên trong nút vẫn mang màu của nó. */
+/* Bốn biến thể theo ngữ nghĩa cố ý TRÔNG GIỐNG NHAU: màu ngữ nghĩa dành cho
+   con số, không cho nút. Icon bên trong nút vẫn giữ màu của nó. */
 .c-btn-secondary,
 .c-btn-success,
 .c-btn-accent,
 .c-btn-warning,
 .c-btn-danger {
-  background: transparent; color: var(--color-text); border-color: var(--color-border-strong);
+  background: var(--color-surface-2); color: var(--color-text); box-shadow: var(--hairline);
 }
 .c-btn-secondary:hover,
 .c-btn-success:hover,
 .c-btn-accent:hover,
 .c-btn-warning:hover,
 .c-btn-danger:hover {
-  background: var(--color-surface-2); color: var(--color-text); border-color: var(--color-text-faint);
+  background: var(--color-surface-3); color: var(--color-text); box-shadow: var(--hairline-strong);
 }
-.c-btn-tertiary { background: transparent; color: var(--color-text-muted); border-color: transparent; }
+.c-btn-tertiary { background: transparent; color: var(--color-text-muted); box-shadow: var(--hairline); }
 .c-btn-tertiary:hover { background: var(--color-surface-2); color: var(--color-text); }
 
-.c-btn-sm { padding: 9px 18px; font-size: 14px; }
-.c-btn-lg { padding: 15px 30px; font-size: 16px; }
-.c-btn-icon { padding: 11px; border-radius: var(--radius-full); }
-.c-btn-pill { border-radius: var(--radius-full); }
+.c-btn-sm { padding: 8px 14px; font-size: 13px; }
+.c-btn-lg { padding: 14px 26px; font-size: 15px; }
+.c-btn-icon { padding: 10px; border-radius: var(--radius-full); }
+.c-btn-pill { border-radius: var(--radius-pill); }
 
-/* Forms — ô nhập cũng là viên thuốc, nền obsidian. */
+/* Forms — ô nhập 6px, phủ sương, mép tóc. */
 .c-field { display: flex; flex-direction: column; gap: 8px; }
-.c-field > label { font: var(--text-overline); color: var(--color-text-muted); }
+.c-field > label { font: var(--text-overline); letter-spacing: .1em; text-transform: uppercase; color: var(--color-text-muted); }
 .c-input, .c-select, .c-textarea {
   background: var(--color-surface-2); color: var(--color-text);
-  border: 1px solid var(--color-border); border-radius: var(--radius-pill);
-  padding: 12px 20px; font: var(--text-body); min-width: 0;
-  transition: border-color var(--dur) var(--ease);
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: 11px 12px; font: var(--text-body); min-width: 0;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
-.c-textarea { border-radius: var(--radius-lg); }
 .c-input::placeholder, .c-textarea::placeholder { color: var(--color-text-faint); }
 .c-input:hover, .c-select:hover, .c-textarea:hover { border-color: var(--color-border-strong); }
 .c-input:focus, .c-select:focus, .c-textarea:focus {
-  outline: none; border-color: var(--color-text-faint); box-shadow: none;
+  outline: none; border-color: var(--color-border-strong);
+  box-shadow: 0 0 0 3px rgba(152, 192, 239, .14);
 }
 .c-input[aria-invalid="true"] { border-color: var(--color-error); }
 .c-help { font: var(--text-caption); color: var(--color-text-faint); }
@@ -468,38 +538,42 @@
 .c-switch input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
 .c-switch .track {
   position: absolute; inset: 0; border-radius: var(--radius-full);
-  background: var(--color-surface-3); transition: background var(--dur) var(--ease);
+  background: var(--color-surface-3); box-shadow: var(--hairline);
+  transition: background var(--dur) var(--ease);
 }
 .c-switch .track::after {
   content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
   border-radius: 50%; background: var(--color-text);
   transition: transform var(--dur) var(--ease);
 }
-.c-switch input:checked + .track { background: var(--color-primary); }
+.c-switch input:checked + .track { background: var(--color-primary); box-shadow: var(--glow-primary); }
 .c-switch input:checked + .track::after { transform: translateX(18px); background: #fff; }
 .c-switch input:focus-visible + .track { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
 /* Checkbox */
 .c-check { display: inline-flex; align-items: center; gap: 10px; font: var(--text-body); cursor: pointer; }
-.c-check input { appearance: none; width: 18px; height: 18px; margin: 0; border: 1.5px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface-2); cursor: pointer; display: grid; place-content: center; transition: background var(--dur) var(--ease); }
+.c-check input { appearance: none; width: 18px; height: 18px; margin: 0; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface-2); cursor: pointer; display: grid; place-content: center; transition: background var(--dur) var(--ease); }
 .c-check input:checked { background: var(--color-primary); border-color: var(--color-primary); }
 .c-check input:checked::after { content: ""; width: 9px; height: 5px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translate(0.5px, -1px); }
 
-/* Cards — graphite, 12px, không viền, không bóng. */
+/* Cards — tấm kính */
 .c-card {
-  background: var(--color-surface); border: 1px solid transparent;
-  border-radius: var(--radius-lg); padding: var(--card-pad);
+  background: var(--glass); border: none;
+  border-radius: var(--radius-2xl); padding: var(--card-pad);
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
 }
-.c-elev-md, .c-elev-lg { box-shadow: none; }
+.c-elev-md, .c-elev-lg { box-shadow: var(--shadow-deep-glass); }
 
-/* Chips / tags — viên thuốc 40px */
+/* Chips / huy hiệu — 6px, không phải viên thuốc */
 .c-chip {
   display: inline-flex; align-items: center; gap: 6px;
-  font: 400 13px/1 var(--font-body); padding: 7px 16px; border-radius: var(--radius-nav);
-  background: var(--color-surface-2); color: var(--color-text); border: 1px solid transparent;
+  font: 500 12px/1 var(--font-body); padding: 5px 9px; border-radius: var(--radius-md);
+  background: var(--color-surface-3); color: var(--color-accent); border: none;
+  box-shadow: inset 0 1px 1px rgba(199, 211, 234, .1);
 }
 .c-chip-solid { background: var(--color-primary); color: var(--color-on-primary); }
-.c-chip-outline { background: transparent; border-color: var(--color-border-strong); color: var(--color-text-muted); }
+.c-chip-outline { background: transparent; box-shadow: var(--hairline); color: var(--color-text-muted); }
 .c-chip-success { background: var(--color-success-tint); color: var(--color-success); }
 .c-chip-warning { background: var(--color-warning-tint); color: var(--color-warning); }
 .c-chip-error { background: var(--color-error-tint); color: var(--color-error); }
@@ -507,24 +581,27 @@
 /* Tabs */
 .c-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--color-border); }
 .c-tab {
-  font: 400 15px/1 var(--font-body); color: var(--color-text-muted);
+  font: 500 14px/1 var(--font-body); color: var(--color-text-muted);
   padding: 12px 16px; background: none; border: none; border-bottom: 2px solid transparent;
   margin-bottom: -1px; cursor: pointer;
 }
 .c-tab:hover { color: var(--color-text); }
-.c-tab[aria-selected="true"], .c-tab.active { color: var(--color-text); border-bottom-color: var(--color-primary); }
-.c-seg { display: inline-flex; gap: 4px; background: var(--color-surface); border-radius: var(--radius-nav); padding: 6px; }
-.c-seg-opt { font: 400 14px/1 var(--font-body); color: var(--color-text-muted); padding: 9px 18px; border-radius: var(--radius-nav); border: none; background: none; cursor: pointer; transition: background var(--dur) var(--ease), color var(--dur) var(--ease); }
-.c-seg-opt.active { background: var(--color-primary); color: var(--color-on-primary); }
+.c-tab[aria-selected="true"], .c-tab.active { color: var(--color-text); border-bottom-color: var(--color-focus); }
+
+/* Thanh phân đoạn: như nút chọn sáng/tối của AuthKit — đoạn đang chọn chỉ
+   sáng hơn một lớp sương, không đổi màu. */
+.c-seg { display: inline-flex; gap: 2px; background: var(--color-surface-2); box-shadow: var(--hairline); border-radius: var(--radius-pill); padding: 4px; }
+.c-seg-opt { font: 500 13px/1 var(--font-body); color: var(--color-text-muted); padding: 9px 16px; border-radius: var(--radius-pill); border: none; background: none; cursor: pointer; transition: background var(--dur) var(--ease), color var(--dur) var(--ease); }
+.c-seg-opt.active { background: var(--color-surface-3); color: var(--color-text); box-shadow: var(--hairline-strong); }
 
 /* Alerts */
 .c-alert {
   display: flex; align-items: flex-start; gap: 10px;
-  border-radius: var(--radius-lg); padding: 14px 18px; font: var(--text-body-sm);
-  background: var(--color-surface-2); color: var(--color-text);
+  border-radius: var(--radius-xl); padding: 14px 16px; font: var(--text-body-sm);
+  background: var(--color-surface-2); box-shadow: var(--hairline); color: var(--color-text);
 }
 .c-alert .icon { flex: none; margin-top: 1px; }
-.c-alert strong { font-weight: 480; }
+.c-alert strong { font-weight: 600; }
 .c-alert-success { background: var(--color-success-tint); }
 .c-alert-success .icon { color: var(--color-success); }
 .c-alert-warning { background: var(--color-warning-tint); }
@@ -536,86 +613,96 @@
 /* Table */
 .c-table { width: 100%; border-collapse: collapse; font: var(--text-body); }
 .c-table th {
-  font: var(--text-overline);
+  font: var(--text-overline); letter-spacing: .1em; text-transform: uppercase;
   color: var(--color-text-faint); text-align: left; padding: 12px 14px;
   border-bottom: 1px solid var(--color-border-strong);
 }
-.c-table td { padding: 14px; border-bottom: 1px solid var(--color-border); }
-.c-table tr:hover td { background: rgba(226, 227, 237, .035); }
+.c-table td { padding: 13px 14px; border-bottom: 1px solid var(--color-border); }
+.c-table tr:hover td { background: var(--color-surface-2); }
 .c-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 
-/* Progress */
-.c-progress { height: 6px; border-radius: var(--radius-full); background: var(--color-surface-2); overflow: hidden; }
-.c-progress > span { display: block; height: 100%; border-radius: var(--radius-full); background: var(--color-primary); transition: width .4s var(--ease); }
+/* Progress: không dùng tím — tiến độ là dữ liệu, không phải hành động. */
+.c-progress { height: 6px; border-radius: var(--radius-full); background: var(--color-surface-2); box-shadow: var(--hairline); overflow: hidden; }
+.c-progress > span { display: block; height: 100%; border-radius: var(--radius-full); background: var(--progress); transition: width .4s var(--ease); }
 .c-progress.thick { height: 10px; }
 
 /* Stat */
-.c-delta-up { color: var(--color-success); font: 480 13px/1 var(--font-body); }
-.c-delta-down { color: var(--color-error); font: 480 13px/1 var(--font-body); }
+.c-delta-up { color: var(--color-success); font: 500 13px/1 var(--font-body); }
+.c-delta-down { color: var(--color-error); font: 500 13px/1 var(--font-body); }
 
 /* ---------------------------------------------------------------------------
- * Vỏ giao diện.
- *
- * Hệ này KHÔNG có sidebar: toàn bộ điều hướng nằm trên một thanh ngang dính
- * đỉnh trang ("all navigation lives in the top bar"). Xem `TopNav.tsx`.
+ * Vỏ giao diện. Không có sidebar — toàn bộ điều hướng nằm trên thanh ngang
+ * dính đỉnh (`TopNav`). Điện thoại dùng `MobileTopBar` + `MobileNav`.
  * ------------------------------------------------------------------------ */
 .c-topnav {
   position: sticky; top: 0; z-index: 40;
   display: flex; align-items: center; gap: 2px;
-  padding: 14px var(--shell-pad-x);
-  background: color-mix(in srgb, var(--color-bg) 72%, transparent);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--color-border);
+  padding: 12px var(--shell-pad-x);
+  background: color-mix(in srgb, var(--color-bg) 62%, transparent);
+  backdrop-filter: blur(20px) saturate(140%); -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: inset 0 -1px 0 var(--color-border);
   /* Năm mục điều hướng + ba nút điều khiển trên một hàng: ở 1024px thì mục
-     cuối bị cắt mất ở mép phải. Cho cuộn ngang thay vì cắt. */
+     cuối bị cắt ở mép phải. Cho cuộn ngang thay vì cắt. */
   overflow-x: auto; scrollbar-width: none;
 }
 .c-topnav::-webkit-scrollbar { display: none; }
 .c-topnav-item {
-  display: inline-flex; align-items: center; gap: 9px; flex: none;
-  padding: 9px 16px; border-radius: var(--radius-nav);
-  font: 400 15px/1 var(--font-body); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 8px; flex: none;
+  padding: 8px 14px; border-radius: var(--radius-pill);
+  font: 500 14px/1 var(--font-body); letter-spacing: -.01em; white-space: nowrap;
   color: var(--color-text-muted); cursor: pointer; border: none; background: none; text-decoration: none;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .c-topnav-item:hover { background: var(--color-surface-2); color: var(--color-text); text-decoration: none; }
-.c-topnav-item.active { background: var(--color-primary); color: var(--color-on-primary); }
-.c-topnav-item.active:hover { background: var(--color-primary-hover); color: var(--color-on-primary); }
+/* Mục đang mở: sáng hơn một lớp sương + mép tóc — KHÔNG tô tím. */
+.c-topnav-item.active,
+.c-topnav-item.active:hover {
+  background: var(--color-surface-3); color: var(--color-text); box-shadow: var(--hairline-strong);
+}
+
+/* Logo: vòng tròn kính với chữ Skywash. */
+.c-logo-mark {
+  display: inline-grid; place-content: center; flex: none;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-2); box-shadow: var(--hairline-strong), inset 0 1px 1px rgba(216, 236, 248, .2);
+  font: 600 14px/1 var(--font-display);
+}
+.c-logo-mark > span,
+.c-logo-word {
+  background: var(--skywash); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.c-logo-word { font: 500 17px/1 var(--font-display); letter-spacing: -.01em; }
 
 /* Bottom nav (mobile) */
 .c-bottomnav {
   display: flex; justify-content: space-around; align-items: center;
-  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(140%); -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: inset 0 1px 0 var(--color-border);
   padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
 }
 .c-bottomnav-item {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  font: 400 10px/1 var(--font-body); color: var(--color-text-faint);
-  background: none; border: none; cursor: pointer; padding: 6px 12px; border-radius: var(--radius-nav);
+  font: 500 10px/1 var(--font-body); color: var(--color-text-faint);
+  background: none; border: none; cursor: pointer; padding: 6px 12px; border-radius: var(--radius-xl);
   min-width: 44px; min-height: 44px; justify-content: center; text-decoration: none;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
-.c-bottomnav-item.active { color: var(--color-primary); }
+.c-bottomnav-item.active { color: var(--color-text); background: var(--color-surface-2); box-shadow: var(--hairline); }
 
 /* Badge */
-.c-badge { display: inline-grid; place-content: center; min-width: 20px; height: 20px; padding: 0 7px; border-radius: var(--radius-full); background: var(--color-primary); color: var(--color-on-primary); font: 480 11px/1 var(--font-body); }
+.c-badge { display: inline-grid; place-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-md); background: var(--color-surface-3); color: var(--color-accent); box-shadow: var(--hairline); font: 500 11px/1 var(--font-body); }
 
 /* Ẩn thanh cuộn cho các dải cuộn ngang (thanh tab, dải thẻ lọc). */
 .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 
 /* ---------------------------------------------------------------------------
- * Nhịp và khung của trang.
- *
- * Mật độ là một phần của hệ chứ không phải tuỳ mỗi trang tự đặt: nhịp dọc
- * 72px giữa các khối lớn, khung nội dung 1200px, đệm thẻ 32px. Viết ở đây thì
- * mọi trang đều đúng, kể cả những trang còn đặt `space-y-*`, `p-5`, `gap-6`
- * bằng utility.
+ * Nhịp và khung của trang, và cách JSX hiện có "mặc" hệ kính.
  *
  * Khối này nằm NGOÀI mọi @layer là có chủ ý: khai báo ngoài layer thắng
- * @layer utilities của Tailwind, nên đè được utility viết thẳng trong JSX mà
- * không phải sửa hàng trăm chỗ.
+ * @layer utilities của Tailwind, nên đè được `space-y-*`, `p-5`, `gap-6`,
+ * `border`, `shadow-sm` viết thẳng trong JSX mà không phải sửa hàng trăm chỗ.
  * ------------------------------------------------------------------------ */
 .c-shell { display: flex; flex-direction: column; min-height: 100vh; }
 .c-main {
@@ -631,97 +718,125 @@
 
 .c-main .space-y-8 > * + * { margin-top: var(--section-gap); }
 .c-main .space-y-6 > * + * { margin-top: var(--block-gap); }
-.c-main .grid.gap-4, .c-main .grid.gap-6 { gap: 20px; }
-/* Thẻ trong JSX viết `rounded-2xl border border-[var(--color-border)]
-   shadow-sm`: viền tóc + bóng cứng là thứ làm trang trông như lưới ô kẻ.
-   Bỏ viền, thay bằng độ sâu khuếch tán của hệ. Thẻ lồng trong thẻ thì phẳng
-   hẳn — bóng chồng bóng trông như giấy dán nhiều lớp. */
-.c-main .rounded-2xl[class*="border"],
-.c-card {
+.c-main .grid.gap-4, .c-main .grid.gap-6 { gap: var(--grid-gap); }
+.c-main .rounded-2xl.p-6,
+.c-main .rounded-2xl.p-5,
+.c-main .rounded-2xl.p-4 { padding: var(--card-pad); }
+
+/* Thẻ trên trang → tấm kính. JSX viết `rounded-2xl border
+   border-[var(--color-border)] shadow-sm bg-[var(--color-surface)]`; ở đây
+   thay viền đặc bằng mép tóc, nền đặc bằng lớp sương 3.5% có làm mờ phía sau
+   (lưới nền nhoè đi dưới tấm kính), và bóng thường bằng bộ bóng kính.
+   Không áp cho modal (`.fixed.inset-0`): modal nằm đè lên nội dung, cần mặt
+   "Deep Glass" gần như đục — xem khối ngay dưới. */
+.c-main .rounded-2xl[class*="border"]:not(.fixed *),
+.c-main .rounded-xl[class*="bg-[var(--color-surface)]"][class*="border"]:not(.fixed *) {
+  background-color: var(--glass);
   border-color: transparent;
-  box-shadow: var(--shadow-float);
-  background-image: var(--card-sheen);
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
 }
-.c-main .rounded-2xl .rounded-2xl[class*="border"],
-.c-main .rounded-2xl .rounded-xl[class*="border"] {
-  box-shadow: none;
-  background-image: none;
-  border-color: var(--color-border);
+/* Thẻ lồng trong thẻ: kính trên kính là hai lớp mờ chồng lên nhau, thành
+   xám đục. Thẻ con chỉ còn lớp sương và mép tóc. */
+.c-main .rounded-2xl .rounded-2xl[class*="border"]:not(.fixed *),
+.c-main .rounded-2xl .rounded-xl[class*="border"]:not(.fixed *) {
+  background-color: var(--color-surface-2);
+  box-shadow: var(--hairline);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  border-color: transparent;
+}
+
+/* Modal: Deep Glass. Lớp phủ `bg-black/50` phía sau giữ nguyên. */
+.fixed.inset-0 > [class*="rounded"] {
+  box-shadow: var(--shadow-deep-glass);
+  border-color: transparent;
 }
 
 /* Dải tab dạng viên thuốc (Sổ chi tiêu, Knowledge, Cài đặt đều viết giống
-   nhau: `rounded-full p-1 border shadow-sm`). Thành một thanh kính mờ nổi. */
+   nhau: `rounded-full p-1 border shadow-sm`) → thanh kính. Tab đang chọn
+   trong JSX tô `bg-[var(--color-primary)]`, tức là tím — mà tím chỉ dành cho
+   hành động chính. Đổi thành một lớp sương sáng hơn, đúng như nút chọn
+   sáng/tối trong tài liệu AuthKit. */
 .c-main .rounded-full.p-1[class*="border"] {
   border-color: transparent;
-  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  box-shadow: var(--shadow-float);
+  background: var(--glass);
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+.c-main .rounded-full.p-1[class*="border"] [class*="bg-[var(--color-primary)]"] {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+  box-shadow: var(--hairline-strong);
 }
 
-/* Mọi thứ tô nền cobalt trong JSX (nút chính, tab đang chọn) phát sáng như
+/* Mọi nút tím khác trong JSX (Thêm giao dịch, Lưu, Tạo…) phát sáng như
    `.c-btn-primary`. Bắt qua chuỗi class vì chúng viết thẳng bằng utility. */
-.c-main [class*="bg-[var(--color-primary)]"],
-.c-topnav-item.active {
+.c-main [class*="bg-[var(--color-primary)]"]:not(.rounded-full.p-1 *) {
   box-shadow: var(--glow-primary);
 }
 
-/* Nhãn viết hoa + giãn chữ là giọng của bảng quản trị. Hệ dùng chữ thường,
-   xám dịu, như bảng giao dịch trong ảnh giới thiệu của Mercury ("Date",
-   "To/From", "Amount"). Chỉ áp trong <main>: huy hiệu "EN" trên thanh điều
-   hướng vẫn cần viết hoa. Nhãn 10–12px viết hoa thì đọc được, nhưng chữ
-   thường ở cỡ đó thì quá nhỏ — nên nâng lên 13px. */
-.c-main .uppercase { text-transform: none; letter-spacing: 0; }
-.c-main .uppercase:is(.text-\[9px\], .text-\[10px\], .text-\[11px\], .text-xs) { font-size: 13px; }
+/* Khung icon nhỏ (w-8 h-8 / w-10 h-10 rounded-lg) → hình tròn, đúng "icon
+   containers: 9999px". Thêm mép tóc để chúng đọc như những hạt kính. */
+.c-main [class*="w-8"][class*="h-8"].rounded-lg,
+.c-main [class*="w-9"][class*="h-9"].rounded-lg,
+.c-main [class*="w-10"][class*="h-10"].rounded-lg,
+.c-main [class*="w-10"][class*="h-10"].rounded-xl,
+.c-main [class*="w-12"][class*="h-12"].rounded-xl {
+  border-radius: var(--radius-full);
+  box-shadow: var(--hairline);
+}
 
-/* `p-6` là thẻ lớn (biểu đồ, bảng) — lấy đệm đầy đủ. `p-5`/`p-4` là thẻ chỉ
-   số trong lưới 5 cột: ở 1280px mà cũng lấy 32px thì "2.355.870 ₫" rớt dấu ₫
-   xuống dòng hai. */
-.c-main .rounded-2xl.p-6 { padding: var(--card-pad); }
-.c-main .rounded-2xl.p-5,
-.c-main .rounded-2xl.p-4 { padding: 22px; }
+/* Nhãn viết hoa nhỏ trong JSX (`text-[10px] uppercase tracking-wider`) →
+   nhãn mắt mono của hệ. */
+.c-main .uppercase {
+  font-family: var(--font-mono);
+  letter-spacing: .1em;
+  font-weight: 400;
+}
 
 /* Biểu đồ. Recharts nhận màu qua thuộc tính trình bày (fill=/stroke=) mà một
    số component còn viết cứng bằng mã hex; thuộc tính trình bày có độ ưu tiên
-   thấp nhất trong CSS nên vẽ đè ở đây là đủ. Chỗ nào thêm biểu đồ mới thì
-   dùng token, đừng viết hex. */
+   thấp nhất trong CSS nên vẽ đè ở đây là đủ. Biểu đồ mới thì dùng token,
+   đừng viết hex. Dữ liệu đơn sắc xanh băng — tím không xuất hiện ở đây. */
 .recharts-cartesian-grid line { stroke: var(--color-border); }
-.recharts-text { fill: var(--color-text-faint); font-family: var(--font-body); font-size: 12px; }
+.recharts-text { fill: var(--color-text-faint); font-family: var(--font-mono); font-size: 11px; }
 .recharts-cartesian-axis-line,
 .recharts-cartesian-axis-tick-line { stroke: var(--color-border); }
-.recharts-line-curve, .recharts-area-curve { stroke: var(--color-primary); }
+.recharts-line-curve, .recharts-area-curve { stroke: var(--chart-1); }
 .recharts-line:nth-of-type(2) .recharts-line-curve,
-.recharts-area:nth-of-type(2) .recharts-area-curve { stroke: var(--color-text-muted); }
-.recharts-line-dot { fill: var(--color-primary); stroke: none; }
-.recharts-area-area { fill: var(--color-primary); opacity: .14; }
-.recharts-bar-rectangle path { fill: var(--color-primary); }
+.recharts-area:nth-of-type(2) .recharts-area-curve { stroke: var(--chart-3); }
+.recharts-line-dot { fill: var(--chart-1); stroke: none; }
+.recharts-area-area { fill: var(--chart-1); opacity: .12; }
+.recharts-bar-rectangle path { fill: var(--chart-1); }
 .recharts-default-tooltip {
-  background: var(--color-surface-2) !important;
+  background: var(--color-surface) !important;
   border: none !important;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-deep-glass);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13px;
 }
-/* Biểu đồ tròn: một nấc cobalt rồi chuyển sang thang sắc độ — hệ chỉ có một
-   màu chủ đạo, phần còn lại phân biệt bằng độ sáng. */
-.recharts-pie-sector:nth-of-type(6n + 1) path { fill: var(--color-primary); }
-.recharts-pie-sector:nth-of-type(6n + 2) path { fill: var(--color-text); }
-.recharts-pie-sector:nth-of-type(6n + 3) path { fill: var(--color-text-muted); }
-.recharts-pie-sector:nth-of-type(6n + 4) path { fill: var(--slate); }
-.recharts-pie-sector:nth-of-type(6n + 5) path { fill: #3f4054; }
-.recharts-pie-sector:nth-of-type(6n + 6) path { fill: var(--color-surface-2); }
+.recharts-pie-sector:nth-of-type(6n + 1) path { fill: var(--chart-1); }
+.recharts-pie-sector:nth-of-type(6n + 2) path { fill: var(--chart-2); }
+.recharts-pie-sector:nth-of-type(6n + 3) path { fill: var(--chart-3); }
+.recharts-pie-sector:nth-of-type(6n + 4) path { fill: var(--chart-4); }
+.recharts-pie-sector:nth-of-type(6n + 5) path { fill: var(--chart-5); }
+.recharts-pie-sector:nth-of-type(6n + 6) path { fill: var(--chart-6); }
 
 /* ---------------------------------------------------------------------------
  * Khung shell theo bề ngang màn hình.
  *
- * Quy định nằm ở đây chứ không phải bằng class tiện ích trên từng component:
- * `.c-topnav { display: flex }` và `.c-bottomnav { display: flex }` được khai
- * báo NGOÀI @layer nên luôn đè `hidden md:flex` / `md:hidden` của Tailwind.
- * Thiếu khối này thì thanh dưới của điện thoại hiện nguyên trên máy tính —
- * đúng lỗi đã xảy ra ngay lần chạy đầu sau khi đổi hệ.
+ * `.c-topnav { display: flex }` và `.c-bottomnav { display: flex }` khai báo
+ * NGOÀI @layer nên luôn đè `hidden md:flex` / `md:hidden` của Tailwind. Thiếu
+ * khối này thì thanh dưới của điện thoại hiện nguyên trên máy tính.
  * ------------------------------------------------------------------------ */
 @media (max-width: 767px) {
   .c-topnav { display: none; }
 }
 @media (min-width: 768px) {
   .c-bottomnav { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
 }

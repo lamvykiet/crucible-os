@@ -41,10 +41,10 @@ export default function TopNav() {
   return (
     <header className="c-topnav hidden md:flex">
       <Link href="/" className="flex items-center gap-3 flex-none pr-6 no-underline hover:no-underline">
-        <span className="w-8 h-8 rounded-full flex items-center justify-center bg-[var(--color-primary)] text-[var(--color-on-primary)] text-sm font-medium">
-          C
-        </span>
-        <span className="c-h4 text-[var(--color-text)]">Crucible</span>
+        {/* Không tô tím: tím chỉ dành cho hành động chính. Logo là một hạt
+            kính với chữ Skywash, như wordmark của AuthKit. */}
+        <span className="c-logo-mark w-8 h-8"><span>C</span></span>
+        <span className="c-logo-word">Crucible</span>
       </Link>
 
       <nav className="flex items-center gap-1 flex-1">
