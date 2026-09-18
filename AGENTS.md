@@ -63,8 +63,14 @@ tải lại trang.
 **Design system là "Mercury"** → nền onyx `#171721`, thẻ graphite `#1e1e2a`,
 chữ ngà `#ededf3`, và **một** màu cobalt `#5266eb`. Ba luật: cobalt chỉ dành cho
 hành động chính và mục điều hướng đang mở (không tô icon, không tô nút phụ);
-không đổ bóng, phân tầng bằng bậc giá trị; nút/ô nhập/mục điều hướng luôn là
-viên thuốc 32–40px, thẻ 12px, góc 4px chỉ cho chi tiết cấu trúc.
+không bóng cứng, không viền quanh thẻ — độ sâu là bậc giá trị cộng
+`--shadow-float` khuếch tán; nút/ô nhập/mục điều hướng luôn là viên thuốc
+32–40px, thẻ `rounded-2xl` 18px, góc 4px chỉ cho chi tiết cấu trúc.
+
+**Nhãn viết chữ thường.** Trong `<main>`, `.uppercase` bị gỡ và
+`font-bold`/`tracking-wider` bị hạ giọng qua biến theme của Tailwind
+(`--font-weight-bold: 560`, `--tracking-wider: .01em`) — đừng "sửa" bằng cách
+viết `font-extrabold` hay `uppercase` mới, chúng cũng bị hạ theo.
 
 Bốn màu ngữ nghĩa (`--color-success/warning/error/info`) là chỗ **cố ý lệch**
 khỏi bản tham chiếu, vì sổ thu chi cần phân biệt thu/chi trong một nháy mắt.

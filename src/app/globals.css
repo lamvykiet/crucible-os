@@ -12,7 +12,10 @@
  *
  *   1. Cobalt CHỈ dành cho hành động chính và mục điều hướng đang mở. Không
  *      dùng làm màu trang trí, không tô lên icon, không tô lên nút phụ.
- *   2. Không đổ bóng. Phân tầng bằng bậc giá trị onyx → graphite → obsidian.
+ *   2. Không có bóng CỨNG, không viền quanh thẻ. Độ sâu đến từ bậc giá trị,
+ *      cộng một lớp bóng khuếch tán rất rộng và rất nhạt (`--shadow-float`)
+ *      để thẻ trông như "nổi" trên nền chứ không như ô kẻ — đúng cách Mercury
+ *      trình bày giao diện sản phẩm của họ trên nền sáng.
  *   3. Nút, ô nhập và mục điều hướng luôn là viên thuốc (32–40px). Góc 4px
  *      chỉ dành cho chi tiết cấu trúc, 12px cho thẻ.
  *
@@ -49,8 +52,25 @@
   --text-body: 400 15px/1.55 var(--font-body);
   --text-body-sm: 400 14px/1.5 var(--font-body);
   --text-caption: 400 13px/1.4 var(--font-body);
-  --text-overline: 480 12px/1.35 var(--font-body); /* + letter-spacing .06em, uppercase */
+  --text-overline: 480 13px/1.35 var(--font-body); /* chữ thường — hệ không dùng nhãn viết hoa */
   --text-stat: 480 clamp(26px, 3vw, 34px)/1.15 var(--font-display);
+
+  /* Hạ giọng các utility Tailwind đang rải khắp JSX.
+   *
+   * `font-bold` (700) và `tracking-wider` (0.05em) có ở hàng trăm chỗ, và
+   * chính chúng làm giao diện trông như một bảng quản trị: nhãn đậm, giãn,
+   * la to. Mercury không bao giờ vượt quá ~530. Tailwind v4 dựng các utility
+   * này từ biến theme (`font-weight: var(--font-weight-bold)`), nên đổi biến
+   * ở đây là đổi được toàn bộ mà không sửa một dòng JSX — cùng cơ chế với cái
+   * bẫy `--radius-*` ghi ở dưới, lần này dùng có chủ đích. */
+  --font-weight-medium: 480;
+  --font-weight-semibold: 520;
+  --font-weight-bold: 560;
+  --font-weight-extrabold: 600;
+  --font-weight-black: 640;
+  --tracking-wide: .005em;
+  --tracking-wider: .01em;
+  --tracking-widest: .03em;
 
   /* Trục bề rộng của Archivo. Kéo rộng hơn mặc định một chút là thứ tạo ra
      cảm giác "wide-set, architectural" của hệ; dưới 100 là chữ bó lại và mất
@@ -131,11 +151,30 @@
 
   --color-focus: var(--cobalt);
 
+  /* Hành động chính phát sáng nhẹ bằng chính màu của nó, cộng một đường sáng
+     ở mép trên — nút cobalt trong ảnh Mercury trông như có ánh đèn. */
+  --glow-primary:
+    inset 0 1px 0 rgba(255, 255, 255, .22),
+    0 8px 22px -10px rgba(82, 102, 235, .75);
+
   /* Bản đồ nhiệt chi tiêu tự pha alpha theo độ đậm nên cần màu dạng ba thành
      phần RGB chứ không phải mã hex. */
   --heat-rgb: 82, 102, 235;
   --heat-empty: rgba(226, 227, 237, .05);
   --heat-fg-strong: #ffffff;
+
+  /* Độ sâu trên nền tối: một đường sáng 1px ở mép trên (như mặt kính bắt
+     sáng) cộng bóng rơi rất rộng. Không có đường sáng đó thì thẻ graphite
+     trên nền onyx trông như bị dán phẳng xuống. */
+  --shadow-float:
+    inset 0 1px 0 rgba(255, 255, 255, .05),
+    0 24px 48px -28px rgba(0, 0, 0, .7);
+  --card-sheen: linear-gradient(180deg, rgba(255, 255, 255, .028), rgba(255, 255, 255, 0) 55%);
+  /* "Blue hour": quầng cobalt và tím lạnh ở đỉnh trang, như bầu trời lúc
+     chạng vạng trong ảnh hero của Mercury. */
+  --glow-a: rgba(82, 102, 235, .24);
+  --glow-b: rgba(150, 120, 255, .12);
+  --glow-c: rgba(90, 170, 255, .08);
 }
 
 /* Bảng sáng — chỉ áp khi người dùng chọn tay. Vẫn là Mercury: cùng cobalt,
@@ -143,17 +182,20 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  --color-bg: #f5f6fa;
+  /* Giấy ẤM, không phải xám lạnh. Nền xám xanh #f5f6fa của bản đầu làm cả
+     trang trông vô trùng như bảng quản trị; nền sản phẩm của Mercury là một
+     tông kem rất nhạt, và cobalt đứng trên nền ấm thì mới "sáng" lên được. */
+  --color-bg: #f6f4ef;
   --color-surface: #ffffff;
-  --color-surface-2: #eceef5;
-  --color-surface-3: #dfe2ed;
+  --color-surface-2: #f1eee8;
+  --color-surface-3: #e6e2da;
 
-  --color-text: var(--onyx);
-  --color-text-muted: #5c5e70;
-  --color-text-faint: #8b8d9e;
+  --color-text: #1b1a22;
+  --color-text-muted: #5f5c66;
+  --color-text-faint: #95919b;
 
-  --color-border: rgba(23, 23, 33, .1);
-  --color-border-strong: rgba(23, 23, 33, .26);
+  --color-border: rgba(40, 30, 20, .08);
+  --color-border-strong: rgba(40, 30, 20, .2);
 
   --color-primary: var(--cobalt);
   --color-primary-hover: #4356d4;
@@ -173,8 +215,17 @@
   --color-info-tint: rgba(59, 84, 201, .12);
 
   --heat-rgb: 82, 102, 235;
-  --heat-empty: #eceef5;
+  --heat-empty: #f1eee8;
   --heat-fg-strong: #ffffff;
+
+  --shadow-float:
+    0 1px 2px rgba(40, 30, 20, .04),
+    0 10px 30px -12px rgba(50, 50, 110, .14),
+    0 30px 60px -30px rgba(70, 70, 160, .12);
+  --card-sheen: none;
+  --glow-a: rgba(110, 125, 255, .22);
+  --glow-b: rgba(255, 186, 140, .24);
+  --glow-c: rgba(190, 170, 255, .18);
 }
 
 /* ---------------------------------------------------------------------------
@@ -203,8 +254,8 @@
   --radius-md: 8px;
   --radius-lg: 12px;   /* thẻ */
   --radius-xl: 12px;
-  --radius-2xl: 12px;
-  --radius-3xl: 12px;
+  --radius-2xl: 18px;  /* `rounded-2xl` = thẻ trong JSX */
+  --radius-3xl: 24px;
   --radius-pill: 32px; /* nút, ô nhập */
   --radius-nav: 40px;  /* mục điều hướng, chip */
   --radius-full: 9999px;
@@ -247,7 +298,15 @@
 @layer base {
   body {
     margin: 0;
-    background: var(--color-bg);
+    /* Ba quầng sáng rất nhạt thay cho một mảng màu phẳng — thứ tạo ra cái
+       "lung linh" của ảnh giới thiệu Mercury. Cố định theo khung nhìn để cuộn
+       tới đâu ánh sáng cũng nằm yên. */
+    background:
+      radial-gradient(1100px 620px at 12% -12%, var(--glow-a), transparent 62%),
+      radial-gradient(900px 560px at 92% -8%, var(--glow-b), transparent 60%),
+      radial-gradient(1200px 700px at 50% 115%, var(--glow-c), transparent 65%),
+      var(--color-bg);
+    background-attachment: fixed;
     color: var(--color-text);
     font: var(--text-body);
     -webkit-font-smoothing: antialiased;
@@ -318,14 +377,17 @@
      `c-h2`/`c-h3` dùng chung cho tiêu đề thẻ và tiêu đề modal (riêng `c-h3`
      có 20 chỗ dùng), nên không có mốc riêng này thì không thể phóng tiêu đề
      trang lên cỡ tuyên ngôn mà không phóng luôn tiêu đề mọi cái thẻ. */
+  /* Nhẹ hơn các tiêu đề khác (420, bề ngang chuẩn): ở cỡ 56px mà vẫn 480 và
+     kéo rộng 108 thì chữ thành một khối đặc — đúng cái nặng nề trong ảnh chụp
+     Knowledge Hub. Tiêu đề hero của Mercury nhẹ và thoáng. */
   .c-page-title {
-    font: 480 clamp(34px, 5vw, 56px)/1.1 var(--font-display);
-    letter-spacing: .01em;
-    font-variation-settings: "wdth" var(--display-width);
+    font: 420 clamp(34px, 4.6vw, 54px)/1.1 var(--font-display);
+    letter-spacing: -.005em;
+    font-variation-settings: "wdth" 100;
   }
 
-  .c-overline { font: var(--text-overline); letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-muted); }
-  .c-card-kicker { font: var(--text-overline); letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-faint); margin-bottom: 10px; }
+  .c-overline { font: var(--text-overline); color: var(--color-text-muted); }
+  .c-card-kicker { font: var(--text-overline); color: var(--color-text-faint); margin-bottom: 10px; }
   .c-card-title { font: var(--text-h3); margin-bottom: 8px; }
   .c-card-body { font: var(--text-body); color: var(--color-text-muted); }
   .c-stat-value { font: var(--text-stat); letter-spacing: .01em; font-variation-settings: "wdth" var(--display-width); }
@@ -350,7 +412,10 @@
 }
 .c-btn:hover { text-decoration: none; }
 .c-btn:disabled, .c-btn[aria-disabled="true"] { opacity: .4; pointer-events: none; }
-.c-btn-primary { background: var(--color-primary); color: var(--color-on-primary); }
+.c-btn-primary {
+  background: var(--color-primary); color: var(--color-on-primary);
+  box-shadow: var(--glow-primary);
+}
 .c-btn-primary:hover { background: var(--color-primary-hover); color: var(--color-on-primary); }
 .c-btn-primary:active { background: var(--color-primary-active); }
 
@@ -381,7 +446,7 @@
 
 /* Forms — ô nhập cũng là viên thuốc, nền obsidian. */
 .c-field { display: flex; flex-direction: column; gap: 8px; }
-.c-field > label { font: var(--text-overline); letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-faint); }
+.c-field > label { font: var(--text-overline); color: var(--color-text-muted); }
 .c-input, .c-select, .c-textarea {
   background: var(--color-surface-2); color: var(--color-text);
   border: 1px solid var(--color-border); border-radius: var(--radius-pill);
@@ -471,7 +536,7 @@
 /* Table */
 .c-table { width: 100%; border-collapse: collapse; font: var(--text-body); }
 .c-table th {
-  font: var(--text-overline); letter-spacing: .06em; text-transform: uppercase;
+  font: var(--text-overline);
   color: var(--color-text-faint); text-align: left; padding: 12px 14px;
   border-bottom: 1px solid var(--color-border-strong);
 }
@@ -567,6 +632,47 @@
 .c-main .space-y-8 > * + * { margin-top: var(--section-gap); }
 .c-main .space-y-6 > * + * { margin-top: var(--block-gap); }
 .c-main .grid.gap-4, .c-main .grid.gap-6 { gap: 20px; }
+/* Thẻ trong JSX viết `rounded-2xl border border-[var(--color-border)]
+   shadow-sm`: viền tóc + bóng cứng là thứ làm trang trông như lưới ô kẻ.
+   Bỏ viền, thay bằng độ sâu khuếch tán của hệ. Thẻ lồng trong thẻ thì phẳng
+   hẳn — bóng chồng bóng trông như giấy dán nhiều lớp. */
+.c-main .rounded-2xl[class*="border"],
+.c-card {
+  border-color: transparent;
+  box-shadow: var(--shadow-float);
+  background-image: var(--card-sheen);
+}
+.c-main .rounded-2xl .rounded-2xl[class*="border"],
+.c-main .rounded-2xl .rounded-xl[class*="border"] {
+  box-shadow: none;
+  background-image: none;
+  border-color: var(--color-border);
+}
+
+/* Dải tab dạng viên thuốc (Sổ chi tiêu, Knowledge, Cài đặt đều viết giống
+   nhau: `rounded-full p-1 border shadow-sm`). Thành một thanh kính mờ nổi. */
+.c-main .rounded-full.p-1[class*="border"] {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-float);
+}
+
+/* Mọi thứ tô nền cobalt trong JSX (nút chính, tab đang chọn) phát sáng như
+   `.c-btn-primary`. Bắt qua chuỗi class vì chúng viết thẳng bằng utility. */
+.c-main [class*="bg-[var(--color-primary)]"],
+.c-topnav-item.active {
+  box-shadow: var(--glow-primary);
+}
+
+/* Nhãn viết hoa + giãn chữ là giọng của bảng quản trị. Hệ dùng chữ thường,
+   xám dịu, như bảng giao dịch trong ảnh giới thiệu của Mercury ("Date",
+   "To/From", "Amount"). Chỉ áp trong <main>: huy hiệu "EN" trên thanh điều
+   hướng vẫn cần viết hoa. Nhãn 10–12px viết hoa thì đọc được, nhưng chữ
+   thường ở cỡ đó thì quá nhỏ — nên nâng lên 13px. */
+.c-main .uppercase { text-transform: none; letter-spacing: 0; }
+.c-main .uppercase:is(.text-\[9px\], .text-\[10px\], .text-\[11px\], .text-xs) { font-size: 13px; }
+
 /* `p-6` là thẻ lớn (biểu đồ, bảng) — lấy đệm đầy đủ. `p-5`/`p-4` là thẻ chỉ
    số trong lưới 5 cột: ở 1280px mà cũng lấy 32px thì "2.355.870 ₫" rớt dấu ₫
    xuống dòng hai. */
