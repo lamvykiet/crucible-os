@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import { Newsreader, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import { ThemeProvider } from "@/lib/ThemeContext";
@@ -10,29 +10,33 @@ import MainLayoutWrapper from "@/components/MainLayoutWrapper";
 // mới vẽ. next/font tự host file font và nội tuyến @font-face, bỏ được một
 // round-trip sang domain khác.
 
-// Ba giọng chữ của hệ AuthKit. Cả ba đều là bản thay thế mà tài liệu gợi ý
-// cho chữ riêng của họ, và cả ba đều có bộ ký tự tiếng Việt.
+// Ba giọng chữ của hệ Function. Cả ba đều có bộ ký tự tiếng Việt.
 //
-// Tiêu đề — aeonikPro → Space Grotesk. Chỉ dùng 400/500: chữ display của hệ
-// có uy lực nhờ cỡ lớn ở trọng lượng 500, không nhờ đậm.
-const spaceGrotesk = Space_Grotesk({
+// Tiêu đề — Financier Display → Newsreader. Tài liệu gợi ý GT Super / Domaine
+// / Tiempos, cả ba đều là font thương mại; Newsreader là serif biên tập
+// tương phản cao gần nhất trên Google Fonts, và quan trọng là CÓ CHỮ NGHIÊNG —
+// không có nghiêng thì mất luôn nước cờ đặc trưng nhất của hệ (roman xen
+// nghiêng trong cùng một dòng tiêu đề). Chỉ nạp 300/400: serif không bao giờ
+// đậm hơn trong hệ này.
+const newsreader = Newsreader({
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600"],
+  weight: ["300", "400"],
+  style: ["normal", "italic"],
   variable: "--font-display-src",
   display: "swap",
 });
 
-// Thân bài và giao diện — Untitled Sans → Inter.
+// Thân bài và giao diện — Ftbase → Inter.
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
   variable: "--font-body-src",
   display: "swap",
 });
 
-// Nhãn mắt viết hoa giãn chữ — dotDigital → JetBrains Mono.
+// Nhãn siêu nhỏ trong huy hiệu — Fragment Mono → JetBrains Mono. Dùng dè.
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500"],
+  weight: ["400"],
   variable: "--font-mono-src",
   display: "swap",
 });
@@ -50,8 +54,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#05060f" },
-    { media: "(prefers-color-scheme: dark)", color: "#05060f" },
+    { media: "(prefers-color-scheme: light)", color: "#fef9ef" },
+    { media: "(prefers-color-scheme: dark)", color: "#fef9ef" },
   ],
 };
 
@@ -61,12 +65,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // Nền tối là mặc định của hệ, và nó do `:root` trong globals.css áp ngay
+    // Giấy kem là mặc định của hệ, và nó do `:root` trong globals.css áp ngay
     // lúc trình duyệt phân tích CSS — không nháy màu, không cần script khởi
     // tạo. ThemeProvider chỉ đặt data-theme khi người dùng chọn tay.
     <html
       lang="vi"
-      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${newsreader.variable} ${inter.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <body suppressHydrationWarning>

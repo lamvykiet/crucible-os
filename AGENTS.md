@@ -60,24 +60,32 @@ không báo lỗi gì**. Phải dời trong cùng một `$transaction` — xem
 Hook cache ở cấp module, không xoá thì mọi modal vẫn hiện danh sách cũ tới khi
 tải lại trang.
 
-**Design system là "AuthKit"** → nền midnight `#05060f` có lưới bản vẽ 80px
-và luồng sáng rọi từ đỉnh (vẽ bằng `body::before/::after`, nên **nền màu đặt
-trên `<html>`, `<body>` phải trong suốt** — cho `<body>` một nền là lưới biến
-mất). Thẻ là tấm kính: nền sương 3.5% + mép tóc + bộ bóng lõm (`--shadow-glass`),
-không viền đặc, không bóng thường. Tiêu đề trang (`.c-page-title`) tô gradient
-Skywash. Bốn luật: tím `#663af3` **chỉ** cho hành động chính — tab đang chọn,
-mục điều hướng đang mở, logo đều sáng lên bằng lớp sương, **không** tô tím;
-mép của mọi thứ là đường tóc rgba(186,215,247,.12); nút luôn viên thuốc 999px,
-thẻ 16px, ô nhập/huy hiệu 6px, khung icon tròn; nhãn nhỏ viết hoa là mono giãn .1em.
+**Design system là "Function"** → giấy kem `#fef9ef`, thẻ giấy cũ `#f5eee1`,
+viền taupe `#d1c9bf`, chữ mực `#2a2b2f`, và **một** màu đất nung `#b05a36`.
+Năm luật: không dùng trắng tinh làm nền; độ nổi đến từ bậc màu chứ không từ
+bóng (chỉ modal và ô nhập đang gõ được phép có bóng); đất nung chỉ cho ba việc
+— nút chính, nhãn mắt, trạng thái đang chọn; serif chỉ cho tiêu đề biên tập,
+còn thân bài/nhãn/nút đều là sans bó chữ `-0.023em`; hình khối là thẻ 24px,
+nút 40px, ô nhập và tag bo tròn hẳn, mục điều hướng 12px.
+
+Chữ nghiêng serif (`.c-italic`) là nước cờ đặc trưng nhất của hệ — roman xen
+nghiêng trong cùng một dòng tiêu đề. Chỉ cho serif từ 34px trở lên, không bao
+giờ cho nhãn hay thân bài.
 
 Màu ngữ nghĩa (`--color-success/warning/error/info`) là chỗ **cố ý lệch** khỏi
-bản tham chiếu, lấy từ chính ô màu mẫu của AuthKit. Chỉ được xuất hiện trên
-**con số, icon và nền tint** — không bao giờ trên nền thẻ, nút hay thanh
-điều hướng. Modal (`.fixed.inset-0 > …`) dùng mặt "Deep Glass" gần đục, không
-dùng kính trong — đừng để quy tắc thẻ kính lan vào modal.
+bản tham chiếu; cả bốn đều trong họ đất (rêu, thổ hoàng, đất nung, tro). Chỉ
+được xuất hiện trên **con số, icon và nền tint** — không bao giờ trên nền thẻ,
+nút hay thanh điều hướng.
 
-**Tối là mặc định, không theo hệ điều hành.** Bảng tối nằm thẳng trên `:root`;
-bảng sáng chỉ áp khi người dùng bấm nút (`[data-theme="light"]`). Bản cũ phải
+**`space-y-*` gán margin cho CẢ modal.** Modal được render như phần tử anh em
+ngay trong khối `space-y-*` của trang, nên quy tắc nhịp trang trong
+`globals.css` từng gán `margin-top` lên lớp phủ `fixed inset-0` — ở khổ 375px
+modal bị đẩy xuống 48px và nút lưu rớt khỏi đáy màn hình. Quy tắc nhịp phải
+luôn có `:not(.fixed)`, và có thêm `.c-main .fixed.inset-0 { margin: 0 }` chặn
+lần cuối. Đừng bỏ hai thứ đó.
+
+**Sáng là mặc định, không theo hệ điều hành.** Bảng sáng nằm thẳng trên
+`:root`; bảng tối chỉ áp khi người dùng bấm nút (`[data-theme="dark"]`). Bản cũ phải
 viết bảng tối hai lần và bắt hai khối giống hệt nhau — cái bẫy đó không còn.
 
 **Không có sidebar.** Toàn bộ điều hướng nằm trên `TopNav` (thanh ngang dính

@@ -17,8 +17,8 @@ export const THEME_STORAGE_KEY = "app_theme";
 /**
  * Chế độ sáng/tối.
  *
- * TỐI LÀ MẶC ĐỊNH, không theo cài đặt hệ điều hành: nền onyx là bản sắc của
- * design system, còn bảng sáng là thứ người dùng chủ động chọn. Bảng tối nằm
+ * SÁNG LÀ MẶC ĐỊNH, không theo cài đặt hệ điều hành: giấy kem là bản sắc của
+ * design system, còn bảng tối là thứ người dùng chủ động chọn. Bảng sáng nằm
  * ngay trên `:root` trong globals.css nên được áp từ lúc trình duyệt phân tích
  * CSS, trước cả khi React chạy — không bao giờ nháy màu.
  *
@@ -31,7 +31,7 @@ export const THEME_STORAGE_KEY = "app_theme";
  * data-theme lên <html> và lưu vào localStorage.
  */
 
-const DEFAULT_THEME: Theme = "dark";
+const DEFAULT_THEME: Theme = "light";
 
 function storedTheme(): Theme | null {
   if (typeof window === "undefined") return null;
