@@ -130,6 +130,23 @@
   --shadow-input-glow: rgba(0, 0, 0, .12) 0 0 20px 0;
   --focus-ring: 0 0 0 3px rgba(176, 90, 54, .2);
 
+  /* Độ sâu của thẻ.
+     Function cấm "bóng nhỏ sắc nét" chứ không cấm độ sâu — nên bóng ở đây rất
+     rộng, rất nhạt và ám ấm, cùng họ với hai công thức trên. Thêm một đường
+     sáng 1px ở mép trên để thẻ đọc ra "tờ giấy đặt trên tờ giấy" chứ không
+     phải một ô màu. */
+  --card-edge: inset 0 1px 0 rgba(255, 255, 255, .75);
+  --card-sheen: linear-gradient(180deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 45%);
+  --shadow-card:
+    0 1px 2px rgba(42, 43, 47, .04),
+    0 10px 24px -14px rgba(42, 43, 47, .18),
+    0 28px 56px -32px rgba(42, 43, 47, .16);
+  --shadow-card-hover:
+    0 2px 4px rgba(42, 43, 47, .05),
+    0 16px 32px -14px rgba(42, 43, 47, .22),
+    0 40px 72px -36px rgba(42, 43, 47, .2);
+  --shadow-nav: 0 1px 0 var(--color-border), 0 14px 28px -22px rgba(42, 43, 47, .28);
+
   /* Vân giấy: một lớp nhiễu rất nhạt phủ toàn trang. Không có trong tài liệu
      — thêm vào để nền kem đọc ra "giấy" chứ không phải một mảng màu phẳng. */
   --grain-opacity: .045;
@@ -185,6 +202,19 @@
   --shadow-float: rgba(0, 0, 0, .55) 12px 32px 80px 0;
   --shadow-input-glow: rgba(0, 0, 0, .5) 0 0 20px 0;
   --focus-ring: 0 0 0 3px rgba(197, 106, 66, .28);
+
+  /* Trên nền đêm, đường sáng mép trên là thứ tạo ra độ sâu; bóng rơi chỉ phụ. */
+  --card-edge: inset 0 1px 0 rgba(243, 234, 217, .07);
+  --card-sheen: linear-gradient(180deg, rgba(243, 234, 217, .035), rgba(243, 234, 217, 0) 45%);
+  --shadow-card:
+    0 1px 2px rgba(0, 0, 0, .3),
+    0 14px 30px -16px rgba(0, 0, 0, .55),
+    0 34px 64px -34px rgba(0, 0, 0, .5);
+  --shadow-card-hover:
+    0 2px 4px rgba(0, 0, 0, .35),
+    0 20px 40px -16px rgba(0, 0, 0, .62),
+    0 48px 84px -40px rgba(0, 0, 0, .55);
+  --shadow-nav: 0 1px 0 var(--color-border), 0 16px 30px -24px rgba(0, 0, 0, .7);
 
   --grain-opacity: .05;
 
@@ -392,6 +422,9 @@ body::before {
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 .c-btn:hover { text-decoration: none; }
+.c-btn:active { transform: translateY(1px); }
+.c-btn-primary { box-shadow: 0 8px 18px -10px rgba(176, 90, 54, .8); }
+.c-btn-primary:hover { box-shadow: 0 12px 24px -10px rgba(176, 90, 54, .9); }
 .c-btn:disabled, .c-btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
 .c-btn-primary { background: var(--color-primary); color: var(--color-on-primary); }
 .c-btn-primary:hover { background: var(--color-primary-hover); color: var(--color-on-primary); }
@@ -466,9 +499,13 @@ body::before {
 
 /* Cards — giấy cũ trên giấy mới, một bậc màu, không bóng. */
 .c-card {
-  background: var(--color-surface); border: 1px solid transparent;
+  background-color: var(--color-surface); background-image: var(--card-sheen);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl); padding: var(--card-pad);
+  box-shadow: var(--card-edge), var(--shadow-card);
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
+.c-card:hover { box-shadow: var(--card-edge), var(--shadow-card-hover); transform: translateY(-2px); }
 .c-elev-md, .c-elev-lg { box-shadow: var(--shadow-float); }
 
 /* Tags — bo tròn hẳn */
@@ -543,7 +580,8 @@ body::before {
   padding: 12px var(--shell-pad-x);
   background: color-mix(in srgb, var(--color-bg) 88%, transparent);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: none;
+  box-shadow: var(--shadow-nav);
   /* Năm mục điều hướng + ba nút điều khiển trên một hàng: ở 1024px thì mục
      cuối bị cắt ở mép phải. Cho cuộn ngang thay vì cắt. */
   overflow-x: auto; scrollbar-width: none;
@@ -630,14 +668,28 @@ body::before {
 .c-main .rounded-2xl[class*="border"]:not(.fixed *),
 .c-main .rounded-xl[class*="bg-[var(--color-surface)]"][class*="border"]:not(.fixed *) {
   background-color: var(--color-surface);
+  background-image: var(--card-sheen);
   border-color: var(--color-border);
-  box-shadow: none;
+  box-shadow: var(--card-edge), var(--shadow-card);
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+/* Rê chuột: tờ giấy nhấc lên một chút và bóng dài ra. */
+.c-main .rounded-2xl[class*="border"]:not(.fixed *):hover {
+  box-shadow: var(--card-edge), var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 /* Thẻ lồng trong thẻ: lùi thêm một bậc để vẫn tách khỏi thẻ mẹ. */
 .c-main .rounded-2xl .rounded-2xl[class*="border"]:not(.fixed *),
 .c-main .rounded-2xl .rounded-xl[class*="border"]:not(.fixed *) {
   background-color: var(--color-bg);
+  background-image: none;
   border-color: var(--color-border);
+  box-shadow: none;
+  transform: none;
+}
+.c-main .rounded-2xl .rounded-2xl[class*="border"]:not(.fixed *):hover,
+.c-main .rounded-2xl .rounded-xl[class*="border"]:not(.fixed *):hover {
+  box-shadow: none; transform: none;
 }
 
 /* Lớp phủ modal phải phủ ĐÚNG cả màn hình. Ngoài `space-y-*` ở trên, JSX còn
@@ -732,6 +784,77 @@ body::before {
 @media (min-width: 768px) {
   .c-bottomnav { display: none; }
 }
+
+/* ---------------------------------------------------------------------------
+ * Chuyển động.
+ *
+ * JSX đã rải sẵn `animate-in`, `fade-in`, `zoom-in-95` ở 53 chỗ (modal, đổi
+ * tab, thẻ mới hiện ra) — nhưng plugin `tailwindcss-animate` KHÔNG được cài,
+ * nên tới giờ chúng là class chết, viết ra mà không chạy gì. Định nghĩa ở đây
+ * là 53 chỗ đó sống lại, không phải sửa một dòng JSX nào.
+ *
+ * Nhịp theo tinh thần của hệ: chậm, trôi, không giật. Mọi thứ đi lên một quãng
+ * ngắn rồi hiện ra, dùng đúng đường cong `--ease` của hệ.
+ *
+ * FILL-MODE PHẢI LÀ `backwards`, KHÔNG ĐƯỢC LÀ `both`.
+ * Phần tử đang giữ một animation có `transform` (kể cả transform đơn vị) trở
+ * thành KHỐI CHỨA cho mọi con `position: fixed` của nó. `animate-in` nằm trên
+ * đúng cái div bọc nội dung tab, mà modal thì render bên trong div đó — để
+ * `both` là lớp phủ modal thôi tính theo màn hình, nó co lại vừa khung nội
+ * dung và nút lưu rớt ra ngoài. `backwards` chỉ giữ khung ĐẦU trước khi chạy,
+ * chạy xong là trả phần tử về trạng thái thường, nên không còn khối chứa nào.
+ * Khung cuối của mọi keyframe ở đây đúng bằng giá trị mặc định (opacity 1,
+ * transform none) nên không hề nhảy hình khi animation kết thúc.
+ * ------------------------------------------------------------------------ */
+@keyframes c-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--enter-y, 8px)) scale(var(--enter-scale, 1));
+  }
+  to { opacity: 1; transform: none; }
+}
+
+.animate-in { animation: c-enter var(--dur-enter, .42s) var(--ease) backwards; }
+.fade-in { --enter-y: 6px; }
+.zoom-in-95 { --enter-scale: .97; --enter-y: 10px; }
+[class*="slide-in-from-bottom"] { --enter-y: 20px; }
+[class*="slide-in-from-top"] { --enter-y: -14px; }
+
+/* `duration-*` của Tailwind chỉ đặt `transition-duration`; với phần tử đang
+   chạy animation thì phải nói riêng. */
+.animate-in.duration-200 { --dur-enter: .2s; }
+.animate-in.duration-300 { --dur-enter: .3s; }
+.animate-in.duration-500 { --dur-enter: .5s; }
+
+/* Các khối lớn của trang hiện ra lần lượt, không ào ra cùng lúc. Dừng ở mục
+   thứ sáu — trễ hơn nữa thì người dùng phải CHỜ giao diện, và đó là lỗi. */
+.c-main .space-y-8 > *,
+.c-main .grid > [class*="rounded-2xl"] {
+  animation: c-enter .42s var(--ease) backwards;
+}
+.c-main .space-y-8 > *:nth-child(2),
+.c-main .grid > [class*="rounded-2xl"]:nth-child(2) { animation-delay: .05s; }
+.c-main .space-y-8 > *:nth-child(3),
+.c-main .grid > [class*="rounded-2xl"]:nth-child(3) { animation-delay: .1s; }
+.c-main .space-y-8 > *:nth-child(4),
+.c-main .grid > [class*="rounded-2xl"]:nth-child(4) { animation-delay: .15s; }
+.c-main .space-y-8 > *:nth-child(5),
+.c-main .grid > [class*="rounded-2xl"]:nth-child(5) { animation-delay: .2s; }
+.c-main .space-y-8 > *:nth-child(n + 6),
+.c-main .grid > [class*="rounded-2xl"]:nth-child(n + 6) { animation-delay: .25s; }
+
+/* Lớp phủ modal KHÔNG được có transform còn sót lại: một phần tử `fixed` mà
+   mang transform sẽ thành khối chứa cho con nó, và lớp phủ thôi phủ kín màn
+   hình. `both` giữ khung cuối (transform: none) nên an toàn, nhưng chặn thêm
+   một lần cho chắc — cùng lý do với `margin: 0` ở khối trên. */
+.c-main .fixed.inset-0 { --enter-y: 0; --enter-scale: 1; }
+
+/* Tiêu đề trang: chữ serif trôi lên, chậm hơn phần còn lại một nhịp. */
+.c-page-title { animation: c-enter .6s var(--ease) backwards; --enter-y: 12px; }
+
+/* Con số đổi giá trị thì nhảy nhẹ một cái, để mắt bắt được là nó vừa đổi. */
+@keyframes c-tick { from { opacity: .4; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.c-metric-value { animation: c-tick .35s var(--ease) backwards; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }

@@ -77,6 +77,18 @@ bản tham chiếu; cả bốn đều trong họ đất (rêu, thổ hoàng, đ�
 được xuất hiện trên **con số, icon và nền tint** — không bao giờ trên nền thẻ,
 nút hay thanh điều hướng.
 
+**Animation có `transform` biến phần tử thành KHỐI CHỨA của `position: fixed`.**
+`animate-in` nằm trên chính div bọc nội dung tab, mà modal render bên trong div
+đó. Nếu keyframe giữ lại trạng thái cuối (`fill-mode: both`) thì lớp phủ modal
+thôi tính theo màn hình, co vừa khung nội dung và nút lưu rớt ra ngoài. Mọi
+animation trong `globals.css` vì thế dùng **`backwards`**, không dùng `both` —
+khung cuối của chúng đúng bằng giá trị mặc định nên không nhảy hình.
+
+**`animate-in` / `fade-in` / `zoom-in-95` là class của dự án, không phải của
+Tailwind.** Plugin `tailwindcss-animate` không được cài; 53 chỗ trong JSX dùng
+chúng chỉ chạy được nhờ phần `@keyframes c-enter` cuối `globals.css`. Gỡ phần
+đó là 53 chỗ đứng im trở lại.
+
 **`space-y-*` gán margin cho CẢ modal.** Modal được render như phần tử anh em
 ngay trong khối `space-y-*` của trang, nên quy tắc nhịp trang trong
 `globals.css` từng gán `margin-top` lên lớp phủ `fixed inset-0` — ở khổ 375px
