@@ -33,6 +33,7 @@ model User {
   Language           Language[]
   Notification       Notification[]
   DailyQuote         DailyQuote[]
+  GrammarLesson      GrammarLesson[]
   Deck               Deck[]
   ReviewLog          ReviewLog[]
   StudyNote          StudyNote[]
@@ -1019,4 +1020,46 @@ model DailyQuote {
   createdAt DateTime @default(now())
 
   @@unique([userId, quoteDate])
+}
+
+
+/// Một bài ngữ pháp đã được sinh và giữ lại.
+///
+/// Khung chương trình nằm trong code (`src/lib/grammarSyllabus.ts`) vì thứ tự
+/// học cần ổn định. Còn *nội dung* từng bài thì sinh bằng AI lần đầu mở rồi
+/// lưu ở đây: mở lại là đọc từ bảng, không gọi AI nữa — vừa nhanh, vừa để bài
+/// học không đổi chữ mỗi lần xem.
+///
+/// `langCode` để dành cho việc mở rộng sang tiếng Trung, Hàn, Pháp: cùng một
+/// hệ thống, khác khung chương trình và khác nội dung.
+model GrammarLesson {
+  id       String @id @default(uuid())
+  /// Khoá của điểm ngữ pháp trong khung chương trình.
+  pointId  String
+  /// Mã thứ tiếng đang học. Mặc định "en".
+  langCode String @default("en")
+
+  summary    String
+  useWhen    String
+  /// JSON: [{ pattern, note }]
+  structures String
+  /// JSON: [{ sentence, note }]
+  examples   String
+  /// JSON: [{ prompt, options[], correctIndex, explanation }] — sinh riêng khi
+  /// người dùng bấm sang tab luyện tập, nên có thể còn trống.
+  exercises  String?
+
+  // Tiến độ
+  viewedAt      DateTime?
+  practiceCount Int       @default(0)
+  correctCount  Int       @default(0)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, pointId, langCode])
+  @@index([userId, langCode])
 }

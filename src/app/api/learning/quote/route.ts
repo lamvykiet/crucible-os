@@ -3,6 +3,7 @@ import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { genAI, GEMINI_MODEL } from "@/lib/gemini";
+import { generateWithRetry, isTransientAiError } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { todayStart } from "@/lib/learningDay";
 
@@ -70,9 +71,12 @@ export async function GET() {
   người nổi tiếng — câu trích gán sai tác giả là thông tin sai.`,
     });
 
-    const result = await model.generateContent(
+    // Câu trích là thứ trang trí: thử lại hai lần thôi, và chờ ngắn. Không
+    // đáng để giữ chân trang chủ vì một cơn quá tải.
+    const result = await generateWithRetry(
+      model,
       `Cho câu trích của ngày ${quoteDate.toISOString().slice(0, 10)}.`,
-      { timeout: AI_TIMEOUT_MS }
+      { attempts: 2, timeoutMs: AI_TIMEOUT_MS }
     );
     const parsed = JSON.parse(result.response.text()) as {
       text?: string; translation?: string; author?: string | null;
@@ -102,7 +106,7 @@ export async function GET() {
     // 200 kèm success:false để giao diện lặng lẽ ẩn khối này đi, thay vì 500
     // làm bẩn log và khiến trình duyệt tưởng cả trang có vấn đề.
     const message = error instanceof Error ? error.message : "Không lấy được câu trích";
-    const transient = /503|429|timeout|deadline|unavailable/i.test(message);
+    const transient = isTransientAiError(error);
     if (!transient) console.error("Daily quote error:", error);
     return NextResponse.json(
       { success: false, error: message, transient },

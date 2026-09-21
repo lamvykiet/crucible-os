@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Brain, BookMarked, ClipboardCheck, FolderOpen, Loader2, AlertCircle,
   CheckCircle2, ArrowRight, Languages as LanguagesIcon, CalendarDays, Timer, Palette,
-  Boxes, BarChart3,
+  Boxes, BarChart3, Feather,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import SubjectsTab from "@/components/learning/SubjectsTab";
@@ -166,6 +166,7 @@ export default function LearningHome() {
 
   const actions = [
     { href: "/learning/languages", icon: LanguagesIcon, label: t("Languages", "Ngôn ngữ") },
+    { href: "/learning/grammar", icon: Feather, label: t("Learn grammar", "Học ngữ pháp") },
     { href: "/learning/flashcards", icon: Brain, label: t("Review cards", "Ôn thẻ") },
     { href: "/learning/inventory", icon: Boxes, label: t("Inventory", "Kho thẻ") },
     { href: "/learning/dictionary", icon: BookMarked, label: t("Term bank", "Kho thuật ngữ") },
