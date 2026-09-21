@@ -31,6 +31,8 @@ model User {
   VideoItem          VideoItem[]
   Asset              Asset[]
   Language           Language[]
+  Notification       Notification[]
+  DailyQuote         DailyQuote[]
   Deck               Deck[]
   ReviewLog          ReviewLog[]
   StudyNote          StudyNote[]
@@ -971,4 +973,50 @@ model FocusSession {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, endedAt])
+}
+
+
+/// Thông báo trong ứng dụng.
+///
+/// Chuông ở thanh trên. Đây là thông báo *của hệ thống gửi cho người dùng*
+/// (chuỗi sắp đứt, thử thách sắp hết giờ, tính năng mới), không phải nhật ký
+/// hoạt động — thứ đó đã có ở `ReviewLog`.
+model Notification {
+  id    String  @id @default(uuid())
+  title String
+  body  String?
+  /// info | streak | challenge | system
+  kind  String  @default("info")
+  /// Đường dẫn để bấm vào là nhảy thẳng tới chỗ cần làm.
+  href  String?
+
+  readAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/// Câu trích mỗi ngày.
+///
+/// Sinh bằng AI rồi giữ lại, vì một câu phải đứng yên suốt cả ngày: mỗi lần
+/// mở trang lại ra câu khác thì nó không còn là "câu hôm nay" nữa, và cũng
+/// tốn một lượt gọi AI cho mỗi lần tải trang.
+model DailyQuote {
+  id        String   @id @default(uuid())
+  quoteDate DateTime
+  text      String
+  /// Bản dịch sang ngôn ngữ người dùng đã chọn.
+  translation String?
+  author    String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, quoteDate])
 }

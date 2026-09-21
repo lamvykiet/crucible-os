@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Loader2, AlertCircle, Folder, ExternalLink, FileText } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import StudySpaceSettings from "@/components/learning/StudySpaceSettings";
 
 interface Domain {
   id: string;
@@ -12,6 +13,13 @@ interface Domain {
 }
 
 /**
+ * Cài đặt Learning Hub.
+ *
+ * Gộp ở đây thay vì để một trang riêng: mọi hệ khác của Crucible đều chỉnh
+ * trong /settings, nên Learning Hub có trang cài đặt riêng là một ngoại lệ
+ * người dùng phải nhớ. Trang /learning/space vẫn còn để vào nhanh từ Hub,
+ * nhưng cùng dùng một component nên không có hai bản thiết lập lệch nhau.
+ *
  * Quản lý lĩnh vực học tập.
  *
  * Lĩnh vực chính là thư mục con trong Drive tài liệu, nên thêm một lĩnh vực ở
@@ -145,7 +153,7 @@ export default function LearningSettings() {
           <button
             onClick={add}
             disabled={!draft.trim() || saving}
-            className="bg-[#66c2c2] hover:bg-[var(--color-success)] text-white font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-1 disabled:opacity-50"
+            className="c-btn c-btn-primary c-btn-sm"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
             {t("Add", "Thêm")}
@@ -158,6 +166,11 @@ export default function LearningSettings() {
             "Muốn đổi tên hay xoá lĩnh vực thì làm trong Google Drive — danh sách này phản chiếu thư mục bên đó."
           )}
         </p>
+      </div>
+
+      {/* Cách học và không gian học — cùng component với /learning/space */}
+      <div className="pt-8 mt-8 border-t border-[var(--color-border)]">
+        <StudySpaceSettings />
       </div>
     </div>
   );

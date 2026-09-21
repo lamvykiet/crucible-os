@@ -3,8 +3,9 @@
 import { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
-  Brain, BookMarked, ClipboardCheck, FolderOpen, Flame, Loader2, AlertCircle,
+  Brain, BookMarked, ClipboardCheck, FolderOpen, Loader2, AlertCircle,
   CheckCircle2, ArrowRight, Languages as LanguagesIcon, CalendarDays, Timer, Palette,
+  Boxes, BarChart3,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import SubjectsTab from "@/components/learning/SubjectsTab";
@@ -12,6 +13,10 @@ import DailyTasks from "@/components/learning/DailyTasks";
 import StudySpace from "@/components/learning/StudySpace";
 import LearningOnboarding from "@/components/learning/LearningOnboarding";
 import GuidedTour, { type TourStep } from "@/components/learning/GuidedTour";
+import DailyChallenge from "@/components/learning/DailyChallenge";
+import DailyQuoteCard from "@/components/learning/DailyQuoteCard";
+import NotificationBell from "@/components/learning/NotificationBell";
+import WordSearch from "@/components/learning/WordSearch";
 import type { DomainStat } from "@/lib/learningStats";
 
 /** Các chặng của tour, trỏ tới phần tử qua thuộc tính `data-tour`. */
@@ -27,6 +32,18 @@ const TOUR: TourStep[] = [
     titleEn: "Daily activities", titleVi: "Hoạt động hằng ngày",
     bodyEn: "Your learning menu: languages, review, term bank, mock exam, history, focus timer and study space.",
     bodyVi: "Thực đơn học của bạn: ngôn ngữ, ôn thẻ, kho thuật ngữ, thi thử, lịch sử, đồng hồ tập trung và không gian học.",
+  },
+  {
+    target: "challenge",
+    titleEn: "Streak and daily challenge", titleVi: "Chuỗi ngày và thử thách",
+    bodyEn: "One mission a day with a reward and a deadline at midnight. The streak survives a quiet day, but not two.",
+    bodyVi: "Mỗi ngày một nhiệm vụ, có thưởng và có hạn chót lúc nửa đêm. Chuỗi chịu được một ngày nghỉ, nhưng không chịu được hai.",
+  },
+  {
+    target: "bell",
+    titleEn: "Notifications", titleVi: "Thông báo",
+    bodyEn: "Warns you when the streak is about to break or the challenge is running out of time.",
+    bodyVi: "Nhắc khi chuỗi sắp đứt hoặc thử thách sắp hết giờ.",
   },
   {
     target: "tasks",
@@ -150,9 +167,11 @@ export default function LearningHome() {
   const actions = [
     { href: "/learning/languages", icon: LanguagesIcon, label: t("Languages", "Ngôn ngữ") },
     { href: "/learning/flashcards", icon: Brain, label: t("Review cards", "Ôn thẻ") },
+    { href: "/learning/inventory", icon: Boxes, label: t("Inventory", "Kho thẻ") },
     { href: "/learning/dictionary", icon: BookMarked, label: t("Term bank", "Kho thuật ngữ") },
     { href: "/learning/exam", icon: ClipboardCheck, label: t("Mock exam", "Thi thử") },
     { href: "/learning/history", icon: CalendarDays, label: t("History", "Lịch sử") },
+    { href: "/learning/progress", icon: BarChart3, label: t("Progress", "Tiến độ") },
     { href: "/learning/focus", icon: Timer, label: t("Focus", "Tập trung") },
     { href: "/learning/space", icon: Palette, label: t("Study space", "Không gian") },
     { href: "/knowledge", icon: FolderOpen, label: t("Documents", "Tài liệu") },
@@ -166,6 +185,9 @@ export default function LearningHome() {
         <div className="flex items-center gap-2.5 min-h-[22px]">
           <p className="c-overline">{greeting}</p>
           {timeChip && <span className="c-chip c-chip-outline">{timeChip}</span>}
+          <div className="ml-auto" data-tour="bell">
+            <NotificationBell />
+          </div>
         </div>
         <h1 className="c-display mt-1">{data?.displayName?.trim() || "Learning Hub"}</h1>
         <p className="c-card-body mt-2 max-w-xl">
@@ -230,24 +252,8 @@ export default function LearningHome() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-5 lg:col-span-1">
-          <div className="c-card p-5 flex flex-col justify-between">
-            <p className="c-card-kicker flex items-center gap-1.5">
-              <Flame size={13} />
-              {t("Streak", "Chuỗi")}
-            </p>
-            <div>
-              <p className="c-stat-value">{totals?.streak ?? 0}</p>
-              <p className="c-stat-label">{t("days", "ngày")}</p>
-            </div>
-          </div>
-          <div className="c-card p-5 flex flex-col justify-between">
-            <p className="c-card-kicker">{t("Term bank", "Kho từ")}</p>
-            <div>
-              <p className="c-stat-value">{totals?.termCount ?? 0}</p>
-              <p className="c-stat-label">{t("terms", "thuật ngữ")}</p>
-            </div>
-          </div>
+        <div className="lg:col-span-1" data-tour="challenge">
+          <DailyChallenge streak={totals?.streak ?? 0} />
         </div>
       </section>
 
@@ -265,6 +271,9 @@ export default function LearningHome() {
       <div data-tour="tasks">
         <DailyTasks />
       </div>
+
+      {/* Câu trích hôm nay */}
+      <DailyQuoteCard />
 
       {/* Lĩnh vực — mỗi thư mục Drive là một mảng học riêng */}
       <div data-tour="fields">
@@ -311,7 +320,10 @@ export default function LearningHome() {
 
       {/* Tour chỉ chạy sau khi đã qua màn khởi đầu — chồng hai lớp phủ lên nhau
           thì chẳng đọc được lớp nào. */}
-      {!loading && data?.onboarded && <GuidedTour steps={TOUR} storageKey="learning-tour-v1" />}
+      {!loading && data?.onboarded && <GuidedTour steps={TOUR} storageKey="learning-tour-v2" />}
+
+      {/* Tra từ nhanh — nút nổi, mở được bằng Ctrl+K ở bất cứ đâu trong Hub */}
+      <WordSearch />
     </StudySpace>
   );
 }

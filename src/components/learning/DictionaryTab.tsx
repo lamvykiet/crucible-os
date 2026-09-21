@@ -163,7 +163,7 @@ export default function DictionaryTab() {
               placeholder={t("Search terms...", "Tìm kiếm từ...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="c-input w-full pl-10 rounded-full"
+              className="c-input w-full pl-10! rounded-full"
             />
           </div>
           <button

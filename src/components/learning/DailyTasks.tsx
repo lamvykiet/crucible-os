@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, Eye, EyeOff, Loader2, Target, Gem } from "lucide-react";
+import Link from "next/link";
+import { Check, Eye, EyeOff, Loader2, Target, Gem, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 interface Task {
@@ -14,6 +15,21 @@ interface Task {
   visible: boolean;
   color: string | null;
 }
+
+/**
+ * Việc nào dẫn tới màn nào.
+ *
+ * Danh sách kiểm phải bấm được: nhìn thấy "chưa ôn thẻ" rồi vẫn phải tự đi tìm
+ * màn ôn thẻ thì nó chỉ là bản báo cáo, không phải chỗ bắt đầu.
+ */
+const KIND_HREF: Record<string, string> = {
+  review: "/learning/flashcards",
+  newCards: "/learning/flashcards",
+  pomodoro: "/learning/focus",
+  listen: "/learning/flashcards",
+  pronounce: "/learning/flashcards",
+  read: "/knowledge",
+};
 
 /** Nhãn mặc định theo loại việc, dùng khi người dùng chưa tự đặt tên. */
 const KIND_LABEL: Record<string, { en: string; vi: string }> = {
@@ -124,7 +140,20 @@ export default function DailyTasks() {
                 {complete && <Check size={13} />}
               </span>
 
-              <span className="flex-1 text-sm">{label}</span>
+              {KIND_HREF[task.kind] && !complete ? (
+                <Link
+                  href={KIND_HREF[task.kind]}
+                  className="flex-1 text-sm inline-flex items-center gap-1 hover:text-[var(--color-accent)] transition-colors group"
+                >
+                  {label}
+                  <ChevronRight
+                    size={13}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
+                </Link>
+              ) : (
+                <span className="flex-1 text-sm">{label}</span>
+              )}
 
               <span className="c-stat-label tabular-nums">
                 {task.progress}/{task.target}

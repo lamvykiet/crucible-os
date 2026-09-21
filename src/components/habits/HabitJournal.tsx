@@ -165,7 +165,7 @@ export default function HabitJournalView() {
         <div className="relative flex-1">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" />
           <input
-            className="c-input pl-9 w-full"
+            className="c-input pl-9! w-full"
             value={query}
             placeholder={t("Search entries", "Tìm trong nhật ký")}
             onChange={(e) => setQuery(e.target.value)}
