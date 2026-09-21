@@ -18,10 +18,41 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 //
 // Nếu sau này nâng gói có quota Pro, chỉ cần đặt trong .env, không phải sửa code:
 //   GEMINI_MODEL=gemini-3.1-pro-preview
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+// Đo ngày 22/09/2026 trên đúng tải thật (structured output, có responseSchema):
+//   gemini-3.6-flash   3/3 lượt trả 503 "high demand"
+//   gemini-2.5-flash   3/3 lượt thành công, trung bình 8,6 giây
+// Nên 2.5-flash là model chính. Đây là chuyện tải của từng model chứ không
+// phải Gemini nói chung — thấy 3.6 ổn định trở lại thì đổi lại bằng .env,
+// không phải sửa code.
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
+/**
+ * Model dùng khi model chính hỏng vì quá tải.
+ *
+ * Phải là một model KHÁC, không phải thử lại cùng một cái: sự cố vừa rồi là
+ * riêng `gemini-3.6-flash` chết trong khi `gemini-2.5-flash` vẫn chạy tốt, nên
+ * thử lại cùng model bao nhiêu lần cũng vẫn 503.
+ */
+export const GEMINI_FALLBACK_MODEL =
+  process.env.GEMINI_FALLBACK_MODEL || "gemini-3.6-flash";
 
 // OCR hoá đơn chạy theo lô và không cần suy luận sâu — dùng bản flash rẻ hơn.
 export const GEMINI_VISION_MODEL =
   process.env.GEMINI_VISION_MODEL || "gemini-3.6-flash";
 
 export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
+/**
+ * Cặp model để `generateWithRetry` thử lần lượt: chính trước, dự phòng sau.
+ *
+ * Nhận đúng phần cấu hình của `getGenerativeModel` trừ tên model, vì tên model
+ * chính là thứ đang thay đổi giữa hai lượt thử.
+ */
+export function modelsWithFallback(
+  config: Omit<Parameters<typeof genAI.getGenerativeModel>[0], "model">
+) {
+  const names = [GEMINI_MODEL, GEMINI_FALLBACK_MODEL].filter(
+    (name, i, all) => name && all.indexOf(name) === i
+  );
+  return names.map((model) => genAI.getGenerativeModel({ ...config, model }));
+}

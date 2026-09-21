@@ -43,18 +43,33 @@ interface Options {
  * rồi cùng thử lại đúng một thời điểm thì chỉ làm cơn quá tải nặng thêm.
  */
 export async function generateWithRetry(
-  model: GenerativeModel,
+  /**
+   * Một model, hoặc danh sách model thử theo thứ tự.
+   *
+   * Đổi hẳn sang model khác mới là cách chữa đúng: sự cố ngày 22/09 là riêng
+   * `gemini-3.6-flash` trả 503 trong khi `gemini-2.5-flash` chạy bình thường,
+   * nên thử lại cùng một model bao nhiêu lần cũng vẫn hỏng.
+   */
+  models: GenerativeModel | GenerativeModel[],
   request: string | Array<string | Part>,
   { attempts = 3, baseDelayMs = 700, timeoutMs = 25_000, totalBudgetMs = 30_000 }: Options = {}
 ) {
+  const chain = Array.isArray(models) ? models : [models];
+  if (chain.length === 0) throw new Error("Chưa cấu hình model nào");
+
   let lastError: unknown;
   const startedAt = Date.now();
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
     const spent = Date.now() - startedAt;
     if (spent >= totalBudgetMs) break;
+
+    // Lượt đầu dùng model chính; hỏng thì các lượt sau lần lượt sang dự phòng,
+    // hết danh sách thì quay lại model cuối.
+    const model = chain[Math.min(attempt - 1, chain.length - 1)];
+
     try {
-      // Lượt cuối chỉ được dùng nốt phần ngân sách còn lại.
+      // Lượt này chỉ được dùng nốt phần ngân sách còn lại.
       const remaining = totalBudgetMs - (Date.now() - startedAt);
       return await model.generateContent(
         request as Parameters<GenerativeModel["generateContent"]>[0],

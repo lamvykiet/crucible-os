@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { genAI, GEMINI_MODEL } from "@/lib/gemini";
+import { modelsWithFallback } from "@/lib/gemini";
 import { generateWithRetry, isTransientAiError } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { findPoint } from "@/lib/grammarSyllabus";
@@ -87,8 +87,7 @@ export async function POST(req: Request) {
     });
     const explainIn = promptLanguageName(pref?.translationLanguage);
 
-    const model = genAI.getGenerativeModel({
-      model: GEMINI_MODEL,
+    const model = modelsWithFallback({
       generationConfig: { responseMimeType: "application/json", responseSchema: LESSON_SCHEMA },
       systemInstruction: `Bạn soạn một bài ngữ pháp tiếng Anh ngắn cho người tự học ở trình độ ${found.point.level} theo thang CEFR.
 

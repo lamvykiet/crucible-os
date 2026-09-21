@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { genAI, GEMINI_MODEL } from "@/lib/gemini";
+import { modelsWithFallback } from "@/lib/gemini";
 import { generateWithRetry, isTransientAiError } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { todayStart } from "@/lib/learningDay";
@@ -60,8 +60,7 @@ export async function GET() {
     });
     const meaningLang = promptLanguageName(pref?.translationLanguage);
 
-    const model = genAI.getGenerativeModel({
-      model: GEMINI_MODEL,
+    const model = modelsWithFallback({
       generationConfig: { responseMimeType: "application/json", responseSchema: QUOTE_SCHEMA },
       systemInstruction: `Bạn chọn một câu trích tiếng Anh ngắn cho người đang học tiếng Anh.
 
