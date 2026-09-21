@@ -79,7 +79,7 @@ export async function GET() {
   try {
     const now = new Date();
 
-    const [cards, terms, attempts, reviewDays] = await Promise.all([
+    const [cards, terms, attempts, reviewDays, profile, pref] = await Promise.all([
       prisma.flashcard.findMany({
         where: { userId: user.id },
         select: {
@@ -109,6 +109,19 @@ export async function GET() {
         orderBy: { lastReview: "desc" },
         take: 1000,
         select: { lastReview: true },
+      }),
+      // Tên để chào. Bản cũ chào "Learning Hub" — đúng tên màn hình, nhưng
+      // không phải tên người đang mở nó.
+      prisma.user.findUnique({
+        where: { id: user.id },
+        select: { displayName: true },
+      }),
+      // `onboardedAt` quyết định có hiện màn khởi đầu hay không, nên phải về
+      // cùng chuyến với số liệu — hỏi riêng thì trang loé một nhịp rồi mới
+      // phủ màn khởi đầu lên.
+      prisma.learnerPref.findUnique({
+        where: { userId: user.id },
+        select: { onboardedAt: true, translationLanguage: true },
       }),
     ]);
 
@@ -149,6 +162,9 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
+      displayName: profile?.displayName ?? null,
+      onboarded: pref?.onboardedAt !== null && pref?.onboardedAt !== undefined,
+      translationLanguage: pref?.translationLanguage ?? "vi",
       totals: {
         cardCount: cards.length,
         termCount: terms.length,

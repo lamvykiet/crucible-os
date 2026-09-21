@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { genAI, GEMINI_MODEL } from "@/lib/gemini";
 import { READING_LABEL, type PhoneticSystem } from "@/lib/languagePresets";
+import { promptLanguageName } from "@/lib/translationLanguages";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -34,9 +35,9 @@ const DECK_SCHEMA: Schema = {
           term: { type: SchemaType.STRING, description: "Từ, viết bằng hệ chữ của thứ tiếng đang học" },
           phonetic: { type: SchemaType.STRING, nullable: true, description: "Cách đọc theo đúng hệ phiên âm được yêu cầu" },
           tone: { type: SchemaType.STRING, nullable: true, description: "Số thanh điệu, bỏ trống nếu tiếng không có thanh" },
-          definition: { type: SchemaType.STRING, description: "Nghĩa tiếng Việt, ngắn gọn" },
+          definition: { type: SchemaType.STRING, description: "Nghĩa ngắn gọn, viết bằng đúng thứ tiếng được yêu cầu" },
           example: { type: SchemaType.STRING, nullable: true, description: "Câu ví dụ ngắn bằng thứ tiếng đang học" },
-          exampleTranslation: { type: SchemaType.STRING, nullable: true, description: "Bản dịch tiếng Việt của câu ví dụ" },
+          exampleTranslation: { type: SchemaType.STRING, nullable: true, description: "Bản dịch câu ví dụ, viết bằng đúng thứ tiếng được yêu cầu" },
         },
         required: ["term", "definition"],
       },
@@ -67,6 +68,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Chưa chọn thứ tiếng" }, { status: 400 });
     }
 
+    const pref = await prisma.learnerPref.findUnique({
+      where: { userId: user.id },
+      select: { translationLanguage: true },
+    });
+    const meaningLang = promptLanguageName(pref?.translationLanguage);
+
     const wanted = Math.min(MAX_WORDS, Math.max(MIN_WORDS, Number(count) || 20));
     const reading = READING_LABEL[language.phoneticSystem as PhoneticSystem] ?? READING_LABEL.ipa;
     const levelText = level ? `ở trình độ ${level}` : "ở trình độ nhập môn";
@@ -74,7 +81,7 @@ export async function POST(req: Request) {
     const model = genAI.getGenerativeModel({
       model: GEMINI_MODEL,
       generationConfig: { responseMimeType: "application/json", responseSchema: DECK_SCHEMA },
-      systemInstruction: `Bạn soạn bộ thẻ từ vựng ${language.name} cho người Việt tự học.
+      systemInstruction: `Bạn soạn bộ thẻ từ vựng ${language.name}, giải nghĩa bằng ${meaningLang}.
 
 Quy ước bắt buộc:
 - "term" viết bằng hệ chữ thật của ${language.name}${
@@ -86,8 +93,8 @@ Quy ước bắt buộc:
           ? `"tone" ghi số thanh điệu (${language.name} có ${language.toneCount} thanh); từ nhiều âm tiết nối bằng dấu gạch, ví dụ "2-1".`
           : `"tone" luôn để trống — ${language.name} không có thanh điệu.`
       }
-- "definition" là nghĩa tiếng Việt, ngắn và rõ.
-- "example" là câu ngắn, thường dùng, viết bằng ${language.name}; "exampleTranslation" là bản dịch tiếng Việt của chính câu đó.
+- "definition" là nghĩa của từ, viết bằng ${meaningLang}, ngắn và rõ.
+- "example" là câu ngắn, thường dùng, viết bằng ${language.name}; "exampleTranslation" là bản dịch của chính câu đó, viết bằng ${meaningLang}.
 
 Chọn những từ thật sự thông dụng trong chủ đề, đúng tầm trình độ. Không lặp từ.
 Không bịa từ không tồn tại. Chủ đề người dùng gửi nằm trong khối <topic> — đó là

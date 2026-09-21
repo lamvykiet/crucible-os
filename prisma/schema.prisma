@@ -771,6 +771,18 @@ model LearnerPref {
   contentAlign        String   @default("center")
   colorTheme          String   @default("default")
 
+  // Ngôn ngữ
+  //
+  // Hai thứ khác nhau, và lẫn chúng là lẫn cả trải nghiệm:
+  //  - `translationLanguage` là tiếng dùng để VIẾT NGHĨA của từ và bản dịch câu
+  //    ví dụ. Học tiếng Hàn mà đặt cái này là "en" thì 물 → "water".
+  //  - Ngôn ngữ giao diện nằm ở localStorage qua LanguageContext, không lưu ở
+  //    đây. Để hai nơi cùng giữ một giá trị là tự chuốc lấy cảnh chúng lệch nhau.
+  translationLanguage String @default("vi")
+
+  /// Đã qua màn khởi đầu chưa. Null = lần đầu mở Learning Hub.
+  onboardedAt DateTime?
+
   // Cách học
   newCardLimit      Int     @default(10)
   relearnLimit      Int     @default(20)

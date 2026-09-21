@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { Loader2, Check, AlertCircle } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { BACKDROPS, WEATHER_EFFECTS } from "@/lib/studySpace";
+import { TRANSLATION_LANGUAGES } from "@/lib/translationLanguages";
 
 interface Pref {
+  translationLanguage: string;
   background: string | null;
   weatherEffect: string;
   contentAlign: string;
@@ -99,6 +101,36 @@ export default function StudySpaceSettings() {
           <span className="flex-1">{error}</span>
         </div>
       )}
+
+      {/* Ngôn ngữ dịch nghĩa */}
+      <section className="space-y-3">
+        <h3 className="c-h3">{t("Meaning language", "Ngôn ngữ dịch nghĩa")}</h3>
+        <p className="c-card-body max-w-2xl">
+          {t(
+            "Card meanings and example translations are written in this language. It is separate from the language you are learning, and from the app's own labels.",
+            "Nghĩa của thẻ và bản dịch câu ví dụ được viết bằng tiếng này. Nó tách khỏi thứ tiếng bạn đang học, và cũng tách khỏi chữ trên nút bấm của ứng dụng."
+          )}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {TRANSLATION_LANGUAGES.map((l) => (
+            <button
+              key={l.code}
+              onClick={() => save({ translationLanguage: l.code })}
+              className={`c-chip ${
+                pref.translationLanguage === l.code ? "c-chip-solid" : "c-chip-outline"
+              }`}
+            >
+              {l.name}
+            </button>
+          ))}
+        </div>
+        <p className="c-help">
+          {t(
+            "Changing this affects new cards only — meanings already saved stay as they are.",
+            "Đổi mục này chỉ ảnh hưởng tới thẻ tạo sau — nghĩa đã lưu vẫn giữ nguyên."
+          )}
+        </p>
+      </section>
 
       {/* Nền */}
       <section className="space-y-3">

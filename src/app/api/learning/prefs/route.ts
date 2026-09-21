@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { TRANSLATION_LANGUAGES } from "@/lib/translationLanguages";
 
 export const dynamic = "force-dynamic";
 
@@ -43,12 +44,27 @@ export async function PATCH(req: Request) {
     const allowed = [
       "background", "unlockedBackgrounds", "videoBackground", "weatherEffect",
       "contentAlign", "colorTheme", "newCardLimit", "relearnLimit",
-      "skipExerciseOnNew", "lowercaseAnswers",
+      "skipExerciseOnNew", "lowercaseAnswers", "translationLanguage",
     ] as const;
 
-    const data = Object.fromEntries(
+    const data: Record<string, unknown> = Object.fromEntries(
       allowed.filter((k) => body[k] !== undefined).map((k) => [k, body[k]])
     );
+
+    // Chỉ nhận mã ngôn ngữ có thật, nếu không prompt gửi cho AI sẽ chứa rác.
+    if (data.translationLanguage !== undefined) {
+      const code = String(data.translationLanguage);
+      if (!TRANSLATION_LANGUAGES.some((l) => l.code === code)) {
+        return NextResponse.json(
+          { success: false, error: "Mã ngôn ngữ không hợp lệ" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Đánh dấu đã qua màn khởi đầu. Chỉ cho bật, không cho tắt bằng body —
+    // muốn xem lại hướng dẫn thì mở thẳng màn đó, không cần xoá dấu.
+    if (body.finishOnboarding === true) data.onboardedAt = new Date();
 
     // Hạn mức phải nằm trong khoảng dùng được: 0 thì không bao giờ có thẻ để ôn,
     // còn 9999 thì hàng ôn phình tới mức chẳng ai học nổi.

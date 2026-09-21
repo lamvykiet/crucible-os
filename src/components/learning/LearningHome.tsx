@@ -10,9 +10,42 @@ import { useLanguage } from "@/lib/LanguageContext";
 import SubjectsTab from "@/components/learning/SubjectsTab";
 import DailyTasks from "@/components/learning/DailyTasks";
 import StudySpace from "@/components/learning/StudySpace";
+import LearningOnboarding from "@/components/learning/LearningOnboarding";
+import GuidedTour, { type TourStep } from "@/components/learning/GuidedTour";
 import type { DomainStat } from "@/lib/learningStats";
 
+/** Các chặng của tour, trỏ tới phần tử qua thuộc tính `data-tour`. */
+const TOUR: TourStep[] = [
+  {
+    target: "today",
+    titleEn: "Today", titleVi: "Hôm nay",
+    bodyEn: "How many cards are due right now, your streak, and how big your term bank has grown.",
+    bodyVi: "Còn bao nhiêu thẻ tới hạn ngay lúc này, chuỗi ngày học, và kho thuật ngữ đã dày tới đâu.",
+  },
+  {
+    target: "actions",
+    titleEn: "Daily activities", titleVi: "Hoạt động hằng ngày",
+    bodyEn: "Your learning menu: languages, review, term bank, mock exam, history, focus timer and study space.",
+    bodyVi: "Thực đơn học của bạn: ngôn ngữ, ôn thẻ, kho thuật ngữ, thi thử, lịch sử, đồng hồ tập trung và không gian học.",
+  },
+  {
+    target: "tasks",
+    titleEn: "Today's tasks", titleVi: "Việc hôm nay",
+    bodyEn: "Progress counts itself from what you actually reviewed. Hide any task you do not care about.",
+    bodyVi: "Tiến độ tự đếm từ những gì bạn thật sự đã ôn. Việc nào không quan tâm thì ẩn đi.",
+  },
+  {
+    target: "fields",
+    titleEn: "Fields of study", titleVi: "Lĩnh vực học tập",
+    bodyEn: "Every folder in your Knowledge Drive becomes a field, with its own cards and due count.",
+    bodyVi: "Mỗi thư mục trong Drive tài liệu là một lĩnh vực, có thẻ và số tới hạn riêng.",
+  },
+];
+
 interface Overview {
+  displayName: string | null;
+  onboarded: boolean;
+  translationLanguage: string;
   totals: {
     cardCount: number;
     termCount: number;
@@ -68,6 +101,7 @@ export default function LearningHome() {
   const [data, setData] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -87,7 +121,7 @@ export default function LearningHome() {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [reloadKey]);
 
   const greeting =
     hour === null
@@ -97,6 +131,17 @@ export default function LearningHome() {
         : hour < 18
           ? t("Good afternoon", "Chào buổi chiều")
           : t("Good evening", "Chào buổi tối");
+
+  // Chip buổi đứng cạnh lời chào. Cùng nguồn giờ với lời chào nên không bao
+  // giờ lệch kiểu "Chào buổi sáng · Tối".
+  const timeChip =
+    hour === null
+      ? null
+      : hour < 12
+        ? t("Morning", "Buổi sáng")
+        : hour < 18
+          ? t("Afternoon", "Buổi chiều")
+          : t("Evening", "Buổi tối");
 
   const totals = data?.totals;
   const due = totals?.dueCount ?? 0;
@@ -116,10 +161,13 @@ export default function LearningHome() {
   return (
     <StudySpace>
     <div className="max-w-7xl mx-auto space-y-10 pb-24">
-      {/* Lời chào */}
+      {/* Lời chào — tên người đang mở, không phải tên màn hình */}
       <header className="pt-2">
-        <p className="c-overline min-h-[16px]">{greeting}</p>
-        <h1 className="c-display mt-1">Learning Hub</h1>
+        <div className="flex items-center gap-2.5 min-h-[22px]">
+          <p className="c-overline">{greeting}</p>
+          {timeChip && <span className="c-chip c-chip-outline">{timeChip}</span>}
+        </div>
+        <h1 className="c-display mt-1">{data?.displayName?.trim() || "Learning Hub"}</h1>
         <p className="c-card-body mt-2 max-w-xl">
           {t(
             "Every subject in one place — terms, cards and mock exams, tracked per field.",
@@ -136,7 +184,7 @@ export default function LearningHome() {
       )}
 
       {/* Hôm nay */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <section data-tour="today" className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="c-card c-elev-md lg:col-span-2 p-6 flex flex-col sm:flex-row sm:items-center gap-6">
           <div className="flex-1">
             <p className="c-card-kicker">{t("Today", "Hôm nay")}</p>
@@ -204,7 +252,7 @@ export default function LearningHome() {
       </section>
 
       {/* Lối tắt */}
-      <nav className="flex flex-wrap gap-3">
+      <nav data-tour="actions" className="flex flex-wrap gap-3">
         {actions.map(({ href, icon: Icon, label }) => (
           <Link key={href} href={href} className="c-btn c-btn-secondary c-btn-pill">
             <Icon size={16} />
@@ -214,10 +262,14 @@ export default function LearningHome() {
       </nav>
 
       {/* Việc hôm nay */}
-      <DailyTasks />
+      <div data-tour="tasks">
+        <DailyTasks />
+      </div>
 
       {/* Lĩnh vực — mỗi thư mục Drive là một mảng học riêng */}
-      <SubjectsTab stats={data?.domains ?? []} />
+      <div data-tour="fields">
+        <SubjectsTab stats={data?.domains ?? []} />
+      </div>
 
       {/* Bài thi gần đây */}
       {attempts.length > 0 && (
@@ -246,6 +298,20 @@ export default function LearningHome() {
         </section>
       )}
     </div>
+
+      {/* Lần đầu mở Hub: chọn ngôn ngữ dịch nghĩa và các tiếng sẽ học. Chỉ dựng
+          sau khi đã biết trạng thái thật, để không loé màn khởi đầu với người
+          đã qua bước này. */}
+      {!loading && data && !data.onboarded && (
+        <LearningOnboarding
+          initialCode={data.translationLanguage}
+          onDone={() => setReloadKey((k) => k + 1)}
+        />
+      )}
+
+      {/* Tour chỉ chạy sau khi đã qua màn khởi đầu — chồng hai lớp phủ lên nhau
+          thì chẳng đọc được lớp nào. */}
+      {!loading && data?.onboarded && <GuidedTour steps={TOUR} storageKey="learning-tour-v1" />}
     </StudySpace>
   );
 }
