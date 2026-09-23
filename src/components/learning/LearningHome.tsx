@@ -3,12 +3,11 @@
 import { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
-  Brain, BookMarked, ClipboardCheck, FolderOpen, Loader2, AlertCircle,
-  CheckCircle2, ArrowRight, Languages as LanguagesIcon, CalendarDays, Timer, Palette,
-  Boxes, BarChart3, Feather,
+  FolderOpen, Loader2, AlertCircle, CheckCircle2, ArrowRight,
+  CalendarDays, Timer, Palette, Boxes, BarChart3,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
-import SubjectsTab from "@/components/learning/SubjectsTab";
+import SubjectGrid from "@/components/learning/SubjectGrid";
 import DailyTasks from "@/components/learning/DailyTasks";
 import StudySpace from "@/components/learning/StudySpace";
 import LearningOnboarding from "@/components/learning/LearningOnboarding";
@@ -28,10 +27,10 @@ const TOUR: TourStep[] = [
     bodyVi: "Còn bao nhiêu thẻ tới hạn ngay lúc này, chuỗi ngày học, và kho thuật ngữ đã dày tới đâu.",
   },
   {
-    target: "actions",
-    titleEn: "Daily activities", titleVi: "Hoạt động hằng ngày",
-    bodyEn: "Your learning menu: languages, review, term bank, mock exam, history, focus timer and study space.",
-    bodyVi: "Thực đơn học của bạn: ngôn ngữ, ôn thẻ, kho thuật ngữ, thi thử, lịch sử, đồng hồ tập trung và không gian học.",
+    target: "subjects",
+    titleEn: "Your subjects", titleVi: "Các môn bạn học",
+    bodyEn: "Open a subject to get its own desk: its decks, its cards, its documents and its mock exams.",
+    bodyVi: "Mở một môn là vào bàn học riêng của môn đó: bộ thẻ, thẻ ghi nhớ, tài liệu và đề thi thử của chính nó.",
   },
   {
     target: "challenge",
@@ -52,10 +51,10 @@ const TOUR: TourStep[] = [
     bodyVi: "Tiến độ tự đếm từ những gì bạn thật sự đã ôn. Việc nào không quan tâm thì ẩn đi.",
   },
   {
-    target: "fields",
-    titleEn: "Fields of study", titleVi: "Lĩnh vực học tập",
-    bodyEn: "Every folder in your Knowledge Drive becomes a field, with its own cards and due count.",
-    bodyVi: "Mỗi thư mục trong Drive tài liệu là một lĩnh vực, có thẻ và số tới hạn riêng.",
+    target: "tools",
+    titleEn: "Tools across subjects", titleVi: "Công cụ dùng chung",
+    bodyEn: "These span every subject: the whole card library, your history, progress, focus timer and study space.",
+    bodyVi: "Những thứ này trải ngang mọi môn: toàn bộ kho thẻ, lịch sử, tiến độ, đồng hồ tập trung và không gian học.",
   },
 ];
 
@@ -164,18 +163,16 @@ export default function LearningHome() {
   const due = totals?.dueCount ?? 0;
   const attempts = data?.attempts ?? [];
 
-  const actions = [
-    { href: "/learning/languages", icon: LanguagesIcon, label: t("Languages", "Ngôn ngữ") },
-    { href: "/learning/grammar", icon: Feather, label: t("Learn grammar", "Học ngữ pháp") },
-    { href: "/learning/flashcards", icon: Brain, label: t("Review cards", "Ôn thẻ") },
+  // Chỉ còn những công cụ trải ngang MỌI môn. Ôn thẻ, kho thuật ngữ, thi thử
+  // và tài liệu đã dời vào bàn học của từng môn — chúng vốn luôn cần biết đang
+  // học môn nào, để ở ngoài thì người dùng phải tự chọn lại bộ lọc mỗi lần.
+  const tools = [
     { href: "/learning/inventory", icon: Boxes, label: t("Inventory", "Kho thẻ") },
-    { href: "/learning/dictionary", icon: BookMarked, label: t("Term bank", "Kho thuật ngữ") },
-    { href: "/learning/exam", icon: ClipboardCheck, label: t("Mock exam", "Thi thử") },
     { href: "/learning/history", icon: CalendarDays, label: t("History", "Lịch sử") },
     { href: "/learning/progress", icon: BarChart3, label: t("Progress", "Tiến độ") },
     { href: "/learning/focus", icon: Timer, label: t("Focus", "Tập trung") },
     { href: "/learning/space", icon: Palette, label: t("Study space", "Không gian") },
-    { href: "/knowledge", icon: FolderOpen, label: t("Documents", "Tài liệu") },
+    { href: "/knowledge", icon: FolderOpen, label: t("All documents", "Toàn bộ tài liệu") },
   ];
 
   return (
@@ -258,15 +255,8 @@ export default function LearningHome() {
         </div>
       </section>
 
-      {/* Lối tắt */}
-      <nav data-tour="actions" className="flex flex-wrap gap-3">
-        {actions.map(({ href, icon: Icon, label }) => (
-          <Link key={href} href={href} className="c-btn c-btn-secondary c-btn-pill">
-            <Icon size={16} />
-            {label}
-          </Link>
-        ))}
-      </nav>
+      {/* Môn học — nội dung chính của trang */}
+      <SubjectGrid stats={data?.domains ?? []} />
 
       {/* Việc hôm nay */}
       <div data-tour="tasks">
@@ -276,10 +266,18 @@ export default function LearningHome() {
       {/* Câu trích hôm nay */}
       <DailyQuoteCard />
 
-      {/* Lĩnh vực — mỗi thư mục Drive là một mảng học riêng */}
-      <div data-tour="fields">
-        <SubjectsTab stats={data?.domains ?? []} />
-      </div>
+      {/* Công cụ dùng chung cho mọi môn */}
+      <nav data-tour="tools" className="space-y-3">
+        <p className="c-card-kicker">{t("Across all subjects", "Dùng chung mọi môn")}</p>
+        <div className="flex flex-wrap gap-3">
+          {tools.map(({ href, icon: Icon, label }) => (
+            <Link key={href} href={href} className="c-btn c-btn-secondary c-btn-pill">
+              <Icon size={16} />
+              {label}
+            </Link>
+          ))}
+        </div>
+      </nav>
 
       {/* Bài thi gần đây */}
       {attempts.length > 0 && (

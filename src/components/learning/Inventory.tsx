@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Search, Plus, Upload, Trash2, Loader2, AlertCircle, ChevronLeft, ChevronRight,
   Layers, Volume2, CheckSquare, Square,
@@ -45,6 +46,10 @@ type Tab = "cards" | "decks";
 export default function Inventory() {
   const { t } = useLanguage();
 
+  // Bàn học của một môn mở kho thẻ kèm sẵn tên môn, nên vào là đã lọc đúng.
+  const searchParams = useSearchParams();
+  const domain = searchParams.get("domain")?.trim() || null;
+
   const [tab, setTab] = useState<Tab>("cards");
   const [filter, setFilter] = useState<Filter>("all");
   const [deckId, setDeckId] = useState("");
@@ -63,6 +68,7 @@ export default function Inventory() {
   const [showImport, setShowImport] = useState(false);
 
   const query = `filter=${filter}&page=${page}` +
+    (domain ? `&domain=${encodeURIComponent(domain)}` : "") +
     (deckId ? `&deck=${encodeURIComponent(deckId)}` : "") +
     (search.trim() ? `&search=${encodeURIComponent(search.trim())}` : "");
 
@@ -151,8 +157,14 @@ export default function Inventory() {
         ))}
       </div>
 
+      {domain && (
+        <p className="c-card-body">
+          {t(`Showing cards from ${domain}.`, `Đang xem thẻ của môn ${domain}.`)}
+        </p>
+      )}
+
       {tab === "decks" ? (
-        <DeckManager />
+        <DeckManager domain={domain ?? undefined} />
       ) : (
         <>
           {/* Lọc */}

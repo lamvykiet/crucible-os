@@ -1,10 +1,15 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import Inventory from "@/components/learning/Inventory";
 import { useLanguage } from "@/lib/LanguageContext";
 
+/**
+ * `useSearchParams` bên trong Inventory buộc phần cây dưới nó phải render ở
+ * trình duyệt. Không bọc Suspense thì Next 16 báo lỗi lúc build.
+ */
 export default function Page() {
   const { t } = useLanguage();
 
@@ -15,7 +20,15 @@ export default function Page() {
         {t("Learning Hub", "Learning Hub")}
       </Link>
       <h1 className="c-h1">{t("Card inventory", "Kho thẻ")}</h1>
-      <Inventory />
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-[40vh] text-[var(--color-text-muted)]">
+            <Loader2 size={22} className="animate-spin" />
+          </div>
+        }
+      >
+        <Inventory />
+      </Suspense>
     </div>
   );
 }

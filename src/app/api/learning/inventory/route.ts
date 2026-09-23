@@ -28,6 +28,7 @@ export async function GET(req: Request) {
     const params = new URL(req.url).searchParams;
     const filter = params.get("filter") ?? "all";
     const deckId = params.get("deck")?.trim() || null;
+    const domain = params.get("domain")?.trim() || null;
     const search = params.get("search")?.trim() || null;
     const page = Math.max(0, Number(params.get("page")) || 0);
 
@@ -50,6 +51,9 @@ export async function GET(req: Request) {
     const where = {
       userId: user.id,
       ...(deckId ? { deckId } : {}),
+      // Lọc theo môn để bàn học của từng môn mở ra là đã đúng phạm vi, không
+      // bắt người dùng chọn lại bộ lọc mỗi lần vào.
+      ...(domain ? { domain: { equals: domain, mode: "insensitive" as const } } : {}),
       ...(search
         ? {
             OR: [
