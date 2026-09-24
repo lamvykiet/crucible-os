@@ -255,3 +255,60 @@ export function overallSpeakingBand(
   if (given.length === 0) return null;
   return roundBand(given.reduce((a, b) => a + b, 0) / given.length);
 }
+
+/* ── Quy đổi điểm thô và band tổng ──────────────────────────────────────── */
+
+/**
+ * Điểm thô (trên 40) → band, XẤP XỈ.
+ *
+ * Đây KHÔNG phải bảng quy đổi chính thức của kỳ thi — bảng đó là tài liệu riêng
+ * của họ, và nó còn xê dịch theo từng đề. Bảng dưới đây là ước lượng của dự án,
+ * dựng theo mức độ khó tương đối vẫn được nói tới rộng rãi: phần Đọc nhích chặt
+ * hơn phần Nghe ở quãng giữa.
+ *
+ * Dùng nó để biết mình đang ở quãng nào, đừng dùng để đoán chính xác band thi
+ * thật. Giao diện phải nói rõ điều đó.
+ */
+const LISTENING_BANDS: [number, number][] = [
+  [39, 9], [37, 8.5], [35, 8], [32, 7.5], [30, 7], [26, 6.5], [23, 6],
+  [18, 5.5], [16, 5], [13, 4.5], [10, 4], [8, 3.5], [6, 3], [4, 2.5], [0, 0],
+];
+
+const READING_BANDS: [number, number][] = [
+  [39, 9], [37, 8.5], [35, 8], [33, 7.5], [30, 7], [27, 6.5], [23, 6],
+  [19, 5.5], [15, 5], [13, 4.5], [10, 4], [8, 3.5], [6, 3], [4, 2.5], [0, 0],
+];
+
+export function rawToBand(raw: number, section: "listening" | "reading"): number {
+  const table = section === "reading" ? READING_BANDS : LISTENING_BANDS;
+  const score = Math.max(0, Math.min(40, Math.round(raw)));
+  return table.find(([floor]) => score >= floor)?.[1] ?? 0;
+}
+
+/**
+ * Band tổng: trung bình bốn phần, làm tròn theo luật của kỳ thi.
+ *
+ * Luật làm tròn là quy tắc công bố công khai, không phải bảng quy đổi: phần lẻ
+ * từ .25 đến dưới .75 lên nửa điểm, từ .75 trở lên lên nguyên điểm kế tiếp, dưới
+ * .25 thì bỏ. Nên 6.125 thành 6.0, còn 6.25 thành 6.5.
+ *
+ * Thiếu phần nào thì trả null — trung bình ba phần không phải band tổng, và đưa
+ * ra một con số nghe như band tổng trong khi chưa thi đủ là nói dối người học.
+ */
+export function overallExamBand(parts: {
+  listening: number | null;
+  reading: number | null;
+  writing: number | null;
+  speaking: number | null;
+}): number | null {
+  const all = [parts.listening, parts.reading, parts.writing, parts.speaking];
+  if (all.some((band) => band === null || !Number.isFinite(band))) return null;
+
+  const mean = (all as number[]).reduce((a, b) => a + b, 0) / 4;
+  const whole = Math.floor(mean);
+  const rest = mean - whole;
+
+  if (rest < 0.25) return whole;
+  if (rest < 0.75) return whole + 0.5;
+  return whole + 1;
+}

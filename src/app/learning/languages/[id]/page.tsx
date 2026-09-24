@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Music2, PenLine } from "lucide-react";
+import { ArrowLeft, Loader2, Music2, PenLine, ClipboardCheck, ArrowRight } from "lucide-react";
 import DeckManager from "@/components/learning/DeckManager";
 import SkillsBoard from "@/components/learning/SkillsBoard";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -110,6 +110,27 @@ export default function LanguagePage({ params }: { params: Promise<{ id: string 
       {/* Kỹ năng đứng trước bộ thẻ: bộ thẻ là một phần của kỹ năng từ vựng,
           không phải toàn bộ việc học một thứ tiếng. */}
       <SkillsBoard languageId={lang.id} />
+
+      {/* Thi thử đứng riêng, không nằm trong bảng kỹ năng: nó không phải một kỹ
+          năng để luyện mà là một phép đo, và nó ngốn gần ba tiếng liền. */}
+      <Link
+        href={`/learning/languages/${lang.id}/mock-exam`}
+        className="c-card c-elev-md p-6 flex items-center gap-4 hover:border-[var(--color-primary)] transition-colors"
+      >
+        <div className="w-12 h-12 rounded-2xl bg-[var(--color-primary)] text-white grid place-content-center flex-none">
+          <ClipboardCheck size={22} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="c-h4">{t("Mock test", "Thi thử")}</p>
+          <p className="c-help">
+            {t(
+              "All four sections in order, on the clock, with a band estimate at the end.",
+              "Đủ bốn phần theo đúng thứ tự, có bấm giờ, và ước lượng band ở cuối."
+            )}
+          </p>
+        </div>
+        <ArrowRight size={18} className="flex-none text-[var(--color-text-faint)]" />
+      </Link>
 
       <DeckManager languageId={lang.id} levels={levels} />
     </div>

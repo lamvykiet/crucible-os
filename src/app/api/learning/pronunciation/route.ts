@@ -3,7 +3,7 @@ import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { modelsWithFallback, GEMINI_GRADING_MODEL } from "@/lib/gemini";
-import { generateWithRetry, isTransientAiError } from "@/lib/aiRetry";
+import { generateWithRetry, isTransientAiError, aiErrorMessage } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { presetByCode } from "@/lib/languagePresets";
 import { targetsFor, targetById } from "@/lib/pronunciationTargets";
@@ -201,7 +201,7 @@ Quy tắc:
       items,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Không soạn được bài";
+    const message = aiErrorMessage(error);
     const transient = isTransientAiError(error);
     if (!transient) console.error("Pronunciation drill error:", error);
     return NextResponse.json({ success: false, error: message, transient }, { status: 200 });
@@ -345,7 +345,7 @@ Cách nhận xét:
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Không chấm được";
+    const message = aiErrorMessage(error);
     const transient = isTransientAiError(error);
     if (!transient) console.error("Pronunciation grade error:", error);
     return NextResponse.json({ success: false, error: message, transient }, { status: 200 });

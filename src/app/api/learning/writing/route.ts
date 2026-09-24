@@ -3,7 +3,7 @@ import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { modelsWithFallback, GEMINI_GRADING_MODEL } from "@/lib/gemini";
-import { generateWithRetry, isTransientAiError } from "@/lib/aiRetry";
+import { generateWithRetry, isTransientAiError, aiErrorMessage } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { WRITING_TASKS, WRITING_CRITERIA, roundBand } from "@/lib/ieltsFormat";
 
@@ -155,7 +155,7 @@ ${
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Không ra được đề";
+    const message = aiErrorMessage(error);
     const transient = isTransientAiError(error);
     if (!transient) console.error("Writing task error:", error);
     return NextResponse.json({ success: false, error: message, transient }, { status: 200 });
@@ -293,7 +293,7 @@ ${text}`,
 
     return NextResponse.json({ success: true, submission: shape(saved) });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Không chấm được bài";
+    const message = aiErrorMessage(error);
     const transient = isTransientAiError(error);
     if (!transient) console.error("Writing grade error:", error);
     return NextResponse.json({ success: false, error: message, transient }, { status: 200 });

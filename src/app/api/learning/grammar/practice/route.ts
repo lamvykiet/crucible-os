@@ -3,7 +3,7 @@ import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { modelsWithFallback } from "@/lib/gemini";
-import { generateWithRetry, isTransientAiError } from "@/lib/aiRetry";
+import { generateWithRetry, isTransientAiError, aiErrorMessage } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { findPoint } from "@/lib/grammarSyllabus";
 
@@ -136,7 +136,7 @@ Quy tắc:
 
     return NextResponse.json({ success: true, questions: strip(questions), cached: false });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Không ra được đề";
+    const message = aiErrorMessage(error);
     const transient = isTransientAiError(error);
     if (!transient) console.error("Grammar practice error:", error);
     return NextResponse.json({ success: false, error: message, transient }, { status: 200 });

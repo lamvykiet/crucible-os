@@ -3,7 +3,7 @@ import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { modelsWithFallback } from "@/lib/gemini";
-import { generateWithRetry, isTransientAiError } from "@/lib/aiRetry";
+import { generateWithRetry, isTransientAiError, aiErrorMessage } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { todayStart, DAY_MS } from "@/lib/learningDay";
 
@@ -316,7 +316,7 @@ Quy tắc:
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Không mở được bộ từ";
+    const message = aiErrorMessage(error);
     const transient = isTransientAiError(error);
     if (!transient) console.error("Open vocab set error:", error);
     return NextResponse.json({ success: false, error: message, transient }, { status: 200 });

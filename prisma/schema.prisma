@@ -39,6 +39,7 @@ model User {
   VocabCourse        VocabCourse[]
   PracticeItem       PracticeItem[]
   SpeakingAttempt    SpeakingAttempt[]
+  MockExam           MockExam[]
   Deck               Deck[]
   ReviewLog          ReviewLog[]
   StudyNote          StudyNote[]
@@ -1251,4 +1252,34 @@ model SpeakingAttempt {
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+/// Một lượt thi thử đủ bốn kỹ năng.
+///
+/// Nội dung từng phần sinh khi người thi mở tới phần đó, không sinh sẵn cả bài:
+/// một bài đủ bốn phần cần bảy lượt gọi AI, để người ta ngồi chờ hai phút trước
+/// khi bắt đầu là hỏng cả cảm giác vào phòng thi. Đề và đáp án nằm trong
+/// `sections`, và đáp án KHÔNG gửi xuống trình duyệt lúc phát đề.
+model MockExam {
+  id         String  @id @default(uuid())
+  languageId String?
+
+  /// JSON: { listening?, reading?, writing?, speaking? } — đề, đáp án, bài làm.
+  sections String @default("{}")
+
+  /// Số câu đúng trên 40. Null nghĩa là chưa làm phần đó.
+  listeningRaw Int?
+  readingRaw   Int?
+  /// Band phần Viết và Nói do AI ước lượng.
+  writingBand  Float?
+  speakingBand Float?
+  overallBand  Float?
+
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
 }

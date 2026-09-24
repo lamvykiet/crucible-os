@@ -15,8 +15,44 @@ import type { GenerativeModel, Part } from "@google/generative-ai";
 /** Những lỗi đáng thử lại: quá tải, quá nhịp, quá giờ, lỗi cổng. */
 const TRANSIENT = /\b(429|500|502|503|504)\b|high demand|unavailable|timeout|deadline|overloaded|ECONNRESET|ETIMEDOUT/i;
 
-export const isTransientAiError = (error: unknown) =>
-  TRANSIENT.test(error instanceof Error ? error.message : String(error));
+/**
+ * Hết hạn mức THEO NGÀY — không phải lỗi thoáng qua.
+ *
+ * Gói miễn phí của Gemini chặn theo ngày (đo ngày 24/09/2026: 20 lượt mỗi ngày
+ * cho mỗi model). Lỗi đó cũng mang mã 429 như lúc quá nhịp, nên nếu chỉ soi mã
+ * số thì mã sẽ thử lại ba lần một việc không thể thành công, rồi báo "thử lại
+ * sau" trong khi hôm nay thử lại bao nhiêu lần cũng vẫn hỏng.
+ *
+ * Phân biệt bằng chính `quotaId` mà Google trả về: hạn mức theo ngày có chữ
+ * `PerDay`, còn hạn mức theo phút thì không.
+ */
+const DAILY_QUOTA = /PerDay|RequestsPerDay|free_tier_requests/i;
+
+export const isDailyQuotaError = (error: unknown) =>
+  DAILY_QUOTA.test(error instanceof Error ? error.message : String(error));
+
+export const isTransientAiError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  if (DAILY_QUOTA.test(message)) return false;
+  return TRANSIENT.test(message);
+};
+
+/**
+ * Câu báo lỗi cho người dùng, thay cho nguyên văn thông báo của Google.
+ *
+ * Thông báo gốc dài, toàn tiếng Anh lẫn JSON, và không nói người dùng phải làm
+ * gì. Hết hạn mức ngày là việc chỉ sửa được ở phía tài khoản, nên phải nói
+ * thẳng ra chứ không giấu sau chữ "thử lại sau".
+ */
+export function aiErrorMessage(error: unknown): string {
+  if (isDailyQuotaError(error)) {
+    return "Đã hết hạn mức AI miễn phí trong ngày của khoá API. Bật thanh toán cho khoá ở Google AI Studio, hoặc chờ sang ngày mới.";
+  }
+  if (isTransientAiError(error)) {
+    return "AI đang quá tải, thử lại sau một lát.";
+  }
+  return error instanceof Error ? error.message : "AI không phản hồi được";
+}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

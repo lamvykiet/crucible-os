@@ -3,7 +3,7 @@ import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { modelsWithFallback } from "@/lib/gemini";
-import { generateWithRetry, isTransientAiError } from "@/lib/aiRetry";
+import { generateWithRetry, isTransientAiError, aiErrorMessage } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { todayStart } from "@/lib/learningDay";
 
@@ -104,7 +104,7 @@ export async function GET() {
     // AI quá tải hoặc quá giờ là chuyện thoáng qua, không phải hỏng hóc. Trả
     // 200 kèm success:false để giao diện lặng lẽ ẩn khối này đi, thay vì 500
     // làm bẩn log và khiến trình duyệt tưởng cả trang có vấn đề.
-    const message = error instanceof Error ? error.message : "Không lấy được câu trích";
+    const message = aiErrorMessage(error);
     const transient = isTransientAiError(error);
     if (!transient) console.error("Daily quote error:", error);
     return NextResponse.json(

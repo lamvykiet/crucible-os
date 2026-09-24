@@ -3,7 +3,7 @@ import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { modelsWithFallback, GEMINI_GRADING_MODEL } from "@/lib/gemini";
-import { generateWithRetry, isTransientAiError } from "@/lib/aiRetry";
+import { generateWithRetry, isTransientAiError, aiErrorMessage } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
 import {
   SPEAKING_CRITERIA, speakingPart, overallSpeakingBand, roundBand,
@@ -142,7 +142,7 @@ Quy tắc:
       prepSeconds: spec.prepSeconds,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Không soạn được đề";
+    const message = aiErrorMessage(error);
     const transient = isTransientAiError(error);
     if (!transient) console.error("Speaking prompt error:", error);
     return NextResponse.json({ success: false, error: message, transient }, { status: 200 });
@@ -298,7 +298,7 @@ Cách chấm:
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Không chấm được bài nói";
+    const message = aiErrorMessage(error);
     const transient = isTransientAiError(error);
     if (!transient) console.error("Speaking grade error:", error);
     return NextResponse.json({ success: false, error: message, transient }, { status: 200 });
