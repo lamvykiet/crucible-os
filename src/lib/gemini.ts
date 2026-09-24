@@ -36,6 +36,24 @@ export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 export const GEMINI_FALLBACK_MODEL =
   process.env.GEMINI_FALLBACK_MODEL || "gemini-3.6-flash";
 
+/**
+ * Model dùng cho việc CHẤM BÀI (viết, nói).
+ *
+ * Chấm bài cần suy luận sâu hơn hẳn việc soạn thẻ từ vựng: phải đọc cả bài, đối
+ * chiếu bốn tiêu chí, rồi chỉ ra lỗi cụ thể kèm cách sửa. Một model mạnh hơn ở
+ * đây đáng giá hơn nhiều so với ở chỗ khác.
+ *
+ * Đo ngày 24/09/2026: khoá API này CHƯA có quota cho các model Pro
+ * (`gemini-3.1-pro-preview`, `gemini-pro-latest` đều trả 429). Gói Pro của ứng
+ * dụng gemini.google.com không cấp quota cho API — đó là hai thứ tính tiền
+ * riêng. Bật thanh toán cho khoá ở Google AI Studio rồi đặt biến này là dùng
+ * được ngay, không phải sửa code:
+ *
+ *   GEMINI_GRADING_MODEL=gemini-3.1-pro-preview
+ */
+export const GEMINI_GRADING_MODEL =
+  process.env.GEMINI_GRADING_MODEL || GEMINI_MODEL;
+
 // OCR hoá đơn chạy theo lô và không cần suy luận sâu — dùng bản flash rẻ hơn.
 export const GEMINI_VISION_MODEL =
   process.env.GEMINI_VISION_MODEL || "gemini-3.6-flash";
@@ -49,9 +67,11 @@ export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
  * chính là thứ đang thay đổi giữa hai lượt thử.
  */
 export function modelsWithFallback(
-  config: Omit<Parameters<typeof genAI.getGenerativeModel>[0], "model">
+  config: Omit<Parameters<typeof genAI.getGenerativeModel>[0], "model">,
+  /** Model chính, nếu muốn khác mặc định — ví dụ model chấm bài. */
+  primary: string = GEMINI_MODEL
 ) {
-  const names = [GEMINI_MODEL, GEMINI_FALLBACK_MODEL].filter(
+  const names = [primary, GEMINI_MODEL, GEMINI_FALLBACK_MODEL].filter(
     (name, i, all) => name && all.indexOf(name) === i
   );
   return names.map((model) => genAI.getGenerativeModel({ ...config, model }));

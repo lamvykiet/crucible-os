@@ -34,6 +34,8 @@ model User {
   Notification       Notification[]
   DailyQuote         DailyQuote[]
   GrammarLesson      GrammarLesson[]
+  SkillProgress      SkillProgress[]
+  WritingSubmission  WritingSubmission[]
   Deck               Deck[]
   ReviewLog          ReviewLog[]
   StudyNote          StudyNote[]
@@ -1062,4 +1064,74 @@ model GrammarLesson {
 
   @@unique([userId, pointId, langCode])
   @@index([userId, langCode])
+}
+
+
+/// Tiến độ của một kỹ năng trong một thứ tiếng.
+///
+/// Kỹ năng (nghe, nói, đọc, viết, ngữ pháp, phát âm, từ vựng) là *chức năng của
+/// ứng dụng*, không phải thư mục Drive. "Luyện nói" không phải một chỗ chứa tài
+/// liệu — nó là một chế độ học, nên nó không thể là thư mục.
+model SkillProgress {
+  id         String @id @default(uuid())
+  languageId String
+  /// listening | speaking | reading | writing | grammar | pronunciation | vocabulary
+  skill      String
+
+  xp          Int @default(0)
+  lessonsDone Int @default(0)
+  /// Tổng số phút đã luyện, để biết kỹ năng nào đang bị bỏ quên.
+  minutes     Int @default(0)
+
+  lastPracticedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, languageId, skill])
+  @@index([userId, languageId])
+}
+
+/// Một bài viết đã nộp, kèm nhận xét của AI.
+///
+/// Giữ lại cả đề, bài làm và nhận xét: tiến bộ trong kỹ năng viết chỉ nhìn thấy
+/// được khi đọc lại bài cũ, chứ một con số band đứng một mình thì không nói lên
+/// điều gì.
+///
+/// `band` là ƯỚC LƯỢNG do AI chấm, không phải điểm giám khảo. Giao diện phải nói
+/// rõ điều đó.
+model WritingSubmission {
+  id         String  @id @default(uuid())
+  languageId String?
+  /// ielts | general — để sau này thêm định dạng thi khác.
+  examType   String  @default("ielts")
+  /// task1 | task2
+  taskType   String
+
+  prompt   String
+  /// JSON: mô tả biểu đồ hoặc dữ liệu kèm theo đề Task 1.
+  promptData String?
+
+  response  String
+  wordCount Int
+  minutesSpent Int?
+
+  // Chấm điểm
+  band     Float?
+  /// JSON: { taskResponse, coherence, lexis, grammar } — bốn tiêu chí, thang 0-9.
+  criteria String?
+  /// JSON: [{ quote, issue, better }] — lỗi cụ thể kèm cách sửa.
+  feedback String?
+  summary  String?
+  gradedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }

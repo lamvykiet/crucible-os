@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Music2, PenLine } from "lucide-react";
 import DeckManager from "@/components/learning/DeckManager";
+import SkillsBoard from "@/components/learning/SkillsBoard";
 import { useLanguage } from "@/lib/LanguageContext";
 import {
   presetByCode, READING_LABEL, needsWritingPractice,
@@ -105,6 +106,10 @@ export default function LanguagePage({ params }: { params: Promise<{ id: string 
           <span className="c-chip c-chip-outline">{lang.levelScale}</span>
         </div>
       </header>
+
+      {/* Kỹ năng đứng trước bộ thẻ: bộ thẻ là một phần của kỹ năng từ vựng,
+          không phải toàn bộ việc học một thứ tiếng. */}
+      <SkillsBoard languageId={lang.id} />
 
       <DeckManager languageId={lang.id} levels={levels} />
     </div>
