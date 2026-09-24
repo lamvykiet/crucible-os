@@ -49,9 +49,9 @@ export const SKILLS: Skill[] = [
   {
     id: "grammar",
     en: "Grammar", vi: "Ngữ pháp",
-    blurbEn: "175 points from A1 to C1, each with its own practice set.",
-    blurbVi: "175 điểm ngữ pháp từ A1 tới C1, mỗi điểm có bài luyện riêng.",
-    href: () => "/learning/grammar",
+    blurbEn: "This language's own syllabus, on its own level scale, each point with practice.",
+    blurbVi: "Khung ngữ pháp của chính thứ tiếng này, theo thang riêng của nó, mỗi điểm có bài luyện.",
+    href: (id) => `/learning/languages/${id}/grammar`,
   },
   {
     id: "listening",

@@ -6,9 +6,7 @@ import {
   RefreshCw, CircleCheck,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
-import {
-  CEFR_LEVELS, type CefrLevel, type GrammarFamily,
-} from "@/lib/grammarSyllabus";
+import type { GrammarFamily } from "@/lib/grammarSyllabus";
 
 interface Progress {
   viewed: boolean;
@@ -37,17 +35,33 @@ interface Graded {
   explanation: string;
 }
 
-/** Màu huy hiệu theo cấp độ — dùng token ngữ nghĩa, không đặt màu mới. */
-const LEVEL_STYLE: Record<CefrLevel, { bg: string; fg: string }> = {
-  A1: { bg: "var(--color-success-tint)", fg: "var(--color-success)" },
-  A2: { bg: "var(--color-info-tint)", fg: "var(--color-info)" },
-  B1: { bg: "var(--color-accent-tint)", fg: "var(--color-accent)" },
-  B2: { bg: "var(--color-warning-tint)", fg: "var(--color-warning)" },
-  C1: { bg: "var(--color-error-tint)", fg: "var(--color-error)" },
-};
+/**
+ * Màu huy hiệu theo VỊ TRÍ của cấp trong thang, không theo tên cấp.
+ *
+ * Bản cũ tra màu bằng tên ("A1", "B2"), nhưng mỗi thứ tiếng một thang: tiếng
+ * Hàn là TOPIK 1–6, Quan Thoại là HSK 1–6, Quảng Đông là thang tự đặt 1–4. Tra
+ * theo tên thì mọi thang không phải CEFR đều rơi vào `undefined` và huy hiệu
+ * mất sạch màu.
+ *
+ * Năm token ngữ nghĩa, trải đều theo độ dài thang, dễ trước khó sau.
+ */
+const LEVEL_RAMP = [
+  { bg: "var(--color-success-tint)", fg: "var(--color-success)" },
+  { bg: "var(--color-info-tint)", fg: "var(--color-info)" },
+  { bg: "var(--color-accent-tint)", fg: "var(--color-accent)" },
+  { bg: "var(--color-warning-tint)", fg: "var(--color-warning)" },
+  { bg: "var(--color-error-tint)", fg: "var(--color-error)" },
+];
 
-function LevelBadge({ level }: { level: CefrLevel }) {
-  const s = LEVEL_STYLE[level];
+function LevelBadge({ level, levels }: { level: string; levels: string[] }) {
+  const at = levels.indexOf(level);
+  const span = Math.max(1, levels.length - 1);
+  const s =
+    at < 0
+      ? LEVEL_RAMP[0]
+      : LEVEL_RAMP[
+          Math.min(LEVEL_RAMP.length - 1, Math.round((at / span) * (LEVEL_RAMP.length - 1)))
+        ];
   return (
     <span
       className="inline-grid place-content-center px-1.5 h-[18px] rounded text-[10px] font-bold flex-none"
@@ -68,7 +82,15 @@ function LevelBadge({ level }: { level: CefrLevel }) {
  * Bài tập chấm ở máy chủ: đáp án không đi kèm lúc phát đề, nên mở tab mạng ra
  * cũng không thấy.
  */
-export default function GrammarBrowser() {
+/**
+ * Duyệt và học ngữ pháp của MỘT thứ tiếng.
+ *
+ * Trước đây đây là một trang dùng chung, luôn hiện khung tiếng Anh kể cả khi
+ * đang học tiếng Hàn. Ngữ pháp không phải thứ dùng chung: mỗi thứ tiếng có
+ * khung và thang riêng, nên component nhận `langCode` và mọi lượt gọi máy chủ
+ * đều mang theo nó.
+ */
+export default function GrammarBrowser({ langCode }: { langCode: string }) {
   const { t } = useLanguage();
 
   const [families, setFamilies] = useState<GrammarFamily[]>([]);
@@ -77,7 +99,11 @@ export default function GrammarBrowser() {
   const [progress, setProgress] = useState<Record<string, Progress>>({});
   const [loadedSyllabus, setLoadedSyllabus] = useState(false);
 
-  const [level, setLevel] = useState<CefrLevel | "all">("all");
+  const [scale, setScale] = useState<string | null>(null);
+  const [levels, setLevels] = useState<string[]>([]);
+  const [references, setReferences] = useState<string[]>([]);
+
+  const [level, setLevel] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [openFamilies, setOpenFamilies] = useState<Set<string>>(new Set());
 
@@ -97,22 +123,26 @@ export default function GrammarBrowser() {
   // Khung chương trình: một lần, ngay khi mở.
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/learning/grammar", { signal: controller.signal })
+    fetch(`/api/learning/grammar?lang=${encodeURIComponent(langCode)}`, { signal: controller.signal })
       .then((res) => res.json())
       .then((json) => {
         if (controller.signal.aborted || !json?.success) return;
-        setFamilies(json.families);
-        setByLevel(json.byLevel);
-        setTotal(json.total);
+        setFamilies(json.families ?? []);
+        setByLevel(json.byLevel ?? {});
+        setLevels(json.levels ?? []);
+        setScale(json.scale ?? null);
+        setReferences(json.references ?? []);
+        setTotal(json.total ?? 0);
         setProgress(json.progress ?? {});
-        setOpenFamilies(new Set([json.families[0]?.id].filter(Boolean)));
+        setLevel("all");
+        setOpenFamilies(new Set([json.families?.[0]?.id].filter(Boolean)));
       })
       .catch(() => {})
       .finally(() => {
         if (!controller.signal.aborted) setLoadedSyllabus(true);
       });
     return () => controller.abort();
-  }, []);
+  }, [langCode]);
 
   /** Lọc cây theo cấp độ và từ khoá, bỏ hẳn nhóm và họ không còn bài nào. */
   const visible = useMemo(() => {
@@ -161,7 +191,7 @@ export default function GrammarBrowser() {
       const res = await fetch("/api/learning/grammar/lesson", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pointId: id }),
+        body: JSON.stringify({ pointId: id, langCode }),
       });
       const json = await res.json();
       if (!json?.success) throw new Error(json?.error || "Không soạn được bài");
@@ -190,7 +220,7 @@ export default function GrammarBrowser() {
       const res = await fetch("/api/learning/grammar/practice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pointId, refresh }),
+        body: JSON.stringify({ pointId, langCode, refresh }),
       });
       const json = await res.json();
       if (!json?.success) throw new Error(json?.error || "Không ra được đề");
@@ -209,7 +239,7 @@ export default function GrammarBrowser() {
       const res = await fetch("/api/learning/grammar/practice", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pointId, index: qIndex, choice }),
+        body: JSON.stringify({ pointId, langCode, index: qIndex, choice }),
       });
       const json = await res.json();
       if (json?.success) setGraded(json);
@@ -239,7 +269,8 @@ export default function GrammarBrowser() {
       {/* ── Cây chương trình ─────────────────────────────────────────────── */}
       <aside className="c-card p-5 space-y-4 lg:sticky lg:top-6 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
         <div>
-          <h2 className="c-h3">{t("Grammar", "Ngữ pháp")}</h2>
+          {/* Không đặt tiêu đề "Ngữ pháp" ở đây: trang bao ngoài đã có h1 mang
+              tên thứ tiếng, thêm nữa là hai tiêu đề chồng lên nhau. */}
           <p className="c-stat-label">
             {t(`${viewedCount} of ${total} opened`, `Đã mở ${viewedCount}/${total} bài`)}
           </p>
@@ -255,6 +286,16 @@ export default function GrammarBrowser() {
           />
         </div>
 
+        {scale && (
+          <p className="c-stat-label">
+            {/* "Tự đặt" là chữ tiếng Việt, nhét thẳng vào câu tiếng Anh thì
+                thành nửa nọ nửa kia. CEFR, HSK, TOPIK vốn đã là tên riêng. */}
+            {scale === "Tự đặt"
+              ? t("Levels on this project's own scale", "Cấp độ theo thang tự đặt của dự án")
+              : t(`Levels on the ${scale} scale`, `Cấp độ theo thang ${scale}`)}
+          </p>
+        )}
+
         <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => setLevel("all")}
@@ -262,7 +303,7 @@ export default function GrammarBrowser() {
           >
             {t("All", "Tất cả")} ({total})
           </button>
-          {CEFR_LEVELS.map((lv) => (
+          {levels.map((lv) => (
             <button
               key={lv}
               onClick={() => setLevel(lv)}
@@ -323,7 +364,7 @@ export default function GrammarBrowser() {
                                     {seen && !active && (
                                       <CircleCheck size={13} className="text-[var(--color-success)] flex-none mt-0.5" />
                                     )}
-                                    <LevelBadge level={point.level} />
+                                    <LevelBadge level={point.level} levels={levels} />
                                   </button>
                                 </li>
                               );
@@ -338,6 +379,27 @@ export default function GrammarBrowser() {
             })}
           </nav>
         )}
+        {references.length > 0 && (
+          <details className="c-card p-4">
+            <summary className="c-stat-label cursor-pointer">
+              {t("What this syllabus was built from", "Khung này dựa trên nguồn nào")}
+            </summary>
+            <ul className="mt-3 space-y-1.5">
+              {references.map((ref) => (
+                <li key={ref} className="c-help">
+                  {ref}
+                </li>
+              ))}
+            </ul>
+            <p className="c-help mt-3">
+              {t(
+                "The ordering and levels are this project's own. The books above were consulted for how topics are usually sequenced, not copied from.",
+                "Thứ tự và cấp độ là cách sắp của chính dự án. Những sách trên được tra để biết người ta thường dạy theo trình tự nào, không phải nguồn chép nội dung."
+              )}
+            </p>
+          </details>
+        )}
+
       </aside>
 
       {/* ── Bài học ──────────────────────────────────────────────────────── */}
@@ -378,7 +440,7 @@ export default function GrammarBrowser() {
                 <Dumbbell size={16} />
                 {t("Practice", "Luyện tập")}
               </button>
-              <LevelBadge level={current.point.level} />
+              <LevelBadge level={current.point.level} levels={levels} />
             </div>
 
             {/* Lỗi AI thoáng qua thì phải bấm lại được ngay tại chỗ — bắt tải

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { GRAMMAR_SYLLABUS, countByLevel, countPoints } from "@/lib/grammarSyllabus";
+import { syllabusFor, countByLevel, countPoints } from "@/lib/grammarSyllabus";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,23 @@ export async function GET(req: Request) {
 
   try {
     const langCode = new URL(req.url).searchParams.get("lang")?.trim() || "en";
+
+    // Ngữ pháp là của từng thứ tiếng. Thứ tiếng chưa có khung riêng thì nói
+    // thẳng là chưa có, đừng trả khung tiếng Anh ra cho người đang học tiếng Hàn.
+    const syllabus = syllabusFor(langCode);
+    if (!syllabus) {
+      return NextResponse.json({
+        success: true,
+        families: [],
+        scale: null,
+        levels: [],
+        references: [],
+        total: 0,
+        byLevel: {},
+        viewedCount: 0,
+        progress: {},
+      });
+    }
 
     const lessons = await prisma.grammarLesson.findMany({
       where: { userId: user.id, langCode },
@@ -38,9 +55,12 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       success: true,
-      families: GRAMMAR_SYLLABUS,
-      total: countPoints(),
-      byLevel: countByLevel(),
+      families: syllabus.families,
+      scale: syllabus.scale,
+      levels: syllabus.levels,
+      references: syllabus.references,
+      total: countPoints(syllabus.families),
+      byLevel: countByLevel(syllabus),
       viewedCount: lessons.filter((l) => l.viewedAt !== null).length,
       progress,
     });

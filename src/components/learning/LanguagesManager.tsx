@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Plus, Loader2, AlertCircle, Trash2, Languages as LanguagesIcon,
-  Layers, BookMarked, ChevronRight, Music2, PenLine, Feather,
+  Layers, BookMarked, ChevronRight, Music2, PenLine,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import type { LanguagePreset } from "@/lib/languagePresets";
@@ -111,24 +111,6 @@ export default function LanguagesManager() {
         </p>
       </div>
 
-      {/* Ngữ pháp là công cụ của mảng ngôn ngữ, nên lối vào nằm ở đây chứ không
-          lẫn vào dải công cụ dùng chung — học Blender thì không cần thì hiện
-          tại hoàn thành. */}
-      <Link href="/learning/grammar" className="c-card c-elev-md p-5 flex items-center gap-4 hover:border-[var(--color-primary)] transition-colors group">
-        <span className="w-12 h-12 rounded-2xl grid place-content-center flex-none bg-[var(--color-accent-tint)] text-[var(--color-accent)]">
-          <Feather size={22} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-bold">{t("Learn grammar", "Học ngữ pháp")}</span>
-          <span className="block c-stat-label">
-            {t(
-              "175 points from A1 to C1, with practice",
-              "175 điểm ngữ pháp từ A1 tới C1, kèm bài luyện"
-            )}
-          </span>
-        </span>
-        <ChevronRight size={18} className="text-[var(--color-text-faint)] group-hover:text-[var(--color-primary)] transition-colors flex-none" />
-      </Link>
 
       {error && (
         <div className="c-alert c-alert-error">

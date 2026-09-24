@@ -6,6 +6,7 @@ import { modelsWithFallback } from "@/lib/gemini";
 import { generateWithRetry, isTransientAiError, aiErrorMessage } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { findPoint } from "@/lib/grammarSyllabus";
+import { presetByCode } from "@/lib/languagePresets";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -47,7 +48,7 @@ const LESSON_SCHEMA: Schema = {
       items: {
         type: SchemaType.OBJECT,
         properties: {
-          sentence: { type: SchemaType.STRING, description: "Câu ví dụ hoàn chỉnh bằng tiếng Anh" },
+          sentence: { type: SchemaType.STRING, description: "Câu ví dụ hoàn chỉnh bằng thứ tiếng đang học" },
           note: { type: SchemaType.STRING, description: "Một câu chỉ ra điểm ngữ pháp nằm ở đâu trong câu" },
         },
         required: ["sentence", "note"],
@@ -63,7 +64,9 @@ export async function POST(req: Request) {
 
   try {
     const { pointId, langCode = "en", refresh } = await req.json();
-    const found = findPoint(String(pointId ?? ""));
+    // Phải tra trong khung của ĐÚNG thứ tiếng: id điểm chỉ duy nhất trong một
+    // khung, hai thứ tiếng có thể trùng id.
+    const found = findPoint(String(langCode), String(pointId ?? ""));
     if (!found) {
       return NextResponse.json({ success: false, error: "Không tìm thấy bài này" }, { status: 404 });
     }
@@ -86,13 +89,14 @@ export async function POST(req: Request) {
       select: { translationLanguage: true },
     });
     const explainIn = promptLanguageName(pref?.translationLanguage);
+    const targetLanguage = presetByCode(String(langCode))?.nativeName ?? "English";
 
     const model = modelsWithFallback({
       generationConfig: { responseMimeType: "application/json", responseSchema: LESSON_SCHEMA },
-      systemInstruction: `Bạn soạn một bài ngữ pháp tiếng Anh ngắn cho người tự học ở trình độ ${found.point.level} theo thang CEFR.
+      systemInstruction: `Bạn soạn một bài ngữ pháp ${targetLanguage} ngắn cho người tự học ở trình độ ${found.point.level} theo thang ${found.syllabus.scale}.
 
 Quy tắc:
-- Mọi phần giải thích viết bằng ${explainIn}. Riêng "pattern" và "sentence" viết bằng tiếng Anh.
+- Mọi phần giải thích viết bằng ${explainIn}. Riêng "pattern" và "sentence" viết bằng ${targetLanguage}.
 - Viết bằng lời của chính bạn. Không trích lại câu chữ từ bất kỳ sách giáo khoa
   hay trang web nào.
 - Đúng tầm ${found.point.level}: câu ví dụ chỉ dùng từ vựng và cấu trúc mà người

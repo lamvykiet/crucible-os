@@ -6,6 +6,7 @@ import { modelsWithFallback } from "@/lib/gemini";
 import { generateWithRetry, isTransientAiError, aiErrorMessage } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { findPoint } from "@/lib/grammarSyllabus";
+import { presetByCode } from "@/lib/languagePresets";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
 
   try {
     const { pointId, langCode = "en", refresh } = await req.json();
-    const found = findPoint(String(pointId ?? ""));
+    const found = findPoint(String(langCode), String(pointId ?? ""));
     if (!found) {
       return NextResponse.json({ success: false, error: "Không tìm thấy bài này" }, { status: 404 });
     }
@@ -86,13 +87,14 @@ export async function POST(req: Request) {
       select: { translationLanguage: true },
     });
     const explainIn = promptLanguageName(pref?.translationLanguage);
+    const targetLanguage = presetByCode(String(langCode))?.nativeName ?? "English";
 
     const model = modelsWithFallback({
       generationConfig: { responseMimeType: "application/json", responseSchema: PRACTICE_SCHEMA },
-      systemInstruction: `Bạn ra ${QUESTION_COUNT} câu trắc nghiệm luyện đúng một điểm ngữ pháp tiếng Anh, cho người học trình độ ${found.point.level} theo thang CEFR.
+      systemInstruction: `Bạn ra ${QUESTION_COUNT} câu trắc nghiệm luyện đúng một điểm ngữ pháp ${targetLanguage}, cho người học trình độ ${found.point.level} theo thang ${found.syllabus.scale}.
 
 Quy tắc:
-- "prompt" và "options" viết bằng tiếng Anh. "explanation" viết bằng ${explainIn}.
+- "prompt" và "options" viết bằng ${targetLanguage}. "explanation" viết bằng ${explainIn}.
 - Mỗi câu đúng 4 phương án, chỉ một phương án đúng.
 - Câu hỏi phải kiểm tra CHÍNH điểm ngữ pháp này, không lạc sang điểm khác.
 - Phương án sai phải là lỗi người học hay mắc thật, không phải phương án ngớ
@@ -150,7 +152,7 @@ export async function PATCH(req: Request) {
 
   try {
     const { pointId, langCode = "en", index, choice } = await req.json();
-    const found = findPoint(String(pointId ?? ""));
+    const found = findPoint(String(langCode), String(pointId ?? ""));
     if (!found) {
       return NextResponse.json({ success: false, error: "Không tìm thấy bài này" }, { status: 404 });
     }
