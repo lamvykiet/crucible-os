@@ -42,9 +42,9 @@ export const SKILLS: Skill[] = [
   {
     id: "vocabulary",
     en: "Vocabulary", vi: "Từ vựng",
-    blurbEn: "Build and review your own word bank with spaced repetition.",
-    blurbVi: "Gom và ôn kho từ của riêng bạn theo lịch lặp lại ngắt quãng.",
-    href: () => "/learning/flashcards",
+    blurbEn: "A 30-day course, 10 words a day, each set repeating five times.",
+    blurbVi: "Giáo trình 30 ngày, mỗi ngày 10 từ, mỗi bộ lặp lại 5 vòng.",
+    href: (id) => `/learning/languages/${id}/vocabulary`,
   },
   {
     id: "grammar",
@@ -56,8 +56,8 @@ export const SKILLS: Skill[] = [
   {
     id: "listening",
     en: "Listening", vi: "Nghe",
-    blurbEn: "Hear a sentence, type what you heard, check word by word.",
-    blurbVi: "Nghe một câu, gõ lại điều bạn nghe được, đối chiếu từng chữ.",
+    blurbEn: "A short talk played aloud, with questions. The transcript stays hidden until you answer.",
+    blurbVi: "Một đoạn nói ngắn phát thành tiếng, kèm câu hỏi. Lời thoại bị giấu tới khi bạn trả lời xong.",
     href: (id) => `/learning/languages/${id}/listening`,
   },
   {
@@ -77,25 +77,29 @@ export const SKILLS: Skill[] = [
   {
     id: "speaking",
     en: "Speaking", vi: "Nói",
-    blurbEn: "Answer out loud, get it transcribed and assessed.",
-    blurbVi: "Trả lời thành tiếng, được gỡ băng và nhận xét.",
-    href: null,
+    blurbEn: "Answer out loud across all three exam parts, assessed on four criteria.",
+    blurbVi: "Trả lời thành tiếng theo cả ba phần thi, chấm trên bốn tiêu chí.",
+    href: (id) => `/learning/languages/${id}/speaking`,
     needsMic: true,
   },
   {
     id: "pronunciation",
     en: "Pronunciation", vi: "Phát âm",
-    blurbEn: "Hear the model, record yourself, compare the two.",
-    blurbVi: "Nghe mẫu, tự thu âm, đối chiếu hai bên.",
-    href: null,
+    blurbEn: "One hard sound at a time: hear the model, say it, get told what went wrong.",
+    blurbVi: "Mỗi lượt một âm khó: nghe mẫu, đọc lại, được chỉ ra sai ở đâu.",
+    href: (id) => `/learning/languages/${id}/pronunciation`,
     needsMic: true,
   },
   {
     id: "writingSystem",
     en: "Writing system", vi: "Luyện viết chữ",
+    // Chưa dựng. Tập viết ĐÚNG THỨ TỰ NÉT cần dữ liệu nét cho từng chữ (cỡ
+    // hàng nghìn chữ Hán), tức là thêm một gói phụ thuộc — nên để `null` và nói
+    // thẳng là chưa có. Trước đây mục này trỏ sang `/learning/flashcards`, mà
+    // thẻ ghi nhớ không phải tập viết: bấm vào là ra một thứ khác hẳn.
     blurbEn: "Trace characters stroke by stroke.",
     blurbVi: "Tập viết từng nét của chữ.",
-    href: () => "/learning/flashcards",
+    href: null,
     onlyScripts: ["hanzi", "hangul"],
   },
 ];

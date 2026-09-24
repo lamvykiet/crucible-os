@@ -149,3 +149,109 @@ export function overallWritingBand(
   if (task2 === null) return roundBand(task1);
   return roundBand((task1 * 1 + task2 * 2) / 3);
 }
+
+/* ── Phần Nói ───────────────────────────────────────────────────────────── */
+
+export interface SpeakingPartSpec {
+  id: "part1" | "part2" | "part3";
+  en: string;
+  vi: string;
+  /** Thời lượng nói của thí sinh, tính bằng giây. */
+  seconds: number;
+  /** Thời gian chuẩn bị trước khi nói. Chỉ Part 2 có. */
+  prepSeconds: number;
+  briefEn: string;
+  briefVi: string;
+}
+
+/**
+ * Ba phần của bài thi nói, kèm thời lượng.
+ *
+ * Part 2 là phần duy nhất có một phút chuẩn bị và buộc nói liền một mạch — đó
+ * là chỗ khác biệt thật giữa ba phần, không phải độ khó câu hỏi. Nên đồng hồ
+ * chuẩn bị chỉ chạy ở Part 2.
+ */
+export const SPEAKING_PARTS: SpeakingPartSpec[] = [
+  {
+    id: "part1",
+    en: "Part 1 — Familiar topics", vi: "Part 1 — Chủ đề quen thuộc",
+    seconds: 90,
+    prepSeconds: 0,
+    briefEn: "Short answers about yourself: where you live, what you do, what you like. Answer and add one reason — do not stop at yes or no.",
+    briefVi: "Trả lời ngắn về chính bạn: ở đâu, làm gì, thích gì. Trả lời rồi thêm một lý do — đừng dừng ở có hoặc không.",
+  },
+  {
+    id: "part2",
+    en: "Part 2 — Long turn", vi: "Part 2 — Nói dài",
+    seconds: 120,
+    prepSeconds: 60,
+    briefEn: "One minute to prepare, then speak for up to two minutes without stopping. Cover every bullet on the card.",
+    briefVi: "Một phút chuẩn bị, rồi nói liền tối đa hai phút. Chạm hết mọi gạch đầu dòng trên thẻ đề.",
+  },
+  {
+    id: "part3",
+    en: "Part 3 — Discussion", vi: "Part 3 — Thảo luận",
+    seconds: 150,
+    prepSeconds: 0,
+    briefEn: "Abstract questions growing out of Part 2. Give an opinion, then justify it and weigh the other side.",
+    briefVi: "Câu hỏi trừu tượng nối từ Part 2. Nêu quan điểm, rồi chống đỡ nó và cân nhắc phía ngược lại.",
+  },
+];
+
+/**
+ * Bốn tiêu chí chấm phần Nói.
+ *
+ * Như phần Viết: tên tiêu chí là thuật ngữ công khai của kỳ thi, còn phần mô tả
+ * bên dưới do dự án tự viết.
+ *
+ * Lưu ý về `pronunciation`: chấm phát âm từ bản gỡ băng là **không đáng tin** —
+ * bản gỡ băng chỉ còn chữ, âm đã mất. Nên khi chấm bằng bản gỡ băng thì tiêu
+ * chí này phải bỏ trống chứ không được đoán. Xem `src/app/api/learning/speaking`.
+ */
+export const SPEAKING_CRITERIA = [
+  {
+    key: "fluency" as const,
+    en: "Fluency and coherence", vi: "Độ lưu loát và mạch lạc",
+    whatEn: "Whether you keep going at a natural pace, and whether one idea leads into the next instead of restarting.",
+    whatVi: "Bạn có giữ được nhịp nói tự nhiên không, và ý trước có dẫn sang ý sau hay cứ bắt đầu lại.",
+  },
+  {
+    key: "lexis" as const,
+    en: "Lexical resource", vi: "Vốn từ",
+    whatEn: "How precisely you pick words for what you mean, and whether you can go around a word you do not know.",
+    whatVi: "Bạn chọn từ có sát ý không, và khi bí một từ có nói vòng qua được không.",
+  },
+  {
+    key: "grammar" as const,
+    en: "Grammatical range and accuracy", vi: "Ngữ pháp",
+    whatEn: "How varied your structures are when speaking, and whether slips get in the way of being understood.",
+    whatVi: "Câu cú khi nói có đa dạng không, và lỗi có cản người nghe hiểu không.",
+  },
+  {
+    key: "pronunciation" as const,
+    en: "Pronunciation", vi: "Phát âm",
+    whatEn: "How easy you are to follow: individual sounds, word stress, and the rise and fall across a sentence.",
+    whatVi: "Người nghe có theo được dễ không: từng âm, trọng âm từ, và nhịp lên xuống của cả câu.",
+  },
+];
+
+export type SpeakingCriterionKey = (typeof SPEAKING_CRITERIA)[number]["key"];
+
+export const speakingPart = (id: string) =>
+  SPEAKING_PARTS.find((p) => p.id === id) ?? SPEAKING_PARTS[0];
+
+/**
+ * Band phần Nói: trung bình các tiêu chí CHẤM ĐƯỢC.
+ *
+ * Bỏ qua tiêu chí `null` thay vì coi nó là 0 — chấm bằng bản gỡ băng thì phát
+ * âm bỏ trống, và tính nó thành 0 sẽ kéo band tụt xuống một cách vô căn cứ.
+ */
+export function overallSpeakingBand(
+  scores: Partial<Record<SpeakingCriterionKey, number | null>>
+): number | null {
+  const given = SPEAKING_CRITERIA.map((c) => scores[c.key]).filter(
+    (v): v is number => typeof v === "number" && Number.isFinite(v)
+  );
+  if (given.length === 0) return null;
+  return roundBand(given.reduce((a, b) => a + b, 0) / given.length);
+}

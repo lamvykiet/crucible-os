@@ -36,6 +36,9 @@ model User {
   GrammarLesson      GrammarLesson[]
   SkillProgress      SkillProgress[]
   WritingSubmission  WritingSubmission[]
+  VocabCourse        VocabCourse[]
+  PracticeItem       PracticeItem[]
+  SpeakingAttempt    SpeakingAttempt[]
   Deck               Deck[]
   ReviewLog          ReviewLog[]
   StudyNote          StudyNote[]
@@ -1127,6 +1130,120 @@ model WritingSubmission {
   feedback String?
   summary  String?
   gradedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+
+/// Giáo trình từ vựng theo ngày.
+///
+/// Đây là hệ RIÊNG, chạy song song với thẻ ghi nhớ FSRS chứ không thay thế.
+/// Hai hệ có triết lý khác nhau và không trộn được:
+///
+///   FSRS        giãn cách theo mức độ nhớ từng thẻ — tối ưu cho trí nhớ
+///   Giáo trình  lịch cố định 10 ngày, 5 vòng — dễ đoán, hợp học theo khoá
+///
+/// Người học chọn hệ nào hợp với mình, và một từ có thể nằm ở cả hai.
+model VocabCourse {
+  id       String @id @default(uuid())
+  langCode String @default("en")
+  /// B1 | B2 | C1 | C2
+  level    String
+  /// Số ngày của giáo trình; mỗi ngày 10 từ.
+  totalDays Int    @default(0)
+  wordsPerDay Int  @default(10)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sets VocabSet[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, langCode, level])
+}
+
+/// Một ngày trong giáo trình: mười từ, kèm lịch ôn của chính nó.
+///
+/// Lịch suy ra từ `startedAt` chứ không lưu sẵn năm dòng ôn: ngày học đầu tiên
+/// là ngày người dùng thật sự mở nó ra, không phải ngày tạo giáo trình. Lưu sẵn
+/// lịch sẽ sai ngay khi người dùng nghỉ một tuần.
+model VocabSet {
+  id       String @id @default(uuid())
+  courseId String
+  course   VocabCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  /// Ngày thứ mấy trong giáo trình, đếm từ 1.
+  dayIndex Int
+  /// JSON: [{ term, pos, phonetic, meaning, example, exampleTranslation }]
+  words    String
+
+  /// Lần đầu học. Null = chưa mở tới.
+  startedAt      DateTime?
+  /// Đã ôn lại bao nhiêu vòng, 0..5.
+  cyclesDone     Int       @default(0)
+  lastReviewedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([courseId, dayIndex])
+  @@index([courseId, dayIndex])
+}
+
+/// Bài luyện đã sinh và giữ lại — dùng chung cho đọc và nghe.
+///
+/// Sinh lại mỗi lần mở thì vừa tốn lượt gọi AI, vừa khiến người học không quay
+/// lại được đúng bài mình vừa làm sai.
+model PracticeItem {
+  id         String  @id @default(uuid())
+  languageId String?
+  /// reading | listening
+  skill      String
+  /// Cấp độ CEFR của bài.
+  level      String
+  topic      String?
+
+  /// JSON: { passage | transcript, questions: [{prompt, options, correctIndex, explanation}] }
+  content    String
+
+  attempts     Int @default(0)
+  correctCount Int @default(0)
+  lastDoneAt   DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, skill, level])
+}
+
+/// Một lượt luyện nói, kèm bản gỡ băng và nhận xét.
+///
+/// Không lưu file âm thanh: thu xong là gửi thẳng cho AI gỡ băng rồi vứt. Giữ
+/// lại bản ghi âm của chính giọng mình trên máy chủ là thứ có rủi ro riêng tư mà
+/// không đổi lại được lợi ích học tập nào — bản gỡ băng đã đủ để nhận xét.
+model SpeakingAttempt {
+  id         String  @id @default(uuid())
+  languageId String?
+  /// part1 | part2 | part3 — theo ba phần của bài thi nói.
+  part       String  @default("part1")
+  prompt     String
+
+  transcript String
+  seconds    Int     @default(0)
+
+  band     Float?
+  /// JSON: { fluency, lexis, grammar, pronunciation }
+  criteria String?
+  /// JSON: [{ quote, issue, better }]
+  feedback String?
+  summary  String?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
