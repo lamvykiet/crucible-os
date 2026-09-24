@@ -24,14 +24,44 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // Nên 2.5-flash là model chính. Đây là chuyện tải của từng model chứ không
 // phải Gemini nói chung — thấy 3.6 ổn định trở lại thì đổi lại bằng .env,
 // không phải sửa code.
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+/**
+ * Chuỗi model để thử lần lượt khi model trước hết hạn mức hoặc quá tải.
+ *
+ * Vì sao cần cả một chuỗi chứ không phải một cặp: **hạn mức của gói miễn phí
+ * tính theo TỪNG MODEL**, không phải theo khoá. Đo ngày 25/09/2026 trên chính
+ * khoá của dự án — `gemini-2.5-flash` đã cạn 20 lượt/ngày và trả 429, trong khi
+ * `gemini-3.6-flash`, `gemini-3-flash-preview` và `gemini-2.5-flash-lite` vẫn
+ * chạy bình thường cùng lúc đó.
+ *
+ * Nên cạn hạn mức một model KHÔNG phải lý do để bỏ cuộc: chuyển sang model khác
+ * là chạy tiếp được. Xếp theo năng lực giảm dần, model khoẻ trước.
+ *
+ * Bật thanh toán cho khoá thì hạn mức lên rất cao và chuỗi này gần như không
+ * bao giờ phải đi quá phần tử đầu.
+ */
+export const GEMINI_MODEL_CHAIN = (
+  process.env.GEMINI_MODEL_CHAIN ||
+  "gemini-3.6-flash,gemini-3-flash-preview,gemini-2.5-flash,gemini-2.5-flash-lite,gemini-flash-lite-latest"
+)
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean);
+
+/**
+ * Model chính: phần tử đầu của chuỗi.
+ *
+ * Để chuỗi làm nguồn thứ tự DUY NHẤT. Bản trước đặt riêng model chính rồi lại
+ * đặt riêng chuỗi, nên khi model chính cạn hạn mức thì mọi lượt gọi đều phí
+ * khoảng một giây va vào nó trước khi nhảy sang model còn hạn mức.
+ */
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || GEMINI_MODEL_CHAIN[0];
 
 /**
  * Model dùng khi model chính hỏng vì quá tải.
  *
- * Phải là một model KHÁC, không phải thử lại cùng một cái: sự cố vừa rồi là
- * riêng `gemini-3.6-flash` chết trong khi `gemini-2.5-flash` vẫn chạy tốt, nên
- * thử lại cùng model bao nhiêu lần cũng vẫn 503.
+ * Phải là một model KHÁC, không phải thử lại cùng một cái: sự cố 22/09 là riêng
+ * `gemini-3.6-flash` trả 503 trong khi `gemini-2.5-flash` vẫn chạy tốt, nên thử
+ * lại cùng model bao nhiêu lần cũng vẫn 503.
  */
 export const GEMINI_FALLBACK_MODEL =
   process.env.GEMINI_FALLBACK_MODEL || "gemini-3.6-flash";
@@ -71,7 +101,7 @@ export function modelsWithFallback(
   /** Model chính, nếu muốn khác mặc định — ví dụ model chấm bài. */
   primary: string = GEMINI_MODEL
 ) {
-  const names = [primary, GEMINI_MODEL, GEMINI_FALLBACK_MODEL].filter(
+  const names = [primary, GEMINI_MODEL, GEMINI_FALLBACK_MODEL, ...GEMINI_MODEL_CHAIN].filter(
     (name, i, all) => name && all.indexOf(name) === i
   );
   return names.map((model) => genAI.getGenerativeModel({ ...config, model }));

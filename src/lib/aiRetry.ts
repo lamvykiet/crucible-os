@@ -46,7 +46,7 @@ export const isTransientAiError = (error: unknown) => {
  */
 export function aiErrorMessage(error: unknown): string {
   if (isDailyQuotaError(error)) {
-    return "Đã hết hạn mức AI miễn phí trong ngày của khoá API. Bật thanh toán cho khoá ở Google AI Studio, hoặc chờ sang ngày mới.";
+    return "Đã hết hạn mức AI miễn phí trong ngày trên MỌI model dự phòng. Bật thanh toán cho khoá ở Google AI Studio, hoặc chờ sang ngày mới.";
   }
   if (isTransientAiError(error)) {
     return "AI đang quá tải, thử lại sau một lát.";
@@ -57,7 +57,12 @@ export function aiErrorMessage(error: unknown): string {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface Options {
-  /** Số lần gọi tối đa, tính cả lần đầu. */
+  /**
+   * Số lần gọi tối đa, tính cả lần đầu.
+   *
+   * Bỏ trống thì lấy đúng bằng độ dài chuỗi model (tối thiểu 3), để lượt nào
+   * cũng còn model mới mà thử.
+   */
   attempts?: number;
   /** Chờ bao lâu trước lần thử thứ hai; các lần sau nhân đôi. */
   baseDelayMs?: number;
@@ -82,42 +87,76 @@ export async function generateWithRetry(
   /**
    * Một model, hoặc danh sách model thử theo thứ tự.
    *
-   * Đổi hẳn sang model khác mới là cách chữa đúng: sự cố ngày 22/09 là riêng
-   * `gemini-3.6-flash` trả 503 trong khi `gemini-2.5-flash` chạy bình thường,
-   * nên thử lại cùng một model bao nhiêu lần cũng vẫn hỏng.
+   * Đổi hẳn sang model khác mới là cách chữa đúng, vì hai lý do khác nhau:
+   *
+   * - **Quá tải** là chuyện của từng model: sự cố 22/09 là riêng
+   *   `gemini-3.6-flash` trả 503 trong khi `gemini-2.5-flash` vẫn chạy tốt.
+   * - **Hạn mức gói miễn phí tính theo TỪNG MODEL**, không theo khoá. Đo ngày
+   *   25/09/2026: `gemini-2.5-flash` cạn 20 lượt/ngày và trả 429, cùng lúc đó
+   *   `gemini-3.6-flash` và `gemini-2.5-flash-lite` vẫn chạy.
    */
   models: GenerativeModel | GenerativeModel[],
   request: string | Array<string | Part>,
-  { attempts = 3, baseDelayMs = 700, timeoutMs = 25_000, totalBudgetMs = 30_000 }: Options = {}
+  { attempts, baseDelayMs = 700, timeoutMs = 25_000, totalBudgetMs = 30_000 }: Options = {}
 ) {
   const chain = Array.isArray(models) ? models : [models];
   if (chain.length === 0) throw new Error("Chưa cấu hình model nào");
 
+  // Ít nhất phải đủ lượt để đi hết chuỗi model, nếu không thì có model dự phòng
+  // mà không bao giờ dùng tới.
+  const maxAttempts = attempts ?? Math.max(3, chain.length);
+
   let lastError: unknown;
+  let modelIndex = 0;
   const startedAt = Date.now();
 
-  for (let attempt = 1; attempt <= attempts; attempt++) {
-    const spent = Date.now() - startedAt;
+  /**
+   * Thời gian đã tiêu vào việc va phải model cạn hạn mức.
+   *
+   * KHÔNG tính vào ngân sách: nhảy model không phải một lượt thử mà chỉ là dò
+   * xem model nào còn chỗ, và nó trả lời trong khoảng một giây. Tính vào ngân
+   * sách thì với chuỗi năm model, chỉ riêng việc dò đã ăn hết phần thời gian
+   * đáng lẽ dành cho lượt gọi thật.
+   */
+  let skippedMs = 0;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const spent = Date.now() - startedAt - skippedMs;
     if (spent >= totalBudgetMs) break;
 
-    // Lượt đầu dùng model chính; hỏng thì các lượt sau lần lượt sang dự phòng,
-    // hết danh sách thì quay lại model cuối.
-    const model = chain[Math.min(attempt - 1, chain.length - 1)];
+    const model = chain[Math.min(modelIndex, chain.length - 1)];
+    const attemptStartedAt = Date.now();
 
     try {
       // Lượt này chỉ được dùng nốt phần ngân sách còn lại.
-      const remaining = totalBudgetMs - (Date.now() - startedAt);
+      const remaining = totalBudgetMs - (Date.now() - startedAt - skippedMs);
       return await model.generateContent(
         request as Parameters<GenerativeModel["generateContent"]>[0],
         { timeout: Math.min(timeoutMs, remaining) }
       );
     } catch (error) {
       lastError = error;
-      if (attempt === attempts || !isTransientAiError(error)) throw error;
 
+      // Cạn hạn mức NGÀY của model này: chờ bao lâu cũng vô ích, nhưng model
+      // khác thì còn hạn mức riêng. Nhảy sang model kế tiếp ngay, không chờ.
+      // Hết sạch chuỗi mới chịu thua.
+      if (isDailyQuotaError(error)) {
+        skippedMs += Date.now() - attemptStartedAt;
+        modelIndex += 1;
+        if (modelIndex >= chain.length) throw error;
+        // Không tính là một lượt thử: lượt này chưa gọi được model nào.
+        attempt -= 1;
+        continue;
+      }
+
+      if (attempt === maxAttempts || !isTransientAiError(error)) throw error;
+
+      // Quá tải thì vừa lùi sang model khác vừa giãn cách — nhiễu ngẫu nhiên để
+      // nhiều request cùng hỏng không cùng thử lại đúng một thời điểm.
+      modelIndex += 1;
       const jitter = Math.random() * 250;
       const delay = baseDelayMs * 2 ** (attempt - 1) + jitter;
-      if (Date.now() - startedAt + delay >= totalBudgetMs) break;
+      if (Date.now() - startedAt - skippedMs + delay >= totalBudgetMs) break;
       await sleep(delay);
     }
   }

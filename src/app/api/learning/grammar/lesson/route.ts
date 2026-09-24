@@ -11,7 +11,13 @@ import { presetByCode } from "@/lib/languagePresets";
 export const runtime = "nodejs";
 export const maxDuration = 45;
 
-const AI_TIMEOUT_MS = 25_000;
+// Mỗi LƯỢT thử 20 giây, cả chuỗi 40 giây.
+//
+// Đặt mỗi lượt thật dài thì chỉ đủ chỗ cho một model, mà hạn mức gói miễn phí
+// tính theo từng model nên phải để dành thời gian cho model kế tiếp. Lượt soạn
+// bài chạy được đo được 16 giây; model nào chưa trả lời trong 20 giây thì đang
+// chật vật, chuyển sang model khác đáng hơn là ngồi đợi.
+const AI_TIMEOUT_MS = 20_000;
 
 /**
  * Nội dung một bài ngữ pháp.
@@ -108,7 +114,7 @@ Quy tắc:
     const result = await generateWithRetry(
       model,
       `Họ: ${found.family.title}\nNhóm: ${found.group.title}\nĐiểm ngữ pháp: ${found.point.title}\nCấp độ: ${found.point.level}`,
-      { timeoutMs: AI_TIMEOUT_MS }
+      { timeoutMs: AI_TIMEOUT_MS, totalBudgetMs: 40_000 }
     );
 
     const parsed = JSON.parse(result.response.text()) as {
