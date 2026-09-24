@@ -9,15 +9,18 @@ import { findPoint } from "@/lib/grammarSyllabus";
 import { presetByCode } from "@/lib/languagePresets";
 
 export const runtime = "nodejs";
-export const maxDuration = 45;
+export const maxDuration = 60;
 
-// Mỗi LƯỢT thử 20 giây, cả chuỗi 40 giây.
+// Mỗi LƯỢT thử 25 giây, cả chuỗi 55 giây — phải VỪA ĐỦ CHO HAI lượt.
 //
-// Đặt mỗi lượt thật dài thì chỉ đủ chỗ cho một model, mà hạn mức gói miễn phí
-// tính theo từng model nên phải để dành thời gian cho model kế tiếp. Lượt soạn
-// bài chạy được đo được 16 giây; model nào chưa trả lời trong 20 giây thì đang
-// chật vật, chuyển sang model khác đáng hơn là ngồi đợi.
-const AI_TIMEOUT_MS = 20_000;
+// Đo ngày 25/09/2026: cùng một model, lượt soạn bài chạy được mất 9, 13, 21
+// giây, nhưng có lượt quá 30 giây. Đặt mỗi lượt 30 giây thì một lượt chậm ăn
+// hết ngân sách và không còn chỗ thử model khác — đã đo đúng cảnh đó: hỏng ở
+// giây thứ 31 mà mới chỉ chạm một model.
+//
+// 25 × 2 = 50 giây, vẫn nằm trong 55. Thời gian nhảy qua model hết hạn mức
+// KHÔNG tính vào ngân sách (mỗi lần nhảy ~0,4 giây).
+const AI_TIMEOUT_MS = 25_000;
 
 /**
  * Nội dung một bài ngữ pháp.
@@ -114,7 +117,7 @@ Quy tắc:
     const result = await generateWithRetry(
       model,
       `Họ: ${found.family.title}\nNhóm: ${found.group.title}\nĐiểm ngữ pháp: ${found.point.title}\nCấp độ: ${found.point.level}`,
-      { timeoutMs: AI_TIMEOUT_MS, totalBudgetMs: 40_000 }
+      { timeoutMs: AI_TIMEOUT_MS, totalBudgetMs: 55_000 }
     );
 
     const parsed = JSON.parse(result.response.text()) as {

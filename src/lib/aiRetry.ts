@@ -56,6 +56,37 @@ export function aiErrorMessage(error: unknown): string {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Model nào đang hết hạn mức ngày, và phát hiện lúc nào.
+ *
+ * Vì sao cần nhớ: chuỗi model được xếp model KHOẺ NHẤT lên đầu, kể cả model
+ * dòng Pro mà gói miễn phí không được dùng. Không nhớ thì mọi lượt gọi đều phí
+ * khoảng một giây va vào cùng một model đã cạn, rồi mới đi tiếp.
+ *
+ * Nhớ có hạn (`RETRY_EXHAUSTED_AFTER_MS`) chứ không nhớ vĩnh viễn, vì hai
+ * chuyện đều có thể xảy ra giữa chừng: hạn mức sang ngày mới thì được cấp lại,
+ * và người dùng bật thanh toán cho khoá thì model Pro từ chỗ không dùng được
+ * thành dùng được. Thử lại định kỳ nên cả hai trường hợp đều tự nhận ra, không
+ * phải khởi động lại máy chủ.
+ *
+ * Bộ nhớ này nằm ở cấp tiến trình nên mỗi lần khởi động lại là quên sạch — đúng
+ * ý muốn, vì đây chỉ là mẹo tránh lãng phí chứ không phải dữ liệu cần giữ.
+ */
+const exhaustedAt = new Map<string, number>();
+
+const RETRY_EXHAUSTED_AFTER_MS = 30 * 60_000;
+
+/** Tên gọn của một model: thư viện trả về dạng "models/gemini-3.6-flash". */
+const modelName = (model: GenerativeModel) => model.model.replace(/^models\//, "");
+
+const isKnownExhausted = (model: GenerativeModel) => {
+  const at = exhaustedAt.get(modelName(model));
+  if (at === undefined) return false;
+  if (Date.now() - at < RETRY_EXHAUSTED_AFTER_MS) return true;
+  exhaustedAt.delete(modelName(model));
+  return false;
+};
+
 interface Options {
   /**
    * Số lần gọi tối đa, tính cả lần đầu.
@@ -124,6 +155,11 @@ export async function generateWithRetry(
     const spent = Date.now() - startedAt - skippedMs;
     if (spent >= totalBudgetMs) break;
 
+    // Bỏ qua ngay những model vừa biết là hết hạn mức, không gọi để rồi ăn 429.
+    while (modelIndex < chain.length - 1 && isKnownExhausted(chain[modelIndex])) {
+      modelIndex += 1;
+    }
+
     const model = chain[Math.min(modelIndex, chain.length - 1)];
     const attemptStartedAt = Date.now();
 
@@ -141,6 +177,7 @@ export async function generateWithRetry(
       // khác thì còn hạn mức riêng. Nhảy sang model kế tiếp ngay, không chờ.
       // Hết sạch chuỗi mới chịu thua.
       if (isDailyQuotaError(error)) {
+        exhaustedAt.set(modelName(model), Date.now());
         skippedMs += Date.now() - attemptStartedAt;
         modelIndex += 1;
         if (modelIndex >= chain.length) throw error;

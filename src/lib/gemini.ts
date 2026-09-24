@@ -48,6 +48,27 @@ export const GEMINI_MODEL_CHAIN = (
   .filter(Boolean);
 
 /**
+ * Model dòng Pro, thử TRƯỚC mọi thứ trong chuỗi thử lại.
+ *
+ * Gói miễn phí không được dùng dòng Pro: đo ngày 25/09/2026 trên khoá của dự
+ * án, `gemini-pro-latest` và `gemini-3.1-pro-preview` đều trả 429 với hạn mức
+ * bằng 0 — không phải dùng hết, mà là không được cấp. Để chúng ở đây vẫn đúng,
+ * vì `generateWithRetry` nhớ model nào không dùng được và bỏ qua ở các lượt
+ * sau, nên cái giá chỉ là một lượt thăm dò mỗi nửa giờ.
+ *
+ * Đổi lại: NGÀY NÀO KHOÁ ĐƯỢC BẬT THANH TOÁN thì Pro tự động được dùng, không
+ * phải sửa .env hay sửa code, không phải khởi động lại máy chủ.
+ *
+ * Đặt `GEMINI_PREFERRED_MODELS=` (để trống) nếu muốn tắt hẳn việc thăm dò.
+ */
+export const GEMINI_PREFERRED_MODELS = (
+  process.env.GEMINI_PREFERRED_MODELS ?? "gemini-3.1-pro-preview,gemini-pro-latest"
+)
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean);
+
+/**
  * Model chính: phần tử đầu của chuỗi.
  *
  * Để chuỗi làm nguồn thứ tự DUY NHẤT. Bản trước đặt riêng model chính rồi lại
@@ -101,8 +122,18 @@ export function modelsWithFallback(
   /** Model chính, nếu muốn khác mặc định — ví dụ model chấm bài. */
   primary: string = GEMINI_MODEL
 ) {
-  const names = [primary, GEMINI_MODEL, GEMINI_FALLBACK_MODEL, ...GEMINI_MODEL_CHAIN].filter(
-    (name, i, all) => name && all.indexOf(name) === i
-  );
+  // Pro đứng trước, rồi mới tới các model flash.
+  //
+  // CHỈ ở chuỗi thử lại, không đụng `GEMINI_MODEL`: có bốn đường API
+  // (`ai/chat`, `ai/blueprint`, `knowledge/studio`, `dictionary/lookup`) gọi
+  // thẳng `GEMINI_MODEL` mà KHÔNG qua `generateWithRetry`, nên đặt Pro làm mặc
+  // định ở đó là làm chúng chết hẳn trên gói miễn phí.
+  const names = [
+    ...GEMINI_PREFERRED_MODELS,
+    primary,
+    GEMINI_MODEL,
+    GEMINI_FALLBACK_MODEL,
+    ...GEMINI_MODEL_CHAIN,
+  ].filter((name, i, all) => name && all.indexOf(name) === i);
   return names.map((model) => genAI.getGenerativeModel({ ...config, model }));
 }
