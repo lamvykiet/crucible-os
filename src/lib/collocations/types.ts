@@ -14,7 +14,14 @@
  * dự án tự viết, không chép từ sách nào.
  */
 
-export type CollocationKind = "collocation" | "phrasal" | "wordform" | "preposition";
+export type CollocationKind =
+  | "collocation"
+  | "phrasal"
+  | "wordform"
+  | "preposition"
+  | "idiom"
+  | "topic"
+  | "academic";
 
 export interface CollocationItem {
   /** Câu có chỗ trống, đánh dấu bằng ___ */
@@ -50,6 +57,9 @@ export const KIND_LABEL: Record<CollocationKind, { en: string; vi: string }> = {
   phrasal: { en: "Phrasal verbs", vi: "Cụm động từ" },
   wordform: { en: "Word formation", vi: "Cấu tạo từ" },
   preposition: { en: "Prepositions", vi: "Giới từ đi kèm" },
+  idiom: { en: "Idioms", vi: "Thành ngữ" },
+  topic: { en: "Topic vocabulary", vi: "Từ vựng theo chủ đề" },
+  academic: { en: "Academic vocabulary", vi: "Từ vựng học thuật" },
 };
 
 /** So đáp án: bỏ hoa thường và khoảng trắng thừa, giữ nguyên chữ. */

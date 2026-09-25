@@ -23,13 +23,16 @@ export const EN_GUIDES: SkillGuide[] = [
           },
           {
             kind: "table",
-            title: "Bốn mảng trong phần này",
+            title: "Bảy mảng trong phần này",
             head: ["Mảng", "Ví dụ và chỗ khó"],
             rows: [
               ["Kết hợp từ", "make a mistake, heavy traffic — nhớ theo cặp, không suy ra được"],
               ["Cụm động từ", "put up with, boil down to — nghĩa không bằng tổng nghĩa các chữ"],
               ["Cấu tạo từ", "contribute → contribution → contributory — đổi từ loại cho hợp câu"],
               ["Giới từ đi kèm", "depend ON, similar TO — sai giới từ là lỗi ngữ pháp rõ ràng"],
+              ["Thành ngữ", "the tip of the iceberg — cả cụm mang một nghĩa riêng"],
+              ["Từ theo chủ đề", "sức khoẻ, công việc, môi trường, giáo dục — bốn chủ đề ra nhiều nhất"],
+              ["Từ học thuật", "suggest, establish, outweigh — mỗi từ một mức chắc chắn khác nhau"],
             ],
           },
         ],
@@ -75,6 +78,21 @@ export const EN_GUIDES: SkillGuide[] = [
                 note: "have an impact ON. Và effect là danh từ, affect là động từ — chỗ nhầm kinh điển.",
               },
             ],
+          },
+          {
+            kind: "warn",
+            title: "Thành ngữ — dùng rất dè",
+            items: [
+              "Phần lớn thành ngữ quá thân mật cho bài luận. a piece of cake thì không, nhưng the tip of the iceberg thì được.",
+              "Trong bài NÓI thì thoải mái hơn nhiều, và dùng đúng một thành ngữ tự nhiên ăn điểm hơn cả đoạn văn hoa.",
+              "Thành ngữ dùng sai ngữ cảnh bị trừ nặng hơn là không dùng. Không chắc thì bỏ qua.",
+            ],
+          },
+          {
+            kind: "text",
+            title: "Từ theo chủ đề — học trước khi thi, không học lúc thi",
+            body:
+              "Đề thi xoay quanh một số chủ đề lặp đi lặp lại: sức khoẻ, công việc, môi trường, giáo dục, công nghệ, thành thị. Chuẩn bị sẵn mười lăm cụm cho mỗi chủ đề thì vào phòng thi không phải nghĩ từ, chỉ phải nghĩ ý. Đó là khác biệt lớn nhất giữa người luyện có hệ thống và người luyện ngẫu hứng.",
           },
           {
             kind: "text",
