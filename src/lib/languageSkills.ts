@@ -15,6 +15,7 @@ import type { Script } from "@/lib/languagePresets";
 
 export type SkillId =
   | "vocabulary"
+  | "dictation"
   | "grammar"
   | "listening"
   | "reading"
@@ -52,6 +53,13 @@ export const SKILLS: Skill[] = [
     blurbEn: "This language's own syllabus, on its own level scale, each point with practice.",
     blurbVi: "Khung ngữ pháp của chính thứ tiếng này, theo thang riêng của nó, mỗi điểm có bài luyện.",
     href: (id) => `/learning/languages/${id}/grammar`,
+  },
+  {
+    id: "dictation",
+    en: "Dictation", vi: "Nghe chép chính tả",
+    blurbEn: "Write down exactly what you hear, checked word by word.",
+    blurbVi: "Chép lại đúng từng chữ nghe được, đối chiếu từng chữ một.",
+    href: (id) => `/learning/languages/${id}/dictation`,
   },
   {
     id: "listening",

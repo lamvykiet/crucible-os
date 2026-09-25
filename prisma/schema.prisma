@@ -40,6 +40,7 @@ model User {
   PracticeItem       PracticeItem[]
   SpeakingAttempt    SpeakingAttempt[]
   MockExam           MockExam[]
+  DictationLog       DictationLog[]
   Deck               Deck[]
   ReviewLog          ReviewLog[]
   StudyNote          StudyNote[]
@@ -1282,4 +1283,35 @@ model MockExam {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, startedAt])
+}
+
+/// Tiến độ chép chính tả, ghi theo TỪNG CÂU.
+///
+/// Câu nằm trong code (`src/lib/dictation/`) chứ không trong bảng: bộ câu phải
+/// đứng yên qua thời gian, vì tiến độ khoá theo `setId` + `index`. Bảng này chỉ
+/// giữ thứ thuộc về người dùng.
+model DictationLog {
+  id         String  @id @default(uuid())
+  languageId String?
+  langCode   String
+  /// Định danh bộ câu, ví dụ "cmn.hsk1.greetings".
+  setId String
+  /// Vị trí câu trong bộ.
+  index Int
+
+  attempts Int @default(0)
+  /// Số lần gõ đúng trọn vẹn ngay lần thử đầu của một lượt.
+  firstTry Int @default(0)
+  /// Tỷ lệ khớp của lần gần nhất, 0-100.
+  lastAccuracy Int @default(0)
+  /// Đã từng gõ đúng trọn vẹn câu này chưa.
+  cleared Boolean @default(false)
+
+  lastDoneAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, langCode, setId, index])
+  @@index([userId, langCode])
 }
