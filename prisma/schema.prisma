@@ -41,6 +41,7 @@ model User {
   SpeakingAttempt    SpeakingAttempt[]
   MockExam           MockExam[]
   DictationLog       DictationLog[]
+  CollocationLog     CollocationLog[]
   Deck               Deck[]
   ReviewLog          ReviewLog[]
   StudyNote          StudyNote[]
@@ -1306,6 +1307,29 @@ model DictationLog {
   lastAccuracy Int @default(0)
   /// Đã từng gõ đúng trọn vẹn câu này chưa.
   cleared Boolean @default(false)
+
+  lastDoneAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, langCode, setId, index])
+  @@index([userId, langCode])
+}
+
+/// Tiến độ phần kết hợp từ, ghi theo TỪNG CÂU.
+///
+/// Câu nằm trong code (`src/lib/collocations/`) vì đây là dữ kiện về tiếng Anh
+/// và phải ổn định; bảng này chỉ giữ thứ thuộc về người dùng.
+model CollocationLog {
+  id         String  @id @default(uuid())
+  languageId String?
+  langCode   String
+  setId      String
+  index      Int
+
+  attempts Int     @default(0)
+  cleared  Boolean @default(false)
 
   lastDoneAt DateTime @default(now())
 

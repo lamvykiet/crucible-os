@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   BookMarked, Feather, Headphones, BookOpen, PenLine, Mic, AudioLines, PenTool,
-  Keyboard,
+  Keyboard, Link2,
   Loader2, AlertCircle, Lock,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -24,6 +24,7 @@ interface SkillRow {
 
 const ICONS: Record<SkillId, typeof BookMarked> = {
   vocabulary: BookMarked,
+  collocations: Link2,
   grammar: Feather,
   dictation: Keyboard,
   listening: Headphones,

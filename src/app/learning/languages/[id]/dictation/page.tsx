@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import DictationPractice from "@/components/learning/DictationPractice";
+import SkillShell from "@/components/learning/SkillShell";
 import { useLanguage } from "@/lib/LanguageContext";
 
 interface LanguageRow {
@@ -50,7 +51,9 @@ export default function DictationPage({ params }: { params: Promise<{ id: string
       ) : !lang ? (
         <p className="c-help">{t("Language not found.", "Không tìm thấy thứ tiếng này.")}</p>
       ) : (
-        <DictationPractice languageId={lang.id} langCode={lang.code} />
+        <SkillShell langCode={lang.code} skill="dictation">
+          <DictationPractice languageId={lang.id} langCode={lang.code} />
+        </SkillShell>
       )}
     </div>
   );

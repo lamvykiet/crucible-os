@@ -2,16 +2,15 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import PronunciationPractice from "@/components/learning/PronunciationPractice";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import CollocationPractice from "@/components/learning/CollocationPractice";
 import SkillShell from "@/components/learning/SkillShell";
 import { useLanguage } from "@/lib/LanguageContext";
 
-export default function PronunciationPage({ params }: { params: Promise<{ id: string }> }) {
+export default function CollocationsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { t } = useLanguage();
 
-  // Bài hướng dẫn khác nhau theo thứ tiếng, nên phải biết mã tiếng trước.
   const [langCode, setLangCode] = useState<string | null>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -27,18 +26,22 @@ export default function PronunciationPage({ params }: { params: Promise<{ id: st
   }, [id]);
 
   return (
-    <div className="max-w-4xl mx-auto pb-24 space-y-6">
+    <div className="max-w-5xl mx-auto pb-24 space-y-6">
       <Link href={`/learning/languages/${id}`} className="c-btn c-btn-tertiary c-btn-sm -ml-3">
         <ArrowLeft size={16} />
         {t("Back to skills", "Về bảng kỹ năng")}
       </Link>
-      <h1 className="c-h1">{t("Pronunciation", "Luyện phát âm")}</h1>
-      {langCode ? (
-        <SkillShell langCode={langCode} skill="pronunciation">
-          <PronunciationPractice languageId={id} />
-        </SkillShell>
+      <h1 className="c-h1">{t("Collocations", "Kết hợp từ")}</h1>
+
+      {!langCode ? (
+        <div className="flex items-center gap-2 c-help">
+          <Loader2 size={16} className="animate-spin" />
+          {t("Loading…", "Đang tải…")}
+        </div>
       ) : (
-        <PronunciationPractice languageId={id} />
+        <SkillShell langCode={langCode} skill="collocations">
+          <CollocationPractice languageId={id} />
+        </SkillShell>
       )}
     </div>
   );

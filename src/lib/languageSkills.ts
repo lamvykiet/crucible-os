@@ -15,6 +15,7 @@ import type { Script } from "@/lib/languagePresets";
 
 export type SkillId =
   | "vocabulary"
+  | "collocations"
   | "dictation"
   | "grammar"
   | "listening"
@@ -46,6 +47,13 @@ export const SKILLS: Skill[] = [
     blurbEn: "A 30-day course, 10 words a day, each set repeating five times.",
     blurbVi: "Giáo trình 30 ngày, mỗi ngày 10 từ, mỗi bộ lặp lại 5 vòng.",
     href: (id) => `/learning/languages/${id}/vocabulary`,
+  },
+  {
+    id: "collocations",
+    en: "Collocations", vi: "Kết hợp từ",
+    blurbEn: "Words that must go together: collocations, phrasal verbs, word forms, prepositions.",
+    blurbVi: "Những từ buộc đi với nhau: kết hợp từ, cụm động từ, cấu tạo từ, giới từ.",
+    href: (id) => `/learning/languages/${id}/collocations`,
   },
   {
     id: "grammar",
