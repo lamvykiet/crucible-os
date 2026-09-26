@@ -24,6 +24,18 @@ export async function GET() {
       },
     });
 
+    // Tiến độ thật của từng thứ tiếng. Thẻ ngôn ngữ trước đây hiện "0 bộ thẻ,
+    // 0 từ" — vừa vô nghĩa vừa làm nản, vì bộ thẻ chỉ là một phần nhỏ của việc
+    // học. Cái đáng hiện là đã chạm mấy kỹ năng và lần cuối học là khi nào.
+    const progress = await prisma.skillProgress.groupBy({
+      by: ["languageId"],
+      where: { userId: user.id },
+      _sum: { xp: true },
+      _count: { skill: true },
+      _max: { lastPracticedAt: true },
+    });
+    const byLanguage = new Map(progress.map((row) => [row.languageId, row]));
+
     const taken = new Set(languages.map((l) => l.code));
 
     return NextResponse.json({
@@ -41,6 +53,9 @@ export async function GET() {
         active: l.active,
         deckCount: l._count.decks,
         itemCount: l._count.items,
+        xp: byLanguage.get(l.id)?._sum.xp ?? 0,
+        skillsTouched: byLanguage.get(l.id)?._count.skill ?? 0,
+        lastPracticedAt: byLanguage.get(l.id)?._max.lastPracticedAt ?? null,
       })),
       // Những tiếng còn thêm được
       presets: LANGUAGE_PRESETS.filter((p) => !taken.has(p.code)),

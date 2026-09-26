@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Plus, Loader2, AlertCircle, Trash2, Languages as LanguagesIcon,
-  Layers, BookMarked, ChevronRight, Music2, PenLine,
+  ArrowUpRight, Music2, Sparkles,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import type { LanguagePreset } from "@/lib/languagePresets";
-import { READING_LABEL, needsWritingPractice, type PhoneticSystem, type Script } from "@/lib/languagePresets";
+import type { PhoneticSystem, Script } from "@/lib/languagePresets";
 
 interface LanguageRow {
   id: string;
@@ -23,6 +23,29 @@ interface LanguageRow {
   active: boolean;
   deckCount: number;
   itemCount: number;
+  /** Điểm tích luỹ trên mọi kỹ năng của thứ tiếng này. */
+  xp: number;
+  /** Đã động tới bao nhiêu kỹ năng. */
+  skillsTouched: number;
+  lastPracticedAt: string | null;
+}
+
+/** Tổng số kỹ năng một thứ tiếng có, để tính phần trăm đã chạm tới. */
+const SKILL_COUNT = 9;
+
+/**
+ * "hôm nay" / "3 ngày trước" — ngắn hơn và dễ đọc hơn một ngày tháng đầy đủ.
+ *
+ * Người học cần biết "lâu chưa" chứ không cần biết chính xác ngày nào. Quá hai
+ * tuần thì mới hiện ngày, vì lúc đó con số ngày đã mất ý nghĩa.
+ */
+function lastSeen(iso: string | null, t: (en: string, vi: string) => string) {
+  if (!iso) return null;
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return t("today", "hôm nay");
+  if (days === 1) return t("yesterday", "hôm qua");
+  if (days <= 14) return t(`${days} days ago`, `${days} ngày trước`);
+  return new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
 }
 
 /**
@@ -139,66 +162,101 @@ export default function LanguagesManager() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {languages.map((row) => {
-                const reading = READING_LABEL[row.phoneticSystem];
-                return (
-                  <article key={row.id} className="c-card c-elev-md p-6 flex flex-col gap-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="c-card-title truncate">{row.name}</h3>
-                        {row.nativeName && (
-                          <p className="c-stat-label">{row.nativeName}</p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => remove(row)}
-                        disabled={busy === row.id}
-                        title={t("Remove", "Bỏ khỏi danh sách")}
-                        className="text-[var(--color-text-faint)] hover:text-[var(--color-error)] transition-colors p-1"
-                      >
-                        {busy === row.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                      </button>
-                    </div>
+              {languages.map((row) => (
+                  <article
+                    key={row.id}
+                    className="c-card c-elev-md p-6 relative group transition-colors hover:border-[var(--color-primary)]"
+                  >
+                    {/* Cả thẻ là lối vào. Trước đây thẻ có thêm nút "Mở bộ thẻ"
+                        ở dưới — thừa, vì thẻ chỉ có đúng một hành động chính, và
+                        nhãn nút còn sai: bấm vào là ra bảng kỹ năng chứ không
+                        phải bộ thẻ.
 
-                    {/* Quy ước của thứ tiếng này */}
-                    <div className="flex flex-wrap gap-2">
-                      <span className="c-chip c-chip-outline">{reading.vi}</span>
-                      {row.hasTones && (
-                        <span className="c-chip c-chip-warning inline-flex items-center gap-1">
-                          <Music2 size={11} />
-                          {row.toneCount} {t("tones", "thanh điệu")}
-                        </span>
-                      )}
-                      {needsWritingPractice(row.script) && (
-                        <span className="c-chip c-chip-outline inline-flex items-center gap-1">
-                          <PenLine size={11} />
-                          {t("writing", "luyện viết")}
-                        </span>
-                      )}
-                      <span className="c-chip c-chip-outline">{row.levelScale}</span>
-                    </div>
-
-                    <div className="flex items-center gap-4 c-stat-label">
-                      <span className="flex items-center gap-1.5">
-                        <Layers size={12} />
-                        {row.deckCount} {t("decks", "bộ thẻ")}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <BookMarked size={12} />
-                        {row.itemCount} {t("words", "từ")}
-                      </span>
-                    </div>
-
+                        Dùng lối "link phủ kín": thẻ <Link> trải hết thẻ nằm dưới,
+                        nội dung nổi lên trên nhưng cho chuột xuyên qua. Cách này
+                        giữ HTML hợp lệ — nút Xoá không bị lồng trong thẻ <a>. */}
                     <Link
                       href={`/learning/languages/${row.id}`}
-                      className="c-btn c-btn-secondary c-btn-sm justify-center mt-auto"
+                      aria-label={t(`Open ${row.name}`, `Mở ${row.name}`)}
+                      className="absolute inset-0 rounded-[inherit] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                    />
+
+                    <div className="relative pointer-events-none flex flex-col gap-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="c-card-title truncate">{row.name}</h3>
+                          {row.nativeName && <p className="c-stat-label">{row.nativeName}</p>}
+                        </div>
+                        <ArrowUpRight
+                          size={18}
+                          className="flex-none text-[var(--color-text-faint)] group-hover:text-[var(--color-primary)] transition-colors"
+                        />
+                      </div>
+
+                      {/* Chỉ giữ chip nào THẬT SỰ khác biệt giữa các thứ tiếng.
+                          Bản cũ hiện bốn chip cho mọi thẻ (hệ phiên âm, thanh
+                          điệu, luyện viết, thang cấp) — ba trong số đó là thứ
+                          đọc một lần rồi thôi, nhưng chiếm chỗ ở mọi lần nhìn. */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="c-chip c-chip-outline">{row.levelScale}</span>
+                        {row.hasTones && (
+                          <span className="c-chip c-chip-outline inline-flex items-center gap-1">
+                            <Music2 size={11} />
+                            {row.toneCount} {t("tones", "thanh")}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Tiến độ thật, thay cho "0 bộ thẻ, 0 từ" */}
+                      {row.skillsTouched === 0 ? (
+                        <div className="flex items-center gap-2 c-stat-label">
+                          <Sparkles size={13} className="text-[var(--color-primary)]" />
+                          {t("Not started — tap to begin", "Chưa bắt đầu — bấm vào để mở")}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="c-progress">
+                            <span
+                              style={{ width: `${Math.round((row.skillsTouched / SKILL_COUNT) * 100)}%` }}
+                            />
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 c-stat-label tabular-nums">
+                            <span>
+                              {t(
+                                `${row.skillsTouched} of ${SKILL_COUNT} skills started`,
+                                `đã chạm ${row.skillsTouched}/${SKILL_COUNT} kỹ năng`
+                              )}
+                            </span>
+                            <span>{t(`${row.xp} XP`, `${row.xp} điểm`)}</span>
+                            {lastSeen(row.lastPracticedAt, t) && (
+                              <span>{t("last", "gần nhất")} {lastSeen(row.lastPracticedAt, t)}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Xoá là việc hiếm và không hoàn tác được, nên không cho nó
+                        đứng ngang hàng với hành động chính: chỉ hiện khi rê chuột
+                        hoặc khi bàn phím focus tới. Trên cảm ứng không có rê
+                        chuột nên vẫn giữ hiện mờ, chứ không giấu hẳn. */}
+                    <button
+                      onClick={() => remove(row)}
+                      disabled={busy === row.id}
+                      title={t("Remove", "Bỏ khỏi danh sách")}
+                      aria-label={t(`Remove ${row.name}`, `Bỏ ${row.name} khỏi danh sách`)}
+                      // Vùng chạm tối thiểu 44px — dưới mức đó thì ngón tay bấm trượt. Đệm
+                      // đơn thuần chỉ ra 31px, nên phải đặt kích thước tối thiểu.
+                      className="absolute bottom-2 right-2 w-11 h-11 grid place-content-center rounded-full text-[var(--color-text-faint)] opacity-40 md:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-[var(--color-error-tint)] hover:text-[var(--color-error)] transition-all"
                     >
-                      {t("Open decks", "Mở bộ thẻ")}
-                      <ChevronRight size={14} />
-                    </Link>
+                      {busy === row.id ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={15} />
+                      )}
+                    </button>
                   </article>
-                );
-              })}
+              ))}
             </div>
           )}
 

@@ -417,7 +417,7 @@ export default function PronunciationPractice({
                 </div>
 
                 <div className="c-progress">
-                  <div className="c-progress-fill" style={{ width: `${verdict.accuracy}%` }} />
+                  <span style={{ width: `${verdict.accuracy}%` }} />
                 </div>
 
                 <p className="flex items-start gap-2">

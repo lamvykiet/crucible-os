@@ -193,7 +193,7 @@ export default function CollocationPractice({ languageId }: { languageId: string
                     <p className="c-stat-label">{t(KIND_LABEL[card.kind].en, KIND_LABEL[card.kind].vi)}</p>
                     <p className="c-help line-clamp-2">{card.note}</p>
                     <div className="c-progress">
-                      <div className="c-progress-fill" style={{ width: `${done}%` }} />
+                      <span style={{ width: `${done}%` }} />
                     </div>
                     <p className="c-stat-label tabular-nums">
                       {t(`${card.cleared} of ${card.total}`, `đúng ${card.cleared}/${card.total}`)}
