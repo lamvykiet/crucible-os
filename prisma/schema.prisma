@@ -1155,8 +1155,19 @@ model WritingSubmission {
 model VocabCourse {
   id       String @id @default(uuid())
   langCode String @default("en")
-  /// B1 | B2 | C1 | C2
+  /// B1 | B2 | C1 | C2, hoặc cấp của giáo trình gốc khi học theo sách.
   level    String
+
+  /// Nguồn của giáo trình, cũng là CỜ PHÂN LOẠI gắn vào từng từ khi đưa vào
+  /// ngân hàng từ vựng. "ai" là giáo trình do AI bốc từ theo cấp độ; còn lại là
+  /// id của một bộ rút từ giáo trình có sẵn, ví dụ "evu-elementary".
+  ///
+  /// Mặc định "ai" chứ không để trống: Postgres coi mỗi NULL là một giá trị
+  /// khác nhau, nên nếu để null thì ràng buộc duy nhất bên dưới hết tác dụng và
+  /// một người có thể tạo trùng nhiều giáo trình AI cùng cấp.
+  source String @default("ai")
+  /// Tên hiển thị. Trống thì giao diện tự dựng từ cấp độ.
+  title  String?
   /// Số ngày của giáo trình; mỗi ngày 10 từ.
   totalDays Int    @default(0)
   wordsPerDay Int  @default(10)
@@ -1168,7 +1179,7 @@ model VocabCourse {
 
   createdAt DateTime @default(now())
 
-  @@unique([userId, langCode, level])
+  @@unique([userId, langCode, level, source])
 }
 
 /// Một ngày trong giáo trình: mười từ, kèm lịch ôn của chính nó.

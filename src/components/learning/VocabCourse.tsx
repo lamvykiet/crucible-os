@@ -26,20 +26,37 @@ interface OpenSet {
   words: Word[];
 }
 
+interface Review {
+  id: string;
+  dayIndex: number;
+  cycle: number;
+  dueAt: string;
+}
+
 interface Course {
   id: string;
   level: string;
+  /** "ai", hoặc id của bộ rút từ giáo trình có sẵn. Cũng là cờ phân loại từ. */
+  source: string;
+  title: string | null;
   totalDays: number;
   wordsPerDay: number;
   startedCount: number;
   finishedCount: number;
   cycleDays: number;
   totalCycles: number;
+  newSet: { id: string; dayIndex: number; ready: boolean } | null;
+  reviews: Review[];
+  upcoming: { dayIndex: number; cycle: number; dueAt: string }[];
 }
 
-interface Today {
-  newSet: { id: string; dayIndex: number } | null;
-  reviews: { id: string; dayIndex: number; cycle: number; dueAt: string }[];
+interface Pack {
+  id: string;
+  title: string;
+  level: string;
+  note: string;
+  unitCount: number;
+  wordCount: number;
 }
 
 const fmtDate = (iso: string) =>
@@ -60,9 +77,8 @@ export default function VocabCourse({ languageId }: { languageId?: string }) {
 
   const [level, setLevel] = useState("B1");
   const [levels, setLevels] = useState<string[]>(["B1", "B2", "C1", "C2"]);
-  const [course, setCourse] = useState<Course | null>(null);
-  const [today, setToday] = useState<Today | null>(null);
-  const [upcoming, setUpcoming] = useState<{ dayIndex: number; cycle: number; dueAt: string }[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [packs, setPacks] = useState<Pack[]>([]);
 
   const [open, setOpen] = useState<OpenSet | null>(null);
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
@@ -85,9 +101,8 @@ export default function VocabCourse({ languageId }: { languageId?: string }) {
       .then((json) => {
         if (controller.signal.aborted) return;
         if (!json?.success) throw new Error(json?.error || "Không đọc được giáo trình");
-        setCourse(json.course);
-        setToday(json.today ?? null);
-        setUpcoming(json.upcoming ?? []);
+        setCourses(json.courses ?? []);
+        setPacks(json.packs ?? []);
         setLevels(json.levels ?? levels);
         setError(null);
       })
@@ -102,14 +117,14 @@ export default function VocabCourse({ languageId }: { languageId?: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestKey, level, languageId]);
 
-  const createCourse = async () => {
+  const createCourse = async (packId?: string) => {
     setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/learning/vocab-course", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ level, languageId }),
+        body: JSON.stringify(packId ? { packId, languageId } : { level, languageId }),
       });
       const json = await res.json();
       if (!json?.success) throw new Error(json?.error || "Không tạo được");
@@ -261,22 +276,20 @@ export default function VocabCourse({ languageId }: { languageId?: string }) {
   }
 
   // ── Bảng điều khiển giáo trình ───────────────────────────────────────────
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="c-seg">
-          {levels.map((lv) => (
-            <button
-              key={lv}
-              className={`c-seg-opt ${level === lv ? "active" : ""}`}
-              onClick={() => setLevel(lv)}
-            >
-              {lv}
-            </button>
-          ))}
-        </div>
-      </div>
+  //
+  // Gộp việc của MỌI giáo trình vào một mục "Hôm nay". Chạy song song một giáo
+  // trình AI theo cấp và một giáo trình bám sách thì tách ra là bắt người học
+  // tự nhớ hôm nay còn nợ bộ nào ở đâu.
+  const todayItems = courses.flatMap((c) => [
+    ...(c.newSet ? [{ kind: "new" as const, course: c, set: c.newSet }] : []),
+    ...c.reviews.map((r) => ({ kind: "review" as const, course: c, review: r })),
+  ]);
 
+  const courseName = (c: Course) =>
+    c.title ?? t(`${c.level} course`, `Giáo trình ${c.level}`);
+
+  return (
+    <div className="space-y-8">
       {error && (
         <div className="c-alert c-alert-error">
           <AlertCircle size={18} className="icon" />
@@ -294,119 +307,199 @@ export default function VocabCourse({ languageId }: { languageId?: string }) {
         <div className="flex items-center justify-center h-40 text-[var(--color-text-muted)]">
           <Loader2 size={20} className="animate-spin" />
         </div>
-      ) : !course ? (
-        <div className="c-card p-10 flex flex-col items-center gap-4 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] grid place-content-center">
-            <GraduationCap size={30} />
-          </div>
-          <div>
-            <p className="c-h3">{t(`No ${level} course yet`, `Chưa có giáo trình ${level}`)}</p>
-            <p className="c-card-body mt-1 max-w-md">
-              {t(
-                "30 days, 10 words a day. Each day's set comes back every 10 days, five times over.",
-                "30 ngày, mỗi ngày 10 từ. Mỗi bộ quay lại sau 10 ngày, tất cả 5 vòng."
-              )}
-            </p>
-          </div>
-          <button onClick={createCourse} disabled={busy} className="c-btn c-btn-primary c-btn-lg">
-            {busy ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-            {t(`Start the ${level} course`, `Bắt đầu giáo trình ${level}`)}
-          </button>
-        </div>
       ) : (
         <>
-          <div className="c-card c-elev-md p-6 flex flex-wrap items-center gap-6">
-            <div className="flex-1 min-w-[160px]">
-              <p className="c-card-kicker">{t("Progress", "Tiến độ")}</p>
-              <p className="c-stat-value">
-                {course.startedCount}
-                <span className="text-[var(--color-text-faint)]">/{course.totalDays}</span>
-              </p>
-              <p className="c-stat-label">{t("days started", "ngày đã học")}</p>
-            </div>
-            <div>
-              <p className="c-stat-value">{course.finishedCount}</p>
-              <p className="c-stat-label">
-                {t(`sets through all ${course.totalCycles}`, `bộ đã xong ${course.totalCycles} vòng`)}
-              </p>
-            </div>
-            <div>
-              <p className="c-stat-value">{course.startedCount * course.wordsPerDay}</p>
-              <p className="c-stat-label">{t("words seen", "từ đã gặp")}</p>
-            </div>
-          </div>
-
-          {/* Việc hôm nay */}
-          <section className="space-y-3">
-            <h3 className="c-h3">{t("Today", "Hôm nay")}</h3>
-
-            {today?.newSet ? (
-              <button
-                onClick={() => openSet(today.newSet!.id)}
-                disabled={busy}
-                className="c-card c-elev-md p-5 w-full flex items-center gap-4 hover:border-[var(--color-primary)] transition-colors text-left"
-              >
-                <span className="w-11 h-11 rounded-xl grid place-content-center flex-none bg-[var(--color-success-tint)] text-[var(--color-success)]">
-                  <Sparkles size={20} />
-                </span>
-                <span className="flex-1">
-                  <span className="block font-bold">
-                    {t(`Day ${today.newSet.dayIndex} — new words`, `Ngày ${today.newSet.dayIndex} — từ mới`)}
-                  </span>
-                  <span className="block c-stat-label">
-                    {t(`${course.wordsPerDay} words`, `${course.wordsPerDay} từ`)}
-                  </span>
-                </span>
-                {busy ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
-              </button>
-            ) : (
-              <p className="c-card-body">
-                {t(
-                  "New words for today are done. Come back tomorrow for the next set.",
-                  "Từ mới hôm nay đã học xong. Mai quay lại cho bộ kế tiếp."
-                )}
-              </p>
-            )}
-
-            {(today?.reviews.length ?? 0) > 0 &&
-              today!.reviews.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => openSet(r.id)}
-                  disabled={busy}
-                  className="c-card p-5 w-full flex items-center gap-4 hover:border-[var(--color-primary)] transition-colors text-left"
-                >
-                  <span className="w-11 h-11 rounded-xl grid place-content-center flex-none bg-[var(--color-warning-tint)] text-[var(--color-warning)]">
-                    <RefreshCw size={18} />
-                  </span>
-                  <span className="flex-1">
-                    <span className="block font-bold">
-                      {t(`Review day ${r.dayIndex}`, `Ôn lại ngày ${r.dayIndex}`)}
-                    </span>
-                    <span className="block c-stat-label">
-                      {t(`Cycle ${r.cycle} of ${course.totalCycles}`, `Vòng ${r.cycle}/${course.totalCycles}`)}
-                    </span>
-                  </span>
-                  <ArrowRight size={18} />
-                </button>
-              ))}
-          </section>
-
-          {/* Lịch sắp tới */}
-          {upcoming.length > 0 && (
+          {/* ── Hôm nay ───────────────────────────────────────────────── */}
+          {courses.length > 0 && (
             <section className="space-y-3">
-              <h3 className="c-h3 flex items-center gap-2">
-                <CalendarClock size={18} />
-                {t("Coming up", "Sắp tới")}
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {upcoming.map((u, i) => (
-                  <span key={i} className="c-chip c-chip-outline tabular-nums">
-                    {fmtDate(u.dueAt)} · {t(`day ${u.dayIndex}`, `ngày ${u.dayIndex}`)} · {t(`cycle ${u.cycle}`, `vòng ${u.cycle}`)}
-                  </span>
+              <h3 className="c-h3">{t("Today", "Hôm nay")}</h3>
+
+              {todayItems.length === 0 ? (
+                <p className="c-card-body">
+                  {t(
+                    "Everything for today is done. Come back tomorrow.",
+                    "Hôm nay xong hết rồi. Mai quay lại."
+                  )}
+                </p>
+              ) : (
+                todayItems.map((item) => {
+                  const isNew = item.kind === "new";
+                  const id = isNew ? item.set.id : item.review.id;
+                  const day = isNew ? item.set.dayIndex : item.review.dayIndex;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => openSet(id)}
+                      disabled={busy}
+                      className="c-card c-elev-md p-5 w-full flex items-center gap-4 hover:border-[var(--color-primary)] transition-colors text-left"
+                    >
+                      <span
+                        className={`w-11 h-11 rounded-xl grid place-content-center flex-none ${
+                          isNew
+                            ? "bg-[var(--color-success-tint)] text-[var(--color-success)]"
+                            : "bg-[var(--color-warning-tint)] text-[var(--color-warning)]"
+                        }`}
+                      >
+                        {isNew ? <Sparkles size={20} /> : <RefreshCw size={18} />}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block font-bold truncate">
+                          {isNew
+                            ? t(`Day ${day} — new words`, `Ngày ${day} — từ mới`)
+                            : t(`Review day ${day}`, `Ôn lại ngày ${day}`)}
+                        </span>
+                        <span className="block c-stat-label truncate">
+                          {courseName(item.course)}
+                          {" · "}
+                          {isNew
+                            ? t(`${item.course.wordsPerDay} words`, `${item.course.wordsPerDay} từ`)
+                            : t(
+                                `Cycle ${item.review.cycle} of ${item.course.totalCycles}`,
+                                `Vòng ${item.review.cycle}/${item.course.totalCycles}`
+                              )}
+                        </span>
+                      </span>
+                      {busy ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
+                    </button>
+                  );
+                })
+              )}
+            </section>
+          )}
+
+          {/* ── Các giáo trình đang chạy ──────────────────────────────── */}
+          {courses.length > 0 && (
+            <section className="space-y-3">
+              <h3 className="c-h3">{t("Your courses", "Giáo trình của bạn")}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {courses.map((c) => (
+                  <div key={c.id} className="c-card p-5 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-bold truncate">{courseName(c)}</p>
+                        <p className="c-stat-label">
+                          {c.source === "ai"
+                            ? t("Words picked by level", "Từ bốc theo cấp độ")
+                            : t("Follows the book's order", "Theo trình tự của sách")}
+                        </p>
+                      </div>
+                      <span className="c-chip c-chip-outline flex-none">{c.level}</span>
+                    </div>
+
+                    <div className="c-progress">
+                      <span
+                        style={{
+                          width: `${c.totalDays ? Math.round((c.startedCount / c.totalDays) * 100) : 0}%`,
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 c-stat-label tabular-nums">
+                      <span>
+                        {t(`${c.startedCount}/${c.totalDays} days`, `${c.startedCount}/${c.totalDays} ngày`)}
+                      </span>
+                      <span>
+                        {t(`${c.startedCount * c.wordsPerDay} words seen`, `${c.startedCount * c.wordsPerDay} từ đã gặp`)}
+                      </span>
+                      <span>
+                        {t(`${c.finishedCount} finished`, `${c.finishedCount} bộ xong ${c.totalCycles} vòng`)}
+                      </span>
+                    </div>
+
+                    {c.upcoming.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        <CalendarClock size={14} className="text-[var(--color-text-faint)] mt-0.5" />
+                        {c.upcoming.slice(0, 4).map((u, i) => (
+                          <span key={i} className="c-chip c-chip-outline tabular-nums">
+                            {fmtDate(u.dueAt)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </section>
+          )}
+
+          {/* ── Bắt đầu một giáo trình mới ────────────────────────────── */}
+          <section className="space-y-3">
+            <h3 className="c-h3">
+              {courses.length > 0
+                ? t("Start another course", "Mở thêm giáo trình")
+                : t("Start a course", "Bắt đầu một giáo trình")}
+            </h3>
+            <p className="c-help">
+              {t(
+                "Every course follows the same rhythm: 10 words a day, each set coming back after 10 days, five times over.",
+                "Giáo trình nào cũng chung một nhịp: mỗi ngày 10 từ, mỗi bộ quay lại sau 10 ngày, tất cả 5 vòng."
+              )}
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Theo sách */}
+              {packs.map((pack) => (
+                <button
+                  key={pack.id}
+                  onClick={() => createCourse(pack.id)}
+                  disabled={busy}
+                  className="c-card p-5 text-left space-y-2 hover:border-[var(--color-primary)] transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-bold">{pack.title}</p>
+                    <span className="c-chip c-chip-outline flex-none">{pack.level}</span>
+                  </div>
+                  <p className="c-help">{pack.note}</p>
+                  <p className="c-stat-label tabular-nums">
+                    {t(
+                      `${pack.wordCount} words · ${pack.unitCount} units · ${Math.ceil(pack.wordCount / 10)} days`,
+                      `${pack.wordCount} từ · ${pack.unitCount} bài · ${Math.ceil(pack.wordCount / 10)} ngày`
+                    )}
+                  </p>
+                </button>
+              ))}
+
+              {/* Theo cấp độ, từ do AI bốc */}
+              <div className="c-card p-5 space-y-3">
+                <p className="font-bold">{t("By level", "Theo cấp độ")}</p>
+                <p className="c-help">
+                  {t(
+                    "30 days of words picked for the level you choose.",
+                    "30 ngày, từ được bốc theo cấp độ bạn chọn."
+                  )}
+                </p>
+                <div className="c-seg w-fit">
+                  {levels.map((lv) => (
+                    <button
+                      key={lv}
+                      className={`c-seg-opt ${level === lv ? "active" : ""}`}
+                      onClick={() => setLevel(lv)}
+                    >
+                      {lv}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => createCourse()}
+                  disabled={busy || courses.some((c) => c.source === "ai" && c.level === level)}
+                  className="c-btn c-btn-primary"
+                >
+                  {busy ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  {courses.some((c) => c.source === "ai" && c.level === level)
+                    ? t(`${level} already running`, `Đã có giáo trình ${level}`)
+                    : t(`Start ${level}`, `Bắt đầu ${level}`)}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {courses.length === 0 && packs.length === 0 && (
+            <div className="c-card p-10 flex flex-col items-center gap-3 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] grid place-content-center">
+                <GraduationCap size={30} />
+              </div>
+              <p className="c-h3">{t("Nothing to study yet", "Chưa có gì để học")}</p>
+            </div>
           )}
         </>
       )}
