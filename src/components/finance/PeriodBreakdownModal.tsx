@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DEBT_CATEGORY_GROUP } from "@/lib/debtTransactions";
@@ -126,7 +127,14 @@ export default function PeriodBreakdownModal({
   // Lệch thì nói ra, đừng im lặng: hai bên tính khác nhau là một lỗi thật.
   const mismatch = rows !== null && Math.abs(total - expected) > 1;
 
-  return (
+  // Modal PHẢI treo thẳng vào <body>, không được nằm lại trong cây của thẻ gọi
+  // nó. Thẻ lớn nào của trang cũng mang animation `c-enter` (quy tắc
+  // `.c-main .space-y-8 > *` trong globals.css), mà `c-enter` có animate
+  // `transform` — phần tử có transform trở thành KHỐI CHỨA của `position:
+  // fixed`. Để modal nằm trong đó thì lớp phủ thôi tính theo màn hình, co vừa
+  // khung thẻ và bị `overflow-hidden` của thẻ cắt cụt: đo được 1278×310 thay
+  // vì 1440×900. Bẫy này đã ghi trong AGENTS.md và vừa tái hiện lại.
+  const content = (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
       <div className="bg-[var(--color-surface)] rounded-t-3xl md:rounded-3xl w-full max-w-2xl max-h-[85dvh] md:max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
         <div className="shrink-0 p-5 border-b border-[var(--color-border)] flex items-start justify-between gap-3">
@@ -206,4 +214,6 @@ export default function PeriodBreakdownModal({
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }
