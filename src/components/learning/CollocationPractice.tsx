@@ -307,7 +307,7 @@ export default function CollocationPractice({ languageId }: { languageId: string
         ) : (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <span className={`c-chip ${verdict.correct ? "c-chip-success" : "c-chip-warning"}`}>
+              <span className={`c-chip ${verdict.correct ? "c-chip-success c-pop" : "c-chip-warning c-nudge"}`}>
                 {verdict.correct ? <Check size={13} /> : <X size={13} />}
                 {verdict.correct
                   ? t("Correct", "Đúng")

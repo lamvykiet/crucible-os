@@ -60,6 +60,12 @@ không báo lỗi gì**. Phải dời trong cùng một `$transaction` — xem
 Hook cache ở cấp module, không xoá thì mọi modal vẫn hiện danh sách cũ tới khi
 tải lại trang.
 
+**Trước khi đổi giao diện** → đọc `docs/huong-thiet-ke-2026.md`. Đó là bản đối
+chiếu giữa xu hướng thiết kế hiện hành và những gì dự án cố ý làm khác, kèm lý
+do. Hai điều hay bị hiểu nhầm: bảng màu ấm và thang chữ `clamp()` của dự án
+đang ĐÚNG hướng thịnh hành, không phải lạc hậu; còn việc cấm bóng đổ là lựa
+chọn có chủ đích theo ẩn dụ giấy, đừng "hiện đại hoá" bằng cách thêm bóng.
+
 **Design system là "Function"** → giấy kem `#fef9ef`, thẻ giấy cũ `#f5eee1`,
 viền taupe `#d1c9bf`, chữ mực `#2a2b2f`, và **một** màu đất nung `#b05a36`.
 Năm luật: không dùng trắng tinh làm nền; độ nổi đến từ bậc màu chứ không từ

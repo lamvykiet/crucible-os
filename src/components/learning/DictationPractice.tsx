@@ -443,7 +443,7 @@ export default function DictationPractice({
         ) : (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
-              <span className={`c-chip ${verdict.perfect ? "c-chip-success" : "c-chip-warning"}`}>
+              <span className={`c-chip ${verdict.perfect ? "c-chip-success c-pop" : "c-chip-warning c-nudge"}`}>
                 {verdict.perfect ? <CircleCheck size={13} /> : <PenLine size={13} />}
                 {verdict.perfect
                   ? t("Every word right", "Đúng từng chữ")

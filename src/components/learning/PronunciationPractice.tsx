@@ -403,7 +403,7 @@ export default function PronunciationPractice({
               <div className="c-card p-6 space-y-4">
                 <div className="flex flex-wrap items-center gap-4">
                   <span
-                    className={`c-chip ${verdict.targetProduced ? "c-chip-success" : "c-chip-warning"}`}
+                    className={`c-chip ${verdict.targetProduced ? "c-chip-success c-pop" : "c-chip-warning c-nudge"}`}
                   >
                     {verdict.targetProduced ? <Check size={14} /> : <X size={14} />}
                     {verdict.targetProduced

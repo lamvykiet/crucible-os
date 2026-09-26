@@ -856,6 +856,38 @@ body::before {
 @keyframes c-tick { from { opacity: .4; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 .c-metric-value { animation: c-tick .35s var(--ease) backwards; }
 
+/* ── Phản hồi khi đổi trạng thái ─────────────────────────────────────────
+   Chấm đúng, chấm sai, mở khoá một mục — những lúc đó màn hình đổi mà không
+   có dấu hiệu nào là người dùng phải tự dò xem vừa xảy ra chuyện gì.
+
+   Hai ràng buộc bắt buộc, đừng bỏ:
+   - Dùng `backwards`, KHÔNG dùng `both`. Keyframe giữ lại `transform` ở khung
+     cuối sẽ biến phần tử thành khối chứa của `position: fixed`, làm lớp phủ
+     modal co vừa khung nội dung và nút lưu rớt khỏi màn hình.
+   - Khung cuối phải là `transform: none`, đúng bằng giá trị mặc định, để
+     không nhảy hình lúc animation kết thúc.
+
+   Chuyển động ở đây để XÁC NHẬN một việc vừa xảy ra, không phải để trang trí.
+   Đừng gắn vào thứ người dùng không vừa tác động tới. */
+
+@keyframes c-pop {
+  0%   { transform: scale(.94); opacity: .6; }
+  60%  { transform: scale(1.03); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+
+@keyframes c-nudge {
+  0%, 100% { transform: none; }
+  25%      { transform: translateX(-4px); }
+  75%      { transform: translateX(4px); }
+}
+
+/* Đúng: nảy nhẹ một cái. */
+.c-pop { animation: c-pop .28s var(--ease) backwards; }
+
+/* Sai: lắc ngang, KHÔNG đổi màu ở đây — màu do class trạng thái lo. */
+.c-nudge { animation: c-nudge .3s var(--ease) backwards; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
 }
