@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, Filter, Edit2, Trash2, X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
+import CustomDatePicker from "@/components/ui/CustomDatePicker";
 import TransactionModal from "./TransactionModal";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import { normalizeSupplier, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
@@ -39,6 +40,11 @@ export default function HistoryTab() {
   const [payFilter, setPayFilter] = useState("All");
   const [sourceFilter, setSourceFilter] = useState("All");
   const [onlyIncomplete, setOnlyIncomplete] = useState(false);
+  // Khoảng ngày. Khác mọi ô lọc còn lại ở một điểm quan trọng: nó đổi DỮ LIỆU
+  // ĐƯỢC TẢI VỀ chứ không lọc trong bộ nhớ, vì quãng có thể trải nhiều tháng.
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [truncated, setTruncated] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -47,18 +53,25 @@ export default function HistoryTab() {
   const [selectedTx, setSelectedTx] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
+  const rangeActive = Boolean(fromDate || toDate);
+
   const loadTransactions = async (controller?: AbortController) => {
     setIsLoading(true);
     try {
       const monthParam = selectedMonth || thisMonthLocalIso();
-      const res = await fetch(`/api/finance/history?month=${monthParam}`, { 
-        signal: controller?.signal 
+      const params = rangeActive
+        ? new URLSearchParams({ ...(fromDate && { from: fromDate }), ...(toDate && { to: toDate }) })
+        : new URLSearchParams({ month: monthParam });
+      const res = await fetch(`/api/finance/history?${params}`, {
+        signal: controller?.signal
       });
       const result = await res.json().catch(() => null);
       if (res.ok && result?.success) {
         setTransactions(result.data);
+        setTruncated(Boolean(result.truncated));
       } else {
         setTransactions([]);
+        setTruncated(false);
       }
     } catch (err) {
       if ((err as Error).name !== "AbortError") setTransactions([]);
@@ -71,9 +84,10 @@ export default function HistoryTab() {
     const controller = new AbortController();
     loadTransactions(controller);
     return () => controller.abort();
-    // Chỉ `selectedMonth` mới cần gọi lại máy chủ. Loại giao dịch, nhóm, cách
-    // trả... đều lọc trong bộ nhớ từ cùng một mảng đã tải.
-  }, [selectedMonth]);
+    // Chỉ tháng và khoảng ngày mới cần gọi lại máy chủ — hai thứ đó quyết định
+    // dữ liệu nào được tải. Loại giao dịch, nhóm, cách trả... đều lọc trong bộ
+    // nhớ từ cùng một mảng đã tải.
+  }, [selectedMonth, fromDate, toDate]);
 
   // Đổi tháng thì bỏ bộ lọc ngày: giữ lại sẽ trỏ tới một ngày không còn nằm
   // trong tháng đang xem, và danh sách trống trơn mà không rõ vì sao.
@@ -139,11 +153,12 @@ export default function HistoryTab() {
   // lọc theo một nhóm không xuất hiện trong tháng chỉ cho ra danh sách trống.
   const categories = [...new Set(transactions.map((tx) => tx.category))].sort();
   const activeFilters =
-    (typeFilter !== "All" ? 1 : 0) +
+    ((typeFilter !== "All" ? 1 : 0) +
     (catFilter !== "All" ? 1 : 0) +
     (payFilter !== "All" ? 1 : 0) +
     (sourceFilter !== "All" ? 1 : 0) +
-    (onlyIncomplete ? 1 : 0);
+    (onlyIncomplete ? 1 : 0)) +
+    (fromDate || toDate ? 1 : 0);
 
   const clearFilters = () => {
     setTypeFilter("All");
@@ -151,6 +166,8 @@ export default function HistoryTab() {
     setPayFilter("All");
     setSourceFilter("All");
     setOnlyIncomplete(false);
+    setFromDate("");
+    setToDate("");
   };
 
   const handleEdit = (tx: Transaction) => {
@@ -192,12 +209,32 @@ export default function HistoryTab() {
         <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
       </div>
 
-      <TransactionCalendar
-        month={selectedMonth}
-        transactions={transactions}
-        selectedDay={selectedDay}
-        onSelectDay={setSelectedDay}
-      />
+      {/* Lịch tháng chỉ có nghĩa khi danh sách đúng bằng một tháng. Đang lọc
+          theo khoảng ngày mà vẫn vẽ lịch tháng thì các ô hiện số của một quãng
+          khác với quãng đang xem — sai mà không có gì báo. */}
+      {rangeActive ? (
+        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 text-sm text-[var(--color-text-muted)] flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span>
+            {t("Filtering by date range", "Đang lọc theo khoảng ngày")}:{" "}
+            <b className="text-[var(--color-text)]">
+              {fromDate || t("the beginning", "đầu kỳ")} → {toDate || t("today", "hôm nay")}
+            </b>
+          </span>
+          <button
+            onClick={() => { setFromDate(""); setToDate(""); }}
+            className="min-h-11 px-3 underline underline-offset-2 hover:text-[var(--color-text)]"
+          >
+            {t("Back to monthly view", "Quay lại xem theo tháng")}
+          </button>
+        </div>
+      ) : (
+        <TransactionCalendar
+          month={selectedMonth}
+          transactions={transactions}
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
+        />
+      )}
 
       <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
         <div className="p-4 border-b border-[var(--color-border)] flex items-center gap-2">
@@ -308,6 +345,42 @@ export default function HistoryTab() {
               </select>
             </label>
 
+            {/* Khoảng ngày cắt ngang tháng đang chọn — đặt cạnh các ô lọc khác
+                nhưng nói rõ nó tải lại dữ liệu, không chỉ thu hẹp danh sách. */}
+            <label className="space-y-1.5 md:col-span-2">
+              <span className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                {t("From date", "Từ ngày")}
+              </span>
+              <CustomDatePicker
+                value={fromDate}
+                onChange={setFromDate}
+                allowClear
+                placeholder={t("Any start", "Không giới hạn")}
+                aria-label={t("From date", "Từ ngày")}
+                className="w-full flex items-center justify-between gap-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 min-h-11 text-left text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+              />
+            </label>
+
+            <label className="space-y-1.5 md:col-span-2">
+              <span className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                {t("To date", "Đến ngày")}
+              </span>
+              <CustomDatePicker
+                value={toDate}
+                onChange={setToDate}
+                allowClear
+                placeholder={t("Any end", "Không giới hạn")}
+                aria-label={t("To date", "Đến ngày")}
+                className="w-full flex items-center justify-between gap-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 min-h-11 text-left text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+              />
+            </label>
+
+            {fromDate && toDate && fromDate > toDate && (
+              <p className="md:col-span-4 text-sm text-[var(--color-error)]">
+                {t("Start date is after end date — no rows can match.", "Ngày bắt đầu sau ngày kết thúc — không dòng nào khớp được.")}
+              </p>
+            )}
+
             <div className="md:col-span-4 flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2 min-h-11 cursor-pointer">
                 <input
@@ -336,6 +409,15 @@ export default function HistoryTab() {
           <div className="px-4 py-2.5 border-b border-[var(--color-border)] text-xs text-[var(--color-text-muted)]">
             {shown.length} / {transactions.length} {t("transactions", "giao dịch")}
             {selectedDay && ` · ${t("day", "ngày")} ${selectedDay}`}
+            {rangeActive && ` · ${fromDate || "…"} → ${toDate || "…"}`}
+            {truncated && (
+              <span className="text-[var(--color-warning)]">
+                {" "}· {t(
+                  "showing the 1000 most recent only — narrow the range",
+                  "mới hiện 1000 giao dịch gần nhất — hãy thu hẹp khoảng ngày"
+                )}
+              </span>
+            )}
           </div>
         )}
 

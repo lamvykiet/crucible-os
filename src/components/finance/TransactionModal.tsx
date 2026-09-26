@@ -9,6 +9,7 @@ import { invalidateSuppliers, type SupplierSuggestion } from "@/lib/useSuppliers
 import SupplierInput from "./SupplierInput";
 import AmountInput from "@/components/ui/AmountInput";
 import { todayLocalIso } from "@/lib/localDate";
+import CustomDatePicker from "@/components/ui/CustomDatePicker";
 
 interface LineItem {
   productName: string;
@@ -272,7 +273,11 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                 {/* `appearance-none` + `min-w-0`: trên iOS Safari, input type=date tự
                     lấy bề rộng theo nội dung và KHÔNG co lại, nên ô ngày phình
                     rộng hơn mọi ô khác trong cùng lưới. */}
-                <input name="date" value={formData.date} onChange={handleChange} type="date" className="w-full min-w-0 appearance-none bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
+                <CustomDatePicker
+                  value={formData.date}
+                  onChange={(v) => setFormData((prev) => ({ ...prev, date: v }))}
+                  aria-label={t("Ngày", "Date")}
+                />
               </div>
             </div>
 

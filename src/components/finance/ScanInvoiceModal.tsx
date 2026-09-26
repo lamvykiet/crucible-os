@@ -9,6 +9,7 @@ import { type SupplierSuggestion } from "@/lib/useSuppliers";
 import SupplierInput from "./SupplierInput";
 import { todayLocalIso } from "@/lib/localDate";
 import AmountInput from "@/components/ui/AmountInput";
+import CustomDatePicker from "@/components/ui/CustomDatePicker";
 
 interface ScanInvoiceModalProps {
   isOpen: boolean;
@@ -453,7 +454,12 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                 <div className="flex flex-col gap-4">
                   <div>
                     <label className={labelClass}>{t("Ngày hóa đơn", "Date")}</label>
-                    <input type="date" name="date" value={formData.date} onChange={handleFormChange} className={inputClass} />
+                    <CustomDatePicker
+                      value={formData.date}
+                      onChange={(v) => setFormData((prev) => ({ ...prev, date: v }))}
+                      aria-label={t("Ngày", "Date")}
+                      className={`${inputClass} flex items-center justify-between gap-2 min-h-11 text-left`}
+                    />
                   </div>
                   <div>
                     <label className={labelClass}>{t("Nhà cung cấp", "Supplier")}</label>

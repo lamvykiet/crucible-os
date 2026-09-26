@@ -8,6 +8,7 @@ import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 import { type SupplierSuggestion } from "@/lib/useSuppliers";
 import SupplierInput from "./SupplierInput";
 import AmountInput from "@/components/ui/AmountInput";
+import CustomDatePicker from "@/components/ui/CustomDatePicker";
 
 interface ReviewQueueModalProps {
   isOpen: boolean;
@@ -507,7 +508,12 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                 <div className="flex flex-col gap-4">
                   <div>
                     <label className={labelClass}>{t("Ngày hóa đơn", "Date")}</label>
-                    <input type="date" name="date" value={formData.date || ""} onChange={handleFormChange} className={inputClass} />
+                    <CustomDatePicker
+                      value={formData.date || ""}
+                      onChange={(v) => setAmountField("date", v)}
+                      aria-label={t("Ngày", "Date")}
+                      className={`${inputClass} flex items-center justify-between gap-2 min-h-11 text-left`}
+                    />
                   </div>
                   <div>
                     <label className={labelClass}>{t("Nhà cung cấp", "Supplier")}</label>

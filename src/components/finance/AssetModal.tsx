@@ -6,6 +6,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { DEFAULT_LIFE_MONTHS } from "@/lib/assets";
 import { todayLocalIso } from "@/lib/localDate";
 import AmountInput from "@/components/ui/AmountInput";
+import CustomDatePicker from "@/components/ui/CustomDatePicker";
 
 // Thêm / sửa một tài sản.
 //
@@ -183,11 +184,10 @@ export default function AssetModal({
               <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
                 {t("Acquisition date", "Ngày mua")}
               </label>
-              <input
-                type="date"
+              <CustomDatePicker
                 value={draft.acquisitionDate}
-                onChange={(e) => set("acquisitionDate", e.target.value)}
-                className="w-full min-w-0 appearance-none bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+                onChange={(v) => set("acquisitionDate", v)}
+                aria-label={t("Acquisition date", "Ngày mua")}
               />
             </div>
 

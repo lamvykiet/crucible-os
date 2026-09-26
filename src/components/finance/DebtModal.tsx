@@ -5,6 +5,7 @@ import { X, ChevronDown, Loader2 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { todayLocalIso } from "@/lib/localDate";
 import AmountInput from "@/components/ui/AmountInput";
+import CustomDatePicker from "@/components/ui/CustomDatePicker";
 
 interface DebtModalProps {
   isOpen: boolean;
@@ -154,13 +155,22 @@ export default function DebtModal({ isOpen, onClose, onSuccess }: DebtModalProps
             {/* Start Date */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Ngày vay", "Start Date")}</label>
-              <input name="startDate" value={formData.startDate} onChange={handleChange} type="date" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
+              <CustomDatePicker
+                value={formData.startDate}
+                onChange={(v) => setFormData({ ...formData, startDate: v })}
+                aria-label={t("Ngày vay", "Start date")}
+              />
             </div>
 
             {/* Due Date */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Ngày đáo hạn / Kết thúc", "Due Date")}</label>
-              <input name="dueDate" value={formData.dueDate} onChange={handleChange} type="date" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
+              <CustomDatePicker
+                value={formData.dueDate}
+                onChange={(v) => setFormData({ ...formData, dueDate: v })}
+                allowClear
+                aria-label={t("Ngày đáo hạn", "Due date")}
+              />
             </div>
 
           </div>

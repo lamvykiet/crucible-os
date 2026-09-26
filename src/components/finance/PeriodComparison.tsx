@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { todayLocalIso } from "@/lib/localDate";
+import PeriodBreakdownModal from "./PeriodBreakdownModal";
 
 // So sánh tuần này / tháng này / năm nay với kỳ liền trước và cùng kỳ năm ngoái.
 //
@@ -61,17 +62,32 @@ interface CompareData {
 
 const formatVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
-/** `goodWhenUp`: tăng là tin tốt hay tin xấu. */
+/**
+ * `goodWhenUp`: tăng là tin tốt hay tin xấu.
+ *
+ * `hintEn`/`hintVi`: công thức, hiện ngay dưới tên chỉ số. "Còn lại" và "Tiền
+ * ra" là hai chỗ hay bị hiểu nhầm nhất — nhìn con số không đoán được nó đã trừ
+ * những gì, mà chênh lệch giữa chúng chính là phần trả gốc nợ.
+ */
 const METRIC_META: Record<
   MetricKey,
-  { en: string; vi: string; goodWhenUp: boolean; isCount?: boolean }
+  { en: string; vi: string; goodWhenUp: boolean; isCount?: boolean; hintEn?: string; hintVi?: string }
 > = {
   income: { en: "Income", vi: "Thu nhập", goodWhenUp: true },
   expense: { en: "Spending", vi: "Chi tiêu", goodWhenUp: false },
-  cashOut: { en: "Cash out", vi: "Tiền ra", goodWhenUp: false },
-  debtService: { en: "Debt payments", vi: "Trả nợ", goodWhenUp: false },
+  cashOut: {
+    en: "Cash out", vi: "Tiền ra", goodWhenUp: false,
+    hintEn: "spending + principal repaid", hintVi: "chi tiêu + trả gốc",
+  },
+  debtService: {
+    en: "Debt payments", vi: "Trả nợ", goodWhenUp: false,
+    hintEn: "principal + interest", hintVi: "gốc + lãi",
+  },
   debtPrincipal: { en: "Principal repaid", vi: "Trả gốc", goodWhenUp: true },
-  net: { en: "Net", vi: "Còn lại", goodWhenUp: true },
+  net: {
+    en: "Net", vi: "Còn lại", goodWhenUp: true,
+    hintEn: "income − cash out", hintVi: "thu nhập − tiền ra",
+  },
   count: { en: "Transactions", vi: "Số giao dịch", goodWhenUp: true, isCount: true },
 };
 
@@ -87,6 +103,8 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
   const [kind, setKind] = useState<PeriodKind>("month");
   const [data, setData] = useState<CompareData | null>(null);
   const [failed, setFailed] = useState(false);
+  // Dòng đang mở bảng chi tiết. Rỗng là chưa mở.
+  const [openMetric, setOpenMetric] = useState<MetricKey | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -212,9 +230,29 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
                   const meta = METRIC_META[m];
                   const value = data.current[m];
                   return (
-                    <tr key={m}>
+                    // Bấm cả dòng để xem những giao dịch làm nên con số đó.
+                    // Không thêm nút riêng: cả dòng chỉ có đúng một việc này.
+                    <tr
+                      key={m}
+                      onClick={() => setOpenMetric(m)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setOpenMetric(m);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`${t(meta.en, meta.vi)} — ${t("see the transactions behind this number", "xem các giao dịch làm nên con số này")}`}
+                      className="cursor-pointer hover:bg-[var(--color-surface-2)] focus:bg-[var(--color-surface-2)] focus:outline-none transition-colors"
+                    >
                       <td className="px-5 py-3 text-[var(--color-text-muted)] whitespace-nowrap">
                         {t(meta.en, meta.vi)}
+                        {meta.hintVi && (
+                          <span className="block text-[10px] text-[var(--color-text-faint)] normal-case">
+                            {t(meta.hintEn!, meta.hintVi)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-3 text-right font-bold tabular-nums text-[var(--color-text)] whitespace-nowrap">
                         {meta.isCount ? value : formatVND(value)}
@@ -236,6 +274,7 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
               40%" đọc như thành tích, trong khi thật ra kỳ này mới đi được
               nửa chặng. */}
           <p className="px-5 py-3 text-xs text-[var(--color-text-faint)] border-t border-[var(--color-border)]">
+            {t("Tap a row to see the transactions behind it. ", "Bấm vào một dòng để xem các giao dịch làm nên con số đó. ")}
             {data.isComplete
               ? t("full period compared", "so trọn kỳ")
               : t(
@@ -249,6 +288,20 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
               )}
           </p>
         </>
+      )}
+
+      {data && openMetric && (
+        <PeriodBreakdownModal
+          isOpen
+          onClose={() => setOpenMetric(null)}
+          metric={openMetric}
+          metricLabel={t(METRIC_META[openMetric].en, METRIC_META[openMetric].vi)}
+          periodLabel={data.current.label}
+          from={data.current.from}
+          to={data.current.to}
+          expected={data.current[openMetric]}
+          isCount={METRIC_META[openMetric].isCount}
+        />
       )}
     </div>
   );
