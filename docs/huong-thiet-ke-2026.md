@@ -67,6 +67,38 @@ Bổ sung `c-pop` và `c-nudge`, nhưng có ba ràng buộc:
 Chuyển động ở đây để **xác nhận một việc vừa xảy ra**, không phải để trang trí.
 Không animate thứ người dùng không vừa tác động vào.
 
+
+## Rà soát lượt hai — đối chiếu với một style guide (26/09/2026)
+
+Tham chiếu: pin "Style guides AI design" (ReadyMade Interfaces), pin app đặt cà
+phê tông kem, và pin app dựng nhịp trống.
+
+**Xác nhận lại:** cả hai app tham chiếu đều dùng tông kem/nâu ấm, chữ display
+thanh, ít chrome — cùng hướng với Crucible. Lưới ô trạng thái của app nhịp trống
+trùng đúng lối dải ô câu đã dùng ở phần chép chính tả.
+
+**Lấy được từ style guide:** bảng thành phần của nó liệt kê đủ những thứ một hệ
+thiết kế cần có, và đối chiếu ra ba chỗ Crucible còn thiếu:
+
+| Thành phần | Crucible |
+|---|---|
+| Modal xác nhận hành động nguy hiểm | Chỉ có `window.confirm` của trình duyệt |
+| Toast stack | Chưa có — lỗi và thành công đều báo bằng `c-alert` tại chỗ |
+| Skeleton rows | Chưa có — mọi chỗ chờ đều là vòng xoay |
+
+**Đã xử lý — nút xoá thứ tiếng.** Bỏ hẳn nút Xoá khỏi thẻ ngôn ngữ. Thẻ là lối
+vào môn học, bị chạm rất nhiều lần mỗi ngày; đặt một hành động không hoàn tác
+được ngay cạnh đó thì sớm muộn cũng có lần bấm nhầm, và `window.confirm` trên
+điện thoại quá dễ gạt qua.
+
+Thay bằng chế độ **Sửa danh sách** phải bật rõ ràng. Trong chế độ đó thẻ KHÔNG
+còn dẫn đi đâu nữa — nếu thẻ vừa xoá được vừa mở được thì lại sinh ra một kiểu
+bấm nhầm khác.
+
+Quy tắc rút ra, áp cho cả dự án: **hành động không hoàn tác được thì không đứng
+chung chỗ với hành động dùng hằng ngày.** Phải qua một chế độ, hoặc một lớp xác
+nhận thật, không phải một hộp thoại gạt một cái là xong.
+
 ## Việc còn lại
 
 - [ ] Surface "tiếp tục chỗ đang dở" ở Learning Hub — hiện chưa có lối vào nhanh
@@ -75,3 +107,7 @@ Không animate thứ người dùng không vừa tác động vào.
       hyper-clarity ở trên.
 - [ ] Vùng chạm: đã bắt được một nút 31px trên thẻ ngôn ngữ. Nên soát cả dự án,
       chuẩn là 44px.
+- [ ] Dựng `c-toast` — hiện mọi thông báo đều là `c-alert` chèn tại chỗ, nên
+      thao tác thành công ở cuối trang thì người dùng không thấy gì.
+- [ ] Dựng skeleton thay vòng xoay ở những chỗ biết trước hình dạng nội dung.
+- [ ] Soát cả dự án: còn chỗ nào đặt nút xoá cạnh hành động dùng hằng ngày.

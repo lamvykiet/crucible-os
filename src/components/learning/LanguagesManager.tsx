@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Plus, Loader2, AlertCircle, Trash2, Languages as LanguagesIcon,
-  ArrowUpRight, Music2, Sparkles,
+  ArrowUpRight, Music2, Sparkles, Pencil, Check,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import type { LanguagePreset } from "@/lib/languagePresets";
@@ -58,6 +58,16 @@ function lastSeen(iso: string | null, t: (en: string, vi: string) => string) {
  */
 export default function LanguagesManager() {
   const { t } = useLanguage();
+
+  /**
+   * Chế độ sửa danh sách.
+   *
+   * Nút Xoá KHÔNG còn nằm trên thẻ. Thẻ là lối vào môn học, mà lối vào thì bị
+   * chạm rất nhiều lần mỗi ngày — đặt một nút không hoàn tác được ngay cạnh đó
+   * là sớm muộn cũng có lần bấm nhầm. Muốn bỏ một thứ tiếng thì phải bật chế độ
+   * này trước, tức là một hành động có chủ ý.
+   */
+  const [editing, setEditing] = useState(false);
 
   const [languages, setLanguages] = useState<LanguageRow[]>([]);
   const [presets, setPresets] = useState<LanguagePreset[]>([]);
@@ -124,7 +134,8 @@ export default function LanguagesManager() {
 
   return (
     <div className="space-y-8">
-      <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
         <h2 className="c-h2">{t("Languages", "Ngôn ngữ")}</h2>
         <p className="c-card-body mt-1 max-w-2xl">
           {t(
@@ -132,6 +143,17 @@ export default function LanguagesManager() {
             "Mỗi thứ tiếng có kiểu chữ, hệ phiên âm và thanh điệu riêng. Chính những thiết lập đó quyết định các màn học phía sau hiện gì."
           )}
         </p>
+        </div>
+
+        {languages.length > 0 && (
+          <button
+            onClick={() => setEditing((on) => !on)}
+            className={`c-btn c-btn-sm flex-none ${editing ? "c-btn-primary" : "c-btn-tertiary"}`}
+          >
+            {editing ? <Check size={15} /> : <Pencil size={15} />}
+            {editing ? t("Done", "Xong") : t("Edit list", "Sửa danh sách")}
+          </button>
+        )}
       </div>
 
 
@@ -175,11 +197,13 @@ export default function LanguagesManager() {
                         Dùng lối "link phủ kín": thẻ <Link> trải hết thẻ nằm dưới,
                         nội dung nổi lên trên nhưng cho chuột xuyên qua. Cách này
                         giữ HTML hợp lệ — nút Xoá không bị lồng trong thẻ <a>. */}
-                    <Link
-                      href={`/learning/languages/${row.id}`}
-                      aria-label={t(`Open ${row.name}`, `Mở ${row.name}`)}
-                      className="absolute inset-0 rounded-[inherit] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
-                    />
+                    {!editing && (
+                      <Link
+                        href={`/learning/languages/${row.id}`}
+                        aria-label={t(`Open ${row.name}`, `Mở ${row.name}`)}
+                        className="absolute inset-0 rounded-[inherit] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                      />
+                    )}
 
                     <div className="relative pointer-events-none flex flex-col gap-4">
                       <div className="flex items-start justify-between gap-3">
@@ -187,10 +211,12 @@ export default function LanguagesManager() {
                           <h3 className="c-card-title truncate">{row.name}</h3>
                           {row.nativeName && <p className="c-stat-label">{row.nativeName}</p>}
                         </div>
-                        <ArrowUpRight
-                          size={18}
-                          className="flex-none text-[var(--color-text-faint)] group-hover:text-[var(--color-primary)] transition-colors"
-                        />
+                        {!editing && (
+                          <ArrowUpRight
+                            size={18}
+                            className="flex-none text-[var(--color-text-faint)] group-hover:text-[var(--color-primary)] transition-colors"
+                          />
+                        )}
                       </div>
 
                       {/* Chỉ giữ chip nào THẬT SỰ khác biệt giữa các thứ tiếng.
@@ -236,10 +262,9 @@ export default function LanguagesManager() {
                       )}
                     </div>
 
-                    {/* Xoá là việc hiếm và không hoàn tác được, nên không cho nó
-                        đứng ngang hàng với hành động chính: chỉ hiện khi rê chuột
-                        hoặc khi bàn phím focus tới. Trên cảm ứng không có rê
-                        chuột nên vẫn giữ hiện mờ, chứ không giấu hẳn. */}
+                    {/* Chỉ có trong chế độ sửa. Bình thường thẻ không mang nút
+                        nào ngoài chính nó — không có gì để bấm nhầm. */}
+                    {editing && (
                     <button
                       onClick={() => remove(row)}
                       disabled={busy === row.id}
@@ -247,7 +272,7 @@ export default function LanguagesManager() {
                       aria-label={t(`Remove ${row.name}`, `Bỏ ${row.name} khỏi danh sách`)}
                       // Vùng chạm tối thiểu 44px — dưới mức đó thì ngón tay bấm trượt. Đệm
                       // đơn thuần chỉ ra 31px, nên phải đặt kích thước tối thiểu.
-                      className="absolute bottom-2 right-2 w-11 h-11 grid place-content-center rounded-full text-[var(--color-text-faint)] opacity-40 md:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-[var(--color-error-tint)] hover:text-[var(--color-error)] transition-all"
+                      className="absolute bottom-2 right-2 w-11 h-11 grid place-content-center rounded-full bg-[var(--color-error-tint)] text-[var(--color-error)] hover:brightness-95 transition-all"
                     >
                       {busy === row.id ? (
                         <Loader2 size={15} className="animate-spin" />
@@ -255,6 +280,7 @@ export default function LanguagesManager() {
                         <Trash2 size={15} />
                       )}
                     </button>
+                    )}
                   </article>
               ))}
             </div>
