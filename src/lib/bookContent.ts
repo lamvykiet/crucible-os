@@ -236,33 +236,49 @@ ghi id, phần thêm sẽ thành phần bổ sung. Không trùng cái nào thì 
   }`;
 }
 
-/** Câu lệnh hệ thống cho phần bài tập. */
-function exerciseInstruction(book: Book, explainIn: string) {
+/**
+ * Câu lệnh hệ thống cho phần bài tập.
+ *
+ * Unit từ vựng ra ÍT khối hơn và chỉ những dạng hợp với từ vựng. Hai lý do:
+ * `correct` và `build` vốn là bài luyện ngữ pháp — bắt người học sửa thì của
+ * một unit dạy tên các môn thể thao là lạc đề; và unit từ vựng đã nhồi sẵn cả
+ * danh sách từ vào câu lệnh, xin thêm năm khối nữa thì lượt gọi chạy quá lâu
+ * rồi bị huỷ. Đo ngày 27/09/2026: unit 3 và unit 6 của Destination B1, cả hai
+ * đều là unit từ vựng, đều vượt 50 giây.
+ */
+function exerciseInstruction(book: Book, step: BookStep, explainIn: string) {
+  const isVocab = step.kind === "vocabulary";
+
   return `Bạn ra BÀI TẬP cho một unit của sách ngữ pháp và từ vựng tiếng Anh trình độ ${book.level}.
 
-Ra 4-5 khối, MỖI KHỐI MỘT DẠNG KHÁC NHAU, chọn trong sáu dạng sau. Giữ đúng số
-câu ghi kèm — đó là nhịp quen thuộc của dạng bài này:
+Ra ${isVocab ? "3 khối" : "4-5 khối"}, MỖI KHỐI MỘT DẠNG KHÁC NHAU, chọn trong ${
+    isVocab ? "ba dạng hợp với bài từ vựng" : "sáu dạng"
+  } sau. Giữ đúng số câu ghi kèm — đó là nhịp quen thuộc của dạng bài này:
 
-- build (6 câu): cho gợi ý rời bằng dấu gạch chéo, người học viết thành câu
+${isVocab ? "" : `- build (6 câu): cho gợi ý rời bằng dấu gạch chéo, người học viết thành câu
   hoàn chỉnh. "given" là chuỗi gợi ý, ví dụ "every day / get up / half past seven".
   "answer" là câu hoàn chỉnh. "prompt" để trống chuỗi rỗng.
-- gapfill (8 câu): điền chỗ trống, "given" là động từ nguyên thể trong ngoặc cần
+`}- gapfill (8 câu): điền chỗ trống, "given" là động từ nguyên thể trong ngoặc cần
   chia. Có vài câu cần dạng phủ định.
-- correct (8 câu): câu chứa một chỗ SAI, "given" là đúng cụm sai đó, "answer" là
+${isVocab ? "" : `- correct (8 câu): câu chứa một chỗ SAI, "given" là đúng cụm sai đó, "answer" là
   cụm đã sửa. Không phải viết lại cả câu, chỉ sửa cụm.
-- choice (10 câu): chọn một trong hai, "options" đúng 2 phương án.
+`}- choice (10 câu): chọn một trong hai, "options" đúng 2 phương án.
 - bank (8 câu): điền chỗ trống bằng từ lấy trong "bank"; bank có đúng 8 từ và
   mỗi từ dùng đúng một lần.
-- passage (10 câu): viết một đoạn văn 90-130 từ vào trường "passage", trong đó
+${isVocab ? "" : `- passage (10 câu): viết một đoạn văn 90-130 từ vào trường "passage", trong đó
   có ĐÚNG 10 chỗ dùng sai. Mỗi item: "given" là cụm sai đúng như trong đoạn,
   "answer" là cụm đúng, "prompt" để trống chuỗi rỗng.
-
+`}
 ${bandBrief(book.level)}
 
 Quy tắc:
 - "instruction" viết tiếng Anh, giọng của một cuốn sách bài tập.
 - "prompt" viết tiếng Anh, dùng ___ đánh dấu chỗ trống. "explanation" viết bằng ${explainIn}.
-- Mọi câu phải kiểm tra CHÍNH nội dung của unit này, không lạc sang điểm khác.
+- Mọi câu phải kiểm tra CHÍNH nội dung của unit này, không lạc sang điểm khác.${
+    isVocab
+      ? "\n- Đây là unit TỪ VỰNG: mỗi câu kiểm tra một từ trong danh sách được đưa, không kiểm tra ngữ pháp."
+      : ""
+  }
 - Phương án sai và lỗi cài vào phải là lỗi người học hay mắc thật, không phải lỗi ngớ ngẩn.
 - TỰ RA ĐỀ HOÀN TOÀN. Không chép câu nào từ bất kỳ sách luyện tập nào.`;
 }
@@ -304,7 +320,7 @@ export async function generateStepContent(
     systemInstruction:
       part === "lesson"
         ? lessonInstruction(book, step, explainIn)
-        : exerciseInstruction(book, explainIn),
+        : exerciseInstruction(book, step, explainIn),
   });
 
   const result = await generateWithRetry(model, topic, budget ?? DEFAULT_BUDGET[part]);

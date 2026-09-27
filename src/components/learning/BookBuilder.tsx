@@ -164,6 +164,17 @@ export default function BookBuilder({
     } finally {
       setRunning(false);
       setCurrent(null);
+      // Đọc lại trạng thái thật một lần khi dừng. Trong lúc chạy, con số điểm
+      // ngữ pháp không đổi theo từng lượt — nó đến từ lượt đọc đầu tiên — nên
+      // để nguyên là bày một con số đã cũ ngay trên màn hình.
+      try {
+        const fresh = await fetch(
+          `/api/learning/books/build?bookId=${encodeURIComponent(bookId)}`
+        ).then((r) => r.json());
+        if (fresh?.success) setStatus(fresh);
+      } catch {
+        // Đọc lại hỏng thì giữ con số đang có, không đáng báo lỗi.
+      }
     }
   };
 
