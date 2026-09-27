@@ -144,6 +144,17 @@ export default function BookBuilder({
           );
           continue;
         }
+        // Còn phần thiếu nhưng tất cả đều đã bỏ qua trong phiên này. Không
+        // phải lỗi — mở lại lần sau là chúng vào hàng đợi trở lại.
+        if (json.stopped === "skipped") {
+          setNote(
+            t(
+              `${json.remaining} parts were skipped this run. Open this again later to retry them.`,
+              `Còn ${json.remaining} phần đã bỏ qua trong lượt này. Mở lại sau để soạn tiếp chúng.`
+            )
+          );
+          break;
+        }
         if (json.stopped) {
           setError(json.error || t("Stopped partway", "Dừng giữa đường"));
           break;

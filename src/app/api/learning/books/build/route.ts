@@ -42,12 +42,7 @@ interface Job {
 /** Những cặp (bước, phần) còn thiếu, theo đúng thứ tự học. */
 const jobKey = (step: number, part: Part) => `${step}:${part}`;
 
-async function pendingJobs(
-  userId: string,
-  bookId: string,
-  steps: number[],
-  skip: Set<string> = new Set()
-) {
+async function pendingJobs(userId: string, bookId: string, steps: number[]) {
   const rows = await prisma.bookLesson.findMany({
     where: { userId, bookId },
     select: { step: true, lesson: true, exercises: true },
@@ -59,10 +54,8 @@ async function pendingJobs(
     const row = have.get(step);
     // Lý thuyết trước bài tập, vì soạn nửa vời thì người học nên có phần lý
     // thuyết trước — luyện trước khi biết quy tắc là đoán mò.
-    if (!row?.lesson && !skip.has(jobKey(step, "lesson"))) jobs.push({ step, part: "lesson" });
-    if (!row?.exercises && !skip.has(jobKey(step, "exercises"))) {
-      jobs.push({ step, part: "exercises" });
-    }
+    if (!row?.lesson) jobs.push({ step, part: "lesson" });
+    if (!row?.exercises) jobs.push({ step, part: "exercises" });
   }
   return jobs;
 }
@@ -121,24 +114,34 @@ export async function POST(req: Request) {
       Math.max(1, Number(body.calls) || CALLS_PER_REQUEST)
     );
 
-    // Những phần vừa hỏng trong cùng phiên soạn. Bỏ qua chúng để đi tiếp, thay
-    // vì đâm đầu vào đúng phần đó mãi — hàng đợi luôn lấy phần thiếu đầu tiên,
-    // nên không bỏ qua là cả cuốn đứng lại vì một unit.
+    // Những phần vừa hỏng trong cùng phiên soạn. Bỏ qua để đi tiếp, thay vì đâm
+    // đầu vào đúng phần đó mãi — hàng đợi luôn lấy phần thiếu đầu tiên, nên
+    // không bỏ qua là cả cuốn đứng lại vì một unit.
     const skip = new Set<string>(
       Array.isArray(body.skip) ? body.skip.map(String) : []
     );
 
-    const jobs = await pendingJobs(
-      user.id,
-      book.id,
-      book.steps.map((s) => s.step),
-      skip
-    );
+    // HAI danh sách, và không được lẫn: `jobs` là những phần còn thiếu THẬT,
+    // dùng để đếm tiến độ; `queue` là phần sẽ làm lượt này. Đếm theo `queue` là
+    // tính phần bỏ qua thành đã xong, và con số trên màn hình nhích lên trong
+    // khi trong bảng không có gì thêm — đã quan sát đúng cảnh đó.
+    const jobs = await pendingJobs(user.id, book.id, book.steps.map((s) => s.step));
+    const queue = jobs.filter((j) => !skip.has(jobKey(j.step, j.part)));
     const total = book.steps.length * 2;
+    const progress = () => ({ total, done: total - jobs.length + made.length });
 
     if (jobs.length === 0) {
       return NextResponse.json({
         success: true, total, done: total, remaining: 0, made, complete: true,
+      });
+    }
+
+    // Còn phần thiếu nhưng đều nằm trong danh sách bỏ qua: không còn gì làm
+    // được lượt này, nói thẳng thay vì trả về một lượt rỗng để giao diện đoán.
+    if (queue.length === 0) {
+      return NextResponse.json({
+        ...progress(), success: true,
+        remaining: jobs.length, made, stopped: "skipped",
       });
     }
 
@@ -152,7 +155,7 @@ export async function POST(req: Request) {
     // cả request bị cắt và mất luôn việc vừa làm.
     const deadline = Date.now() + 52_000;
 
-    for (const job of jobs.slice(0, budget)) {
+    for (const job of queue.slice(0, budget)) {
       if (Date.now() > deadline) break;
 
       const step = book.steps.find((s) => s.step === job.step);
@@ -186,9 +189,7 @@ export async function POST(req: Request) {
         // cũng sẽ cạn. Trả về success để giao diện hiện được phần đã soạn.
         if (isDailyQuotaError(stepError)) {
           return NextResponse.json({
-            success: true,
-            total,
-            done: total - jobs.length + made.length,
+            ...progress(), success: true,
             remaining: jobs.length - made.length,
             made,
             stopped: "quota",
@@ -200,9 +201,7 @@ export async function POST(req: Request) {
         // đi tiếp; phần đó vẫn còn thiếu nên phiên sau sẽ soạn lại.
         console.error(`Book build failed at step ${step.step} (${job.part}):`, stepError);
         return NextResponse.json({
-          success: true,
-          total,
-          done: total - jobs.length + made.length,
+          ...progress(), success: true,
           remaining: jobs.length - made.length,
           made,
           failed: { step: step.step, label: step.label, part: job.part },
@@ -214,9 +213,7 @@ export async function POST(req: Request) {
 
     const remaining = jobs.length - made.length;
     return NextResponse.json({
-      success: true,
-      total,
-      done: total - remaining,
+      ...progress(), success: true,
       remaining,
       made,
       complete: remaining === 0,
