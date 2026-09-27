@@ -157,7 +157,13 @@ const EX_SCHEMA: Schema = {
               type: SchemaType.OBJECT,
               properties: {
                 prompt: { type: SchemaType.STRING, description: "Câu hỏi, dùng ___ cho chỗ trống" },
-                given: { type: SchemaType.STRING, description: "Từ trong ngoặc hoặc phần in đậm cần sửa" },
+                given: {
+                  type: SchemaType.STRING,
+                  description:
+                    "Phần cho sẵn kèm câu, tuỳ dạng bài: động từ nguyên thể cần chia, " +
+                    "cụm sai cần sửa, chuỗi gợi ý rời, hoặc gợi ý NGHĨA với bài từ vựng. " +
+                    "Với bài từ vựng thì không bao giờ là chính từ cần điền.",
+                },
                 options: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING }, description: "Chỉ với kind=choice: đúng 2 phương án" },
                 answer: { type: SchemaType.STRING },
                 explanation: { type: SchemaType.STRING, description: "Vì sao, một câu" },
@@ -302,6 +308,45 @@ Quy tắc:
 - TỰ RA ĐỀ HOÀN TOÀN. Không chép câu nào từ bất kỳ sách luyện tập nào.`;
 }
 
+interface ExItem {
+  prompt?: string;
+  given?: string;
+  answer?: string;
+}
+interface ExBlock {
+  kind?: string;
+  items?: ExItem[];
+}
+
+/**
+ * Bỏ những "gợi ý" hoá ra chính là đáp án.
+ *
+ * Câu lệnh nói rõ gợi ý của bài từ vựng phải là NGHĨA, nhưng model vẫn có lúc
+ * chép thẳng từ cần điền vào đó — quan sát được ở unit "Fun and games":
+ * "He did not ___ the match. (lose)". Một gợi ý bằng đáp án thì tệ hơn không có
+ * gợi ý, vì nó biến bài kiểm tra từ vựng thành bài chép lại. Chặn bằng tay ở
+ * đây thay vì tin vào câu lệnh: câu lệnh là lời nhắc, còn đây là điều kiện.
+ *
+ * Chỉ áp cho gapfill và bank. Với `correct` thì "given" ĐÚNG LÀ phải gần đáp án
+ * — đó là cụm sai cần sửa — và với `build` nó là chuỗi gợi ý rời.
+ */
+function stripGivenAnswers(blocks: unknown): ExBlock[] {
+  if (!Array.isArray(blocks)) return [];
+  const norm = (v: string) => v.trim().toLowerCase().replace(/[.,!?;:]$/, "");
+
+  return (blocks as ExBlock[]).map((block) => {
+    if (block?.kind !== "gapfill" && block?.kind !== "bank") return block;
+    return {
+      ...block,
+      items: (block.items ?? []).map((item) =>
+        item?.given && item?.answer && norm(item.given) === norm(item.answer)
+          ? { ...item, given: "" }
+          : item
+      ),
+    };
+  });
+}
+
 export interface GrammarPointDraft {
   title: string;
   level: string;
@@ -348,7 +393,7 @@ export async function generateStepContent(
   if (part === "exercises") {
     // Bài tập trả về dạng { blocks }, nhưng giao diện đọc `items` — quy về một
     // tên duy nhất ngay tại đây thay vì để hai tên chạy song song.
-    return { content: { items: raw.blocks ?? [] }, grammarPoints: [] };
+    return { content: { items: stripGivenAnswers(raw.blocks) }, grammarPoints: [] };
   }
 
   const { grammarPoints, ...lesson } = raw as { grammarPoints?: GrammarPointDraft[] };
