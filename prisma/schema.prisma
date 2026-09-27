@@ -43,6 +43,8 @@ model User {
   DictationLog       DictationLog[]
   CollocationLog     CollocationLog[]
   BookStepProgress   BookStepProgress[]
+  BookLesson         BookLesson[]
+  BookUnitContent    BookUnitContent[]
   Deck               Deck[]
   ReviewLog          ReviewLog[]
   StudyNote          StudyNote[]
@@ -450,6 +452,16 @@ model DictionaryItem {
   imageUrl           String? // ảnh minh hoạ cho thẻ
   audioUrl           String? // file phát âm mẫu
   orderIndex         Int     @default(0)
+
+  // ── Vòng ôn của riêng từ này ────────────────────────────────────────────
+  // Khác giáo trình theo ngày (`VocabSet`) ở chỗ mốc bắt đầu là NGÀY NGƯỜI
+  // DÙNG BẤM, không phải ngày mở bộ. Đánh dấu một từ hôm nay thì mười ngày nữa
+  // nó quay lại, không phụ thuộc bộ nào.
+  /// Null = mới đánh dấu để đó, chưa vào vòng ôn.
+  learnStartedAt DateTime?
+  /// Đã ôn qua bao nhiêu vòng, 0..5.
+  reviewCycles   Int       @default(0)
+  lastReviewedAt DateTime?
 
   deckId     String?
   deck       Deck?     @relation(fields: [deckId], references: [id], onDelete: SetNull)
@@ -1370,6 +1382,65 @@ model BookStepProgress {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, bookId, step])
+  @@index([userId, bookId])
+}
+
+/// Bài học và bài tập của một unit, sinh bằng AI rồi giữ lại.
+///
+/// Vì sao lưu: sinh một bài học mất hàng chục giây và ăn hạn mức. Mở lại unit
+/// cũ mà sinh lại từ đầu thì vừa chậm vừa cho ra bài KHÁC lần trước — người học
+/// quay lại để đọc lại đúng thứ họ đã đọc, không phải đọc một bản mới.
+///
+/// Theo từng người dùng vì nội dung viết bằng thứ tiếng người đó chọn để giải
+/// thích, và vì mỗi người có thể muốn sinh lại bản của riêng mình.
+model BookUnitContent {
+  id     String @id @default(uuid())
+  bookId String
+  step   Int
+
+  /// JSON: { summary, forms[], sections[], notes[] }
+  lesson String?
+  /// JSON: { items[] } — bài tập do ứng dụng tự ra, KHÔNG chép đề của sách.
+  exercises String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, bookId, step])
+  @@index([userId, bookId])
+}
+
+/// Bài học và bài tập của một unit trong sách.
+///
+/// Sinh bằng AI rồi LƯU LẠI, không sinh mới mỗi lần mở: người học quay lại đọc
+/// lại bài cũ, mà bài đổi mỗi lần mở thì không còn là bài của mình nữa. Cũng là
+/// cách duy nhất để phần này dùng được khi hết hạn mức AI trong ngày.
+///
+/// Nội dung do ứng dụng soạn dựa trên TÊN UNIT và DANH SÁCH TỪ — hai thứ là dữ
+/// kiện. Không chép giải thích, ví dụ hay đề bài của sách.
+model BookLesson {
+  id     String @id @default(uuid())
+  bookId String
+  step   Int
+
+  /// JSON: { summary, sections: [{ heading, body, examples, note }] }
+  lesson    String?
+  /// JSON: [{ kind, prompt, options, answer, explanation }]
+  exercises String?
+
+  attempts     Int @default(0)
+  correctCount Int @default(0)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([userId, bookId, step])

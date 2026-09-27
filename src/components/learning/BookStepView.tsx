@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import {
-  Loader2, AlertCircle, ArrowLeft, Check, Bookmark, BookmarkCheck, Volume2,
-  Sparkles, X, Repeat, Feather, BookOpen,
+  Loader2, AlertCircle, Check, Bookmark, BookmarkCheck, Volume2,
+  Sparkles, X, Repeat, Feather, BookOpen, GraduationCap, Dumbbell, List,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { speak, speechSupported, hasVoiceFor } from "@/lib/speech";
+import BookUnitLesson from "./BookUnitLesson";
+import BookUnitExercises from "./BookUnitExercises";
+import Crumbs from "./Crumbs";
 
 interface Word {
   term: string;
@@ -49,13 +51,17 @@ export default function BookStepView({
   step,
   languageId,
   langCode,
+  bookTitle,
   onBack,
+  onBackToBooks,
 }: {
   bookId: string;
   step: number;
   languageId?: string;
   langCode: string;
+  bookTitle: string;
   onBack: () => void;
+  onBackToBooks: () => void;
 }) {
   const { t } = useLanguage();
 
@@ -65,9 +71,37 @@ export default function BookStepView({
   const [busy, setBusy] = useState<string | null>(null);
   const [lookup, setLookup] = useState<Lookup | null>(null);
 
+  /**
+   * Ba phần của một unit. Mặc định mở Bài học: đọc hiểu rồi mới luyện thì bài
+   * luyện mới có ích, chứ luyện trước khi biết quy tắc là đoán mò.
+   */
   const key = `${bookId}:${step}`;
   const loading = loadedFor !== key;
   const canHear = speechSupported() && hasVoiceFor(langCode);
+
+  const [tab, setTab] = useState<"lesson" | "exercises" | "words">("lesson");
+
+  /**
+   * Bài học và bài tập, gắn kèm KHOÁ của unit đang mở.
+   *
+   * Gắn khoá để suy ra thay vì reset trong effect: reset bằng `setState` ngay
+   * trong thân effect sinh ra một lượt dựng hình thừa, và trình biên dịch React
+   * bắt đúng lỗi đó.
+   */
+  const [content, setContent] = useState<{
+    key: string;
+    lesson: Parameters<typeof BookUnitLesson>[0]["lesson"];
+    exercises: Parameters<typeof BookUnitExercises>[0]["items"];
+  }>({ key: "", lesson: null, exercises: null });
+
+  const lesson = content.key === key ? content.lesson : null;
+  const exercises = content.key === key ? content.exercises : null;
+
+  const setLesson = (v: Parameters<typeof BookUnitLesson>[0]["lesson"]) =>
+    setContent((prev) => ({ key, lesson: v, exercises: prev.key === key ? prev.exercises : null }));
+  const setExercises = (v: Parameters<typeof BookUnitExercises>[0]["items"]) =>
+    setContent((prev) => ({ key, lesson: prev.key === key ? prev.lesson : null, exercises: v }));
+
 
   useEffect(() => {
     const controller = new AbortController();
@@ -87,6 +121,33 @@ export default function BookStepView({
       .finally(() => {
         if (!controller.signal.aborted) setLoadedFor(key);
       });
+    return () => controller.abort();
+  }, [key, bookId, step]);
+
+  // Nội dung đã soạn lần trước thì nạp lại, đừng bắt bấm "soạn" lần nữa.
+  useEffect(() => {
+    const controller = new AbortController();
+    for (const part of ["lesson", "exercises"] as const) {
+      fetch("/api/learning/books/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookId, step, part, peek: true }),
+        signal: controller.signal,
+      })
+        .then((r) => r.json())
+        .then((json) => {
+          if (controller.signal.aborted || !json?.success || !json.cached) return;
+          // Gọi thẳng `setContent` chứ không qua hàm phụ: hàm phụ dựng mới mỗi
+          // lượt render nên đưa vào danh sách phụ thuộc là effect chạy lại vô hạn.
+          setContent((prev) => {
+            const base = prev.key === key ? prev : { key, lesson: null, exercises: null };
+            return part === "lesson"
+              ? { ...base, key, lesson: json.lesson }
+              : { ...base, key, exercises: json.exercises?.items ?? null };
+          });
+        })
+        .catch(() => {});
+    }
     return () => controller.abort();
   }, [key, bookId, step]);
 
@@ -169,10 +230,13 @@ export default function BookStepView({
 
   return (
     <div className="space-y-6">
-      <button onClick={onBack} className="c-btn c-btn-tertiary c-btn-sm -ml-3">
-        <ArrowLeft size={16} />
-        {t("Back to the path", "Về đường học")}
-      </button>
+      <Crumbs
+        items={[
+          { label: t("Books", "Tủ sách"), onClick: onBackToBooks },
+          { label: bookTitle, onClick: onBack },
+          { label: `${data.label}. ${data.title}` },
+        ]}
+      />
 
       <div className="space-y-2">
         <p className="c-stat-label flex items-center gap-2">
@@ -197,38 +261,28 @@ export default function BookStepView({
         </div>
       )}
 
-      {data.words.length === 0 ? (
-        // Unit ngữ pháp và bài ôn không có danh sách từ — và không nên có. Ngữ
-        // pháp là quy tắc, mà dự án đã có khung 175 điểm riêng; chép lại unit
-        // của sách vào đây là làm hai bản cho cùng một thứ. Chỗ này chỉ ra lối
-        // đi tiếp, thay vì là ngõ cụt.
-        <div className="c-card p-8 text-center space-y-4">
-          <p className="c-h4">
-            {data.kind === "review"
-              ? t("A review unit", "Đây là bài ôn")
-              : t("A grammar unit", "Đây là unit ngữ pháp")}
-          </p>
-          <p className="c-card-body max-w-md mx-auto">
-            {data.kind === "review"
-              ? t(
-                  "This step wraps up the three units before it. Go back and finish those, then mark this one done.",
-                  "Bước này gom lại ba unit ngay trước nó. Quay lại học xong ba unit đó rồi đánh dấu bước này."
-                )
-              : t(
-                  "Grammar is rules, not word lists. The app keeps its own grammar syllabus — search it for this topic.",
-                  "Ngữ pháp là quy tắc chứ không phải danh sách từ. Ứng dụng có khung ngữ pháp riêng — tra chủ đề này ở đó."
-                )}
-          </p>
-          {data.kind === "grammar" && languageId && (
-            <Link
-              href={`/learning/languages/${languageId}/grammar`}
-              className="c-btn c-btn-primary"
-            >
-              <Feather size={16} />
-              {t("Open grammar", "Mở phần ngữ pháp")}
-            </Link>
-          )}
-        </div>
+      {/* Ba phần: học — luyện — từ. Unit ngữ pháp thì không có phần từ. */}
+      <div className="c-seg w-fit">
+        <button className={`c-seg-opt ${tab === "lesson" ? "active" : ""}`} onClick={() => setTab("lesson")}>
+          <GraduationCap size={15} />
+          {t("Lesson", "Bài học")}
+        </button>
+        <button className={`c-seg-opt ${tab === "exercises" ? "active" : ""}`} onClick={() => setTab("exercises")}>
+          <Dumbbell size={15} />
+          {t("Exercises", "Bài tập")}
+        </button>
+        {data.words.length > 0 && (
+          <button className={`c-seg-opt ${tab === "words" ? "active" : ""}`} onClick={() => setTab("words")}>
+            <List size={15} />
+            {t("Words", "Từ vựng")}
+          </button>
+        )}
+      </div>
+
+      {tab === "lesson" ? (
+        <BookUnitLesson bookId={bookId} step={step} lesson={lesson} onLoaded={setLesson} />
+      ) : tab === "exercises" ? (
+        <BookUnitExercises bookId={bookId} step={step} items={exercises} onLoaded={setExercises} />
       ) : (
         <>
           <p className="c-help">
@@ -267,7 +321,6 @@ export default function BookStepView({
                     <Volume2 size={16} />
                   </button>
                 )}
-
                 <button
                   onClick={() => void toggleMark(w)}
                   disabled={busy === w.term}
@@ -295,7 +348,6 @@ export default function BookStepView({
           </div>
         </>
       )}
-
       <button
         onClick={markDone}
         disabled={busy === "__step"}

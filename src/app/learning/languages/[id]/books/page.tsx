@@ -1,10 +1,10 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, Loader2, ArrowUpRight, Library } from "lucide-react";
+import { Loader2, ArrowUpRight, Library } from "lucide-react";
 import BookPath from "@/components/learning/BookPath";
 import BookStepView from "@/components/learning/BookStepView";
+import Crumbs from "@/components/learning/Crumbs";
 import { useLanguage } from "@/lib/LanguageContext";
 
 interface BookCard {
@@ -65,29 +65,38 @@ export default function BooksPage({ params }: { params: Promise<{ id: string }> 
 
   return (
     <div className="max-w-3xl mx-auto pb-24 space-y-6">
-      <Link href={`/learning/languages/${id}`} className="c-btn c-btn-tertiary c-btn-sm -ml-3">
-        <ArrowLeft size={16} />
-        {t("Back to skills", "Về bảng kỹ năng")}
-      </Link>
-
       {openBook && openStep !== null && langCode ? (
         <BookStepView
           bookId={openBook}
           step={openStep}
           languageId={id}
           langCode={langCode}
+          bookTitle={books.find((b) => b.id === openBook)?.title ?? t("Book", "Sách")}
           onBack={() => setOpenStep(null)}
+          onBackToBooks={() => {
+            setOpenStep(null);
+            setOpenBook(null);
+          }}
         />
       ) : openBook ? (
         <>
-          <button onClick={() => setOpenBook(null)} className="c-btn c-btn-tertiary c-btn-sm -ml-3">
-            <ArrowLeft size={16} />
-            {t("All books", "Mọi cuốn sách")}
-          </button>
+          <Crumbs
+            items={[
+              { label: t("Skills", "Bảng kỹ năng"), href: `/learning/languages/${id}` },
+              { label: t("Books", "Tủ sách"), onClick: () => setOpenBook(null) },
+              { label: books.find((b) => b.id === openBook)?.title ?? t("Book", "Sách") },
+            ]}
+          />
           <BookPath bookId={openBook} onOpenStep={(s) => setOpenStep(s)} />
         </>
       ) : (
         <>
+          <Crumbs
+            items={[
+              { label: t("Skills", "Bảng kỹ năng"), href: `/learning/languages/${id}` },
+              { label: t("Books", "Tủ sách") },
+            ]}
+          />
           <h1 className="c-h1">{t("Books", "Tủ sách")}</h1>
           <p className="c-card-body">
             {t(
