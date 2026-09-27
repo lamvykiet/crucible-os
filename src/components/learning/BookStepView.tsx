@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Loader2, AlertCircle, ArrowLeft, Check, Bookmark, BookmarkCheck, Volume2,
   Sparkles, X, Repeat, Feather, BookOpen,
@@ -197,14 +198,36 @@ export default function BookStepView({
       )}
 
       {data.words.length === 0 ? (
-        <div className="c-card p-8 text-center space-y-2">
-          <p className="c-h4">{t("No word list yet", "Chưa có danh sách từ")}</p>
-          <p className="c-card-body max-w-md mx-auto">
-            {t(
-              "This unit's words have not been extracted from the book yet. The step stays on the path so the structure is complete.",
-              "Danh sách từ của unit này chưa rút được từ sách. Bước vẫn nằm trên đường để cấu trúc không bị khuyết."
-            )}
+        // Unit ngữ pháp và bài ôn không có danh sách từ — và không nên có. Ngữ
+        // pháp là quy tắc, mà dự án đã có khung 175 điểm riêng; chép lại unit
+        // của sách vào đây là làm hai bản cho cùng một thứ. Chỗ này chỉ ra lối
+        // đi tiếp, thay vì là ngõ cụt.
+        <div className="c-card p-8 text-center space-y-4">
+          <p className="c-h4">
+            {data.kind === "review"
+              ? t("A review unit", "Đây là bài ôn")
+              : t("A grammar unit", "Đây là unit ngữ pháp")}
           </p>
+          <p className="c-card-body max-w-md mx-auto">
+            {data.kind === "review"
+              ? t(
+                  "This step wraps up the three units before it. Go back and finish those, then mark this one done.",
+                  "Bước này gom lại ba unit ngay trước nó. Quay lại học xong ba unit đó rồi đánh dấu bước này."
+                )
+              : t(
+                  "Grammar is rules, not word lists. The app keeps its own grammar syllabus — search it for this topic.",
+                  "Ngữ pháp là quy tắc chứ không phải danh sách từ. Ứng dụng có khung ngữ pháp riêng — tra chủ đề này ở đó."
+                )}
+          </p>
+          {data.kind === "grammar" && languageId && (
+            <Link
+              href={`/learning/languages/${languageId}/grammar`}
+              className="c-btn c-btn-primary"
+            >
+              <Feather size={16} />
+              {t("Open grammar", "Mở phần ngữ pháp")}
+            </Link>
+          )}
         </div>
       ) : (
         <>
