@@ -50,6 +50,16 @@ export default function BookBuilder({
    */
   const stop = useRef(false);
 
+  /**
+   * Những phần hỏng trong phiên này, gửi kèm để máy chủ bỏ qua.
+   *
+   * Hàng đợi luôn lấy phần thiếu đầu tiên, nên không có danh sách này thì một
+   * unit hỏng làm cả cuốn đứng lại: lượt sau lấy đúng phần đó, hỏng tiếp, mãi
+   * mãi. Bỏ qua trong phiên thôi — phần ấy vẫn còn thiếu nên lần mở sau sẽ soạn
+   * lại, biết đâu lúc đó model rảnh hơn.
+   */
+  const skipped = useRef<string[]>([]);
+
   useEffect(() => {
     const controller = new AbortController();
     fetch(`/api/learning/books/build?bookId=${encodeURIComponent(bookId)}`, {
@@ -69,9 +79,13 @@ export default function BookBuilder({
 
   const run = async () => {
     stop.current = false;
+    skipped.current = [];
     setRunning(true);
     setError(null);
     setNote(null);
+
+    /** Bỏ qua quá nhiều là dấu hiệu hỏng hệ thống, không phải một unit khó. */
+    const SKIP_LIMIT = 5;
 
     try {
       // Chạy tới khi hết việc, người dùng bấm dừng, hoặc máy chủ bảo dừng.
@@ -84,7 +98,7 @@ export default function BookBuilder({
         const res = await fetch("/api/learning/books/build", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookId }),
+          body: JSON.stringify({ bookId, skip: skipped.current }),
         });
         const json = await res.json();
 
@@ -109,6 +123,27 @@ export default function BookBuilder({
           );
           break;
         }
+        // Một phần hỏng thì ghi vào danh sách bỏ qua rồi đi tiếp. Dừng cả cuốn
+        // vì một unit là bắt người dùng ngồi bấm lại từng lượt.
+        if (json.failed) {
+          skipped.current = [...skipped.current, `${json.failed.step}:${json.failed.part}`];
+          if (skipped.current.length >= SKIP_LIMIT) {
+            setError(
+              t(
+                `Gave up after ${SKIP_LIMIT} parts failed. Try again later.`,
+                `Đã bỏ qua ${SKIP_LIMIT} phần vì soạn hỏng, dừng ở đây. Thử lại sau.`
+              )
+            );
+            break;
+          }
+          setNote(
+            t(
+              `Unit ${json.failed.label} was slow — skipped for now, ${skipped.current.length}/${SKIP_LIMIT}.`,
+              `Unit ${json.failed.label} soạn quá lâu — tạm bỏ qua, ${skipped.current.length}/${SKIP_LIMIT}.`
+            )
+          );
+          continue;
+        }
         if (json.stopped) {
           setError(json.error || t("Stopped partway", "Dừng giữa đường"));
           break;
@@ -117,7 +152,8 @@ export default function BookBuilder({
           setNote(t("The whole book is ready.", "Cả cuốn đã soạn xong."));
           break;
         }
-        // Không soạn được phần nào mà vẫn còn việc: gọi tiếp chỉ lặp vô ích.
+        // Không soạn được phần nào, cũng không báo phần nào hỏng, mà vẫn còn
+        // việc: gọi tiếp chỉ lặp vô ích.
         if (!json.made || json.made.length === 0) {
           setError(t("Nothing was built this round", "Lượt này không soạn được phần nào"));
           break;

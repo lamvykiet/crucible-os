@@ -22,6 +22,23 @@ import type { Book, BookStep } from "@/lib/books";
 
 export type Part = "lesson" | "exercises";
 
+/**
+ * Ngân sách thời gian, khác nhau theo phần.
+ *
+ * Bài tập cần lâu hơn hẳn bài học vì đầu ra lớn hơn nhiều — bốn năm khối, mỗi
+ * khối sáu tới mười câu, mỗi câu kèm đáp án và lời giải. Đo ngày 27/09/2026:
+ * unit 2 của Destination B1 vượt 40 giây rồi bị huỷ, trong khi phần bài học của
+ * chính unit đó xong trong 20 giây.
+ *
+ * `totalBudgetMs` chỉ nhỉnh hơn `timeoutMs` một chút với phần bài tập: một lượt
+ * 50 giây đã sát trần 60 giây của request, không còn chỗ cho lượt thứ hai, nên
+ * đặt ngân sách rộng hơn chỉ tạo ảo giác là còn cơ hội thử lại.
+ */
+const DEFAULT_BUDGET: Record<Part, { timeoutMs: number; totalBudgetMs: number }> = {
+  lesson: { timeoutMs: 30_000, totalBudgetMs: 55_000 },
+  exercises: { timeoutMs: 50_000, totalBudgetMs: 52_000 },
+};
+
 const LESSON_SCHEMA: Schema = {
   type: SchemaType.OBJECT,
   properties: {
@@ -270,7 +287,8 @@ export async function generateStepContent(
   book: Book,
   step: BookStep,
   part: Part,
-  explainIn: string
+  explainIn: string,
+  budget?: { timeoutMs: number; totalBudgetMs: number }
 ): Promise<{ content: Record<string, unknown>; grammarPoints: GrammarPointDraft[] }> {
   // Với unit từ vựng thì đưa kèm danh sách từ để bài bám đúng chủ đề.
   const wordList = (step.words ?? []).slice(0, 60).map((w) => w.term).join(", ");
@@ -289,10 +307,7 @@ export async function generateStepContent(
         : exerciseInstruction(book, explainIn),
   });
 
-  const result = await generateWithRetry(model, topic, {
-    timeoutMs: 40_000,
-    totalBudgetMs: 55_000,
-  });
+  const result = await generateWithRetry(model, topic, budget ?? DEFAULT_BUDGET[part]);
   const raw = JSON.parse(result.response.text()) as Record<string, unknown>;
 
   if (part === "exercises") {
