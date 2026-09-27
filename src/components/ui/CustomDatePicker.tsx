@@ -63,6 +63,10 @@ export default function CustomDatePicker({
   const anchor = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : todayLocalIso();
   const [viewYear, setViewYear] = useState(() => Number(anchor.slice(0, 4)));
   const [viewMonth, setViewMonth] = useState(() => Number(anchor.slice(5, 7))); // 1-12
+  // Ba mức xem: ngày → tháng → năm. Bấm vào tên tháng hoặc số năm ở tiêu đề để
+  // đi lên; chọn xong thì đi ngược trở xuống. Không có bước này thì muốn về
+  // tháng 3 năm ngoái phải bấm mũi tên mười tám lần.
+  const [view, setView] = useState<"days" | "months" | "years">("days");
 
   // Giá trị đổi từ bên ngoài (mở modal sửa một giao dịch cũ) thì lịch phải
   // nhảy tới tháng đó. Đồng bộ ngay trong lúc render thay vì trong effect:
@@ -100,6 +104,7 @@ export default function CustomDatePicker({
         setAlignRight(!fitsLeft && fitsRight);
       }
     }
+    if (!isOpen) setView("days");
     setIsOpen((open) => !open);
   };
 
@@ -132,13 +137,23 @@ export default function CustomDatePicker({
     return { iso, day: d.getUTCDate(), inMonth: d.getUTCMonth() + 1 === viewMonth };
   });
 
+  // Khối 12 năm bao quanh năm đang xem, để năm hiện tại không rơi vào mép.
+  const yearBlockStart = viewYear - ((viewYear % 12) + 12) % 12;
+  const years = Array.from({ length: 12 }, (_, i) => yearBlockStart + i);
+  const monthNames = Array.from({ length: 12 }, (_, i) =>
+    new Date(Date.UTC(2000, i, 1)).toLocaleDateString(t("en-GB", "vi-VN"), {
+      timeZone: "UTC",
+      month: "short",
+    })
+  );
+
   const weekdays = [
     t("Mo", "T2"), t("Tu", "T3"), t("We", "T4"), t("Th", "T5"),
     t("Fr", "T6"), t("Sa", "T7"), t("Su", "CN"),
   ];
-  const monthLabel = new Date(Date.UTC(viewYear, viewMonth - 1, 1)).toLocaleDateString(
+  const monthOnlyLabel = new Date(Date.UTC(viewYear, viewMonth - 1, 1)).toLocaleDateString(
     t("en-GB", "vi-VN"),
-    { timeZone: "UTC", month: "long", year: "numeric" }
+    { timeZone: "UTC", month: "long" }
   );
   const today = todayLocalIso();
 
@@ -180,20 +195,60 @@ export default function CustomDatePicker({
             }`}
           >
             <div className="flex items-center justify-between mb-3">
-              <span className="font-bold text-[var(--color-text)] capitalize">{monthLabel}</span>
+              {view === "days" ? (
+                <span className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setView("months")}
+                    aria-label={t("Pick a month", "Chọn tháng")}
+                    className="min-h-9 px-2 rounded-lg font-bold text-[var(--color-text)] capitalize hover:bg-[var(--color-surface-2)] transition-colors"
+                  >
+                    {monthOnlyLabel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setView("years")}
+                    aria-label={t("Pick a year", "Chọn năm")}
+                    className="min-h-9 px-2 rounded-lg font-bold text-[var(--color-text)] tabular-nums hover:bg-[var(--color-surface-2)] transition-colors"
+                  >
+                    {viewYear}
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setView(view === "months" ? "years" : "days")}
+                  aria-label={view === "months" ? t("Pick a year", "Chọn năm") : t("Back to days", "Về lưới ngày")}
+                  className="min-h-9 px-2 rounded-lg font-bold text-[var(--color-text)] tabular-nums hover:bg-[var(--color-surface-2)] transition-colors"
+                >
+                  {view === "months" ? viewYear : `${years[0]} – ${years[11]}`}
+                </button>
+              )}
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => shiftMonth(-1)}
-                  aria-label={t("Previous month", "Tháng trước")}
+                  onClick={() =>
+                    view === "days"
+                      ? shiftMonth(-1)
+                      : view === "months"
+                        ? setViewYear((y) => y - 1)
+                        : setViewYear((y) => y - 12)
+                  }
+                  aria-label={t("Previous", "Lùi lại")}
                   className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
                 >
                   <ChevronLeft size={18} />
                 </button>
                 <button
                   type="button"
-                  onClick={() => shiftMonth(1)}
-                  aria-label={t("Next month", "Tháng sau")}
+                  onClick={() =>
+                    view === "days"
+                      ? shiftMonth(1)
+                      : view === "months"
+                        ? setViewYear((y) => y + 1)
+                        : setViewYear((y) => y + 12)
+                  }
+                  aria-label={t("Next", "Tiến tới")}
                   className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
                 >
                   <ChevronRight size={18} />
@@ -201,6 +256,47 @@ export default function CustomDatePicker({
               </div>
             </div>
 
+            {view === "years" && (
+              <div className="grid grid-cols-3 gap-1.5">
+                {years.map((y) => (
+                  <button
+                    key={y}
+                    type="button"
+                    onClick={() => { setViewYear(y); setView("months"); }}
+                    aria-pressed={y === viewYear}
+                    className={`h-11 rounded-xl text-sm tabular-nums transition-colors ${
+                      y === viewYear
+                        ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] font-bold"
+                        : "text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+                    }`}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {view === "months" && (
+              <div className="grid grid-cols-3 gap-1.5">
+                {monthNames.map((m, i) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => { setViewMonth(i + 1); setView("days"); }}
+                    aria-pressed={i + 1 === viewMonth}
+                    className={`h-11 rounded-xl text-sm capitalize transition-colors ${
+                      i + 1 === viewMonth
+                        ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] font-bold"
+                        : "text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {view === "days" && (
             <div className="grid grid-cols-7 gap-0.5 mb-1">
               {weekdays.map((w) => (
                 <div
@@ -211,7 +307,9 @@ export default function CustomDatePicker({
                 </div>
               ))}
             </div>
+            )}
 
+            {view === "days" && (
             <div className="grid grid-cols-7 gap-0.5">
               {cells.map((cell) => {
                 const isSelected = cell.iso === value;
@@ -240,11 +338,16 @@ export default function CustomDatePicker({
                 );
               })}
             </div>
+            )}
 
             <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-[var(--color-border)]">
               <button
                 type="button"
-                onClick={() => pick(today)}
+                onClick={() => {
+                  setViewYear(Number(today.slice(0, 4)));
+                  setViewMonth(Number(today.slice(5, 7)));
+                  pick(today);
+                }}
                 className="min-h-9 px-3 rounded-lg text-sm font-bold text-[var(--color-accent)] hover:bg-[var(--color-accent-tint)] transition-colors"
               >
                 {t("Today", "Hôm nay")}

@@ -1,7 +1,7 @@
 "use client";
 
 import { Calendar, CreditCard, LineChart as LineChartIcon, Tag, Receipt, ChevronDown, AlertCircle, ListChecks, ArrowUpRight } from "lucide-react";
-import { BarChart, Bar, LineChart as RechartsLineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ComposedChart, Bar, LineChart as RechartsLineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import { useState, useEffect } from "react";
@@ -13,6 +13,7 @@ import DayTransactionsCard from "./DayTransactionsCard";
 import IncompleteDataModal from "./IncompleteDataModal";
 import PeriodComparison from "./PeriodComparison";
 import { thisMonthLocalIso } from "@/lib/localDate";
+const OTHER_KEY = "__other";
 
 interface CategorySlice { name: string; amount: number }
 interface SeriesPoint { name: string; amount: number }
@@ -44,6 +45,10 @@ interface ExpenseData {
   categoriesCount: number;
   dailySeries: SeriesPoint[];
   monthlySeries: SeriesPoint[];
+  /** Mỗi dòng: { name, total, "<tên nhóm>": số tiền... } cho 12 tháng. */
+  monthlyBreakdown: Record<string, string | number>[];
+  /** Các nhóm được vẽ, đúng thứ tự; "__other" là phần đuôi đã gộp. */
+  monthlyCategoryKeys: string[];
   topMerchants: CategorySlice[];
   recentTransactions: TransactionInfo[];
   hasData: boolean;
@@ -53,14 +58,54 @@ const EMPTY: ExpenseData = {
   totals: { day: 0, month: 0, year: 0 },
   categoryBreakdowns: { day: [], month: [], year: [] },
   avgDailyExpense: 0, eomForecast: 0, categoriesCount: 0,
-  dailySeries: [], monthlySeries: [],
+  dailySeries: [], monthlySeries: [], monthlyBreakdown: [], monthlyCategoryKeys: [],
   topMerchants: [], recentTransactions: [], hasData: false,
 };
 
 const formatVND = (amount: number) => new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
 
-// Colors for the donut chart
-const COLORS = ['#14b8a6', '#0ea5e9', '#8b5cf6', '#f43f5e', '#f59e0b', '#64748b', '#84cc16'];
+
+/**
+ * Chú giải cho biểu đồ 12 tháng: mỗi nhóm bao nhiêu tiền VÀ chiếm bao nhiêu
+ * phần trăm tháng đó. Chỉ có số tiền thì vẫn phải tự nhẩm mới biết tháng vọt
+ * lên là do nhóm nào.
+ */
+function MonthlyTooltip({
+  active,
+  payload,
+  label,
+  otherLabel,
+}: {
+  active?: boolean;
+  payload?: readonly { dataKey?: string | number; value?: number; color?: string }[];
+  label?: string;
+  otherLabel: string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const rows = payload.filter((p) => p.dataKey !== "total" && (p.value || 0) > 0);
+  const totalRow = payload.find((p) => p.dataKey === "total");
+  const total = Number(totalRow?.value ?? rows.reduce((sum, r) => sum + (r.value || 0), 0));
+  return (
+    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 shadow-sm text-xs">
+      <p className="font-bold text-[var(--color-text)]">{label}</p>
+      <p className="font-bold tabular-nums text-[var(--color-text)] mb-1.5">{formatVND(total)}</p>
+      <ul className="space-y-1">
+        {rows.map((r) => (
+          <li key={String(r.dataKey)} className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-sm flex-none" style={{ background: r.color }} aria-hidden />
+            <span className="flex-1 min-w-0 truncate text-[var(--color-text-muted)]">
+              {r.dataKey === OTHER_KEY ? otherLabel : String(r.dataKey)}
+            </span>
+            <span className="tabular-nums font-bold text-[var(--color-text)]">
+              {total > 0 ? Math.round(((r.value || 0) / total) * 100) : 0}%
+            </span>
+            <span className="tabular-nums text-[var(--color-text-faint)]">{formatVND(r.value || 0)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function ExpenseTab() {
   const { t } = useLanguage();
@@ -102,7 +147,8 @@ export default function ExpenseTab() {
 
   const {
     totals, categoryBreakdowns, avgDailyExpense, eomForecast, categoriesCount,
-    dailySeries, monthlySeries,
+    monthlyBreakdown, monthlyCategoryKeys,
+    dailySeries,
     topMerchants, recentTransactions, hasData
   } = data;
 
@@ -242,7 +288,11 @@ export default function ExpenseTab() {
               <h3 className="c-h5 text-[var(--color-text)] mb-2">{t("Expense by Category", "Chi tiêu theo nhóm")}</h3>
               <p className="text-xs text-[var(--color-text-faint)] mb-6">({getRangeLabel()})</p>
               
-              <div className="h-64 w-full flex-1 relative">
+              {/* `flex-1` trong cột flex cao tự động đặt flex-basis: 0 và thắng
+                  `h-64`, nên trên mobile ô này co về 0 và thẻ trống trơn —
+                  desktop không lộ vì lưới kéo giãn thẻ theo cột cao nhất.
+                  Giữ chiều cao cố định ở mobile, chỉ cho giãn từ 768px. */}
+              <div className="relative w-full h-64 md:h-auto md:flex-1 md:min-h-64">
                 {currentCategoryBreakdown.length === 0 && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-32 h-32 rounded-full border-[12px] border-[var(--color-surface-2)] flex items-center justify-center">
@@ -265,7 +315,11 @@ export default function ExpenseTab() {
                       fill={currentCategoryBreakdown.length > 0 ? undefined : "transparent"}
                     >
                       {currentCategoryBreakdown.length > 0 && currentCategoryBreakdown.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        // Cùng token màu mà globals.css dùng cho lát bánh
+                        // (.recharts-pie-sector:nth-of-type). Phải nói ra ở đây
+                        // nữa, nếu không ô màu trong chú giải xám hết và không
+                        // khớp với lát nào.
+                        <Cell key={`cell-${index}`} fill={`var(--chart-${(index % 6) + 1})`} />
                       ))}
                     </Pie>
                     {currentCategoryBreakdown.length > 0 && (
@@ -350,18 +404,63 @@ export default function ExpenseTab() {
           </div>
 
           <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-            <h3 className="c-h5 text-[var(--color-text)] mb-6">{t("Monthly Expense Trend (12 Months)", "Xu hướng chi theo tháng (12 tháng)")}</h3>
+            <h3 className="c-h5 text-[var(--color-text)]">{t("Monthly Expense Trend (12 Months)", "Xu hướng chi theo tháng (12 tháng)")}</h3>
+            <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-6">
+              {t(
+                "columns: what each group took · line: the month total",
+                "cột: từng nhóm chiếm bao nhiêu · đường: tổng chi tháng đó"
+              )}
+            </p>
+            {monthlyCategoryKeys.length === 0 ? (
+              <p className="text-sm text-[var(--color-text-muted)]">
+                {t("No expenses in the last 12 months.", "12 tháng qua chưa có khoản chi nào.")}
+              </p>
+            ) : (
             <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlySeries}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#9ca3af'}} angle={-35} textAnchor="end" />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#9ca3af'}} tickFormatter={(value) => `${Math.round(value/1_000_000)}m`} width={50} />
-                  <Tooltip formatter={(v) => formatVND(Number(v) || 0)} />
-                  <Bar dataKey="amount" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={40} name={t("Expense", "Chi tiêu")} />
-                </BarChart>
+                <ComposedChart data={monthlyBreakdown} className="c-chart-multi">
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: 'var(--color-text-faint)'}} angle={-35} textAnchor="end" height={50} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: 'var(--color-text-faint)'}} tickFormatter={(value) => `${Math.round(value/1_000_000)}m`} width={50} />
+                  <Tooltip content={<MonthlyTooltip otherLabel={t("Other", "Khác")} />} />
+                  <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                  {/* Cột chồng: chiều cao mỗi khúc là phần nhóm đó chiếm trong
+                      tháng. Viền màu nền 1px để hai khúc liền màu vẫn tách ra. */}
+                  {monthlyCategoryKeys.map((key, i) => (
+                    <Bar
+                      key={key}
+                      dataKey={key}
+                      stackId="cat"
+                      name={key === OTHER_KEY ? t("Other", "Khác") : key}
+                      // `fill` ở đây chỉ để tô ô chú giải; màu khúc cột do
+                      // lớp .c-series-* trong globals.css quyết định, vì luật
+                      // chung của hệ ép mọi cột về --chart-1.
+                      className={key === OTHER_KEY ? "c-series-other" : `c-series-${i + 1}`}
+                      fill={key === OTHER_KEY ? "var(--color-border-strong)" : `var(--chart-${i + 1})`}
+                      stroke="var(--color-surface)"
+                      strokeWidth={1}
+                      maxBarSize={44}
+                    />
+                  ))}
+                  {/* Đường tổng đi trên đỉnh cột — cùng một trục, không thêm
+                      trục thứ hai: hai thang số trên một khung là cách nhanh
+                      nhất để đọc sai biểu đồ. */}
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    name={t("Month total", "Tổng tháng")}
+                    stroke="var(--color-text)"
+                    strokeWidth={2}
+                    // Nét đứt: --chart-2 cũng là màu mực, nên đường liền sẽ
+                    // lẫn với khúc cột của nhóm thứ hai.
+                    strokeDasharray="5 3"
+                    dot={{ r: 2.5, fill: "var(--color-text)" }}
+                    activeDot={{ r: 5 }}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -45,7 +45,9 @@ export async function GET(req: Request) {
       }),
       prisma.transaction.findMany({
         where: { userId, date: { gte: ytdStart, lt: endDate } },
-        select: { date: true, type: true, totalAmount: true },
+        // `categoryGroup` để dựng cột chồng 12 tháng — tổng tháng không nói
+        // được tiền đi vào nhóm nào.
+        select: { date: true, type: true, totalAmount: true, categoryGroup: true },
         orderBy: { date: "asc" },
       }),
       prisma.transaction.findMany({
@@ -121,6 +123,50 @@ export async function GET(req: Request) {
       else if (b === "refund") ytdMap.set(key, ytdMap.get(key)! - t.totalAmount);
     }
     const monthlySeries = [...ytdMap.entries()].map(([name, amount]) => ({ name, amount }));
+
+    // Tỷ trọng từng nhóm trong mỗi tháng, cho biểu đồ cột chồng 12 tháng.
+    // Chỉ có tổng tháng thì không trả lời được "tháng đó tiền đi đâu" — mà đó
+    // mới là câu hỏi khi thấy một tháng vọt lên.
+    const perMonthCat = new Map<string, Map<string, number>>();
+    for (const key of ytdMap.keys()) perMonthCat.set(key, new Map());
+    for (const t of ytdTx) {
+      const bucket = perMonthCat.get(monthKey(t.date));
+      if (!bucket) continue;
+      const b = classify(t.type);
+      const group = t.categoryGroup || "Other";
+      if (b === "expense") bucket.set(group, (bucket.get(group) || 0) + t.totalAmount);
+      else if (b === "refund") bucket.set(group, (bucket.get(group) || 0) - t.totalAmount);
+    }
+
+    // Bốn nhóm lớn nhất tính trên cả 12 tháng giữ màu riêng; phần đuôi gộp
+    // thành một khoá "__other". Chỉ bốn: hệ màu biểu đồ của dự án
+    // (--chart-1..6) là một dải ấm nhạt dần, hai bậc cuối gần như trùng nền
+    // thẻ nên khúc cột sẽ tàng hình. Bốn bậc đầu mới tách nhau rõ.
+    const totalByGroup = new Map<string, number>();
+    for (const bucket of perMonthCat.values()) {
+      for (const [g, v] of bucket) totalByGroup.set(g, (totalByGroup.get(g) || 0) + v);
+    }
+    const ranked = [...totalByGroup.entries()]
+      .filter(([, v]) => v > 0)
+      .sort((a, b) => b[1] - a[1]);
+    const namedKeys = ranked.slice(0, 4).map(([g]) => g);
+    const hasOther = ranked.length > namedKeys.length;
+    const OTHER_KEY = "__other";
+
+    const monthlyBreakdown = [...ytdMap.entries()].map(([name, total]) => {
+      const bucket = perMonthCat.get(name)!;
+      const row: Record<string, string | number> = { name, total };
+      for (const k of namedKeys) row[k] = 0;
+      let other = 0;
+      for (const [g, v] of bucket) {
+        if (v <= 0) continue;
+        if (namedKeys.includes(g)) row[g] = (row[g] as number) + v;
+        else other += v;
+      }
+      if (hasOther) row[OTHER_KEY] = other;
+      return row;
+    });
+    const monthlyCategoryKeys = hasOther ? [...namedKeys, OTHER_KEY] : namedKeys;
 
     const recentTransactions = monthTx
       .filter(t => classify(t.type) !== "ignored")
@@ -203,6 +249,8 @@ export async function GET(req: Request) {
         categoryBreakdown, // Keep for backward compatibility
         dailySeries,
         monthlySeries,
+        monthlyBreakdown,
+        monthlyCategoryKeys,
         topMerchants,
         recentTransactions,
         hasData: monthTx.length > 0 || yearTx.length > 0,

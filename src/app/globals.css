@@ -751,6 +751,21 @@ body::before {
 .recharts-line-dot { fill: var(--chart-1); stroke: none; }
 .recharts-area-area { fill: var(--chart-1); opacity: .14; }
 .recharts-bar-rectangle path { fill: var(--chart-1); }
+
+/* Cột CHỒNG nhiều nhóm cần mỗi khúc một màu, mà luật ngay trên ép hết về
+   --chart-1 — đúng cho biểu đồ một series, nhưng biến cột chồng thành một khối
+   liền màu, không đọc được gì. Biểu đồ nào cần nhiều màu thì tự nhận
+   `.c-chart-multi`, và mỗi series mang `.c-series-N`. Mọi biểu đồ còn lại
+   không đổi. */
+.c-chart-multi .c-series-1 .recharts-bar-rectangle path { fill: var(--chart-1); }
+.c-chart-multi .c-series-2 .recharts-bar-rectangle path { fill: var(--chart-2); }
+.c-chart-multi .c-series-3 .recharts-bar-rectangle path { fill: var(--chart-3); }
+.c-chart-multi .c-series-4 .recharts-bar-rectangle path { fill: var(--chart-4); }
+.c-chart-multi .c-series-other .recharts-bar-rectangle path { fill: var(--color-border-strong); }
+/* Đường tổng trong biểu đồ combo: luật chung tô nó bằng --chart-1, trùng đúng
+   màu khúc cột đầu tiên nên nhìn như một mảng liền. Đổi sang màu mực. */
+.c-chart-multi .recharts-line-curve { stroke: var(--color-text); }
+.c-chart-multi .recharts-line-dot { fill: var(--color-text); }
 .recharts-default-tooltip {
   background: var(--color-bg) !important;
   border: 1px solid var(--color-border) !important;
