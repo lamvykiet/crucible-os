@@ -232,6 +232,9 @@ export default function BookStepView({
     <div className="space-y-6">
       <Crumbs
         items={[
+          ...(languageId
+            ? [{ label: t("Skills", "Bảng kỹ năng"), href: `/learning/languages/${languageId}` }]
+            : []),
           { label: t("Books", "Tủ sách"), onClick: onBackToBooks },
           { label: bookTitle, onClick: onBack },
           { label: `${data.label}. ${data.title}` },
