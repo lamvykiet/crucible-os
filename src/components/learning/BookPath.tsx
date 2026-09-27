@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Loader2, AlertCircle, Check, BookOpen, Repeat, Feather, Info } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 
@@ -55,7 +55,21 @@ export default function BookPath({
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const [width, setWidth] = useState(0);
 
-  const boxRef = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * Đo bề ngang NGAY lúc phần tử gắn vào cây, không chờ `ResizeObserver`.
+   *
+   * Trình duyệt ngưng `ResizeObserver` và `requestAnimationFrame` khi trang nằm
+   * ở tab nền hoặc bị che. Chỉ dựa vào observer thì mở trang ở tab nền là đường
+   * học trắng trơn cho tới khi người dùng chuyển sang tab đó — đã gặp đúng cảnh
+   * này khi chạy thử. Hàm ref thì chạy ngay ở lúc commit, không phụ thuộc hai
+   * thứ kia; observer bên dưới chỉ lo phần đổi cỡ về sau.
+   */
+  const attachBox = useCallback((node: HTMLDivElement | null) => {
+    boxRef.current = node;
+    if (node) setWidth(node.getBoundingClientRect().width);
+  }, []);
   const loading = loadedFor !== bookId;
 
   useEffect(() => {
@@ -80,8 +94,10 @@ export default function BookPath({
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
+
     const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
     ro.observe(box);
+
     return () => ro.disconnect();
   }, [loading]);
 
@@ -136,7 +152,7 @@ export default function BookPath({
         </p>
       </div>
 
-      <div ref={boxRef} className="relative" style={{ height }}>
+      <div ref={attachBox} className="relative" style={{ height }}>
         {/* Đường nối vẽ trước, nằm dưới các nút */}
         {width > 0 && (
           <svg

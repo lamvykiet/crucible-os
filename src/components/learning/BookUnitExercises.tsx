@@ -14,9 +14,11 @@ export interface ExItem {
 
 export interface ExBlock {
   label: string;
-  kind: "gapfill" | "choice" | "correct" | "bank" | "passage";
+  kind: "build" | "gapfill" | "choice" | "correct" | "bank" | "passage";
   instruction: string;
   bank?: string[];
+  /** Chỉ với kind=passage: đoạn văn có cài sẵn lỗi. */
+  passage?: string;
   items: ExItem[];
 }
 
@@ -30,9 +32,16 @@ const same = (a: string, b: string) => {
 /**
  * Phần bài tập của một unit.
  *
- * Bốn dạng bám theo sách: điền từ trong ngoặc, chọn một trong hai, sửa chỗ sai,
- * và điền từ lấy trong khung cho sẵn. Dạng dựa vào tranh thì không làm — ứng
- * dụng không có tranh, và bịa mô tả tranh ra thì bài hỏng.
+ * Sáu dạng bám theo khuôn quen của sách bài tập: viết câu từ gợi ý rời, điền
+ * động từ trong ngoặc, sửa cụm sai, chọn một trong hai, điền từ lấy trong khung,
+ * và tìm lỗi trong một đoạn văn.
+ *
+ * Đề do ứng dụng tự ra, KHÔNG chép từ sách. Khuôn dạng bài thì không ai sở hữu,
+ * nhưng từng câu trong sách là chữ của tác giả — mà với một cuốn sách luyện tập
+ * thì chính những câu đó là sản phẩm.
+ *
+ * Dạng viết câu từ gợi ý chấm nhẹ tay: một gợi ý có thể ra vài câu đều đúng, nên
+ * gõ khác đáp án mẫu thì hiện đáp án để tự đối chiếu, không tính là sai.
  *
  * Chấm ở TRÌNH DUYỆT chứ không ở máy chủ, khác các phần khác. Lý do: đề và đáp
  * án đã nằm sẵn trong bản đã lưu của unit này, nên giấu đáp án lúc này chỉ là
@@ -81,6 +90,9 @@ export default function BookUnitExercises({
 
   const checkBlock = async (block: ExBlock, bi: number) => {
     setChecked((prev) => ({ ...prev, [block.label]: true }));
+    // Dạng viết câu không vào điểm: chấm bằng so chuỗi thì câu đúng mà viết
+    // khác mẫu cũng thành sai, và con số đó không nói lên gì.
+    if (block.kind === "build") return;
     const correct = block.items.filter((it, i) => same(typed[`${bi}:${i}`] ?? "", it.answer)).length;
     // Ghi điểm nhưng không chặn gì nếu hỏng — điểm là phụ, bài làm mới là chính.
     fetch("/api/learning/books/content", {
@@ -121,6 +133,7 @@ export default function BookUnitExercises({
       {items.map((block, bi) => {
         const done = checked[block.label];
         const right = block.items.filter((it, i) => same(typed[`${bi}:${i}`] ?? "", it.answer)).length;
+        const scored = block.kind !== "build";
 
         return (
           <section key={block.label} className="space-y-3">
@@ -130,6 +143,13 @@ export default function BookUnitExercises({
               </span>
               <p className="flex-1 leading-snug">{block.instruction}</p>
             </div>
+
+            {/* Đoạn văn có cài lỗi */}
+            {block.kind === "passage" && block.passage && (
+              <div className="c-card p-5">
+                <p className="leading-loose text-[16px] whitespace-pre-wrap">{block.passage}</p>
+              </div>
+            )}
 
             {/* Khung từ cho sẵn */}
             {block.kind === "bank" && block.bank && block.bank.length > 0 && (
@@ -145,17 +165,24 @@ export default function BookUnitExercises({
                 const k = `${bi}:${i}`;
                 const mine = typed[k] ?? "";
                 const ok = same(mine, it.answer);
+                // Viết câu từ gợi ý thì nhiều cách viết đều đúng, nên không
+                // đánh dấu sai — chỉ đưa đáp án mẫu ra để tự đối chiếu.
+                const lenient = block.kind === "build";
 
                 return (
                   <li key={i} className="flex gap-3">
                     <span className="c-stat-label tabular-nums pt-2 w-5 flex-none text-right">{i + 1}</span>
                     <div className="flex-1 space-y-2 min-w-0">
-                      <p className="leading-relaxed">
-                        {it.prompt}
-                        {it.given && (
-                          <span className="ml-1.5 font-bold">({it.given})</span>
-                        )}
-                      </p>
+                      {block.kind === "build" || block.kind === "passage" ? (
+                        <p className="leading-relaxed">
+                          <span className="italic text-[var(--color-text-muted)]">{it.given}</span>
+                        </p>
+                      ) : (
+                        <p className="leading-relaxed">
+                          {it.prompt}
+                          {it.given && <span className="ml-1.5 font-bold">({it.given})</span>}
+                        </p>
+                      )}
 
                       {block.kind === "choice" && it.options?.length ? (
                         <div className="flex flex-wrap gap-2">
@@ -198,13 +225,20 @@ export default function BookUnitExercises({
                           <p className="text-sm flex items-start gap-2">
                             {ok ? (
                               <Check size={15} className="text-[var(--color-success)] flex-none mt-0.5" />
+                            ) : lenient ? (
+                              <Check size={15} className="text-[var(--color-text-faint)] flex-none mt-0.5" />
                             ) : (
                               <X size={15} className="text-[var(--color-error)] flex-none mt-0.5" />
                             )}
                             <span>
-                              {!ok && (
+                              {!ok && !lenient && (
                                 <span className="text-[var(--color-text-muted)]">
                                   {mine ? `${mine} → ` : ""}
+                                </span>
+                              )}
+                              {!ok && lenient && (
+                                <span className="c-stat-label mr-1.5">
+                                  {t("model answer", "đáp án mẫu")}
                                 </span>
                               )}
                               <span className="font-medium">{it.answer}</span>
@@ -226,7 +260,9 @@ export default function BookUnitExercises({
               </button>
             ) : (
               <p className="c-stat-label tabular-nums">
-                {t(`${right}/${block.items.length} correct`, `đúng ${right}/${block.items.length}`)}
+                {scored
+                  ? t(`${right}/${block.items.length} correct`, `đúng ${right}/${block.items.length}`)
+                  : t("Compare with the model answers", "Đối chiếu với đáp án mẫu")}
               </p>
             )}
           </section>

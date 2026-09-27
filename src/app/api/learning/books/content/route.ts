@@ -90,6 +90,10 @@ const EX_SCHEMA: Schema = {
             items: { type: SchemaType.STRING },
             description: "Chỉ với kind=bank: khung từ cho sẵn",
           },
+          passage: {
+            type: SchemaType.STRING,
+            description: "Chỉ với kind=passage: đoạn văn có đúng số lỗi bằng số câu trong items",
+          },
           items: {
             type: SchemaType.ARRAY,
             items: {
@@ -186,18 +190,30 @@ Quy tắc:
 - Ngắn gọn. Đây là trang tra cứu trước khi làm bài, không phải khảo cứu.`
           : `Bạn ra BÀI TẬP cho một unit của sách ngữ pháp và từ vựng tiếng Anh trình độ ${book.level}.
 
-Ra 3-4 khối, mỗi khối một dạng khác nhau, chọn trong:
-- gapfill: điền chỗ trống, "given" là từ gốc trong ngoặc cần chia. 8 câu.
-- choice: chọn một trong hai, "options" đúng 2 phương án. 8 câu.
-- correct: câu có chỗ sai, người học viết lại cho đúng. "given" là phần sai. 6 câu.
-- bank: điền chỗ trống bằng từ lấy trong "bank" cho sẵn. 8 câu, bank 8 từ.
+Ra 4-5 khối, MỖI KHỐI MỘT DẠNG KHÁC NHAU, chọn trong sáu dạng sau. Giữ đúng số
+câu ghi kèm — đó là nhịp quen thuộc của dạng bài này:
+
+- build (6 câu): cho gợi ý rời bằng dấu gạch chéo, người học viết thành câu
+  hoàn chỉnh. "given" là chuỗi gợi ý, ví dụ "every day / get up / half past seven".
+  "answer" là câu hoàn chỉnh. "prompt" để trống chuỗi rỗng.
+- gapfill (8 câu): điền chỗ trống, "given" là động từ nguyên thể trong ngoặc cần
+  chia. Có vài câu cần dạng phủ định.
+- correct (8 câu): câu chứa một chỗ SAI, "given" là đúng cụm sai đó, "answer" là
+  cụm đã sửa. Không phải viết lại cả câu, chỉ sửa cụm.
+- choice (10 câu): chọn một trong hai, "options" đúng 2 phương án.
+- bank (8 câu): điền chỗ trống bằng từ lấy trong "bank"; bank có đúng 8 từ và
+  mỗi từ dùng đúng một lần.
+- passage (10 câu): viết một đoạn văn 90-130 từ vào trường "passage", trong đó
+  có ĐÚNG 10 chỗ dùng sai. Mỗi item: "given" là cụm sai đúng như trong đoạn,
+  "answer" là cụm đúng, "prompt" để trống chuỗi rỗng.
 
 Quy tắc:
-- "prompt" và "instruction" viết tiếng Anh như sách bài tập. "explanation" viết bằng ${explainIn}.
-- Dùng ___ đánh dấu chỗ trống.
-- Câu hỏi phải kiểm tra CHÍNH nội dung của unit này.
-- Phương án sai phải là lỗi người học hay mắc thật.
-- TỰ RA ĐỀ. Không chép câu nào từ sách.`,
+- "instruction" viết tiếng Anh, giọng của một cuốn sách bài tập.
+- "prompt" viết tiếng Anh, dùng ___ đánh dấu chỗ trống. "explanation" viết bằng ${explainIn}.
+- Mọi câu phải kiểm tra CHÍNH nội dung của unit này, không lạc sang điểm khác.
+- Phương án sai và lỗi cài vào phải là lỗi người học hay mắc thật, không phải lỗi ngớ ngẩn.
+- Câu phải là câu người ta nói hoặc viết thật, đúng tầm ${book.level}.
+- TỰ RA ĐỀ HOÀN TOÀN. Không chép câu nào từ bất kỳ sách luyện tập nào.`,
     });
 
     const result = await generateWithRetry(model, topic, {
