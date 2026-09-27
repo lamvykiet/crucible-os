@@ -42,6 +42,7 @@ model User {
   MockExam           MockExam[]
   DictationLog       DictationLog[]
   CollocationLog     CollocationLog[]
+  BookStepProgress   BookStepProgress[]
   Deck               Deck[]
   ReviewLog          ReviewLog[]
   StudyNote          StudyNote[]
@@ -1349,4 +1350,28 @@ model CollocationLog {
 
   @@unique([userId, langCode, setId, index])
   @@index([userId, langCode])
+}
+
+/// Tiến độ đi trên đường học của một cuốn sách, ghi theo TỪNG BƯỚC.
+///
+/// Cấu trúc sách nằm trong code (`src/lib/books/`) vì nó là dữ kiện cố định;
+/// bảng này chỉ giữ thứ thuộc về người dùng.
+model BookStepProgress {
+  id     String @id @default(uuid())
+  bookId String
+  /// Vị trí bước trên đường, khớp `BookStep.step`.
+  step   Int
+
+  /// Đã mở ra xem.
+  openedAt DateTime?
+  /// Tự đánh dấu là đã học xong.
+  doneAt   DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, bookId, step])
+  @@index([userId, bookId])
 }

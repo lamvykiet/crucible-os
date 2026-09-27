@@ -15,6 +15,7 @@ import type { Script } from "@/lib/languagePresets";
 
 export type SkillId =
   | "vocabulary"
+  | "books"
   | "collocations"
   | "dictation"
   | "grammar"
@@ -47,6 +48,13 @@ export const SKILLS: Skill[] = [
     blurbEn: "A 30-day course, 10 words a day, each set repeating five times.",
     blurbVi: "Giáo trình 30 ngày, mỗi ngày 10 từ, mỗi bộ lặp lại 5 vòng.",
     href: (id) => `/learning/languages/${id}/vocabulary`,
+  },
+  {
+    id: "books",
+    en: "Books", vi: "Tủ sách",
+    blurbEn: "Follow a coursebook unit by unit, on a path you can see the whole of.",
+    blurbVi: "Đi theo giáo trình từng unit, trên một đường học nhìn thấy trọn cuốn.",
+    href: (id) => `/learning/languages/${id}/books`,
   },
   {
     id: "collocations",
