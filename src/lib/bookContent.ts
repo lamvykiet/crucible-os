@@ -249,26 +249,40 @@ ghi id, phần thêm sẽ thành phần bổ sung. Không trùng cái nào thì 
 function exerciseInstruction(book: Book, step: BookStep, explainIn: string) {
   const isVocab = step.kind === "vocabulary";
 
-  return `Bạn ra BÀI TẬP cho một unit của sách ngữ pháp và từ vựng tiếng Anh trình độ ${book.level}.
+  // Ba dạng cho unit từ vựng, và chúng được ĐỊNH NGHĨA LẠI chứ không mượn định
+  // nghĩa của bài ngữ pháp. Dùng lại y nguyên thì "gapfill" vẫn là cho động từ
+  // trong ngoặc rồi bảo chia — tức là phát sẵn đáp án và đi hỏi chuyện khác.
+  // Đã ra đúng cảnh đó: unit "Fun and games" cho ra câu
+  // "My brother likes to ___ (collect) old coins", đáp án "collect".
+  const vocabForms = `- gapfill (8 câu): một câu có chỗ trống, người học phải NHỚ RA từ. "given" là
+  GỢI Ý NGHĨA ngắn bằng ${explainIn}, tuyệt đối không phải từ cần điền và không
+  phải một dạng khác của nó. "answer" là từ trong danh sách của unit.
+- choice (10 câu): chọn một trong hai TỪ VỰNG, "options" đúng 2 phương án. Cả
+  hai phương án đều hợp ngữ pháp — cái sai là sai NGHĨA, không phải sai dạng.
+- bank (8 câu): điền chỗ trống bằng từ lấy trong "bank"; bank có đúng 8 từ lấy
+  từ danh sách của unit, mỗi từ dùng đúng một lần.`;
 
-Ra ${isVocab ? "3 khối" : "4-5 khối"}, MỖI KHỐI MỘT DẠNG KHÁC NHAU, chọn trong ${
-    isVocab ? "ba dạng hợp với bài từ vựng" : "sáu dạng"
-  } sau. Giữ đúng số câu ghi kèm — đó là nhịp quen thuộc của dạng bài này:
-
-${isVocab ? "" : `- build (6 câu): cho gợi ý rời bằng dấu gạch chéo, người học viết thành câu
+  const grammarForms = `- build (6 câu): cho gợi ý rời bằng dấu gạch chéo, người học viết thành câu
   hoàn chỉnh. "given" là chuỗi gợi ý, ví dụ "every day / get up / half past seven".
   "answer" là câu hoàn chỉnh. "prompt" để trống chuỗi rỗng.
-`}- gapfill (8 câu): điền chỗ trống, "given" là động từ nguyên thể trong ngoặc cần
+- gapfill (8 câu): điền chỗ trống, "given" là động từ nguyên thể trong ngoặc cần
   chia. Có vài câu cần dạng phủ định.
-${isVocab ? "" : `- correct (8 câu): câu chứa một chỗ SAI, "given" là đúng cụm sai đó, "answer" là
+- correct (8 câu): câu chứa một chỗ SAI, "given" là đúng cụm sai đó, "answer" là
   cụm đã sửa. Không phải viết lại cả câu, chỉ sửa cụm.
-`}- choice (10 câu): chọn một trong hai, "options" đúng 2 phương án.
+- choice (10 câu): chọn một trong hai, "options" đúng 2 phương án.
 - bank (8 câu): điền chỗ trống bằng từ lấy trong "bank"; bank có đúng 8 từ và
   mỗi từ dùng đúng một lần.
-${isVocab ? "" : `- passage (10 câu): viết một đoạn văn 90-130 từ vào trường "passage", trong đó
+- passage (10 câu): viết một đoạn văn 90-130 từ vào trường "passage", trong đó
   có ĐÚNG 10 chỗ dùng sai. Mỗi item: "given" là cụm sai đúng như trong đoạn,
-  "answer" là cụm đúng, "prompt" để trống chuỗi rỗng.
-`}
+  "answer" là cụm đúng, "prompt" để trống chuỗi rỗng.`;
+
+  return `Bạn ra BÀI TẬP cho một unit của sách ngữ pháp và từ vựng tiếng Anh trình độ ${book.level}.
+
+Ra ${isVocab ? "ĐÚNG 3 khối, mỗi khối một dạng, dùng cả ba dạng" : "4-5 khối, MỖI KHỐI MỘT DẠNG KHÁC NHAU, chọn trong sáu dạng"} sau. Giữ đúng số
+câu ghi kèm — đó là nhịp quen thuộc của dạng bài này:
+
+${isVocab ? vocabForms : grammarForms}
+
 ${bandBrief(book.level)}
 
 Quy tắc:
@@ -276,7 +290,12 @@ Quy tắc:
 - "prompt" viết tiếng Anh, dùng ___ đánh dấu chỗ trống. "explanation" viết bằng ${explainIn}.
 - Mọi câu phải kiểm tra CHÍNH nội dung của unit này, không lạc sang điểm khác.${
     isVocab
-      ? "\n- Đây là unit TỪ VỰNG: mỗi câu kiểm tra một từ trong danh sách được đưa, không kiểm tra ngữ pháp."
+      ? `
+- Đây là unit TỪ VỰNG. Mỗi câu kiểm tra NGHĨA của một từ trong danh sách được
+  đưa, không kiểm tra chia động từ, không kiểm tra thì, không kiểm tra hoà hợp
+  chủ ngữ. Mỗi từ chỉ dùng cho một câu trong cả bài.
+- Câu phải có đủ ngữ cảnh để suy ra đúng MỘT từ. Câu mà điền từ nào cũng xuôi
+  thì không kiểm tra được gì.`
       : ""
   }
 - Phương án sai và lỗi cài vào phải là lỗi người học hay mắc thật, không phải lỗi ngớ ngẩn.
