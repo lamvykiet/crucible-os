@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { modelsWithFallback } from "@/lib/gemini";
 import { generateWithRetry, isTransientAiError, aiErrorMessage } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
-import { findPoint } from "@/lib/grammarSyllabus";
+import { resolvePoint, loadBookNotes } from "@/lib/bookGrammar";
 import { presetByCode } from "@/lib/languagePresets";
 
 export const runtime = "nodejs";
@@ -67,6 +67,28 @@ const LESSON_SCHEMA: Schema = {
   required: ["summary", "useWhen", "structures", "examples"],
 };
 
+/**
+ * Phần bổ sung mà sách của người học mang vào cho đúng điểm này.
+ *
+ * Đọc riêng chứ không nhét vào `summary` của bài: bài học là phần khung của ứng
+ * dụng, còn đây là phần đến từ sách của người học. Trộn chữ vào nhau thì sau này
+ * không ai phân biệt được câu nào từ đâu, và lần soạn lại bài là mất luôn phần
+ * của sách.
+ */
+async function supplementsFor(userId: string, langCode: string, pointId: string) {
+  const notes = await loadBookNotes(userId, langCode);
+  return notes
+    .filter((n) => n.syllabusPointId === pointId)
+    .map((n) => ({
+      bookTitle: n.bookTitle,
+      stepLabel: n.stepLabel,
+      title: n.title,
+      rule: n.rule,
+      structures: JSON.parse(n.structures || "[]"),
+      examples: JSON.parse(n.examples || "[]"),
+    }));
+}
+
 export async function POST(req: Request) {
   const { user, response } = await requireUser();
   if (!user) return response;
@@ -75,7 +97,7 @@ export async function POST(req: Request) {
     const { pointId, langCode = "en", refresh } = await req.json();
     // Phải tra trong khung của ĐÚNG thứ tiếng: id điểm chỉ duy nhất trong một
     // khung, hai thứ tiếng có thể trùng id.
-    const found = findPoint(String(langCode), String(pointId ?? ""));
+    const found = await resolvePoint(user.id, String(langCode), String(pointId ?? ""));
     if (!found) {
       return NextResponse.json({ success: false, error: "Không tìm thấy bài này" }, { status: 404 });
     }
@@ -89,8 +111,34 @@ export async function POST(req: Request) {
         if (!cached.viewedAt) {
           await prisma.grammarLesson.update({ where: key, data: { viewedAt: new Date() } });
         }
-        return NextResponse.json({ success: true, lesson: shape(cached), cached: true });
+        return NextResponse.json({
+          success: true,
+          lesson: shape(cached),
+          cached: true,
+          supplements: await supplementsFor(user.id, String(langCode), found.point.id),
+        });
       }
+    }
+
+    // Điểm đến từ sách đã mang theo đủ một bài học — quy tắc, cấu trúc, ví dụ —
+    // do lúc soạn bài của unit đó viết ra. Gọi AI viết lại là đốt hạn mức để có
+    // đúng thứ đang nằm trong tay.
+    if ("note" in found && found.note) {
+      const seeded = await prisma.grammarLesson.upsert({
+        where: key,
+        create: {
+          userId: user.id, pointId: found.point.id, langCode,
+          summary: found.note.summary, useWhen: "",
+          structures: found.note.structures, examples: found.note.examples,
+          viewedAt: new Date(),
+        },
+        update: {
+          summary: found.note.summary,
+          structures: found.note.structures,
+          examples: found.note.examples,
+        },
+      });
+      return NextResponse.json({ success: true, lesson: shape(seeded), cached: true });
     }
 
     const pref = await prisma.learnerPref.findUnique({
@@ -153,7 +201,12 @@ Quy tắc:
       },
     });
 
-    return NextResponse.json({ success: true, lesson: shape(saved), cached: false });
+    return NextResponse.json({
+      success: true,
+      lesson: shape(saved),
+      cached: false,
+      supplements: await supplementsFor(user.id, String(langCode), found.point.id),
+    });
   } catch (error) {
     const message = aiErrorMessage(error);
     const transient = isTransientAiError(error);

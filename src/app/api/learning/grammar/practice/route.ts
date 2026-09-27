@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { modelsWithFallback } from "@/lib/gemini";
 import { generateWithRetry, isTransientAiError, aiErrorMessage } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
-import { findPoint } from "@/lib/grammarSyllabus";
+import { resolvePoint } from "@/lib/bookGrammar";
 import { presetByCode } from "@/lib/languagePresets";
 
 export const runtime = "nodejs";
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
 
   try {
     const { pointId, langCode = "en", refresh } = await req.json();
-    const found = findPoint(String(langCode), String(pointId ?? ""));
+    const found = await resolvePoint(user.id, String(langCode), String(pointId ?? ""));
     if (!found) {
       return NextResponse.json({ success: false, error: "Không tìm thấy bài này" }, { status: 404 });
     }
@@ -161,7 +161,7 @@ export async function PATCH(req: Request) {
 
   try {
     const { pointId, langCode = "en", index, choice } = await req.json();
-    const found = findPoint(String(langCode), String(pointId ?? ""));
+    const found = await resolvePoint(user.id, String(langCode), String(pointId ?? ""));
     if (!found) {
       return NextResponse.json({ success: false, error: "Không tìm thấy bài này" }, { status: 404 });
     }

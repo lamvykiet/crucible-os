@@ -45,6 +45,7 @@ model User {
   BookStepProgress   BookStepProgress[]
   BookLesson         BookLesson[]
   BookUnitContent    BookUnitContent[]
+  BookGrammarNote    BookGrammarNote[]
   Deck               Deck[]
   ReviewLog          ReviewLog[]
   StudyNote          StudyNote[]
@@ -997,7 +998,6 @@ model FocusSession {
   @@index([userId, endedAt])
 }
 
-
 /// Thông báo trong ứng dụng.
 ///
 /// Chuông ở thanh trên. Đây là thông báo *của hệ thống gửi cho người dùng*
@@ -1028,12 +1028,12 @@ model Notification {
 /// mở trang lại ra câu khác thì nó không còn là "câu hôm nay" nữa, và cũng
 /// tốn một lượt gọi AI cho mỗi lần tải trang.
 model DailyQuote {
-  id        String   @id @default(uuid())
-  quoteDate DateTime
-  text      String
+  id          String   @id @default(uuid())
+  quoteDate   DateTime
+  text        String
   /// Bản dịch sang ngôn ngữ người dùng đã chọn.
   translation String?
-  author    String?
+  author      String?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1042,7 +1042,6 @@ model DailyQuote {
 
   @@unique([userId, quoteDate])
 }
-
 
 /// Một bài ngữ pháp đã được sinh và giữ lại.
 ///
@@ -1084,7 +1083,6 @@ model GrammarLesson {
   @@unique([userId, pointId, langCode])
   @@index([userId, langCode])
 }
-
 
 /// Tiến độ của một kỹ năng trong một thứ tiếng.
 ///
@@ -1130,12 +1128,12 @@ model WritingSubmission {
   /// task1 | task2
   taskType   String
 
-  prompt   String
+  prompt     String
   /// JSON: mô tả biểu đồ hoặc dữ liệu kèm theo đề Task 1.
   promptData String?
 
-  response  String
-  wordCount Int
+  response     String
+  wordCount    Int
   minutesSpent Int?
 
   // Chấm điểm
@@ -1154,7 +1152,6 @@ model WritingSubmission {
 
   @@index([userId, createdAt])
 }
-
 
 /// Giáo trình từ vựng theo ngày.
 ///
@@ -1178,12 +1175,12 @@ model VocabCourse {
   /// Mặc định "ai" chứ không để trống: Postgres coi mỗi NULL là một giá trị
   /// khác nhau, nên nếu để null thì ràng buộc duy nhất bên dưới hết tác dụng và
   /// một người có thể tạo trùng nhiều giáo trình AI cùng cấp.
-  source String @default("ai")
+  source      String  @default("ai")
   /// Tên hiển thị. Trống thì giao diện tự dựng từ cấp độ.
-  title  String?
+  title       String?
   /// Số ngày của giáo trình; mỗi ngày 10 từ.
-  totalDays Int    @default(0)
-  wordsPerDay Int  @default(10)
+  totalDays   Int     @default(0)
+  wordsPerDay Int     @default(10)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1201,7 +1198,7 @@ model VocabCourse {
 /// là ngày người dùng thật sự mở nó ra, không phải ngày tạo giáo trình. Lưu sẵn
 /// lịch sẽ sai ngay khi người dùng nghỉ một tuần.
 model VocabSet {
-  id       String @id @default(uuid())
+  id       String      @id @default(uuid())
   courseId String
   course   VocabCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
@@ -1236,10 +1233,10 @@ model PracticeItem {
   topic      String?
 
   /// JSON: { passage | transcript, questions: [{prompt, options, correctIndex, explanation}] }
-  content    String
+  content String
 
-  attempts     Int @default(0)
-  correctCount Int @default(0)
+  attempts     Int       @default(0)
+  correctCount Int       @default(0)
   lastDoneAt   DateTime?
 
   userId String
@@ -1263,7 +1260,7 @@ model SpeakingAttempt {
   prompt     String
 
   transcript String
-  seconds    Int     @default(0)
+  seconds    Int    @default(0)
 
   band     Float?
   /// JSON: { fluency, lexis, grammar, pronunciation }
@@ -1320,17 +1317,17 @@ model DictationLog {
   languageId String?
   langCode   String
   /// Định danh bộ câu, ví dụ "cmn.hsk1.greetings".
-  setId String
+  setId      String
   /// Vị trí câu trong bộ.
-  index Int
+  index      Int
 
-  attempts Int @default(0)
+  attempts     Int     @default(0)
   /// Số lần gõ đúng trọn vẹn ngay lần thử đầu của một lượt.
-  firstTry Int @default(0)
+  firstTry     Int     @default(0)
   /// Tỷ lệ khớp của lần gần nhất, 0-100.
-  lastAccuracy Int @default(0)
+  lastAccuracy Int     @default(0)
   /// Đã từng gõ đúng trọn vẹn câu này chưa.
-  cleared Boolean @default(false)
+  cleared      Boolean @default(false)
 
   lastDoneAt DateTime @default(now())
 
@@ -1402,7 +1399,7 @@ model BookUnitContent {
   step   Int
 
   /// JSON: { summary, forms[], sections[], notes[] }
-  lesson String?
+  lesson    String?
   /// JSON: { items[] } — bài tập do ứng dụng tự ra, KHÔNG chép đề của sách.
   exercises String?
 
@@ -1445,4 +1442,43 @@ model BookLesson {
 
   @@unique([userId, bookId, step])
   @@index([userId, bookId])
+}
+
+/// Điểm ngữ pháp rút từ một unit của sách, gộp vào mục Ngữ pháp.
+///
+/// Khung ngữ pháp chính nằm trong code vì thứ tự học cần ổn định. Nhưng sách
+/// người dùng tải lên thì không biết trước, nên phần đến từ sách nằm ở bảng
+/// này và được TRỘN VÀO khung lúc đọc. Hai nguồn, một đường đọc — nên không có
+/// chuyện khung trong code và khung trên màn hình lệch nhau.
+model BookGrammarNote {
+  id String @id @default(uuid())
+
+  langCode  String
+  bookId    String
+  /// Chép sẵn tên sách để hiện nhánh mà không phải tra sổ đăng ký sách.
+  bookTitle String
+  step      Int
+  stepLabel String
+
+  title      String
+  level      String
+  rule       String
+  /// JSON: [{ pattern, note }]
+  structures String @default("[]")
+  /// JSON: [{ sentence, note }]
+  examples   String @default("[]")
+
+  /// Id điểm trong khung có sẵn mà điểm này trùng nội dung.
+  /// Null = điểm sách có mà khung chưa có, sẽ hiện thành nhánh riêng của sách.
+  syllabusPointId String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, bookId, step, title])
+  @@index([userId, langCode])
+  @@index([userId, syllabusPointId])
 }

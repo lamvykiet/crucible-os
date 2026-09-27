@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   BookOpen, Dumbbell, Loader2, AlertCircle, Check, X, ChevronDown, Search,
-  RefreshCw, CircleCheck,
+  RefreshCw, CircleCheck, BookMarked,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import type { GrammarFamily } from "@/lib/grammarSyllabus";
@@ -22,6 +22,22 @@ interface Lesson {
   examples: { sentence: string; note: string }[];
   practiceCount: number;
   correctCount: number;
+}
+
+/**
+ * Phần ngữ pháp mà sách của người học mang vào cho một điểm đã có trong khung.
+ *
+ * Hiện riêng, dưới bài của khung, và ghi rõ từ cuốn nào unit nào. Trộn vào bài
+ * chính thì người học không phân biệt được đâu là khung của ứng dụng, đâu là
+ * thứ cuốn sách họ đang học nói thêm.
+ */
+interface Supplement {
+  bookTitle: string;
+  stepLabel: string;
+  title: string;
+  rule: string;
+  structures: { pattern: string; note?: string }[];
+  examples: { sentence: string; note?: string }[];
 }
 
 interface Question {
@@ -111,6 +127,10 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
   const [tab, setTab] = useState<"knowledge" | "practice">("knowledge");
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [supplements, setSupplements] = useState<Supplement[]>([]);
+  /** Id điểm có phần bổ sung từ sách, để gắn dấu ngay trên danh sách. */
+  const [supplemented, setSupplemented] = useState<Set<string>>(new Set());
+  const [bookFamilies, setBookFamilies] = useState<Set<string>>(new Set());
   const [loadingLesson, setLoadingLesson] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,6 +154,8 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
         setReferences(json.references ?? []);
         setTotal(json.total ?? 0);
         setProgress(json.progress ?? {});
+        setSupplemented(new Set(Object.keys(json.supplements ?? {})));
+        setBookFamilies(new Set(json.bookFamilyIds ?? []));
         setLevel("all");
         setOpenFamilies(new Set([json.families?.[0]?.id].filter(Boolean)));
       })
@@ -180,6 +202,7 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
     setPointId(id);
     setTab("knowledge");
     setLesson(null);
+    setSupplements([]);
     setQuestions(null);
     setQIndex(0);
     setPicked(null);
@@ -196,6 +219,7 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
       const json = await res.json();
       if (!json?.success) throw new Error(json?.error || "Không soạn được bài");
       setLesson(json.lesson);
+      setSupplements(json.supplements ?? []);
       setProgress((prev) => ({
         ...prev,
         [id]: { viewed: true, practiceCount: json.lesson.practiceCount, correctCount: json.lesson.correctCount },
@@ -333,6 +357,15 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
                     <span className="flex-1">
                       {fi + 1}. {family.title}
                     </span>
+                    {/* Họ do sách của người học mang vào, không thuộc khung của
+                        ứng dụng — nói rõ để không ai tưởng đây là khung chuẩn. */}
+                    {bookFamilies.has(family.id) && (
+                      <BookMarked
+                        size={13}
+                        className="flex-none text-[var(--color-text-faint)]"
+                        aria-label={t("from a book", "từ sách")}
+                      />
+                    )}
                     <ChevronDown
                       size={15}
                       className={`flex-none transition-transform ${open ? "" : "-rotate-90"}`}
@@ -361,6 +394,13 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
                                     }`}
                                   >
                                     <span className="flex-1 leading-snug">{point.title}</span>
+                                    {supplemented.has(point.id) && (
+                                      <BookMarked
+                                        size={13}
+                                        className="text-[var(--color-text-faint)] flex-none mt-0.5"
+                                        aria-label={t("has book notes", "có phần từ sách")}
+                                      />
+                                    )}
                                     {seen && !active && (
                                       <CircleCheck size={13} className="text-[var(--color-success)] flex-none mt-0.5" />
                                     )}
@@ -510,6 +550,46 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
                         >
                           <p className="text-[17px] text-[var(--color-text)]">{e.sentence}</p>
                           <p className="c-italic text-[var(--color-text-muted)] text-sm">{e.note}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {supplements.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="c-card-kicker flex items-center gap-2">
+                        <BookMarked size={13} />
+                        {t("From your books", "Từ sách bạn học")}
+                      </p>
+                      {supplements.map((sup, i) => (
+                        <div key={i} className="c-card p-4 space-y-2">
+                          <p className="c-stat-label">
+                            {sup.bookTitle} · {t(`unit ${sup.stepLabel}`, `unit ${sup.stepLabel}`)}
+                          </p>
+                          <p className="font-medium">{sup.title}</p>
+                          <p className="leading-relaxed">{sup.rule}</p>
+                          {sup.structures.length > 0 && (
+                            <ul className="space-y-1">
+                              {sup.structures.map((st, j) => (
+                                <li key={j} className="text-sm">
+                                  <span className="font-mono">{st.pattern}</span>
+                                  {st.note && (
+                                    <span className="c-help"> — {st.note}</span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          {sup.examples.length > 0 && (
+                            <ul className="space-y-1">
+                              {sup.examples.map((ex, j) => (
+                                <li key={j} className="text-sm">
+                                  {ex.sentence}
+                                  {ex.note && <span className="c-help"> — {ex.note}</span>}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
                       ))}
                     </div>

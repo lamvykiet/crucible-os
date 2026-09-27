@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Loader2, AlertCircle, Check, BookOpen, Repeat, Feather, Info } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import BookBuilder from "./BookBuilder";
 
 interface Step {
   step: number;
@@ -151,6 +152,8 @@ export default function BookPath({
           {t(`${doneCount} of ${steps.length} units done`, `Xong ${doneCount}/${steps.length} unit`)}
         </p>
       </div>
+
+      <BookBuilder bookId={bookId} />
 
       <div ref={attachBox} className="relative" style={{ height }}>
         {/* Đường nối vẽ trước, nằm dưới các nút */}
