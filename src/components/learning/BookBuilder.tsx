@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Sparkles, CircleCheck, Pause, AlertCircle, Feather } from "lucide-react";
+import {
+  Loader2, Sparkles, CircleCheck, Pause, AlertCircle, Feather, GitMerge,
+} from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 interface Status {
@@ -10,6 +12,7 @@ interface Status {
   done: number;
   remaining: number;
   grammarNotes: number;
+  looseNotes: number;
 }
 
 /**
@@ -40,6 +43,7 @@ export default function BookBuilder({
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   /**
    * Cờ dừng đọc trong vòng lặp `while`.
@@ -76,6 +80,42 @@ export default function BookBuilder({
       });
     return () => controller.abort();
   }, [bookId]);
+
+  /** Đối chiếu lại điểm đứng riêng với khung — một lượt gọi AI, chỉ so tên. */
+  const remap = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/learning/books/build", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookId }),
+      });
+      const json = await res.json();
+      if (!json?.success) throw new Error(json?.error || "Không đối chiếu được");
+
+      setNote(
+        json.merged > 0
+          ? t(
+              `${json.merged} of ${json.checked} points merged into the syllabus.`,
+              `Đã gộp ${json.merged}/${json.checked} điểm vào khung có sẵn.`
+            )
+          : t(
+              "None of them matched — the syllabus really does not cover these yet.",
+              "Không điểm nào trùng — khung thật sự chưa có những điểm này."
+            )
+      );
+
+      const fresh = await fetch(
+        `/api/learning/books/build?bookId=${encodeURIComponent(bookId)}`
+      ).then((r) => r.json());
+      if (fresh?.success) setStatus(fresh);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const run = async () => {
     stop.current = false;
@@ -254,6 +294,28 @@ export default function BookBuilder({
             `${status.grammarNotes} điểm ngữ pháp của sách này đã vào mục Ngữ pháp.`
           )}
         </p>
+      )}
+
+      {/* Điểm đứng riêng có thể là điểm khung thật sự chưa có, mà cũng có thể
+          là đối chiếu hụt. Một lượt gọi AI so lại tên là biết. */}
+      {status.looseNotes > 0 && !running && (
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="c-help flex items-center gap-2">
+            <GitMerge size={13} />
+            {t(
+              `${status.looseNotes} of them sit on their own branch.`,
+              `Trong đó ${status.looseNotes} điểm đang đứng thành nhánh riêng.`
+            )}
+          </p>
+          <button
+            onClick={() => void remap()}
+            disabled={busy}
+            className="c-btn c-btn-secondary c-btn-sm flex-none"
+          >
+            {busy ? <Loader2 size={15} className="animate-spin" /> : <GitMerge size={15} />}
+            {t("Match against the syllabus", "Đối chiếu lại với khung")}
+          </button>
+        </div>
       )}
 
       {note && <p className="c-help">{note}</p>}

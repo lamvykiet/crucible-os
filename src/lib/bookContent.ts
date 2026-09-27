@@ -4,6 +4,7 @@ import { modelsWithFallback } from "@/lib/gemini";
 import { generateWithRetry } from "@/lib/aiRetry";
 import { bandBrief, cefrOf } from "@/lib/bookBand";
 import { syllabusFor } from "@/lib/grammarSyllabus";
+import { bookPointId } from "@/lib/bookGrammar";
 import type { Book, BookStep } from "@/lib/books";
 
 /**
@@ -180,12 +181,19 @@ const EX_SCHEMA: Schema = {
 };
 
 /**
- * Danh sách điểm ngữ pháp có sẵn để AI đối chiếu, thu hẹp quanh cấp của sách.
+ * Danh sách điểm ngữ pháp có sẵn để AI đối chiếu.
  *
- * Đưa cả khung (175 điểm với tiếng Anh) thì câu lệnh phình ra mà phần lớn không
- * liên quan; thu về cấp của sách cộng trừ một bậc là đủ, vì một cuốn B1 không
- * dạy điểm C1. Trả chuỗi rỗng khi thứ tiếng chưa có khung — lúc đó mọi điểm của
- * sách đều là điểm mới.
+ * Lấy MỌI cấp từ đáy thang lên tới cấp của sách cộng một bậc. Bản đầu chỉ lấy
+ * quanh cấp của sách cộng trừ một bậc, và điều đó đẻ ra bản trùng: một cuốn ôn
+ * B1 dạy lại "will", "be going to", "in/on/at" — những điểm khung xếp ở A1 —
+ * nên chúng nằm ngoài cửa sổ, AI không thấy, báo "không trùng", và ứng dụng tạo
+ * điểm thứ hai y hệt. Sách ôn cấp nào thì ôn lại tất cả những gì dưới cấp đó;
+ * cửa sổ phải mở từ đáy.
+ *
+ * Chặn trên vẫn giữ: một cuốn B1 không dạy điểm C1, đưa vào chỉ tổ mời AI gán
+ * bừa lên trên.
+ *
+ * Trả chuỗi rỗng khi thứ tiếng chưa có khung — lúc đó mọi điểm của sách đều mới.
  */
 function syllabusCandidates(langCode: string, level: string): string {
   const syllabus = syllabusFor(langCode);
@@ -193,7 +201,7 @@ function syllabusCandidates(langCode: string, level: string): string {
 
   const cefr = cefrOf(level);
   const at = syllabus.levels.indexOf(cefr);
-  const window = at < 0 ? null : new Set(syllabus.levels.slice(Math.max(0, at - 1), at + 2));
+  const window = at < 0 ? null : new Set(syllabus.levels.slice(0, at + 2));
 
   const lines: string[] = [];
   for (const family of syllabus.families) {
@@ -411,6 +419,113 @@ export async function generateStepContent(
  * `syllabusPointId` và sẽ hiện như phần BỔ SUNG cho điểm đó; điểm không trùng
  * nằm riêng thành nhánh của sách.
  */
+const REMAP_SCHEMA: Schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    matches: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          index: { type: SchemaType.INTEGER, description: "Số thứ tự của điểm trong danh sách được đưa" },
+          syllabusPointId: {
+            type: SchemaType.STRING,
+            nullable: true,
+            description: "Id điểm trùng trong khung, hoặc để trống nếu khung thật sự chưa có",
+          },
+        },
+        required: ["index"],
+      },
+    },
+  },
+  required: ["matches"],
+};
+
+/**
+ * Đối chiếu lại những điểm sách đang đứng riêng với khung có sẵn.
+ *
+ * Cần một đường riêng vì việc đối chiếu xảy ra lúc soạn bài, mà lúc đó có thể
+ * đối chiếu hụt — bản đầu của `syllabusCandidates` chỉ đưa các cấp quanh cấp
+ * sách, nên những điểm khung xếp ở cấp thấp hơn không bao giờ được nhìn tới và
+ * ứng dụng tạo bản trùng. Soạn lại cả cuốn để sửa chuyện đó thì tốn cả trăm
+ * lượt gọi; đối chiếu lại chỉ cần MỘT lượt cho cả danh sách, vì nó chỉ so tên.
+ *
+ * Trả về số điểm đã gộp được vào khung.
+ */
+export async function remapBookGrammar(userId: string, book: Book) {
+  const loose = await prisma.bookGrammarNote.findMany({
+    where: { userId, bookId: book.id, syllabusPointId: null },
+    select: { id: true, title: true, level: true, step: true },
+  });
+  if (loose.length === 0) return { checked: 0, merged: 0 };
+
+  const candidates = syllabusCandidates(book.langCode, book.level);
+  if (!candidates) return { checked: loose.length, merged: 0 };
+
+  const syllabus = syllabusFor(book.langCode);
+  const known = new Set<string>();
+  if (syllabus) {
+    for (const f of syllabus.families) {
+      for (const g of f.groups) for (const p of g.points) known.add(p.id);
+    }
+  }
+
+  const model = modelsWithFallback({
+    generationConfig: { responseMimeType: "application/json", responseSchema: REMAP_SCHEMA },
+    systemInstruction: `Bạn đối chiếu từng điểm ngữ pháp với một khung chương trình có sẵn.
+
+Với MỖI điểm được đưa, tìm trong khung dưới đây một dòng nói về CÙNG một nội
+dung ngữ pháp và ghi id của dòng đó. Tên gọi khác nhau không quan trọng — cùng
+nội dung là trùng. Chỉ để trống khi khung thật sự không có điểm nào nói về nội
+dung đó.
+
+Trả lại đúng số điểm được đưa, không thêm không bớt. "index" là số thứ tự ghi
+ở đầu mỗi dòng.
+
+KHUNG CÓ SẴN:
+${candidates}`,
+  });
+
+  const result = await generateWithRetry(
+    model,
+    `Đối chiếu ${loose.length} điểm sau:\n${loose
+      .map((n, i) => `${i + 1}. ${n.title} (${n.level})`)
+      .join("\n")}`,
+    { timeoutMs: 40_000, totalBudgetMs: 50_000 }
+  );
+
+  const matches = (JSON.parse(result.response.text()) as {
+    matches?: { index: number; syllabusPointId?: string | null }[];
+  }).matches ?? [];
+
+  // Ghép theo SỐ THỨ TỰ, không theo tên. Bản đầu ghép theo tên và hỏng ngay:
+  // câu hỏi gửi đi kèm cấp độ sau tên, nên model chép lại cả cấp —
+  // "Will để nói về tương lai (B1)" — và bảng tra theo tên trần không khớp dòng
+  // nào. Sáu điểm đã đối chiếu đúng bị vứt hết, mà kết quả chỉ nói "gộp 0".
+  const byIndex = new Map(matches.map((m) => [Number(m.index), m]));
+
+  let merged = 0;
+  for (const [i, note] of loose.entries()) {
+    const got = byIndex.get(i + 1);
+    const id = got?.syllabusPointId;
+    if (!id || !known.has(id)) continue;
+
+    await prisma.bookGrammarNote.update({
+      where: { id: note.id },
+      data: { syllabusPointId: id },
+    });
+    // Điểm vừa gộp vào khung thì id kiểu "book:..." của nó biến mất khỏi cây,
+    // nên bài học treo vào id đó thành mồ côi. Xoá luôn, đừng để lại rác mà
+    // không màn nào đọc tới.
+    await prisma.grammarLesson.deleteMany({
+      where: { userId, pointId: bookPointId(book.id, note.step, note.title) },
+    });
+    merged += 1;
+  }
+
+  return { checked: loose.length, merged };
+}
+
 export async function saveGrammarNotes(
   userId: string,
   book: Book,

@@ -4,7 +4,9 @@ import { requireUser } from "@/lib/auth";
 import { isDailyQuotaError, isTransientAiError, aiErrorMessage } from "@/lib/aiRetry";
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { bookById } from "@/lib/books";
-import { generateStepContent, saveGrammarNotes, type Part } from "@/lib/bookContent";
+import {
+  generateStepContent, saveGrammarNotes, remapBookGrammar, type Part,
+} from "@/lib/bookContent";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -74,9 +76,12 @@ export async function GET(req: Request) {
 
     const steps = book.steps.map((s) => s.step);
     const jobs = await pendingJobs(user.id, book.id, steps);
-    const grammarNotes = await prisma.bookGrammarNote.count({
-      where: { userId: user.id, bookId: book.id },
-    });
+    const [grammarNotes, looseNotes] = await Promise.all([
+      prisma.bookGrammarNote.count({ where: { userId: user.id, bookId: book.id } }),
+      prisma.bookGrammarNote.count({
+        where: { userId: user.id, bookId: book.id, syllabusPointId: null },
+      }),
+    ]);
 
     const total = steps.length * 2;
     return NextResponse.json({
@@ -86,6 +91,8 @@ export async function GET(req: Request) {
       done: total - jobs.length,
       remaining: jobs.length,
       grammarNotes,
+      /** Điểm đang đứng riêng, chưa gộp được vào khung. */
+      looseNotes,
       nextStep: jobs[0]?.step ?? null,
     });
   } catch (error) {
@@ -222,5 +229,34 @@ export async function POST(req: Request) {
     const message = aiErrorMessage(error);
     console.error("Book build error:", error);
     return NextResponse.json({ success: false, error: message, made }, { status: 200 });
+  }
+}
+
+/**
+ * Đối chiếu lại những điểm ngữ pháp của sách đang đứng riêng với khung.
+ *
+ * Việc đối chiếu vốn xảy ra lúc soạn bài từng unit, nhưng nó có thể hụt — và
+ * mỗi lần hụt là một điểm trùng nằm cạnh điểm cũ, buộc người học tự đoán nên
+ * đọc cái nào. Soạn lại cả cuốn để sửa thì tốn cả trăm lượt gọi; đường này chỉ
+ * tốn MỘT, vì nó chỉ so tên chứ không viết lại nội dung gì.
+ */
+export async function PATCH(req: Request) {
+  const { user, response } = await requireUser();
+  if (!user) return response;
+
+  try {
+    const { bookId } = await req.json().catch(() => ({}));
+    const book = bookById(String(bookId ?? ""));
+    if (!book) {
+      return NextResponse.json({ success: false, error: "Không có sách này" }, { status: 404 });
+    }
+
+    const { checked, merged } = await remapBookGrammar(user.id, book);
+    return NextResponse.json({ success: true, checked, merged });
+  } catch (error) {
+    const message = aiErrorMessage(error);
+    const transient = isTransientAiError(error);
+    if (!transient) console.error("Book grammar remap error:", error);
+    return NextResponse.json({ success: false, error: message, transient }, { status: 200 });
   }
 }
