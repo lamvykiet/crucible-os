@@ -180,7 +180,13 @@ export default function BookUnitExercises({
                       ) : (
                         <p className="leading-relaxed">
                           {it.prompt}
-                          {it.given && <span className="ml-1.5 font-bold">({it.given})</span>}
+                          {/* Khối chọn đáp án KHÔNG hiện `given`: hai phương án
+                              đã nằm ở các nút bên dưới, nên trường này không có
+                              vai gì — mà khi nó lỡ mang đúng đáp án thì in ra là
+                              phát đáp án trước khi người học kịp chọn. */}
+                          {it.given && block.kind !== "choice" && (
+                            <span className="ml-1.5 font-bold">({it.given})</span>
+                          )}
                         </p>
                       )}
 

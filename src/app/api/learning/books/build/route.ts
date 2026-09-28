@@ -170,7 +170,7 @@ export async function POST(req: Request) {
 
       try {
         const { content, grammarPoints } = await generateStepContent(
-          book, step, job.part, explainIn
+          book, step, job.part, explainIn, { light: body.light === true }
         );
 
         await prisma.bookLesson.upsert({

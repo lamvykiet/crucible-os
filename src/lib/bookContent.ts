@@ -35,6 +35,14 @@ export type Part = "lesson" | "exercises";
  * 50 giây đã sát trần 60 giây của request, không còn chỗ cho lượt thứ hai, nên
  * đặt ngân sách rộng hơn chỉ tạo ảo giác là còn cơ hội thử lại.
  */
+/**
+ * `light` là lượt THỬ LẠI cho phần đã hỏng một lần vì chạy quá lâu.
+ *
+ * Xin 3 khối thay vì 4-5: vẫn là một bộ bài tập đủ dùng, nhưng đầu ra ngắn hơn
+ * hẳn nên kịp trong ngân sách. Quan sát ngày 28/09/2026: unit R11, 34 và 35 —
+ * toàn unit ngữ pháp, tức nhánh xin nhiều khối nhất — hỏng đi hỏng lại đúng vì
+ * độ dài. Bỏ lại cho lần sau thì lần sau cũng thế, vì không có gì đổi.
+ */
 const DEFAULT_BUDGET: Record<Part, { timeoutMs: number; totalBudgetMs: number }> = {
   lesson: { timeoutMs: 30_000, totalBudgetMs: 55_000 },
   exercises: { timeoutMs: 50_000, totalBudgetMs: 52_000 },
@@ -260,7 +268,12 @@ ghi id, phần thêm sẽ thành phần bổ sung. Không trùng cái nào thì 
  * rồi bị huỷ. Đo ngày 27/09/2026: unit 3 và unit 6 của Destination B1, cả hai
  * đều là unit từ vựng, đều vượt 50 giây.
  */
-function exerciseInstruction(book: Book, step: BookStep, explainIn: string) {
+function exerciseInstruction(
+  book: Book,
+  step: BookStep,
+  explainIn: string,
+  light = false
+) {
   const isVocab = step.kind === "vocabulary";
 
   // Ba dạng cho unit từ vựng, và chúng được ĐỊNH NGHĨA LẠI chứ không mượn định
@@ -292,7 +305,13 @@ function exerciseInstruction(book: Book, step: BookStep, explainIn: string) {
 
   return `Bạn ra BÀI TẬP cho một unit của sách ngữ pháp và từ vựng tiếng Anh trình độ ${book.level}.
 
-Ra ${isVocab ? "ĐÚNG 3 khối, mỗi khối một dạng, dùng cả ba dạng" : "4-5 khối, MỖI KHỐI MỘT DẠNG KHÁC NHAU, chọn trong sáu dạng"} sau. Giữ đúng số
+Ra ${
+    isVocab
+      ? "ĐÚNG 3 khối, mỗi khối một dạng, dùng cả ba dạng"
+      : light
+        ? "ĐÚNG 3 khối, mỗi khối một dạng, chọn trong sáu dạng"
+        : "4-5 khối, MỖI KHỐI MỘT DẠNG KHÁC NHAU, chọn trong sáu dạng"
+  } sau. Giữ đúng số
 câu ghi kèm — đó là nhịp quen thuộc của dạng bài này:
 
 ${isVocab ? vocabForms : grammarForms}
@@ -335,14 +354,21 @@ interface ExBlock {
  * gợi ý, vì nó biến bài kiểm tra từ vựng thành bài chép lại. Chặn bằng tay ở
  * đây thay vì tin vào câu lệnh: câu lệnh là lời nhắc, còn đây là điều kiện.
  *
- * Chỉ áp cho gapfill và bank. Với `correct` thì "given" ĐÚNG LÀ phải gần đáp án
- * — đó là cụm sai cần sửa — và với `build` nó là chuỗi gợi ý rời.
+ * Riêng `choice` thì gỡ "given" sạch, không cần so: hai phương án đã nằm trong
+ * `options`, nên trường này không có vai gì ở dạng đó — và model đã có lúc nhét
+ * thẳng đáp án vào, quan sát được ở unit "Direct and indirect objects".
+ *
+ * Với `correct` thì "given" ĐÚNG LÀ phải gần đáp án — đó là cụm sai cần sửa —
+ * và với `build` nó là chuỗi gợi ý rời. Hai dạng đó không đụng tới.
  */
 function stripGivenAnswers(blocks: unknown): ExBlock[] {
   if (!Array.isArray(blocks)) return [];
   const norm = (v: string) => v.trim().toLowerCase().replace(/[.,!?;:]$/, "");
 
   return (blocks as ExBlock[]).map((block) => {
+    if (block?.kind === "choice") {
+      return { ...block, items: (block.items ?? []).map((it) => ({ ...it, given: "" })) };
+    }
     if (block?.kind !== "gapfill" && block?.kind !== "bank") return block;
     return {
       ...block,
@@ -376,7 +402,7 @@ export async function generateStepContent(
   step: BookStep,
   part: Part,
   explainIn: string,
-  budget?: { timeoutMs: number; totalBudgetMs: number }
+  opts?: { budget?: { timeoutMs: number; totalBudgetMs: number }; light?: boolean }
 ): Promise<{ content: Record<string, unknown>; grammarPoints: GrammarPointDraft[] }> {
   // Với unit từ vựng thì đưa kèm danh sách từ để bài bám đúng chủ đề.
   const wordList = (step.words ?? []).slice(0, 60).map((w) => w.term).join(", ");
@@ -392,10 +418,10 @@ export async function generateStepContent(
     systemInstruction:
       part === "lesson"
         ? lessonInstruction(book, step, explainIn)
-        : exerciseInstruction(book, step, explainIn),
+        : exerciseInstruction(book, step, explainIn, opts?.light),
   });
 
-  const result = await generateWithRetry(model, topic, budget ?? DEFAULT_BUDGET[part]);
+  const result = await generateWithRetry(model, topic, opts?.budget ?? DEFAULT_BUDGET[part]);
   const raw = JSON.parse(result.response.text()) as Record<string, unknown>;
 
   if (part === "exercises") {

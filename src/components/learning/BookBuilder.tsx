@@ -127,6 +127,15 @@ export default function BookBuilder({
     /** Bỏ qua quá nhiều là dấu hiệu hỏng hệ thống, không phải một unit khó. */
     const SKIP_LIMIT = 5;
 
+    /**
+     * Lượt hai xin ít khối hơn.
+     *
+     * Phần hỏng vì chạy quá lâu thì thử lại y nguyên cũng hỏng y như vậy — không
+     * có gì đổi giữa hai lần. Nên lượt hai xin 3 khối thay vì 4-5: vẫn đủ một bộ
+     * bài tập, mà ngắn hơn hẳn nên kịp giờ.
+     */
+    let light = false;
+
     try {
       // Chạy tới khi hết việc, người dùng bấm dừng, hoặc máy chủ bảo dừng.
       for (;;) {
@@ -138,7 +147,7 @@ export default function BookBuilder({
         const res = await fetch("/api/learning/books/build", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookId, skip: skipped.current }),
+          body: JSON.stringify({ bookId, skip: skipped.current, light }),
         });
         const json = await res.json();
 
@@ -167,6 +176,17 @@ export default function BookBuilder({
         // vì một unit là bắt người dùng ngồi bấm lại từng lượt.
         if (json.failed) {
           skipped.current = [...skipped.current, `${json.failed.step}:${json.failed.part}`];
+          if (skipped.current.length >= SKIP_LIMIT && !light) {
+            light = true;
+            skipped.current = [];
+            setNote(
+              t(
+                "Several parts were slow — retrying with shorter exercise sets…",
+                "Nhiều phần chạy quá lâu — thử lại với bộ bài tập ngắn hơn…"
+              )
+            );
+            continue;
+          }
           if (skipped.current.length >= SKIP_LIMIT) {
             setError(
               t(
@@ -184,9 +204,21 @@ export default function BookBuilder({
           );
           continue;
         }
-        // Còn phần thiếu nhưng tất cả đều đã bỏ qua trong phiên này. Không
-        // phải lỗi — mở lại lần sau là chúng vào hàng đợi trở lại.
+        // Hết phần làm được: mọi thứ còn thiếu đều đã bỏ qua. Thử lại một lượt
+        // với bản nhẹ trước khi chịu thua — phần hỏng vì dài thì bản ngắn qua
+        // được, mà để lại cho lần sau thì lần sau cũng hỏng đúng như vậy.
         if (json.stopped === "skipped") {
+          if (!light) {
+            light = true;
+            skipped.current = [];
+            setNote(
+              t(
+                `Retrying ${json.remaining} slow parts with shorter exercise sets…`,
+                `Thử lại ${json.remaining} phần chạy quá lâu, với bộ bài tập ngắn hơn…`
+              )
+            );
+            continue;
+          }
           setNote(
             t(
               `${json.remaining} parts were skipped this run. Open this again later to retry them.`,
