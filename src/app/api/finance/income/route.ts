@@ -130,6 +130,103 @@ export async function GET(req: Request) {
       }))
       .sort((a, b) => b.amount - a.amount);
 
+    // --- So sánh giữa các nguồn thu ---
+    //
+    // Danh sách tỷ trọng ở trên chỉ trả lời "nguồn nào to nhất năm nay". Ba câu
+    // còn thiếu mới là ba câu đáng hỏi: nguồn này năm ngoái thế nào, nó trả đều
+    // hay thất thường, và nếu mất nó thì còn lại bao nhiêu.
+    //
+    // Nguồn năm ngoái có mà năm nay mất hẳn cũng phải nằm trong danh sách —
+    // chỗ hụt đi là thứ dễ bỏ sót nhất, vì nó không còn dòng nào để nhìn thấy.
+    const prevSupplierMap = new Map<string, number>();
+    for (const t of prevYear) {
+      const key = t.supplier?.trim() || "Không rõ";
+      prevSupplierMap.set(key, (prevSupplierMap.get(key) || 0) + t.totalAmount);
+    }
+
+    const monthsBySupplier = new Map<string, Set<string>>();
+    const countBySupplier = new Map<string, number>();
+    const lastMonthBySupplier = new Map<string, string>();
+    for (const t of thisYear) {
+      const key = t.supplier?.trim() || "Không rõ";
+      const k = monthKey(t.date);
+      if (!monthsBySupplier.has(key)) monthsBySupplier.set(key, new Set());
+      monthsBySupplier.get(key)!.add(k);
+      countBySupplier.set(key, (countBySupplier.get(key) || 0) + 1);
+      const last = lastMonthBySupplier.get(key);
+      if (!last || k > last) lastMonthBySupplier.set(key, k);
+    }
+
+    const sourceNames = new Set<string>([
+      ...supplierMap.keys(),
+      ...prevSupplierMap.keys(),
+    ]);
+    const sourceComparison = [...sourceNames]
+      .map((name) => {
+        const amount = supplierMap.get(name) || 0;
+        const prevAmount = prevSupplierMap.get(name) || 0;
+        const months = monthsBySupplier.get(name)?.size || 0;
+        return {
+          name,
+          amount,
+          prevAmount,
+          share: yearTotal > 0 ? Math.round((amount / yearTotal) * 100) : 0,
+          delta: amount - prevAmount,
+          // `null` nghĩa là năm ngoái bằng 0 — không chia được, và cũng không
+          // phải "tăng 100%": nó là nguồn mới.
+          pct:
+            prevAmount > 0
+              ? Math.round(((amount - prevAmount) / prevAmount) * 100)
+              : null,
+          months,
+          count: countBySupplier.get(name) || 0,
+          avgPerActiveMonth: months > 0 ? Math.round(amount / months) : 0,
+          lastMonth: lastMonthBySupplier.get(name) || null,
+        };
+      })
+      .sort((a, b) => b.amount - a.amount || b.prevAmount - a.prevAmount);
+
+    // Mức độ phụ thuộc. "Mất nguồn lớn nhất thì còn lại bao nhiêu" là cách nói
+    // thẳng nhất về rủi ro, thẳng hơn mọi chỉ số tập trung.
+    const topAmount = bySupplier[0]?.amount || 0;
+    const concentration = {
+      sourceCount: bySupplier.length,
+      topShare: bySupplier[0]?.share || 0,
+      topTwoShare: yearTotal > 0
+        ? Math.round(
+            ((bySupplier[0]?.amount || 0) + (bySupplier[1]?.amount || 0)) / yearTotal * 100
+          )
+        : 0,
+      withoutTop: yearTotal - topAmount,
+    };
+
+    // Tỷ trọng nguồn theo từng tháng, dùng chung cửa sổ 12 tháng với
+    // `monthlySeries` để hai biểu đồ đọc cùng một trục thời gian.
+    const topNames = bySupplier.slice(0, 4).map((s) => s.name);
+    const OTHER_KEY = "__other";
+    const sourceKeys = [...topNames, OTHER_KEY];
+    const sourceMonthly = [...seriesMap.entries()].map(([name, total]) => {
+      const row: Record<string, string | number> = { name, total };
+      for (const k of sourceKeys) row[k] = 0;
+      return row;
+    });
+    const rowByMonth = new Map(
+      sourceMonthly.map((r) => [r.name as string, r] as const)
+    );
+    for (const t of incomes) {
+      const row = rowByMonth.get(monthKey(t.date));
+      if (!row) continue;
+      const src = t.supplier?.trim() || "Không rõ";
+      const key = topNames.includes(src) ? src : OTHER_KEY;
+      row[key] = (row[key] as number) + t.totalAmount;
+    }
+    // Không có nguồn nào rơi vào "Khác" thì bỏ hẳn cột đó đi, đừng vẽ một dải
+    // trống rồi bắt người đọc đoán.
+    const otherUsed = sourceMonthly.some((r) => (r[OTHER_KEY] as number) > 0);
+    if (!otherUsed) {
+      for (const row of sourceMonthly) delete row[OTHER_KEY];
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -146,6 +243,10 @@ export async function GET(req: Request) {
         highestMonth,
         lowestMonth,
         bySupplier,
+        sourceComparison,
+        concentration,
+        sourceMonthly,
+        sourceKeys: otherUsed ? sourceKeys : topNames,
         largestSource: bySupplier[0] || null,
         hasData: incomes.length > 0,
       },

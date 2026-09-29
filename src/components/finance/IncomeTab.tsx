@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  ComposedChart, Line, Legend,
 } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
@@ -14,6 +15,7 @@ import TransactionModal from "./TransactionModal";
 import PendingReviewButton from "./PendingReviewButton";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import PeriodComparison from "./PeriodComparison";
+import StackedMonthTooltip from "./StackedMonthTooltip";
 
 // Toàn bộ số liệu đến từ /api/finance/income.
 // Trước đây tab này chạy trên 4 mảng hardcode và cả tên công ty ("SHINHAN
@@ -22,6 +24,31 @@ import PeriodComparison from "./PeriodComparison";
 interface SeriesPoint { name: string; amount: number }
 interface SupplierSlice { name: string; amount: number; share: number }
 interface MonthPeak { month: string; amount: number }
+
+/** Một nguồn thu, đặt cạnh chính nó của năm ngoái. */
+interface SourceRow {
+  name: string;
+  amount: number;
+  prevAmount: number;
+  share: number;
+  delta: number;
+  /** `null` khi năm ngoái bằng 0 — nguồn mới, không phải "tăng 100%". */
+  pct: number | null;
+  months: number;
+  count: number;
+  avgPerActiveMonth: number;
+  lastMonth: string | null;
+}
+
+interface Concentration {
+  sourceCount: number;
+  topShare: number;
+  topTwoShare: number;
+  /** Thu nhập năm nay nếu bỏ nguồn lớn nhất ra. */
+  withoutTop: number;
+}
+
+const OTHER_SOURCE_KEY = "__other";
 
 interface IncomeData {
   month: string;
@@ -37,6 +64,12 @@ interface IncomeData {
   highestMonth: MonthPeak | null;
   lowestMonth: MonthPeak | null;
   bySupplier: SupplierSlice[];
+  sourceComparison: SourceRow[];
+  concentration: Concentration;
+  /** Mỗi dòng: { name, total, "<tên nguồn>": số tiền... } cho 12 tháng. */
+  sourceMonthly: Record<string, string | number>[];
+  /** Các nguồn được vẽ, đúng thứ tự; "__other" là phần đuôi đã gộp. */
+  sourceKeys: string[];
   largestSource: SupplierSlice | null;
   hasData: boolean;
 }
@@ -45,7 +78,10 @@ const EMPTY: IncomeData = {
   month: "", year: 0, monthlyIncome: 0, monthlySeries: [], annualTotals: [],
   yearTotal: 0, prevYearTotal: 0, avgPerMonth: 0, prevAvgPerMonth: 0,
   monthsWithIncome: 0, highestMonth: null, lowestMonth: null,
-  bySupplier: [], largestSource: null, hasData: false,
+  bySupplier: [], sourceComparison: [],
+  concentration: { sourceCount: 0, topShare: 0, topTwoShare: 0, withoutTop: 0 },
+  sourceMonthly: [], sourceKeys: [],
+  largestSource: null, hasData: false,
 };
 
 const formatVND = (amount: number) =>
@@ -99,6 +135,7 @@ export default function IncomeTab() {
   const {
     year, monthlyIncome, monthlySeries, annualTotals, yearTotal, prevYearTotal,
     avgPerMonth, prevAvgPerMonth, highestMonth, lowestMonth, bySupplier,
+    sourceComparison, concentration, sourceMonthly, sourceKeys,
     largestSource, hasData,
   } = data;
 
@@ -367,31 +404,192 @@ export default function IncomeTab() {
           </div>
         </div>
 
+        {/* Cơ cấu nguồn thu theo tháng — trả lời "tháng đó tiền về từ đâu",
+            thứ mà một cột tổng không nói được. */}
         <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm lg:col-span-2">
-          <h3 className="c-h5 text-[var(--color-text)] mb-6">
-            {t("Income by Source", "Thu nhập theo nguồn")} — {year}
+          <h3 className="c-h5 text-[var(--color-text)]">
+            {t("Income mix by month", "Cơ cấu nguồn thu theo tháng")}
           </h3>
-          {bySupplier.length === 0 ? (
-            <div className="text-sm text-[var(--color-text-faint)]">{t("No data", "Chưa có dữ liệu")}</div>
+          <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-6">
+            {t(
+              "columns: what each source brought in · line: the month total",
+              "cột: từng nguồn góp bao nhiêu · đường: tổng thu tháng đó"
+            )}
+          </p>
+          {sourceKeys.length === 0 ? (
+            <p className="text-sm text-[var(--color-text-muted)]">
+              {t("No income in the last 12 months.", "12 tháng qua chưa có khoản thu nào.")}
+            </p>
           ) : (
-            <div className="space-y-3">
-              {bySupplier.map((s) => (
-                <div key={s.name}>
-                  <div className="flex justify-between items-baseline mb-1">
-                    <span className="text-xs font-bold text-[var(--color-text-muted)] truncate">{s.name}</span>
-                    <span className="text-xs font-bold text-[var(--color-text)] flex-none ml-3">
-                      {formatVND(s.amount)} · {s.share}%
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-[var(--color-success)] transition-all"
-                      style={{ width: `${Math.max(2, (s.amount / maxSupplier) * 100)}%` }}
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={sourceMonthly} className="c-chart-multi">
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "var(--color-text-faint)" }} angle={-35} textAnchor="end" height={50} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => `${Math.round(v / 1_000_000)}m`} width={50} />
+                  <Tooltip
+                    content={
+                      <StackedMonthTooltip
+                        otherKey={OTHER_SOURCE_KEY}
+                        otherLabel={t("Other sources", "Nguồn khác")}
+                      />
+                    }
+                  />
+                  <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                  {sourceKeys.map((key, i) => (
+                    <Bar
+                      key={key}
+                      dataKey={key}
+                      stackId="src"
+                      name={key === OTHER_SOURCE_KEY ? t("Other sources", "Nguồn khác") : key}
+                      // Màu khúc cột do .c-series-* trong globals.css quyết định;
+                      // `fill` ở đây chỉ để tô ô chú giải. Xem chú thích ở
+                      // ExpenseTab: luật chung ép mọi cột về --chart-1.
+                      className={key === OTHER_SOURCE_KEY ? "c-series-other" : `c-series-${i + 1}`}
+                      fill={key === OTHER_SOURCE_KEY ? "var(--color-border-strong)" : `var(--chart-${i + 1})`}
+                      stroke="var(--color-surface)"
+                      strokeWidth={1}
+                      maxBarSize={44}
                     />
-                  </div>
-                </div>
-              ))}
+                  ))}
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    name={t("Month total", "Tổng tháng")}
+                    stroke="var(--color-text)"
+                    strokeWidth={2}
+                    strokeDasharray="5 3"
+                    dot={{ r: 2.5, fill: "var(--color-text)" }}
+                    activeDot={{ r: 5 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
             </div>
+          )}
+        </div>
+
+        {/* So sánh từng nguồn với chính nó của năm ngoái. Nguồn đã dừng hẳn
+            cũng nằm trong danh sách: chỗ hụt đi là thứ dễ bỏ sót nhất vì nó
+            không còn dòng nào để nhìn thấy. */}
+        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm lg:col-span-2">
+          <h3 className="c-h5 text-[var(--color-text)]">
+            {t("Source by source", "So sánh từng nguồn thu")} — {year} {t("vs", "so với")} {year - 1}
+          </h3>
+          {concentration.sourceCount > 0 && (
+            <p className="text-xs text-[var(--color-text-muted)] mt-1 mb-5">
+              {t(`${concentration.sourceCount} sources`, `${concentration.sourceCount} nguồn`)}
+              {" · "}
+              {t(
+                `largest is ${concentration.topShare}%`,
+                `nguồn lớn nhất chiếm ${concentration.topShare}%`
+              )}
+              {concentration.sourceCount > 1 &&
+                ` · ${t(
+                  `top two ${concentration.topTwoShare}%`,
+                  `hai nguồn lớn nhất ${concentration.topTwoShare}%`
+                )}`}
+              {/* Nói thẳng rủi ro phụ thuộc bằng số tiền còn lại, thay vì một
+                  chỉ số tập trung mà đọc xong vẫn phải tự diễn giải. */}
+              {concentration.topShare >= 50 && (
+                <span className="text-[var(--color-warning)]">
+                  {" · "}
+                  {t(
+                    `without it, ${year} income is ${formatVND(concentration.withoutTop)}`,
+                    `mất nguồn này thì thu nhập ${year} còn ${formatVND(concentration.withoutTop)}`
+                  )}
+                </span>
+              )}
+            </p>
+          )}
+
+          {sourceComparison.length === 0 ? (
+            <p className="text-sm text-[var(--color-text-muted)]">
+              {t("No income recorded yet.", "Chưa ghi khoản thu nào.")}
+            </p>
+          ) : (
+            <ul className="divide-y divide-[var(--color-border)]">
+              {sourceComparison.map((s) => {
+                const isNew = s.prevAmount === 0 && s.amount > 0;
+                const isGone = s.amount === 0 && s.prevAmount > 0;
+                return (
+                  <li key={s.name} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span
+                        className={`min-w-0 truncate font-bold ${
+                          isGone ? "text-[var(--color-text-faint)]" : "text-[var(--color-text)]"
+                        }`}
+                        title={s.name}
+                      >
+                        {s.name}
+                      </span>
+                      <span className="flex-none tabular-nums font-bold text-[var(--color-text)]">
+                        {formatVND(s.amount)}
+                        {s.share > 0 && (
+                          <span className="ml-2 text-xs font-normal text-[var(--color-text-faint)]">
+                            {s.share}%
+                          </span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="mt-1.5 h-1.5 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[var(--color-success)] transition-all"
+                        style={{
+                          width: `${maxSupplier > 0 ? Math.max(2, (s.amount / maxSupplier) * 100) : 0}%`,
+                        }}
+                      />
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--color-text-muted)]">
+                      {isNew ? (
+                        <span className="font-bold text-[var(--color-success)]">
+                          {t("new this year", "nguồn mới năm nay")}
+                        </span>
+                      ) : isGone ? (
+                        <span className="font-bold text-[var(--color-warning)]">
+                          {t(
+                            `stopped — ${formatVND(s.prevAmount)} in ${year - 1}`,
+                            `đã dừng — năm ${year - 1} thu ${formatVND(s.prevAmount)}`
+                          )}
+                        </span>
+                      ) : (
+                        <span
+                          className={
+                            s.delta > 0
+                              ? "text-[var(--color-success)]"
+                              : s.delta < 0
+                                ? "text-[var(--color-error)]"
+                                : ""
+                          }
+                        >
+                          {s.delta > 0 ? "↗" : s.delta < 0 ? "↘" : "→"}{" "}
+                          {s.pct !== null
+                            ? `${s.pct > 0 ? "+" : ""}${s.pct}%`
+                            : t("unchanged", "không đổi")}{" "}
+                          <span className="text-[var(--color-text-faint)]">
+                            ({s.delta > 0 ? "+" : ""}
+                            {formatVND(s.delta)} {t("vs", "so")} {year - 1})
+                          </span>
+                        </span>
+                      )}
+
+                      {s.months > 0 && (
+                        <span>
+                          {t(`paid in ${s.months} months`, `có thu ${s.months} tháng`)} ·{" "}
+                          {t("avg", "BQ")} {formatVND(s.avgPerActiveMonth)}
+                        </span>
+                      )}
+                      {s.lastMonth && (
+                        <span>
+                          {t("last", "gần nhất")}: {s.lastMonth}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
       </div>
