@@ -16,6 +16,7 @@ import PendingReviewButton from "./PendingReviewButton";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import PeriodComparison from "./PeriodComparison";
 import StackedMonthTooltip from "./StackedMonthTooltip";
+import { compactMoney } from "@/lib/formatMoney";
 
 // Toàn bộ số liệu đến từ /api/finance/income.
 // Trước đây tab này chạy trên 4 mảng hardcode và cả tên công ty ("SHINHAN
@@ -88,7 +89,7 @@ const formatVND = (amount: number) =>
   new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
 
 export default function IncomeTab() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
 
   const [isLoading, setIsLoading] = useState(true);
@@ -377,11 +378,11 @@ export default function IncomeTab() {
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlySeries}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#9ca3af" }} angle={-35} textAnchor="end" height={50} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} tickFormatter={(v) => `${Math.round(v / 1_000_000)}m`} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "var(--color-text-faint)" }} angle={-35} textAnchor="end" height={50} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} />
                 <Tooltip formatter={(v) => formatVND(Number(v) || 0)} />
-                <Bar dataKey="amount" fill="#99d8c9" radius={[4, 4, 0, 0]} barSize={20} />
+                <Bar dataKey="amount" fill="var(--chart-1)" radius={[4, 4, 0, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -394,11 +395,11 @@ export default function IncomeTab() {
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={annualTotals}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} tickFormatter={(v) => `${Math.round(v / 1_000_000)}m`} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} />
                 <Tooltip formatter={(v) => formatVND(Number(v) || 0)} />
-                <Bar dataKey="amount" fill="#74a9cf" radius={[4, 4, 0, 0]} barSize={40} />
+                <Bar dataKey="amount" fill="var(--chart-1)" radius={[4, 4, 0, 0]} barSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -426,7 +427,7 @@ export default function IncomeTab() {
                 <ComposedChart data={sourceMonthly} className="c-chart-multi">
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "var(--color-text-faint)" }} angle={-35} textAnchor="end" height={50} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => `${Math.round(v / 1_000_000)}m`} width={50} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={50} />
                   <Tooltip
                     content={
                       <StackedMonthTooltip

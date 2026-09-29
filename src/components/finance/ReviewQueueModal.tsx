@@ -715,7 +715,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                       type="checkbox"
                       checked={saveRule}
                       onChange={(e) => setSaveRule(e.target.checked)}
-                      className="accent-[#66c2c2]"
+                      className="w-5 h-5 accent-[var(--color-primary)]"
                     />
                     {t(
                       `Lần sau tự chọn "${formData.categoryGroup}" cho ${formData.supplier}`,

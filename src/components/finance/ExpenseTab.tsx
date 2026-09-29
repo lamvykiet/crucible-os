@@ -12,7 +12,9 @@ import PendingReviewButton from "./PendingReviewButton";
 import DayTransactionsCard from "./DayTransactionsCard";
 import IncompleteDataModal from "./IncompleteDataModal";
 import PeriodComparison from "./PeriodComparison";
+import StackedMonthTooltip from "./StackedMonthTooltip";
 import { thisMonthLocalIso } from "@/lib/localDate";
+import { compactMoney } from "@/lib/formatMoney";
 const OTHER_KEY = "__other";
 
 interface CategorySlice { name: string; amount: number }
@@ -65,50 +67,8 @@ const EMPTY: ExpenseData = {
 const formatVND = (amount: number) => new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
 
 
-/**
- * Chú giải cho biểu đồ 12 tháng: mỗi nhóm bao nhiêu tiền VÀ chiếm bao nhiêu
- * phần trăm tháng đó. Chỉ có số tiền thì vẫn phải tự nhẩm mới biết tháng vọt
- * lên là do nhóm nào.
- */
-function MonthlyTooltip({
-  active,
-  payload,
-  label,
-  otherLabel,
-}: {
-  active?: boolean;
-  payload?: readonly { dataKey?: string | number; value?: number; color?: string }[];
-  label?: string;
-  otherLabel: string;
-}) {
-  if (!active || !payload || payload.length === 0) return null;
-  const rows = payload.filter((p) => p.dataKey !== "total" && (p.value || 0) > 0);
-  const totalRow = payload.find((p) => p.dataKey === "total");
-  const total = Number(totalRow?.value ?? rows.reduce((sum, r) => sum + (r.value || 0), 0));
-  return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 shadow-sm text-xs">
-      <p className="font-bold text-[var(--color-text)]">{label}</p>
-      <p className="font-bold tabular-nums text-[var(--color-text)] mb-1.5">{formatVND(total)}</p>
-      <ul className="space-y-1">
-        {rows.map((r) => (
-          <li key={String(r.dataKey)} className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-sm flex-none" style={{ background: r.color }} aria-hidden />
-            <span className="flex-1 min-w-0 truncate text-[var(--color-text-muted)]">
-              {r.dataKey === OTHER_KEY ? otherLabel : String(r.dataKey)}
-            </span>
-            <span className="tabular-nums font-bold text-[var(--color-text)]">
-              {total > 0 ? Math.round(((r.value || 0) / total) * 100) : 0}%
-            </span>
-            <span className="tabular-nums text-[var(--color-text-faint)]">{formatVND(r.value || 0)}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export default function ExpenseTab() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
   const [timeRange, setTimeRange] = useState<"day" | "month" | "year">("month");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -346,11 +306,11 @@ export default function ExpenseTab() {
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsLineChart data={dailySeries}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} tickFormatter={(v) => `${Math.round(v / 1000)}k`} width={50} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={50} />
                     <Tooltip formatter={(v) => formatVND(Number(v) || 0)} />
-                    <Line type="monotone" dataKey="amount" stroke="#f43f5e" strokeWidth={3} dot={{ r: 3, fill: "#f43f5e" }} activeDot={{ r: 6 }} name={t("Expense", "Chi tiêu")} />
+                    <Line type="monotone" dataKey="amount" stroke="var(--chart-1)" strokeWidth={3} dot={{ r: 3, fill: "var(--chart-1)" }} activeDot={{ r: 6 }} name={t("Expense", "Chi tiêu")} />
                   </RechartsLineChart>
                 </ResponsiveContainer>
               </div>
@@ -421,8 +381,8 @@ export default function ExpenseTab() {
                 <ComposedChart data={monthlyBreakdown} className="c-chart-multi">
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: 'var(--color-text-faint)'}} angle={-35} textAnchor="end" height={50} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: 'var(--color-text-faint)'}} tickFormatter={(value) => `${Math.round(value/1_000_000)}m`} width={50} />
-                  <Tooltip content={<MonthlyTooltip otherLabel={t("Other", "Khác")} />} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: 'var(--color-text-faint)'}} tickFormatter={(value) => compactMoney(Number(value), language === "vi")} width={50} />
+                  <Tooltip content={<StackedMonthTooltip otherKey={OTHER_KEY} otherLabel={t("Other", "Khác")} />} />
                   <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
                   {/* Cột chồng: chiều cao mỗi khúc là phần nhóm đó chiếm trong
                       tháng. Viền màu nền 1px để hai khúc liền màu vẫn tách ra. */}

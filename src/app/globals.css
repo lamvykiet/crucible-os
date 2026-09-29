@@ -762,6 +762,14 @@ body::before {
 .c-chart-multi .c-series-3 .recharts-bar-rectangle path { fill: var(--chart-3); }
 .c-chart-multi .c-series-4 .recharts-bar-rectangle path { fill: var(--chart-4); }
 .c-chart-multi .c-series-other .recharts-bar-rectangle path { fill: var(--color-border-strong); }
+/* Cùng lý do cho biểu đồ vùng: luật chung tô MỌI vùng bằng --chart-1, nên hai
+   đường luỹ kế Thu và Chi có hai màu viền khác nhau mà nền lại giống hệt —
+   nhìn ra một vùng duy nhất. */
+.c-chart-multi .c-series-1 .recharts-area-area { fill: var(--chart-1); }
+.c-chart-multi .c-series-2 .recharts-area-area { fill: var(--chart-2); }
+.c-chart-multi .c-series-3 .recharts-area-area { fill: var(--chart-3); }
+.c-chart-multi .c-series-4 .recharts-area-area { fill: var(--chart-4); }
+
 /* Đường tổng trong biểu đồ combo: luật chung tô nó bằng --chart-1, trùng đúng
    màu khúc cột đầu tiên nên nhìn như một mảng liền. Đổi sang màu mực. */
 .c-chart-multi .recharts-line-curve { stroke: var(--color-text); }

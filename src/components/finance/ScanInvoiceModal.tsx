@@ -387,7 +387,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
             <div className="flex gap-3 w-full">
               <button
                 onClick={onClose}
-                className="flex-1 bg-[#66c2c2] hover:bg-[var(--color-success)] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow"
+                className="c-btn c-btn-primary flex-1"
               >
                 {t("Đóng để đi duyệt", "Close and review")}
               </button>

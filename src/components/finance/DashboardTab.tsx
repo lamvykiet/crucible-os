@@ -21,6 +21,7 @@ import IncompleteDataModal from "./IncompleteDataModal";
 import PeriodComparison from "./PeriodComparison";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { thisMonthLocalIso, todayLocalIso } from "@/lib/localDate";
+import { compactMoney } from "@/lib/formatMoney";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,
@@ -94,7 +95,7 @@ interface DashboardTabProps {
 }
 
 export default function DashboardTab({ onNavigate }: DashboardTabProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
 
   const [isLoading, setIsLoading] = useState(true);
@@ -966,12 +967,12 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={dailySeries}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} />
                 <Tooltip formatter={(v) => formatVND(Number(v) || 0)} />
-                <Line type="monotone" dataKey="expense" stroke="#5eead4" strokeWidth={3} dot={{ r: 3, fill: "#5eead4" }} activeDot={{ r: 6 }} name={t("Daily Expense", "Chi tiêu hằng ngày")} />
-                <Line type="monotone" dataKey="ma7" stroke="#fb923c" strokeWidth={2} dot={false} name="7-day MA" />
+                <Line type="monotone" dataKey="expense" stroke="var(--chart-1)" strokeWidth={3} dot={{ r: 3, fill: "var(--chart-1)" }} activeDot={{ r: 6 }} name={t("Daily Expense", "Chi tiêu hằng ngày")} />
+                <Line type="monotone" dataKey="ma7" stroke="var(--chart-3)" strokeWidth={2} dot={false} name="7-day MA" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -1029,23 +1030,17 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
           </h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={ytdSeries}>
-                <defs>
-                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2dd4bf" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#2dd4bf" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#fb923c" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#fb923c" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9ca3af" }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9ca3af" }} tickFormatter={(v) => `${Math.round(v / 1_000_000)}m`} />
+              {/* Hai gradient cũ (colorIncome / colorExpense) là code chết:
+                  globals.css tô mọi `.recharts-area-area` bằng --chart-1 nên
+                  cả hai vùng ra CÙNG một màu, chỉ viền là khác. Bỏ gradient,
+                  xin màu riêng qua .c-chart-multi giống biểu đồ cột chồng. */}
+              <AreaChart data={ytdSeries} className="c-chart-multi">
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} />
                 <Tooltip formatter={(v) => formatVND(Number(v) || 0)} />
-                <Area type="monotone" dataKey="cumulativeIncome" stroke="#2dd4bf" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" name={t("Cumulative Income", "Luỹ kế Thu")} />
-                <Area type="monotone" dataKey="cumulativeExpense" stroke="#fb923c" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" name={t("Cumulative Expense", "Luỹ kế Chi")} />
+                <Area type="monotone" dataKey="cumulativeIncome" className="c-series-1" stroke="var(--chart-1)" strokeWidth={3} fill="var(--chart-1)" name={t("Cumulative Income", "Luỹ kế Thu")} />
+                <Area type="monotone" dataKey="cumulativeExpense" className="c-series-3" stroke="var(--chart-3)" strokeWidth={3} fill="var(--chart-3)" name={t("Cumulative Expense", "Luỹ kế Chi")} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

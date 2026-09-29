@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
-import { useTheme } from "@/lib/ThemeContext";
 import { useCategories } from "@/lib/useCategories";
 
 // Tỷ trọng chi tiêu của MỘT ngày theo nhóm danh mục.
@@ -25,20 +24,15 @@ interface Slice {
   color: string;
 }
 
-// Bảng màu phân loại, dùng theo thứ tự cố định — không xoay vòng. Đã chạy bộ
-// kiểm màu trên đúng nền của Crucible (sáng #F6F0E4, tối #291C0E): đạt dải độ
-// sáng, độ bão hoà, tách màu cho người mù màu (ΔE ≥ 8,4) và sàn thị lực thường.
+// Màu lát bánh lấy từ hệ màu biểu đồ của dự án (--chart-1..6 trong
+// globals.css), cùng bảng với donut bên tab Chi tiêu. Trước đây thẻ này dùng
+// một bảng riêng, nên cùng một nhóm chi tiêu lại mang hai màu ở hai màn hình
+// kề nhau.
 //
-// Ở chế độ sáng, cam/xanh ngọc/vàng/hồng dưới 3:1 so với nền, nên biểu đồ BẮT
-// BUỘC có nhãn chữ đi kèm — danh sách bên cạnh chính là phần đó, đừng bỏ.
-//
-// Đã thử một bảng màu trầm tông nâu cho hợp giao diện: trượt, vì độ bão hoà quá
-// thấp và tím/xanh ngọc trùng nhau với người mù màu đỏ–lục.
-const SERIES = {
-  light: ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"],
-  dark: ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300"],
-};
-const OTHER_COLOR = "var(--color-text-faint)";
+// Hệ chỉ có sáu bậc và hai bậc cuối rất nhạt, nên quá sáu nhóm thì phần đuôi
+// gộp thành "Khác" màu xám thay vì xoay vòng màu.
+const SERIES_COUNT = 6;
+const OTHER_COLOR = "var(--color-border-strong)";
 
 const formatVND = (amount: number) =>
   new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
@@ -79,7 +73,6 @@ interface Props {
 
 export default function TodaySpendingShare({ date, refreshKey = 0, title }: Props) {
   const { t } = useLanguage();
-  const { theme } = useTheme();
   const { label } = useCategories("Expense");
   const [data, setData] = useState<{ date: string; transactions: DayTx[] } | null>(null);
   // Lưu mã lỗi, dịch lúc render — cùng lý do như DayTransactionsCard.
@@ -117,7 +110,7 @@ export default function TodaySpendingShare({ date, refreshKey = 0, title }: Prop
 
   // Cộng theo nhóm, lớn trước. Quá 6 nhóm thì 5 nhóm đầu giữ màu riêng, phần
   // đuôi gộp thành "Khác" màu xám — không sinh thêm màu thứ 7.
-  const palette = SERIES[theme];
+  const palette = Array.from({ length: SERIES_COUNT }, (_, i) => `var(--chart-${i + 1})`);
   const byGroup = new Map<string, number>();
   for (const tx of data?.transactions ?? []) {
     if (tx.type?.trim().toLowerCase() !== "expense") continue;
