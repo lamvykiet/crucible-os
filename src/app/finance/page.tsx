@@ -55,7 +55,7 @@ export default function FinancePage() {
 
       {/* Tab Content */}
       <div className="animate-in fade-in duration-300">
-        {activeTab === "dashboard" && <DashboardTab />}
+        {activeTab === "dashboard" && <DashboardTab onNavigate={setActiveTab} />}
         {activeTab === "income" && <IncomeTab />}
         {activeTab === "expense" && <ExpenseTab />}
         {activeTab === "debts" && <DebtsTab />}

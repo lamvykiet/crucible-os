@@ -88,7 +88,12 @@ const formatVND = (amount: number) =>
 
 const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
-export default function DashboardTab() {
+interface DashboardTabProps {
+  /** Bấm "xem chi tiết" thì chuyển sang tab con tương ứng. */
+  onNavigate?: (tab: string) => void;
+}
+
+export default function DashboardTab({ onNavigate }: DashboardTabProps) {
   const { t } = useLanguage();
   const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
 
@@ -105,6 +110,14 @@ export default function DashboardTab() {
   const [gaps, setGaps] = useState({
     missingSubGroup: 0, unknownPayment: 0, noItems: 0, pendingDrafts: 0,
   });
+
+  // Tài sản và nợ — mảng duy nhất của Finance mà Dashboard chưa nói tới, trong
+  // khi đó mới là thứ trả lời "tôi đang đứng ở đâu". Lấy thẳng từ hai endpoint
+  // mà tab Tài sản và tab Nợ vẫn dùng, thay vì nhân bản cách tính khấu hao và
+  // dư nợ sang route dashboard — hai bản sao là hai con số khác nhau.
+  const [worth, setWorth] = useState<{
+    assets: number; assetCount: number; debt: number; debtCount: number; monthlyPayment: number;
+  } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -138,6 +151,38 @@ export default function DashboardTab() {
 
     fetchDashboardData();
     return () => controller.abort();
+  }, [selectedMonth, refreshKey]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let ignore = false;
+
+    (async () => {
+      try {
+        const monthParam = selectedMonth || thisMonthLocalIso();
+        const [a, d] = await Promise.all([
+          fetch("/api/finance/assets", { signal: controller.signal }).then((r) => r.json()),
+          fetch(`/api/finance/debts?month=${monthParam}`, { signal: controller.signal }).then((r) => r.json()),
+        ]);
+        if (ignore) return;
+        if (a?.success && d?.success) {
+          setWorth({
+            assets: a.data?.totals?.worth || 0,
+            assetCount: a.data?.totals?.count || 0,
+            debt: d.data?.totalOutstanding || 0,
+            debtCount: d.data?.active || 0,
+            monthlyPayment: d.data?.monthlyPayment || 0,
+          });
+        }
+      } catch {
+        // Khối này là phần phụ: hỏng thì ẩn đi, không chặn cả trang Dashboard.
+      }
+    })();
+
+    return () => {
+      ignore = true;
+      controller.abort();
+    };
   }, [selectedMonth, refreshKey]);
 
   // Số liệu "còn thiếu gì" tính trên TOÀN BỘ lịch sử, không theo tháng đang
@@ -432,7 +477,36 @@ export default function DashboardTab() {
         </div>
       )}
 
-      {/* Main Cards Row 1 */}
+      {/* Tháng này. Mỗi mục lớn của Dashboard đều có lối đi tiếp sang tab con:
+          trang này để NẮM, tab con để ĐÀO. */}
+      <div className="flex flex-wrap items-end justify-between gap-3 -mb-2">
+        <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
+          <Calendar size={24} /> {t("This month", "Tháng này")}
+        </h3>
+        {onNavigate && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => onNavigate("income")}
+              className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
+            >
+              {t("Income", "Thu nhập")} <ArrowUpRight size={14} />
+            </button>
+            <button
+              onClick={() => onNavigate("expense")}
+              className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
+            >
+              {t("Spending", "Chi tiêu")} <ArrowUpRight size={14} />
+            </button>
+            <button
+              onClick={() => onNavigate("history")}
+              className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
+            >
+              {t("All transactions", "Toàn bộ giao dịch")} <ArrowUpRight size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* md:grid-cols-4 cũ ép mỗi thẻ còn 96px ở 768px (số tiền cần 155px) vì
           vùng nội dung tablet chỉ rộng ~440px sau khi trừ sidebar 248px. */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -577,6 +651,118 @@ export default function DashboardTab() {
           </div>
         )}
       </div>
+
+      {/* Tài sản & Nợ. Hai con số tổng của cả Finance nằm ở đây: đang sở hữu
+          bao nhiêu và đang nợ bao nhiêu. Trước đây phải mở hai tab khác nhau
+          mới biết, nên Dashboard đọc xong vẫn chưa nắm được mình đứng ở đâu. */}
+      {worth && (worth.assets > 0 || worth.debt > 0) && (
+        <div>
+          <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
+            <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
+              <Scale size={24} /> {t("Assets & Debt", "Tài sản & Nợ")}
+            </h3>
+            {onNavigate && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => onNavigate("assets")}
+                  className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
+                >
+                  {t("Assets", "Tài sản")} <ArrowUpRight size={14} />
+                </button>
+                <button
+                  onClick={() => onNavigate("debts")}
+                  className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
+                >
+                  {t("Debts", "Nợ")} <ArrowUpRight size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* Giá trị ròng trừ TOÀN BỘ dư nợ, không chỉ phần nợ gắn với tài
+                sản — vay tín chấp vẫn là tiền phải trả. */}
+            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-[var(--color-accent-tint)] text-[var(--color-accent)] flex items-center justify-center flex-none">
+                  <Scale size={20} />
+                </div>
+                <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                  {t("Net worth", "Giá trị ròng")}
+                </div>
+              </div>
+              <div
+                className={`text-2xl font-bold ${
+                  worth.assets - worth.debt < 0
+                    ? "text-[var(--color-error)]"
+                    : "text-[var(--color-text)]"
+                }`}
+              >
+                {formatVND(worth.assets - worth.debt)}
+              </div>
+              <div className="text-xs text-[var(--color-text-faint)] mt-1">
+                {t("assets − debt", "tài sản − dư nợ")}
+              </div>
+            </div>
+
+            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-[var(--color-success-tint)] text-[var(--color-success)] flex items-center justify-center flex-none">
+                  <Banknote size={20} />
+                </div>
+                <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                  {t("Assets today", "Tài sản hôm nay")}
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-[var(--color-success)]">
+                {formatVND(worth.assets)}
+              </div>
+              <div className="text-xs text-[var(--color-text-faint)] mt-1">
+                {worth.assetCount} {t("items, after depreciation", "món, đã trừ khấu hao")}
+              </div>
+            </div>
+
+            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-[var(--color-error-tint)] text-[var(--color-error)] flex items-center justify-center flex-none">
+                  <CreditCard size={20} />
+                </div>
+                <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                  {t("Debt outstanding", "Dư nợ còn lại")}
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-[var(--color-error)]">
+                {formatVND(worth.debt)}
+              </div>
+              <div className="text-xs text-[var(--color-text-faint)] mt-1">
+                {worth.debtCount} {t("loans still running", "khoản đang trả")}
+              </div>
+            </div>
+
+            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-[var(--color-info-tint)] text-[var(--color-info)] flex items-center justify-center flex-none">
+                  <CalendarClock size={20} />
+                </div>
+                <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                  {t("Repayment / month", "Trả nợ mỗi tháng")}
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-[var(--color-text)]">
+                {formatVND(worth.monthlyPayment)}
+              </div>
+              <div className="text-xs text-[var(--color-text-faint)] mt-1">
+                {monthlyIncome > 0
+                  ? t(
+                      `${Math.round((worth.monthlyPayment / monthlyIncome) * 100)}% of this month's income`,
+                      `${Math.round((worth.monthlyPayment / monthlyIncome) * 100)}% thu nhập tháng này`
+                    )
+                  : t("no income recorded this month", "chưa ghi thu nhập tháng này")}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Chỉ số hôm nay */}
       <div>
