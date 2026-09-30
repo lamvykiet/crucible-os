@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DEBT_CATEGORY_GROUP } from "@/lib/debtTransactions";
+import { formatVND } from "@/lib/formatMoney";
 
 // Những giao dịch làm nên MỘT ô số trong bảng so sánh kỳ.
 //
@@ -31,8 +32,6 @@ interface Tx {
 
 export type BreakdownMetric =
   | "income" | "expense" | "cashOut" | "debtService" | "debtPrincipal" | "net" | "count";
-
-const formatVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 const kindOf = (tx: Tx) => tx.type?.trim().toLowerCase();
 /** Trả gốc do lịch trả nợ sinh ra: `classify()` bên compare xếp là "không tính". */

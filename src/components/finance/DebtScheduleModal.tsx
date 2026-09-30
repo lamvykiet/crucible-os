@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Lock, Pencil, X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { formatVND } from "@/lib/formatMoney";
 
 // Lịch trả nợ từng kỳ.
 //
@@ -38,8 +39,6 @@ interface Summary {
   interestRemaining: number;
   nextPeriod: { period: number; dueDate: string; payment: number; interestRate: number } | null;
 }
-
-const formatVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 interface Props {
   debtId: string | null;

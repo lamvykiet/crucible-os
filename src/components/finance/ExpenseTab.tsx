@@ -15,6 +15,7 @@ import PeriodComparison from "./PeriodComparison";
 import StackedMonthTooltip from "./StackedMonthTooltip";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
+import { formatVND } from "@/lib/formatMoney";
 const OTHER_KEY = "__other";
 
 interface CategorySlice { name: string; amount: number }
@@ -63,9 +64,6 @@ const EMPTY: ExpenseData = {
   dailySeries: [], monthlySeries: [], monthlyBreakdown: [], monthlyCategoryKeys: [],
   topMerchants: [], recentTransactions: [], hasData: false,
 };
-
-const formatVND = (amount: number) => new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
-
 
 export default function ExpenseTab() {
   const { t, language } = useLanguage();
@@ -427,7 +425,12 @@ export default function ExpenseTab() {
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
               <h3 className="c-h5 text-[var(--color-text)] mb-4">{t("Top Merchants", "Top nhà cung cấp")}</h3>
               {topMerchants.length === 0 ? (
-                <p className="text-[var(--color-text-muted)] text-sm">{t("No data available.", "Chưa có dữ liệu.")}</p>
+                <p className="text-[var(--color-text-muted)] text-sm">
+                  {t(
+                    "No spending recorded this month yet — scan a receipt or add one by hand.",
+                    "Tháng này chưa ghi khoản chi nào — quét hoá đơn hoặc thêm tay một khoản."
+                  )}
+                </p>
               ) : (
                 <div className="space-y-4 mt-4">
                   {topMerchants.map(m => (

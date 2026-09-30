@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertCircle, Plus, RefreshCw } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { PAYMENT_METHOD_LABELS } from "@/lib/invoice";
+import { formatVND } from "@/lib/formatMoney";
 
 // Chi tiết giao dịch của MỘT ngày.
 //
@@ -36,9 +37,6 @@ interface DayData {
   expense: number;
   incompleteCount: number;
 }
-
-const formatVND = (amount: number) =>
-  new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
 
 interface Props {
   /** YYYY-MM-DD */

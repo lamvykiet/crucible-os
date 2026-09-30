@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area,
+  AreaChart, Area, ComposedChart, Bar, Legend,
 } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
@@ -22,6 +22,7 @@ import PeriodComparison from "./PeriodComparison";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { thisMonthLocalIso, todayLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
+import { formatVND } from "@/lib/formatMoney";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,
@@ -30,6 +31,10 @@ import { compactMoney } from "@/lib/formatMoney";
 interface DailyPoint { name: string; expense: number; ma7: number }
 interface YtdPoint {
   name: string; income: number; expense: number;
+  /** Trả gốc nợ trong tháng — tiền ra nhưng không phải chi tiêu. */
+  debtPrincipal: number;
+  /** Tổng tiền thật sự rời tài khoản: chi tiêu + trả gốc. */
+  cashOut: number;
   cumulativeIncome: number; cumulativeExpense: number;
 }
 interface CategorySlice { group: string; amount: number }
@@ -83,9 +88,6 @@ const EMPTY: DashboardData = {
   latestMonthWithData: null, elapsedDays: 0, daysInMonth: 0, daysWithData: [],
   upcoming: [], unclassified: [],
 };
-
-const formatVND = (amount: number) =>
-  new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
 
 const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
@@ -226,6 +228,128 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
   for (let d = 1; d <= daysToCheck; d++) if (!recorded.has(d)) blankDays.push(d);
 
   const gapTotal = gaps.missingSubGroup + gaps.unknownPayment + gaps.pendingDrafts;
+
+  /**
+   * Bốn tỷ lệ mà bất kỳ ai thẩm định tài chính cũng hỏi đến, kèm ngưỡng.
+   *
+   * Con số trần trụi không nói được nó tốt hay xấu: 38% là cao hay thấp? Nên
+   * mỗi dòng mang theo ngưỡng của chính nó và một câu kết luận. Ngưỡng lấy theo
+   * thông lệ cho vay tiêu dùng: trả nợ dưới 36% thu nhập, tiết kiệm trên 20%,
+   * nợ dưới 50% giá trị tài sản.
+   */
+  const band = (v: number | null, good: number, warn: number, lowerIsBetter: boolean) => {
+    if (v === null) return null;
+    if (lowerIsBetter) return v <= good ? "good" : v <= warn ? "warn" : "bad";
+    return v >= good ? "good" : v >= warn ? "warn" : "bad";
+  };
+
+  // Tháng đang chạy bị loại khỏi mọi tỷ lệ bên dưới. Nó mới đi được vài ngày
+  // nên chi tiêu chưa ghi đủ, và để chung vào thì ra kết luận đẹp giả: tháng
+  // 9 đang cho "tiết kiệm 91%" chỉ vì mới ghi 1,8 triệu chi trong khi mười một
+  // tháng trước đều quanh 25 triệu.
+  const completedMonths = isCurrentMonth ? ytdSeries.slice(0, -1) : ytdSeries;
+  const income12 = completedMonths.reduce((sum, m) => sum + m.income, 0);
+  const cashOut12 = completedMonths.reduce((sum, m) => sum + m.cashOut, 0);
+  const avgMonthlyIncome12 =
+    completedMonths.length > 0 ? income12 / completedMonths.length : 0;
+  const savings12 =
+    income12 > 0 ? Math.round(((income12 - cashOut12) / income12) * 100) : null;
+  const overspentMonths = completedMonths.filter((m) => m.cashOut > m.income).length;
+
+  // Nghĩa vụ trả nợ lấy theo LỊCH TRẢ NỢ, không theo số đã ghi sổ trong tháng.
+  // Tháng nào chưa kịp ghi thì số đã ghi bằng 0, và tỷ lệ sẽ hiện 0% màu xanh —
+  // xanh vì chưa nhập liệu, không phải vì hết nợ.
+  const dtiScheduled =
+    worth && avgMonthlyIncome12 > 0
+      ? Math.round((worth.monthlyPayment / avgMonthlyIncome12) * 100)
+      : null;
+
+  const healthRows: {
+    key: string;
+    label: string;
+    hint: string;
+    display: string;
+    band: "good" | "warn" | "bad" | null;
+    note: string;
+  }[] = [
+    {
+      key: "dti",
+      label: t("Debt payments vs income", "Trả nợ trên thu nhập"),
+      hint: t("safe under 36%", "an toàn dưới 36%"),
+      display: dtiScheduled === null ? "—" : `${dtiScheduled}%`,
+      band: band(dtiScheduled, 36, 50, true),
+      note:
+        !worth
+          ? t("loading…", "đang tải…")
+          : avgMonthlyIncome12 === 0
+            ? t("no income in the last 12 months", "12 tháng qua chưa ghi thu nhập")
+            : t(
+                `${formatVND(worth.monthlyPayment)} due each month against ${formatVND(Math.round(avgMonthlyIncome12))} average income`,
+                `phải trả ${formatVND(worth.monthlyPayment)}/tháng trên thu nhập bình quân ${formatVND(Math.round(avgMonthlyIncome12))}`
+              ),
+    },
+    {
+      key: "savings",
+      label: t("Savings rate, 12 months", "Tỷ lệ tiết kiệm 12 tháng"),
+      hint: t("healthy above 20%", "khoẻ khi trên 20%"),
+      display: savings12 === null ? "—" : `${savings12}%`,
+      band: band(savings12, 20, 10, false),
+      note:
+        savings12 === null
+          ? t("no income in the last 12 months", "12 tháng qua chưa ghi thu nhập")
+          : savings12 < 0
+            ? t(
+                `cash out exceeded income by ${formatVND(cashOut12 - income12)}`,
+                `tiền ra vượt thu nhập ${formatVND(cashOut12 - income12)}`
+              )
+            : t("income kept after all cash out", "phần thu nhập giữ lại sau mọi khoản tiền ra"),
+    },
+    {
+      key: "leverage",
+      label: t("Debt vs assets", "Dư nợ trên tài sản"),
+      hint: t("safe under 50%", "an toàn dưới 50%"),
+      display:
+        worth && worth.assets > 0
+          ? `${Math.round((worth.debt / worth.assets) * 100)}%`
+          : "—",
+      band:
+        worth && worth.assets > 0
+          ? band(Math.round((worth.debt / worth.assets) * 100), 50, 80, true)
+          : null,
+      note: !worth
+        ? t("loading…", "đang tải…")
+        : worth.assets > 0
+          ? t(
+              `${formatVND(worth.debt)} owed against ${formatVND(worth.assets)} owned`,
+              `nợ ${formatVND(worth.debt)} trên tài sản ${formatVND(worth.assets)}`
+            )
+          : t("no assets recorded yet", "chưa ghi tài sản nào"),
+    },
+    {
+      key: "overspent",
+      label: t("Months spending beat income", "Số tháng chi vượt thu"),
+      hint: isCurrentMonth
+        ? t("completed months only", "chỉ tính tháng đã trọn")
+        : t("over the last 12 months", "trong 12 tháng gần nhất"),
+      display:
+        completedMonths.length === 0
+          ? "—"
+          : `${overspentMonths}/${completedMonths.length}`,
+      band:
+        completedMonths.length === 0
+          ? null
+          : band(
+              Math.round((overspentMonths / completedMonths.length) * 100),
+              25,
+              50,
+              true
+            ),
+      note:
+        completedMonths.length === 0
+          ? t("not enough history yet", "chưa đủ dữ liệu")
+          : t("cash out above income, including principal", "tiền ra vượt thu nhập, đã tính cả trả gốc"),
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -764,6 +888,80 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
           </div>
         </div>
       )}
+
+      {/* Sức khoẻ tài chính và khả năng chi trả. Dashboard cũ nói "bao nhiêu",
+          hai khối này nói "như vậy là ổn hay không ổn" — phần mà người đọc vẫn
+          phải tự suy ra, và thường suy sai theo hướng lạc quan. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
+          <h3 className="c-h5 text-[var(--color-text)]">
+            {t("Financial health", "Sức khoẻ tài chính")}
+          </h3>
+          <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
+            {t(
+              "each line carries the threshold a lender would use",
+              "mỗi dòng kèm ngưỡng mà bên cho vay vẫn dùng để thẩm định"
+            )}
+          </p>
+          <ul className="divide-y divide-[var(--color-border)]">
+            {healthRows.map((r) => (
+              <li key={r.key} className="py-3 first:pt-0 last:pb-0 flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-bold text-[var(--color-text)]">{r.label}</p>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{r.note}</p>
+                </div>
+                <div className="flex-none text-right">
+                  <div
+                    className={`text-xl font-bold tabular-nums ${
+                      r.band === "good"
+                        ? "text-[var(--color-success)]"
+                        : r.band === "warn"
+                          ? "text-[var(--color-warning)]"
+                          : r.band === "bad"
+                            ? "text-[var(--color-error)]"
+                            : "text-[var(--color-text-faint)]"
+                    }`}
+                  >
+                    {r.display}
+                  </div>
+                  <div className="text-[10px] text-[var(--color-text-faint)] mt-0.5">{r.hint}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
+          <h3 className="c-h5 text-[var(--color-text)]">
+            {t("Can each month pay for itself?", "Từng tháng có tự trả nổi không?")}
+          </h3>
+          <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
+            {t(
+              "columns: money out, split into spending and principal · line: income",
+              "cột: tiền ra, tách chi tiêu và trả gốc · đường: thu nhập"
+            )}
+          </p>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={ytdSeries} className="c-chart-multi">
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "var(--color-text-faint)" }} angle={-35} textAnchor="end" height={50} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={50} />
+                <Tooltip formatter={(v, n) => [formatVND(Number(v) || 0), n]} />
+                <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                {/* Chi tiêu và trả gốc chồng lên nhau vì cùng là tiền rời tài
+                    khoản, nhưng tách khúc: phần trả gốc KHÔNG cắt được khi thu
+                    hụt, phần chi tiêu thì có. */}
+                <Bar dataKey="expense" stackId="out" name={t("Spending", "Chi tiêu")} className="c-series-2" fill="var(--chart-2)" stroke="var(--color-surface)" strokeWidth={1} maxBarSize={36} />
+                <Bar dataKey="debtPrincipal" stackId="out" name={t("Principal repaid", "Trả gốc")} className="c-series-1" fill="var(--chart-1)" stroke="var(--color-surface)" strokeWidth={1} maxBarSize={36} />
+                {/* Đường thu nhập: cột nào vượt qua đường là tháng đó không tự
+                    trả nổi, phải bù từ tiền để dành hoặc vay thêm. */}
+                <Line type="monotone" dataKey="income" name={t("Income", "Thu nhập")} stroke="var(--color-text)" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 2.5, fill: "var(--color-text)" }} activeDot={{ r: 5 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
 
       {/* Chỉ số hôm nay */}
       <div>

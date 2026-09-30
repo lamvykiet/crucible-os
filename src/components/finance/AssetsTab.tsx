@@ -5,6 +5,7 @@ import { Building2, Link2, Package, Pencil, Plus, Trash2, TrendingDown, Wallet }
 import { useLanguage } from "@/lib/LanguageContext";
 import AssetModal, { type AssetDraft } from "./AssetModal";
 import { todayLocalIso } from "@/lib/localDate";
+import { formatVND } from "@/lib/formatMoney";
 
 // Tài sản và công cụ dụng cụ.
 //
@@ -48,8 +49,6 @@ interface Totals {
   equity: number;
   monthlyDepreciation: number;
 }
-
-const formatVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 const CATEGORY_ICON: Record<string, typeof Package> = {
   "Real Estate": Building2,

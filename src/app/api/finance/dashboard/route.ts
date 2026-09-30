@@ -103,7 +103,9 @@ export async function GET(req: Request) {
       // lớn lên, thay bằng $queryRaw + date_trunc('month', date) để Postgres gộp.
       prisma.transaction.findMany({
         where: { userId, date: { gte: ytdStart, lt: endDate } },
-        select: { date: true, type: true, totalAmount: true },
+        // `source` để tách phần trả gốc nợ ra khỏi chi tiêu trong chuỗi 12
+        // tháng — hai thứ đó chịu sức ép khác hẳn nhau: cắt được và không.
+        select: { date: true, type: true, totalAmount: true, source: true },
         orderBy: { date: "asc" },
       }),
       prisma.budget.findMany({
@@ -289,10 +291,13 @@ export async function GET(req: Request) {
     }));
 
     // ---- Chuỗi 12 tháng (thay mảng ytdData hardcode) ----
-    const ytdMap = new Map<string, { income: number; expense: number }>();
+    const ytdMap = new Map<
+      string,
+      { income: number; expense: number; debtPrincipal: number }
+    >();
     for (let i = 11; i >= 0; i--) {
       const d = new Date(Date.UTC(year, monthNum - 1 - i, 1));
-      ytdMap.set(monthKey(d), { income: 0, expense: 0 });
+      ytdMap.set(monthKey(d), { income: 0, expense: 0, debtPrincipal: 0 });
     }
     for (const t of ytdTx) {
       const key = monthKey(t.date);
@@ -302,6 +307,10 @@ export async function GET(req: Request) {
       if (b === "income") entry.income += t.totalAmount;
       else if (b === "expense") entry.expense += t.totalAmount;
       else if (b === "refund") entry.expense -= t.totalAmount;
+      // Trả gốc: `classify` xếp là "không tính vào thu/chi" nhưng tiền vẫn rời
+      // tài khoản. Tách riêng thay vì bỏ qua — đây là phần KHÔNG cắt được khi
+      // thu nhập hụt, nên nó mới là thứ quyết định tháng đó có đủ trả hay không.
+      else if (t.source === "debt") entry.debtPrincipal += t.totalAmount;
     }
     let cumIncome = 0;
     let cumExpense = 0;
@@ -312,6 +321,8 @@ export async function GET(req: Request) {
         name,
         income: v.income,
         expense: v.expense,
+        debtPrincipal: v.debtPrincipal,
+        cashOut: v.expense + v.debtPrincipal,
         cumulativeIncome: cumIncome,
         cumulativeExpense: cumExpense,
       };

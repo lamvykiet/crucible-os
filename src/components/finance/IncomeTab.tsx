@@ -17,6 +17,7 @@ import { thisMonthLocalIso } from "@/lib/localDate";
 import PeriodComparison from "./PeriodComparison";
 import StackedMonthTooltip from "./StackedMonthTooltip";
 import { compactMoney } from "@/lib/formatMoney";
+import { formatVND } from "@/lib/formatMoney";
 
 // Toàn bộ số liệu đến từ /api/finance/income.
 // Trước đây tab này chạy trên 4 mảng hardcode và cả tên công ty ("SHINHAN
@@ -84,9 +85,6 @@ const EMPTY: IncomeData = {
   sourceMonthly: [], sourceKeys: [],
   largestSource: null, hasData: false,
 };
-
-const formatVND = (amount: number) =>
-  new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
 
 export default function IncomeTab() {
   const { t, language } = useLanguage();

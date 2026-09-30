@@ -9,6 +9,7 @@ import TransactionModal from "./TransactionModal";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import { normalizeSupplier, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 import TransactionCalendar from "./TransactionCalendar";
+import { formatVND } from "@/lib/formatMoney";
 
 interface Transaction {
   id: string;
@@ -25,8 +26,6 @@ interface Transaction {
   note: string;
   items?: any[];
 }
-
-const formatVND = (amount: number) => new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
 
 export default function HistoryTab() {
   const { t } = useLanguage();

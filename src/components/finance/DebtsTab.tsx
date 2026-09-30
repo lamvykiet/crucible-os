@@ -9,6 +9,7 @@ import DebtModal from "./DebtModal";
 import DebtScheduleModal from "./DebtScheduleModal";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import PeriodComparison from "./PeriodComparison";
+import { formatVND } from "@/lib/formatMoney";
 
 interface DebtInfo {
   id: string;
@@ -53,8 +54,6 @@ const EMPTY: DebtsData = {
   hasData: false,
 };
 
-const formatVND = (amount: number) => new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
-
 export default function DebtsTab() {
   const { t } = useLanguage();
   const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
@@ -93,6 +92,40 @@ export default function DebtsTab() {
     totalOutstanding, monthlyPayment, principalPaid, active, settled,
     dueThisMonth, debtsList, hasData
   } = data;
+
+  /**
+   * Dư nợ theo loại, kèm lãi suất bình quân GIA QUYỀN theo dư nợ.
+   *
+   * Lãi suất mới là thứ quyết định nên dồn tiền trả khoản nào trước, nên nó
+   * phải nằm ngay cạnh con số dư nợ. Bình quân gia quyền chứ không phải bình
+   * quân cộng: một khoản 1,5 tỷ lãi 9% và một khoản 50 triệu lãi 20% thì mức
+   * lãi thực tế phải trả gần 9%, không phải 14,5%.
+   */
+  const debtByType = (() => {
+    const map = new Map<string, { remaining: number; weighted: number; count: number }>();
+    for (const d of debtsList) {
+      const key = d.type || t("Other", "Khác");
+      const cur = map.get(key) || { remaining: 0, weighted: 0, count: 0 };
+      cur.remaining += d.remaining;
+      cur.weighted += d.remaining * d.interestRate;
+      cur.count += 1;
+      map.set(key, cur);
+    }
+    return [...map.entries()]
+      .map(([type, v]) => ({
+        type,
+        remaining: v.remaining,
+        count: v.count,
+        rate: v.remaining > 0 ? v.weighted / v.remaining : 0,
+        share: totalOutstanding > 0 ? Math.round((v.remaining / totalOutstanding) * 100) : 0,
+      }))
+      .sort((a, b) => b.remaining - a.remaining);
+  })();
+
+  const weightedRate =
+    totalOutstanding > 0
+      ? debtsList.reduce((sum, d) => sum + d.remaining * d.interestRate, 0) / totalOutstanding
+      : 0;
 
   return (
     <div className="space-y-8">
@@ -189,10 +222,52 @@ export default function DebtsTab() {
           {/* Charts & Due Dates Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col">
-              <h3 className="c-h5 text-[var(--color-text)] mb-6">{t("Debt by Type", "Dư nợ theo loại")}</h3>
-              <div className="flex-1 flex items-center justify-center text-[var(--color-text-faint)] text-sm">
-                 {t("No data available", "Chưa có dữ liệu")}
-              </div>
+              {/* Thẻ này trước đây luôn hiện "Chưa có dữ liệu" — nó chưa bao
+                  giờ được làm, kể cả khi đang có khoản vay. */}
+              <h3 className="c-h5 text-[var(--color-text)]">{t("Debt by type", "Dư nợ theo loại")}</h3>
+              {debtByType.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center text-center text-sm text-[var(--color-text-muted)] py-6">
+                  {t(
+                    "No loans recorded yet — add one to see the split.",
+                    "Chưa ghi khoản vay nào — thêm một khoản để thấy cơ cấu nợ."
+                  )}
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-5">
+                    {t(
+                      `weighted average rate ${weightedRate.toFixed(2)}%/year`,
+                      `lãi suất bình quân ${weightedRate.toFixed(2)}%/năm`
+                    )}
+                  </p>
+                  <ul className="space-y-4">
+                    {debtByType.map((g) => (
+                      <li key={g.type}>
+                        <div className="flex items-baseline justify-between gap-3 mb-1">
+                          <span className="min-w-0 truncate text-xs font-bold text-[var(--color-text-muted)]">
+                            {g.type}
+                            <span className="ml-1.5 font-normal text-[var(--color-text-faint)]">
+                              {g.rate.toFixed(2)}%
+                            </span>
+                          </span>
+                          <span className="flex-none text-xs font-bold tabular-nums text-[var(--color-text)]">
+                            {formatVND(g.remaining)}
+                            <span className="ml-1.5 font-normal text-[var(--color-text-faint)]">
+                              {g.share}%
+                            </span>
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-[var(--color-error)] transition-all"
+                            style={{ width: `${Math.max(2, g.share)}%` }}
+                          />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </div>
             
             <div className="md:col-span-2 bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">

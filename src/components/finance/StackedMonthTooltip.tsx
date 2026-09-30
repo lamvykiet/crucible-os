@@ -1,5 +1,7 @@
 "use client";
 
+import { formatVND } from "@/lib/formatMoney";
+
 // Chú giải cho biểu đồ cột chồng theo tháng: mỗi khúc bao nhiêu tiền VÀ chiếm
 // bao nhiêu phần trăm tháng đó.
 //
@@ -7,8 +9,6 @@
 // tháng vọt lên là do khoản nào. Dùng chung cho tab Chi tiêu (theo nhóm) và tab
 // Thu nhập (theo nguồn) — hai biểu đồ cùng một lối đọc thì nên cùng một chú
 // giải.
-
-const formatVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 interface Props {
   active?: boolean;

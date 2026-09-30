@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { invalidateCategories } from "@/lib/useCategories";
+import { formatVND } from "@/lib/formatMoney";
 
 // Điền bù danh mục con cho nhiều giao dịch trong một lượt.
 //
@@ -23,9 +24,6 @@ interface Row {
   totalAmount: number;
   options: { name: string; nameVi: string }[];
 }
-
-const formatVND = (amount: number) =>
-  new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
 
 interface Props {
   isOpen: boolean;

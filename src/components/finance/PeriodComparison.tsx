@@ -5,6 +5,7 @@ import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { todayLocalIso } from "@/lib/localDate";
 import PeriodBreakdownModal from "./PeriodBreakdownModal";
+import { formatVND } from "@/lib/formatMoney";
 
 // So sánh tuần này / tháng này / năm nay với kỳ liền trước và cùng kỳ năm ngoái.
 //
@@ -59,8 +60,6 @@ interface CompareData {
     lastYear: Record<string, Delta>;
   };
 }
-
-const formatVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 /**
  * `goodWhenUp`: tăng là tin tốt hay tin xấu.

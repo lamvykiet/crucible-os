@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
+import { formatVND } from "@/lib/formatMoney";
 
 // Tỷ trọng chi tiêu của MỘT ngày theo nhóm danh mục.
 //
@@ -33,9 +34,6 @@ interface Slice {
 // gộp thành "Khác" màu xám thay vì xoay vòng màu.
 const SERIES_COUNT = 6;
 const OTHER_COLOR = "var(--color-border-strong)";
-
-const formatVND = (amount: number) =>
-  new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
 
 const formatPct = (part: number, total: number) => {
   const pct = (part / total) * 100;

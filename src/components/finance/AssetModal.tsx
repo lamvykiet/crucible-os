@@ -7,6 +7,7 @@ import { DEFAULT_LIFE_MONTHS } from "@/lib/assets";
 import { todayLocalIso } from "@/lib/localDate";
 import AmountInput from "@/components/ui/AmountInput";
 import CustomDatePicker from "@/components/ui/CustomDatePicker";
+import { formatVND } from "@/lib/formatMoney";
 
 // Thêm / sửa một tài sản.
 //
@@ -30,8 +31,6 @@ export interface AssetDraft {
   debtIds: string[];
   notes: string;
 }
-
-const formatVND = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " ₫";
 
 const EMPTY = (): AssetDraft => ({
   name: "",
