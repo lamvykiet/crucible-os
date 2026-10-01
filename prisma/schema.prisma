@@ -16,6 +16,7 @@ model User {
   role               String               @default("user")
   createdAt          DateTime             @default(now())
   Transaction        Transaction[]
+  Account            Account[]
   Category           Category[]
   Budget             Budget[]
   Debt               Debt[]
@@ -81,6 +82,18 @@ model Transaction {
   driveFileId   String?
   notes         String?
 
+  /// Tiền ra/vào TÀI KHOẢN NÀO. `paymentMethod` chỉ nói "trả bằng thẻ", không
+  /// nói thẻ nào — có ba thẻ tín dụng thì không dò ra được số dư từng thẻ.
+  /// Để trống được: hơn 260 giao dịch cũ chưa gắn tài khoản vẫn phải chạy.
+  accountId String?
+  account   Account? @relation("TxAccount", fields: [accountId], references: [id], onDelete: SetNull)
+
+  /// Đích đến, chỉ dùng cho giao dịch chuyển khoản — trả thẻ tín dụng là tiền
+  /// rời tài khoản ngân hàng VÀ giảm dư nợ thẻ, thiếu vế này thì một trong hai
+  /// số dư luôn sai.
+  toAccountId String?
+  toAccount   Account? @relation("TxToAccount", fields: [toAccountId], references: [id], onDelete: SetNull)
+
   userId String // owner
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -88,6 +101,48 @@ model Transaction {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// Tài khoản thanh toán: tài khoản ngân hàng, thẻ tín dụng, ví điện tử, tiền mặt.
+///
+/// Số dư KHÔNG lưu sẵn mà tính lại từ `openingBalance` cộng dồn các giao dịch
+/// gắn với tài khoản. Lưu số dư sẵn thì mỗi lần sửa hay xoá một giao dịch cũ là
+/// một lần số dư lệch âm thầm, và không có cách nào biết nó đã lệch.
+model Account {
+  id       String  @id @default(uuid())
+  name     String
+  /// bank | credit_card | cash | ewallet
+  kind     String
+  bank     String?
+  /// Bốn số cuối, chỉ để nhận ra thẻ nào — không lưu số thẻ đầy đủ.
+  last4    String?
+  currency String  @default("VND")
+
+  /// Số dư tại `openingDate`, do người dùng nhập. Với thẻ tín dụng đây là DƯ NỢ
+  /// (số dương nghĩa là đang nợ).
+  openingBalance Int       @default(0)
+  openingDate    DateTime?
+
+  /// Chỉ dành cho thẻ tín dụng.
+  creditLimit  Int?
+  /// Ngày chốt sao kê và ngày đến hạn thanh toán trong tháng.
+  statementDay Int?
+  dueDay       Int?
+
+  /// active | closed
+  status String  @default("active")
+  notes  String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactionsFrom Transaction[] @relation("TxAccount")
+  transactionsTo   Transaction[] @relation("TxToAccount")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
 }
 
 model TransactionLine {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, ChevronDown, Loader2, Receipt } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
@@ -43,10 +43,39 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
     subGroup: "",
     amount: initialData?.totalAmount?.toString() || "",
     paymentMethod: initialData?.paymentMethod || "unknown",
+    accountId: initialData?.accountId || "",
+    toAccountId: initialData?.toAccountId || "",
     notes: initialData?.notes || ""
   });
 
   const [items, setItems] = useState<LineItem[]>(initialData?.items || []);
+
+  // Danh sách tài khoản để chọn tiền ra/vào đâu. Không chặn form nếu hỏng:
+  // chưa có tài khoản nào thì ô này chỉ đơn giản không hiện.
+  const [accounts, setAccounts] = useState<{ id: string; name: string; kind: string; last4: string | null }[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const controller = new AbortController();
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/finance/accounts", { signal: controller.signal });
+        const json = await res.json();
+        if (!ignore && json.success) {
+          setAccounts(
+            json.data.accounts.filter((a: { status: string }) => a.status !== "closed")
+          );
+        }
+      } catch {
+        // Ô chọn tài khoản là phần phụ của form; hỏng thì ẩn, đừng chặn việc ghi sổ.
+      }
+    })();
+    return () => {
+      ignore = true;
+      controller.abort();
+    };
+  }, [isOpen]);
 
   // Ảnh hoá đơn gốc của giao dịch quét. `driveFileId` là chuỗi id ngăn bằng dấu
   // phẩy — một hoá đơn dài có thể chụp làm nhiều tấm.
@@ -70,6 +99,8 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
         subGroup: initialData?.subGroup || "",
         amount: initialData?.totalAmount?.toString() || initialData?.amount?.toString() || "",
         paymentMethod: initialData?.paymentMethod || "unknown",
+        accountId: initialData?.accountId || "",
+        toAccountId: initialData?.toAccountId || "",
         notes: initialData?.notes || ""
       });
       setItems(initialData?.items || []);
@@ -192,6 +223,8 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
           subGroup: "",
           amount: "",
           paymentMethod: "unknown",
+          accountId: "",
+          toAccountId: "",
           notes: ""
         });
         setItems([]);
@@ -361,6 +394,64 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                 <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
               </div>
             </div>
+
+            {/* Tiền ra/vào tài khoản nào. `paymentMethod` chỉ nói "trả bằng
+                thẻ" — có ba thẻ thì không dò ra số dư từng thẻ. */}
+            {accounts.length > 0 && (
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                  {formData.type === "Income"
+                    ? t("Tiền vào tài khoản", "Money into")
+                    : t("Trả từ tài khoản", "Paid from")}
+                </label>
+                <div className="relative">
+                  <select
+                    name="accountId"
+                    value={formData.accountId}
+                    onChange={handleChange}
+                    className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none"
+                  >
+                    <option value="">{t("— Chưa chọn —", "— Not set —")}</option>
+                    {accounts.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                        {a.last4 ? ` ···${a.last4}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
+                </div>
+              </div>
+            )}
+
+            {/* Chuyển khoản chạm vào HAI tài khoản. Trả thẻ tín dụng là ví dụ
+                rõ nhất: tiền rời ngân hàng và dư nợ thẻ giảm đi. */}
+            {accounts.length > 0 && formData.type === "Transfer" && (
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                  {t("Chuyển tới tài khoản", "Money into")}
+                </label>
+                <div className="relative">
+                  <select
+                    name="toAccountId"
+                    value={formData.toAccountId}
+                    onChange={handleChange}
+                    className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none"
+                  >
+                    <option value="">{t("— Chưa chọn —", "— Not set —")}</option>
+                    {accounts
+                      .filter((a) => a.id !== formData.accountId)
+                      .map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                          {a.last4 ? ` ···${a.last4}` : ""}
+                        </option>
+                      ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
+                </div>
+              </div>
+            )}
             
             <div className="col-span-1 md:col-span-2 space-y-2">
                <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Ghi chú", "Ghi chú")}</label>

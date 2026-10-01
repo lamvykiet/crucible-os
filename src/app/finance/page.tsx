@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import {
-  LayoutDashboard, TrendingUp, CreditCard, Landmark, Package, History as HistoryIcon,
+  LayoutDashboard, TrendingUp, CreditCard, Landmark, Package, Wallet,
+  History as HistoryIcon,
 } from "lucide-react";
 import DashboardTab from "@/components/finance/DashboardTab";
 import IncomeTab from "@/components/finance/IncomeTab";
@@ -10,6 +11,7 @@ import ExpenseTab from "@/components/finance/ExpenseTab";
 import DebtsTab from "@/components/finance/DebtsTab";
 import HistoryTab from "@/components/finance/HistoryTab";
 import AssetsTab from "@/components/finance/AssetsTab";
+import AccountsTab from "@/components/finance/AccountsTab";
 
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -27,6 +29,7 @@ export default function FinancePage() {
               { id: "expense", label: "Expense", Icon: CreditCard },
               { id: "debts", label: "Debts", Icon: Landmark },
               { id: "assets", label: "Assets", Icon: Package },
+              { id: "accounts", label: "Accounts", Icon: Wallet },
               { id: "history", label: "History", Icon: HistoryIcon }
             ].map((tab) => (
               <button
@@ -60,6 +63,7 @@ export default function FinancePage() {
         {activeTab === "expense" && <ExpenseTab />}
         {activeTab === "debts" && <DebtsTab />}
         {activeTab === "assets" && <AssetsTab />}
+        {activeTab === "accounts" && <AccountsTab />}
         {activeTab === "history" && <HistoryTab />}
       </div>
     </div>
