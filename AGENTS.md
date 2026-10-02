@@ -49,12 +49,16 @@ là thứ duy nhất cả năm phiên cùng đọc. Trước khi sửa bất c�
 
 ## Đổi cái này thì kéo theo cái kia
 
-**Đổi tên một `Category`** → bốn bảng khớp với nó bằng **chuỗi**, không phải khoá
-ngoại: `Transaction.categoryGroup`, `Budget.categoryGroup`,
-`Vendor.defaultCategoryGroup`, `ClassificationRule.categoryGroup`. Đổi mỗi bảng
-`Category` thì giao dịch trỏ tới nhóm không tồn tại và dashboard **đếm thiếu mà
-không báo lỗi gì**. Phải dời trong cùng một `$transaction` — xem
-`api/finance/categories/route.ts:168`.
+**Đổi tên hoặc gộp một `Category`** → **năm** bảng khớp với nó bằng **chuỗi**,
+không phải khoá ngoại: `Transaction.categoryGroup`, `Budget.categoryGroup`,
+`Vendor.defaultCategoryGroup`, `ClassificationRule.categoryGroup`, và
+`DraftReceipt.categoryGroup` (hoá đơn quét đang chờ duyệt — bảng này bị sót
+trong suốt một thời gian dài, phát hiện 02/10). Danh mục con thì nằm ở cột
+`subGroup` của `Transaction` và `DraftReceipt`. Đổi mỗi bảng `Category` thì
+giao dịch trỏ tới nhóm không tồn tại và dashboard **đếm thiếu mà không báo lỗi
+gì**. Phải dời trong cùng một `$transaction` — xem
+`api/finance/categories/route.ts` (đổi tên) và
+`api/finance/categories/merge/route.ts` (gộp hai nhóm cùng bản chất).
 
 **Thêm/sửa/xoá danh mục** → gọi `invalidateCategories()` (`src/lib/useCategories.ts`).
 Hook cache ở cấp module, không xoá thì mọi modal vẫn hiện danh sách cũ tới khi

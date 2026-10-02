@@ -182,9 +182,18 @@ export async function PATCH(req: Request) {
         await tx.classificationRule.updateMany({
           where: { categoryGroup: from }, data: { categoryGroup: newName },
         });
+        // Bảng thứ NĂM, lâu nay bị sót: hoá đơn quét đang chờ duyệt cũng giữ
+        // tên nhóm, đổi tên mà bỏ qua thì bản nháp mở ra với ô nhóm trỏ tới
+        // một danh mục không còn tồn tại.
+        await tx.draftReceipt.updateMany({
+          where: { userId: user.id, categoryGroup: from }, data: { categoryGroup: newName },
+        });
       } else if (renaming) {
         // Danh mục con nằm ở cột subGroup của Transaction.
         await tx.transaction.updateMany({
+          where: { userId: user.id, subGroup: current.name }, data: { subGroup: newName },
+        });
+        await tx.draftReceipt.updateMany({
           where: { userId: user.id, subGroup: current.name }, data: { subGroup: newName },
         });
       }
