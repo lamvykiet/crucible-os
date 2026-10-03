@@ -7,12 +7,14 @@ import {
   listFilesInFolder,
   moveFileTo,
 } from "@/lib/drive";
-import { genAI, GEMINI_VISION_MODEL } from "@/lib/gemini";
+import { GEMINI_VISION_MODEL, modelsWithFallback } from "@/lib/gemini";
+import { generateWithRetry, aiErrorMessage } from "@/lib/aiRetry";
 import { OCR_SCHEMA, OCR_PROMPT, toVnd } from "@/lib/invoice";
 import { classify, RULE_ORDER } from "@/lib/classify";
 import { logOcr } from "@/lib/ocrLog";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
@@ -63,15 +65,23 @@ export async function POST(req: NextRequest) {
     const fileRes = await drive.files.get({ fileId, alt: "media" }, { responseType: "arraybuffer" });
     const buffer = Buffer.from(fileRes.data as ArrayBuffer);
 
-    const model = genAI.getGenerativeModel({
-      model: GEMINI_VISION_MODEL,
-      generationConfig: { responseMimeType: "application/json", responseSchema: OCR_SCHEMA },
-    });
+    // Cùng lý do như `api/ocr`: quá tải là chuyện của riêng từng model, nên
+    // phải đi qua chuỗi dự phòng thay vì gọi thẳng một model rồi bỏ cuộc.
+    const models = modelsWithFallback(
+      {
+        generationConfig: { responseMimeType: "application/json", responseSchema: OCR_SCHEMA },
+      },
+      GEMINI_VISION_MODEL
+    );
 
-    const result = await model.generateContent([
-      OCR_PROMPT,
-      { inlineData: { data: buffer.toString("base64"), mimeType: file.mimeType } },
-    ]);
+    const result = await generateWithRetry(
+      models,
+      [
+        OCR_PROMPT,
+        { inlineData: { data: buffer.toString("base64"), mimeType: file.mimeType } },
+      ],
+      { timeoutMs: 20_000, totalBudgetMs: 45_000 }
+    );
     const data = JSON.parse(result.response.text());
 
     // Import động: `prisma` chỉ cần khi OCR đã thành công, và giữ import ở đây
@@ -137,7 +147,10 @@ export async function POST(req: NextRequest) {
       message: `Quét lại thất bại: ${message}`,
       durationMs: Date.now() - startedAt,
     });
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: aiErrorMessage(error), detail: message },
+      { status: 500 }
+    );
   }
 }
 

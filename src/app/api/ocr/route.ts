@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { genAI, GEMINI_VISION_MODEL } from "@/lib/gemini";
+import { GEMINI_VISION_MODEL, modelsWithFallback } from "@/lib/gemini";
+import { generateWithRetry, aiErrorMessage } from "@/lib/aiRetry";
 import { requireUser } from "@/lib/auth";
 import {
   getDriveClient,
@@ -14,6 +15,9 @@ import { classify, RULE_ORDER } from "@/lib/classify";
 import { logOcr } from "@/lib/ocrLog";
 
 export const runtime = "nodejs";
+// Quét tối đa 3 ảnh và có thể phải nhảy qua vài model khi model đầu quá tải,
+// nên lượt gọi dài hơn hẳn các route khác.
+export const maxDuration = 60;
 
 // Hoá đơn chụp bằng điện thoại hiếm khi vượt 10MB. Chặn sớm để không nạp cả
 // file khổng lồ vào RAM rồi mới base64 hoá.
@@ -76,15 +80,27 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const model = genAI.getGenerativeModel({
-      model: GEMINI_VISION_MODEL,
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: OCR_SCHEMA,
+    // Đi qua CHUỖI model chứ không gọi thẳng một model.
+    //
+    // Lỗi gặp thật ngày 03/10: `gemini-3.6-flash` trả 503 "high demand" và cả
+    // lượt quét hỏng, ảnh bị đẩy sang Error_Invoices — trong khi quá tải là
+    // chuyện của riêng từng model, model khác lúc đó vẫn chạy. Chính file
+    // `lib/gemini.ts` đã ghi "gemini-3.6-flash 3/3 lượt trả 503", vậy mà đường
+    // OCR lại là đường duy nhất không dùng cơ chế nhảy model.
+    const models = modelsWithFallback(
+      {
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: OCR_SCHEMA,
+        },
       },
-    });
+      GEMINI_VISION_MODEL
+    );
 
-    const result = await model.generateContent([OCR_PROMPT, ...imageParts]);
+    const result = await generateWithRetry(models, [OCR_PROMPT, ...imageParts], {
+      timeoutMs: 20_000,
+      totalBudgetMs: 45_000,
+    });
     const data = JSON.parse(result.response.text());
 
     // Quy tắc trước, Gemini sau: nếu người dùng đã dạy hệ thống nhà cung cấp này
@@ -138,6 +154,11 @@ export async function POST(req: NextRequest) {
       durationMs: Date.now() - startedAt,
     });
 
-    return NextResponse.json({ error: message, driveFileIds, movedToError }, { status: 500 });
+    // Nhật ký giữ nguyên văn của Google để còn lần ra nguyên nhân; người dùng
+    // thì nhận câu nói rõ phải làm gì, không phải một đoạn URL kèm JSON.
+    return NextResponse.json(
+      { error: aiErrorMessage(error), detail: message, driveFileIds, movedToError },
+      { status: 500 }
+    );
   }
 }
