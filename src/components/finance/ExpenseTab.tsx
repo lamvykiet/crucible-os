@@ -1,7 +1,7 @@
 "use client";
 
 import { Calendar, CreditCard, LineChart as LineChartIcon, Tag, Receipt, ChevronDown, AlertCircle, ListChecks, ArrowUpRight } from "lucide-react";
-import { ComposedChart, Bar, LineChart as RechartsLineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ComposedChart, BarChart, Bar, LineChart as RechartsLineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import { useState, useEffect } from "react";
@@ -21,6 +21,8 @@ const OTHER_KEY = "__other";
 
 interface CategorySlice { name: string; amount: number }
 interface SeriesPoint { name: string; amount: number }
+/** Điểm có kèm SỐ giao dịch, không chỉ số tiền. */
+interface CountedPoint { name: string; amount: number; count: number }
 interface TransactionInfo {
   id: string;
   date: string;
@@ -47,7 +49,11 @@ interface ExpenseData {
   avgDailyExpense: number;
   eomForecast: number;
   categoriesCount: number;
-  dailySeries: SeriesPoint[];
+  dailySeries: CountedPoint[];
+  /** Ngày trong tháng (01–31), gộp 12 tháng gần nhất. */
+  dayOfMonth: CountedPoint[];
+  /** Tổng chi theo năm, mọi năm đã có dữ liệu. */
+  yearlySeries: CountedPoint[];
   monthlySeries: SeriesPoint[];
   /** Mỗi dòng: { name, total, "<tên nhóm>": số tiền... } cho 12 tháng. */
   monthlyBreakdown: Record<string, string | number>[];
@@ -62,7 +68,8 @@ const EMPTY: ExpenseData = {
   totals: { day: 0, month: 0, year: 0 },
   categoryBreakdowns: { day: [], month: [], year: [] },
   avgDailyExpense: 0, eomForecast: 0, categoriesCount: 0,
-  dailySeries: [], monthlySeries: [], monthlyBreakdown: [], monthlyCategoryKeys: [],
+  dailySeries: [], dayOfMonth: [], yearlySeries: [],
+  monthlySeries: [], monthlyBreakdown: [], monthlyCategoryKeys: [],
   topMerchants: [], recentTransactions: [], hasData: false,
 };
 
@@ -107,7 +114,7 @@ export default function ExpenseTab() {
   const {
     totals, categoryBreakdowns, avgDailyExpense, eomForecast, categoriesCount,
     monthlyBreakdown, monthlyCategoryKeys,
-    dailySeries,
+    dailySeries, dayOfMonth, yearlySeries,
     topMerchants, recentTransactions, hasData
   } = data;
 
@@ -237,11 +244,6 @@ export default function ExpenseTab() {
             </div>
           </div>
 
-          <PeriodComparison
-            metrics={["expense", "cashOut", "debtService", "count"]}
-            refreshKey={refreshKey}
-          />
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col">
               <h3 className="c-h5 text-[var(--color-text)] mb-2">{t("Expense by Category", "Chi tiêu theo nhóm")}</h3>
@@ -313,50 +315,172 @@ export default function ExpenseTab() {
                   </RechartsLineChart>
                 </ResponsiveContainer>
               </div>
-              {/* Chọn ngày bằng dải nút thay vì bấm vào điểm trên biểu đồ: chấm
-                  chỉ rộng 3px, trên điện thoại gần như không trúng. Nút thật thì
-                  đủ 44px, và ngày đã có chi tiêu được tô đậm để dễ nhắm. */}
-              <div className="mt-6">
-                <p className="text-xs text-[var(--color-text-muted)] mb-2">
-                  {t("Pick a day to see its transactions", "Chọn một ngày để xem chi tiết")}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {dailySeries.map((d) => {
-                    const iso = `${selectedMonth}-${d.name}`;
-                    const active = selectedDay === iso;
-                    const hasSpend = d.amount > 0;
-                    return (
-                      <button
-                        key={d.name}
-                        onClick={() => setSelectedDay(active ? null : iso)}
-                        className={`min-w-11 h-11 px-2 flex items-center justify-center rounded-lg text-xs font-bold tabular-nums border transition-colors ${
-                          active
-                            ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] border-[var(--color-primary)]"
-                            : hasSpend
-                              ? "bg-[var(--color-surface-2)] text-[var(--color-text)] border-[var(--color-border)] hover:border-[var(--color-info)]"
-                              : "bg-transparent text-[var(--color-text-faint)] border-[var(--color-border)] hover:border-[var(--color-info)]"
-                        }`}
-                      >
-                        {Number(d.name)}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+            </div>
+          </div>
 
-              {selectedDay && (
-                <div className="mt-6">
-                  <DayTransactionsCard
-                    date={selectedDay}
-                    refreshKey={refreshKey}
-                    onAddTransaction={() => setIsModalOpen(true)}
+          {/* Bảng so sánh kỳ xuống dưới hai biểu đồ: hai biểu đồ là thứ nhìn
+              trước, bảng số là thứ tra sau. */}
+          <PeriodComparison
+            metrics={["expense", "cashOut", "debtService", "count"]}
+            refreshKey={refreshKey}
+          />
+
+          {/* Chi tiết từng ngày tách thành mục riêng. Trước đây nó nằm nhét
+              dưới biểu đồ xu hướng, nên một thẻ vừa là biểu đồ vừa là bảng tra
+              cứu — hai việc khác nhau trong cùng một khung. */}
+          <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
+            <h3 className="c-h5 text-[var(--color-text)]">
+              {t("Day by day", "Chi tiết theo ngày")}
+            </h3>
+            <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
+              {t(
+                "days with spending are highlighted",
+                "ngày đã có chi tiêu được tô đậm"
+              )}
+            </p>
+            {/* Chọn ngày bằng dải nút thay vì bấm vào điểm trên biểu đồ: chấm
+                chỉ rộng 3px, trên điện thoại gần như không trúng. Nút thật thì
+                đủ 44px, và ngày đã có chi tiêu được tô đậm để dễ nhắm. */}
+            <div className="mt-6">
+              <p className="text-xs text-[var(--color-text-muted)] mb-2">
+                {t("Pick a day to see its transactions", "Chọn một ngày để xem chi tiết")}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {dailySeries.map((d) => {
+                  const iso = `${selectedMonth}-${d.name}`;
+                  const active = selectedDay === iso;
+                  const hasSpend = d.amount > 0;
+                  return (
+                    <button
+                      key={d.name}
+                      onClick={() => setSelectedDay(active ? null : iso)}
+                      className={`min-w-11 h-11 px-2 flex items-center justify-center rounded-lg text-xs font-bold tabular-nums border transition-colors ${
+                        active
+                          ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] border-[var(--color-primary)]"
+                          : hasSpend
+                            ? "bg-[var(--color-surface-2)] text-[var(--color-text)] border-[var(--color-border)] hover:border-[var(--color-info)]"
+                            : "bg-transparent text-[var(--color-text-faint)] border-[var(--color-border)] hover:border-[var(--color-info)]"
+                      }`}
+                    >
+                      {Number(d.name)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {selectedDay && (
+              <div className="mt-6">
+                <DayTransactionsCard
+                  date={selectedDay}
+                  refreshKey={refreshKey}
+                  onAddTransaction={() => setIsModalOpen(true)}
+                />
+                <button
+                  onClick={() => setSelectedDay(null)}
+                  className="mt-3 min-h-11 px-1 text-xs text-[var(--color-text-muted)] underline underline-offset-2 hover:text-[var(--color-text)]"
+                >
+                  {t("Close day detail", "Đóng chi tiết ngày")}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Ba lát cắt về NHỊP: theo ngày, theo ngày trong tháng, theo năm. */}
+          <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
+            <h3 className="c-h5 text-[var(--color-text)]">
+              {t("How many transactions a day", "Mỗi ngày bao nhiêu giao dịch")}
+            </h3>
+            <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
+              {t(
+                "spending alone cannot tell one big purchase from twenty small ones",
+                "chỉ nhìn số tiền thì không phân biệt được một khoản lớn với hai mươi khoản nhỏ"
+              )}
+            </p>
+            <div className="h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dailySeries}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} width={32} allowDecimals={false} />
+                  <Tooltip
+                    formatter={(v, n, item) => [
+                      `${v} ${t("transactions", "giao dịch")} · ${formatVND(
+                        Number((item?.payload as { amount?: number })?.amount) || 0
+                      )}`,
+                      t("Count", "Số giao dịch"),
+                    ]}
                   />
-                  <button
-                    onClick={() => setSelectedDay(null)}
-                    className="mt-3 min-h-11 px-1 text-xs text-[var(--color-text-muted)] underline underline-offset-2 hover:text-[var(--color-text)]"
-                  >
-                    {t("Close day detail", "Đóng chi tiết ngày")}
-                  </button>
+                  <Bar dataKey="count" name={t("Count", "Số giao dịch")} maxBarSize={22} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
+              <h3 className="c-h5 text-[var(--color-text)]">
+                {t("Which day of the month", "Ngày nào trong tháng hay tốn")}
+              </h3>
+              <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
+                {t(
+                  "12 months stacked on top of each other — fixed-date bills show up as spikes",
+                  "xếp chồng 12 tháng lên nhau — khoản rơi vào ngày cố định sẽ nhô lên thành cột"
+                )}
+              </p>
+              <div className="h-56 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dayOfMonth}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "var(--color-text-faint)" }} interval={2} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={48} />
+                    <Tooltip
+                      formatter={(v, n, item) => [
+                        `${formatVND(Number(v) || 0)} · ${
+                          (item?.payload as { count?: number })?.count || 0
+                        } ${t("transactions", "giao dịch")}`,
+                        t("Spending", "Số tiền"),
+                      ]}
+                      labelFormatter={(d) => t(`Day ${d}`, `Ngày ${d}`)}
+                    />
+                    <Bar dataKey="amount" name={t("Spending", "Số tiền")} maxBarSize={18} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
+              <h3 className="c-h5 text-[var(--color-text)]">
+                {t("Year by year", "Tổng chi theo năm")}
+              </h3>
+              <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
+                {t(
+                  "every year on record · the current year is still running",
+                  "mọi năm đã có dữ liệu · năm nay vẫn đang chạy nên chưa trọn"
+                )}
+              </p>
+              {yearlySeries.length === 0 ? (
+                <p className="text-sm text-[var(--color-text-muted)]">
+                  {t("No spending recorded yet.", "Chưa ghi khoản chi nào.")}
+                </p>
+              ) : (
+                <div className="h-56 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={yearlySeries}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={48} />
+                      <Tooltip
+                        formatter={(v, n, item) => [
+                          `${formatVND(Number(v) || 0)} · ${
+                            (item?.payload as { count?: number })?.count || 0
+                          } ${t("transactions", "giao dịch")}`,
+                          t("Spending", "Số tiền"),
+                        ]}
+                      />
+                      <Bar dataKey="amount" name={t("Spending", "Số tiền")} maxBarSize={48} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               )}
             </div>

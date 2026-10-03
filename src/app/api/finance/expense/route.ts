@@ -36,7 +36,7 @@ export async function GET(req: Request) {
     const yearStart = new Date(Date.UTC(year, 0, 1));
     const yearEnd = new Date(Date.UTC(year + 1, 0, 1));
 
-    const [monthTx, ytdTx, yearTx] = await Promise.all([
+    const [monthTx, ytdTx, yearTx, allTx] = await Promise.all([
       prisma.transaction.findMany({
         where: { userId, date: { gte: startDate, lt: endDate } },
         orderBy: { date: "asc" },
@@ -53,6 +53,12 @@ export async function GET(req: Request) {
       prisma.transaction.findMany({
         where: { userId, date: { gte: yearStart, lt: yearEnd } },
         select: { date: true, type: true, totalAmount: true, categoryGroup: true },
+      }),
+      // Không giới hạn ngày: chuỗi theo NĂM cần mọi năm đã có dữ liệu, mà
+      // một năm chỉ là một điểm nên trả về vẫn nhẹ.
+      prisma.transaction.findMany({
+        where: { userId },
+        select: { date: true, type: true, totalAmount: true },
       }),
     ]);
 
@@ -98,18 +104,63 @@ export async function GET(req: Request) {
       .slice(0, 5);
 
     const perDay = new Array<number>(daysInMonth).fill(0);
+    // Số giao dịch mỗi ngày, tách khỏi số tiền: một ngày 2 triệu có thể là một
+    // khoản lớn hoặc hai mươi khoản nhỏ, và hai chuyện đó khác hẳn nhau.
+    const perDayCount = new Array<number>(daysInMonth).fill(0);
     for (const t of monthTx) {
       const idx = t.date.getUTCDate() - 1;
       if (idx < 0 || idx >= daysInMonth) continue;
       const b = classify(t.type);
-      if (b === "expense") perDay[idx] += t.totalAmount;
-      else if (b === "refund") perDay[idx] -= t.totalAmount;
+      if (b === "expense") {
+        perDay[idx] += t.totalAmount;
+        perDayCount[idx] += 1;
+      } else if (b === "refund") {
+        perDay[idx] -= t.totalAmount;
+        perDayCount[idx] += 1;
+      }
     }
     const visibleDays = isCurrentMonth ? elapsedDays : daysInMonth;
     const dailySeries = perDay.slice(0, visibleDays).map((amount, i) => ({
       name: String(i + 1).padStart(2, "0"),
       amount,
+      count: perDayCount[i],
     }));
+
+    // Ngày nào TRONG THÁNG hay tốn, gộp 12 tháng gần nhất. Tiền nhà, tiền điện,
+    // lương về — những thứ rơi vào một ngày cố định chỉ lộ ra khi xếp chồng
+    // nhiều tháng lên nhau.
+    const dayOfMonth = Array.from({ length: 31 }, (_, i) => ({
+      name: String(i + 1).padStart(2, "0"),
+      amount: 0,
+      count: 0,
+    }));
+    for (const t of ytdTx) {
+      const idx = t.date.getUTCDate() - 1;
+      if (idx < 0 || idx > 30) continue;
+      const b = classify(t.type);
+      if (b === "expense") {
+        dayOfMonth[idx].amount += t.totalAmount;
+        dayOfMonth[idx].count += 1;
+      } else if (b === "refund") {
+        dayOfMonth[idx].amount -= t.totalAmount;
+        dayOfMonth[idx].count += 1;
+      }
+    }
+
+    // Tổng chi theo năm, mọi năm đã có dữ liệu.
+    const byYear = new Map<number, { amount: number; count: number }>();
+    for (const t of allTx) {
+      const b = classify(t.type);
+      if (b !== "expense" && b !== "refund") continue;
+      const y = t.date.getUTCFullYear();
+      const cur = byYear.get(y) || { amount: 0, count: 0 };
+      cur.amount += b === "expense" ? t.totalAmount : -t.totalAmount;
+      cur.count += 1;
+      byYear.set(y, cur);
+    }
+    const yearlySeries = [...byYear.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([y, v]) => ({ name: String(y), amount: v.amount, count: v.count }));
 
     const ytdMap = new Map<string, number>();
     for (let i = 11; i >= 0; i--) {
@@ -248,6 +299,8 @@ export async function GET(req: Request) {
         categoriesCount: categoryBreakdown.length,
         categoryBreakdown, // Keep for backward compatibility
         dailySeries,
+        dayOfMonth,
+        yearlySeries,
         monthlySeries,
         monthlyBreakdown,
         monthlyCategoryKeys,
