@@ -11,6 +11,7 @@ import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
+import { monthAxis } from "./MonthAxisTick";
 
 // Không gian soi MỘT nhóm chi tiêu.
 //
@@ -384,16 +385,7 @@ export default function ExpenseGroupAnalysis({ refreshKey = 0 }: { refreshKey?: 
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={data.monthlySeries}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                      <XAxis
-                        dataKey="name"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 9, fill: "var(--color-text-faint)" }}
-                        angle={-45}
-                        textAnchor="end"
-                        height={56}
-                        interval={1}
-                      />
+                      <XAxis dataKey="name" {...monthAxis(data.monthlySeries.map((d) => String(d.name)))} />
                       <YAxis
                         axisLine={false}
                         tickLine={false}
@@ -539,16 +531,7 @@ export default function ExpenseGroupAnalysis({ refreshKey = 0 }: { refreshKey?: 
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={data.shareOfTotal}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                        <XAxis
-                          dataKey="name"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 9, fill: "var(--color-text-faint)" }}
-                          angle={-45}
-                          textAnchor="end"
-                          height={50}
-                          interval={2}
-                        />
+                        <XAxis dataKey="name" {...monthAxis(data.shareOfTotal.map((d) => d.name))} />
                         <YAxis
                           axisLine={false}
                           tickLine={false}

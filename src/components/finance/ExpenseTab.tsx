@@ -17,6 +17,7 @@ import StackedMonthTooltip from "./StackedMonthTooltip";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
+import { monthAxis } from "./MonthAxisTick";
 const OTHER_KEY = "__other";
 
 interface CategorySlice { name: string; amount: number }
@@ -503,7 +504,7 @@ export default function ExpenseTab() {
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={monthlyBreakdown} className="c-chart-multi">
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: 'var(--color-text-faint)'}} angle={-35} textAnchor="end" height={50} />
+                  <XAxis dataKey="name" {...monthAxis(monthlyBreakdown.map((d) => String(d.name)))} />
                   <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: 'var(--color-text-faint)'}} tickFormatter={(value) => compactMoney(Number(value), language === "vi")} width={50} />
                   <Tooltip content={<StackedMonthTooltip otherKey={OTHER_KEY} otherLabel={t("Other", "Khác")} />} />
                   <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />

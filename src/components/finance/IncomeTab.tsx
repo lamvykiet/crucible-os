@@ -18,6 +18,7 @@ import PeriodComparison from "./PeriodComparison";
 import StackedMonthTooltip from "./StackedMonthTooltip";
 import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
+import { monthAxis } from "./MonthAxisTick";
 
 // Toàn bộ số liệu đến từ /api/finance/income.
 // Trước đây tab này chạy trên 4 mảng hardcode và cả tên công ty ("SHINHAN
@@ -377,7 +378,7 @@ export default function IncomeTab() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlySeries}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "var(--color-text-faint)" }} angle={-35} textAnchor="end" height={50} />
+                <XAxis dataKey="name" {...monthAxis(monthlySeries.map((d) => d.name))} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} />
                 <Tooltip formatter={(v) => formatVND(Number(v) || 0)} />
                 <Bar dataKey="amount" fill="var(--chart-1)" radius={[4, 4, 0, 0]} barSize={20} />
@@ -424,7 +425,7 @@ export default function IncomeTab() {
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={sourceMonthly} className="c-chart-multi">
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "var(--color-text-faint)" }} angle={-35} textAnchor="end" height={50} />
+                  <XAxis dataKey="name" {...monthAxis(sourceMonthly.map((d) => String(d.name)))} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={50} />
                   <Tooltip
                     content={

@@ -123,6 +123,14 @@ biến thành hình tròn.
 1200px, 96px giữa các khối lớn, 24px đệm thẻ. Đừng chồng `max-w-*` hay
 `py-*` lên `<main>`.
 
+**Trục thời gian theo tháng** → `<XAxis dataKey="name" {...monthAxis(series.map((d) => d.name))} />`
+(`src/components/finance/MonthAxisTick.tsx`). Nhãn `YYYY-MM` viết đủ thì không
+vừa, nên bản cũ xoay -45° — kéo theo trục cao 56px và recharts phải bỏ bớt tick,
+biểu đồ 24 tháng chỉ hiện 12 nhãn. `monthAxis` tách năm xuống một hàng gom
+nhóm, nhãn nằm ngang, `interval={0}`. Nó suy bề rộng một cột từ `width` và
+`visibleTicksCount` mà recharts truyền vào tick — dưới 24px/cột thì rút tên
+tháng về số, nên đừng truyền `tick` khác đè lên.
+
 **Đặt cỡ chữ** → dùng thang `.c-display / .c-h1….c-h5`, đừng dùng `text-*` của
 Tailwind cho heading. Mặc định thẻ nằm trong `@layer base`, thang chữ nằm trong
 `@layer components`. Viết mặc định thẻ **ngoài** mọi `@layer` sẽ nuốt sạch utility

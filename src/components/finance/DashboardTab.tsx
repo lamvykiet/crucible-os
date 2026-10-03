@@ -23,6 +23,7 @@ import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { thisMonthLocalIso, todayLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
+import { monthAxis } from "./MonthAxisTick";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,
@@ -945,7 +946,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={ytdSeries} className="c-chart-multi">
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "var(--color-text-faint)" }} angle={-35} textAnchor="end" height={50} />
+                <XAxis dataKey="name" {...monthAxis(ytdSeries.map((d) => d.name))} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={50} />
                 <Tooltip formatter={(v, n) => [formatVND(Number(v) || 0), n]} />
                 <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
@@ -1234,7 +1235,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
                   xin màu riêng qua .c-chart-multi giống biểu đồ cột chồng. */}
               <AreaChart data={ytdSeries} className="c-chart-multi">
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} />
+                <XAxis dataKey="name" {...monthAxis(ytdSeries.map((d) => d.name))} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} />
                 <Tooltip formatter={(v) => formatVND(Number(v) || 0)} />
                 <Area type="monotone" dataKey="cumulativeIncome" className="c-series-1" stroke="var(--chart-1)" strokeWidth={3} fill="var(--chart-1)" name={t("Cumulative Income", "Luỹ kế Thu")} />
