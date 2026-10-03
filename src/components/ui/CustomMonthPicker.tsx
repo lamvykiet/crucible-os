@@ -22,12 +22,18 @@ export default function CustomMonthPicker({ value, onChange }: CustomMonthPicker
   // Mar/Apr/Jul/Aug/Nov/Dec bị cắt mất, không tài nào bấm được.
   // Nên phải ĐO lúc mở rồi chọn bên còn chỗ.
   const [alignRight, setAlignRight] = useState(false);
+  // Bấm vào số năm để mở lưới năm. Trước đây năm là một thẻ <h4> chết, muốn về
+  // 2024 phải bấm mũi tên hai mươi mấy lần.
+  const [showYears, setShowYears] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Parse initial value
   const [year, monthStr] = value.split('-');
   const [currentYear, setCurrentYear] = useState(parseInt(year, 10));
   const selectedMonthIdx = parseInt(monthStr, 10) - 1;
+  // Khối 12 năm bao quanh năm đang xem, để năm hiện tại không rơi vào mép.
+  const yearBlockStart = currentYear - ((currentYear % 12) + 12) % 12;
+  const yearBlock = Array.from({ length: 12 }, (_, i) => yearBlockStart + i);
 
   // Handle click outside to close
   useEffect(() => {
@@ -61,6 +67,7 @@ export default function CustomMonthPicker({ value, onChange }: CustomMonthPicker
         setAlignRight(!fitsLeftAnchored && fitsRightAnchored);
       }
     }
+    if (!isOpen) setShowYears(false);
     setIsOpen((open) => !open);
   };
 
@@ -103,25 +110,56 @@ export default function CustomMonthPicker({ value, onChange }: CustomMonthPicker
             }`}
           >
           <div className="flex justify-between items-center mb-6">
-            <h4 className="c-h4 text-[var(--color-text)] ml-2">{currentYear}</h4>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowYears((v) => !v); }}
+              aria-label={showYears ? "Về lưới tháng" : "Chọn năm"}
+              aria-expanded={showYears}
+              className="c-h4 text-[var(--color-text)] min-h-11 px-2 -ml-1 rounded-lg tabular-nums hover:bg-[var(--color-surface-2)] transition-colors"
+            >
+              {showYears ? `${yearBlock[0]} – ${yearBlock[11]}` : currentYear}
+            </button>
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setCurrentYear(y => y - 1); }}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
+                onClick={(e) => { e.stopPropagation(); setCurrentYear(y => y - (showYears ? 12 : 1)); }}
+                aria-label="Lùi lại"
+                className="w-11 h-11 md:w-8 md:h-8 rounded-full flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setCurrentYear(y => y + 1); }}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
+                onClick={(e) => { e.stopPropagation(); setCurrentYear(y => y + (showYears ? 12 : 1)); }}
+                aria-label="Tiến tới"
+                className="w-11 h-11 md:w-8 md:h-8 rounded-full flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
               >
                 <ChevronRight size={20} />
               </button>
             </div>
           </div>
 
+          {showYears && (
+            <div className="grid grid-cols-4 gap-2">
+              {yearBlock.map((y) => (
+                <button
+                  key={y}
+                  type="button"
+                  onClick={() => { setCurrentYear(y); setShowYears(false); }}
+                  aria-pressed={y === currentYear}
+                  className={`min-h-[44px] rounded-full text-sm font-medium tabular-nums transition-all ${
+                    y === currentYear
+                      ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md"
+                      : "text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+                  }`}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!showYears && (
           <div className="grid grid-cols-4 gap-2">
             {MONTHS.map((m, idx) => {
               const isSelected = selectedMonthIdx === idx && parseInt(year, 10) === currentYear;
@@ -142,6 +180,7 @@ export default function CustomMonthPicker({ value, onChange }: CustomMonthPicker
               );
             })}
             </div>
+          )}
           </div>
         </>
       )}

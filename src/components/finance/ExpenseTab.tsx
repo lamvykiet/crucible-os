@@ -12,6 +12,7 @@ import PendingReviewButton from "./PendingReviewButton";
 import DayTransactionsCard from "./DayTransactionsCard";
 import IncompleteDataModal from "./IncompleteDataModal";
 import PeriodComparison from "./PeriodComparison";
+import ExpenseGroupAnalysis from "./ExpenseGroupAnalysis";
 import StackedMonthTooltip from "./StackedMonthTooltip";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
@@ -420,6 +421,8 @@ export default function ExpenseTab() {
             </div>
             )}
           </div>
+
+          <ExpenseGroupAnalysis refreshKey={refreshKey} />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">

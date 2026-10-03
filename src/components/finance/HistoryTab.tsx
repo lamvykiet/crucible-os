@@ -9,6 +9,7 @@ import TransactionModal from "./TransactionModal";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import { normalizeSupplier, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 import TransactionCalendar from "./TransactionCalendar";
+import GroupCoverage from "./GroupCoverage";
 import { formatVND } from "@/lib/formatMoney";
 
 interface Transaction {
@@ -207,6 +208,10 @@ export default function HistoryTab() {
             dưới, để không lẫn hai loại điều khiển vào nhau. */}
         <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
       </div>
+
+      {/* Soi kỳ thiếu trước, rồi mới xuống chi tiết từng ngày: danh sách phẳng
+          chỉ hiện thứ đã nhập, không bao giờ cho thấy chỗ còn trống. */}
+      <GroupCoverage onPickMonth={(m) => { setSelectedMonth(m); setFromDate(""); setToDate(""); }} />
 
       {/* Lịch tháng chỉ có nghĩa khi danh sách đúng bằng một tháng. Đang lọc
           theo khoảng ngày mà vẫn vẽ lịch tháng thì các ô hiện số của một quãng
