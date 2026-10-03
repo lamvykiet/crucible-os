@@ -18,6 +18,10 @@ function monthKey(d: Date) {
   return d.toISOString().slice(0, 7);
 }
 
+function dayKey(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
 /**
  * Cùng quy ước với mọi route Finance khác: hoàn tiền trừ ngược vào chi tiêu.
  *
@@ -32,6 +36,17 @@ function signedAmount(type: string, amount: number, kind: "expense" | "income"):
   if (t === "refund") return -amount;
   return 0;
 }
+
+/** Các mốc chia khoản chi theo cỡ. Dùng để thấy "ít khoản to" hay "nhiều khoản nhỏ". */
+const SIZE_BUCKETS: { label: string; max: number }[] = [
+  { label: "< 100k", max: 100_000 },
+  { label: "100k – 500k", max: 500_000 },
+  { label: "500k – 1tr", max: 1_000_000 },
+  { label: "1tr – 5tr", max: 5_000_000 },
+  { label: "≥ 5tr", max: Infinity },
+];
+
+const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 export async function GET(req: Request) {
   const { user, response } = await requireUser();
@@ -55,46 +70,44 @@ export async function GET(req: Request) {
     const year = Number(monthParam.slice(0, 4));
     const monthNum = Number(monthParam.slice(5, 7));
 
-    // Cửa sổ: từ đầu năm TRƯỚC tới hết tháng đang xem. Đủ cho mọi phép so sánh
-    // bên dưới (cùng kỳ năm trước, luỹ kế năm trước, chuỗi 24 tháng).
-    const windowStart = new Date(Date.UTC(year - 1, 0, 1));
+    // Cửa sổ: từ đầu năm TRƯỚC tới hết tháng đang xem, và ít nhất 24 tháng.
     const windowEnd = new Date(Date.UTC(year, monthNum, 1));
     const seriesStart = new Date(Date.UTC(year, monthNum - 24, 1));
+    const yearStart = new Date(Date.UTC(year - 1, 0, 1));
+    const windowStart = yearStart < seriesStart ? yearStart : seriesStart;
 
-    const rows = await prisma.transaction.findMany({
-      where: {
-        userId: user.id,
-        categoryGroup: group,
-        date: {
-          gte: windowStart < seriesStart ? windowStart : seriesStart,
-          lt: windowEnd,
+    const [rows, allRows] = await Promise.all([
+      prisma.transaction.findMany({
+        where: {
+          userId: user.id,
+          categoryGroup: group,
+          date: { gte: windowStart, lt: windowEnd },
         },
-      },
-      select: {
-        date: true,
-        type: true,
-        totalAmount: true,
-        subGroup: true,
-        supplier: true,
-      },
-      orderBy: { date: "asc" },
-    });
+        select: {
+          date: true,
+          type: true,
+          totalAmount: true,
+          subGroup: true,
+          supplier: true,
+        },
+        orderBy: { date: "asc" },
+      }),
+      // Tổng chi MỌI nhóm, để tính nhóm này chiếm bao nhiêu phần trăm mỗi tháng.
+      prisma.transaction.findMany({
+        where: { userId: user.id, date: { gte: seriesStart, lt: windowEnd } },
+        select: { date: true, type: true, totalAmount: true },
+      }),
+    ]);
 
-    // --- Chuỗi 24 tháng ---
-    const series = new Map<string, { amount: number; count: number }>();
+    // --- Khung 24 tháng ---
+    const monthKeys: string[] = [];
     for (let i = 23; i >= 0; i--) {
-      series.set(monthKey(new Date(Date.UTC(year, monthNum - 1 - i, 1))), {
-        amount: 0,
-        count: 0,
-      });
+      monthKeys.push(monthKey(new Date(Date.UTC(year, monthNum - 1 - i, 1))));
     }
+    const monthIndex = new Set(monthKeys);
 
-    const bucket = (map: Map<string, { amount: number; count: number }>, key: string, amount: number) => {
-      const entry = map.get(key);
-      if (!entry) return;
-      entry.amount += amount;
-      if (amount !== 0) entry.count += 1;
-    };
+    const series = new Map<string, { amount: number; count: number }>();
+    for (const k of monthKeys) series.set(k, { amount: 0, count: 0 });
 
     const thisMonthKey = monthParam;
     const prevMonthKey = monthKey(new Date(Date.UTC(year, monthNum - 2, 1)));
@@ -115,29 +128,68 @@ export async function GET(req: Request) {
     const subMonth = new Map<string, { amount: number; count: number }>();
     const subYear = new Map<string, { amount: number; count: number }>();
     const merchants = new Map<string, { amount: number; count: number }>();
+    const subTotals = new Map<string, number>();
+
+    // Tiền theo tháng × danh mục con, kèm TỪNG DÒNG để chú giải nói được ngày
+    // phát sinh. Không gom sẵn thành chuỗi ở đây: client cần số để sắp xếp.
+    const byMonthSub = new Map<string, Map<string, { amount: number; days: { date: string; amount: number; supplier: string }[] }>>();
+
+    // Phân bố theo cỡ khoản và theo thứ trong tuần — chỉ tính 12 tháng gần nhất
+    // để nó nói về thói quen HIỆN TẠI, không bị hai năm trước kéo lệch.
+    const recentFrom = monthKeys[12];
+    const sizeCounts = SIZE_BUCKETS.map(() => ({ count: 0, amount: 0 }));
+    const weekday = WEEKDAYS.map(() => ({ amount: 0, count: 0 }));
+
+    const monthlyCum = new Map<string, number>(); // "YYYY-MM" -> amount, cho luỹ kế
 
     for (const r of rows) {
       const amount = signedAmount(r.type, r.totalAmount, kind);
       if (amount === 0) continue;
-      const key = monthKey(r.date);
+      const mKey = monthKey(r.date);
       const rowYear = r.date.getUTCFullYear();
       const rowMonth = r.date.getUTCMonth() + 1;
       const sub = r.subGroup?.trim() || "";
       const who = r.supplier?.trim() || "";
 
-      bucket(series, key, amount);
+      monthlyCum.set(mKey, (monthlyCum.get(mKey) || 0) + amount);
 
-      if (key === thisMonthKey) {
+      if (monthIndex.has(mKey)) {
+        const entry = series.get(mKey)!;
+        entry.amount += amount;
+        entry.count += 1;
+
+        if (!byMonthSub.has(mKey)) byMonthSub.set(mKey, new Map());
+        const bucket = byMonthSub.get(mKey)!;
+        const cur = bucket.get(sub) || { amount: 0, days: [] };
+        cur.amount += amount;
+        cur.days.push({ date: dayKey(r.date), amount, supplier: who });
+        bucket.set(sub, cur);
+
+        subTotals.set(sub, (subTotals.get(sub) || 0) + amount);
+
+        if (mKey >= recentFrom && amount > 0) {
+          const idx = SIZE_BUCKETS.findIndex((b) => amount < b.max);
+          const slot = sizeCounts[idx === -1 ? SIZE_BUCKETS.length - 1 : idx];
+          slot.count += 1;
+          slot.amount += amount;
+
+          const w = weekday[r.date.getUTCDay()];
+          w.amount += amount;
+          w.count += 1;
+        }
+      }
+
+      if (mKey === thisMonthKey) {
         monthTotal += amount;
         monthCount += 1;
         const cur = subMonth.get(sub) || { amount: 0, count: 0 };
         subMonth.set(sub, { amount: cur.amount + amount, count: cur.count + 1 });
       }
-      if (key === prevMonthKey) {
+      if (mKey === prevMonthKey) {
         prevMonthTotal += amount;
         prevMonthCount += 1;
       }
-      if (key === lastYearMonthKey) {
+      if (mKey === lastYearMonthKey) {
         lastYearMonthTotal += amount;
         lastYearMonthCount += 1;
       }
@@ -161,19 +213,84 @@ export async function GET(req: Request) {
       }
     }
 
-    const monthlySeries = [...series.entries()].map(([name, v]) => ({
-      name,
-      amount: v.amount,
-      count: v.count,
+    // Tổng chi mọi nhóm theo tháng, để tính tỷ trọng.
+    const allByMonth = new Map<string, number>();
+    for (const r of allRows) {
+      const amount = signedAmount(r.type, r.totalAmount, kind);
+      if (amount === 0) continue;
+      const k = monthKey(r.date);
+      if (!monthIndex.has(k)) continue;
+      allByMonth.set(k, (allByMonth.get(k) || 0) + amount);
+    }
+
+    // Danh mục con xếp theo tổng của cả cửa sổ: thứ tự phải CỐ ĐỊNH qua mọi
+    // tháng, nếu không mỗi cột lại xếp một kiểu và không so được bằng mắt.
+    const subNames = [...subTotals.entries()]
+      .filter(([, v]) => v > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name]) => name);
+
+    const monthlySeries = monthKeys.map((name) => {
+      const s = series.get(name)!;
+      const bucket = byMonthSub.get(name);
+      const row: Record<string, string | number> = { name, amount: s.amount, count: s.count };
+      for (const sub of subNames) {
+        row[sub || "__none"] = bucket?.get(sub)?.amount || 0;
+      }
+      return row;
+    });
+
+    // Chi tiết từng ô của cột chồng, cho chú giải: tên danh mục con, số tiền,
+    // và những ngày phát sinh trong tháng đó.
+    const details: Record<string, Record<string, { amount: number; days: { date: string; amount: number; supplier: string }[] }>> = {};
+    for (const [m, bucket] of byMonthSub.entries()) {
+      details[m] = {};
+      for (const [sub, v] of bucket.entries()) {
+        details[m][sub || "__none"] = {
+          amount: v.amount,
+          days: v.days.sort((a, b) => a.date.localeCompare(b.date)),
+        };
+      }
+    }
+
+    // Luỹ kế 12 tháng của năm nay và năm trước, để thấy đang đi nhanh hay chậm
+    // hơn chính mình năm ngoái.
+    let cumThis = 0;
+    let cumLast = 0;
+    const cumulative = Array.from({ length: 12 }, (_, i) => {
+      const m = String(i + 1).padStart(2, "0");
+      cumThis += monthlyCum.get(`${year}-${m}`) || 0;
+      cumLast += monthlyCum.get(`${year - 1}-${m}`) || 0;
+      return {
+        name: m,
+        // Tháng chưa tới thì để trống thay vì kẻ một đường ngang giả.
+        thisYear: i + 1 <= monthNum ? cumThis : null,
+        lastYear: cumLast,
+      };
+    });
+
+    // Trung bình theo tháng trong năm, gộp mọi năm có dữ liệu — nhìn ra mùa vụ.
+    const byCalendarMonth = Array.from({ length: 12 }, () => ({ total: 0, years: new Set<number>() }));
+    for (const [k, v] of monthlyCum.entries()) {
+      const idx = Number(k.slice(5, 7)) - 1;
+      byCalendarMonth[idx].total += v;
+      byCalendarMonth[idx].years.add(Number(k.slice(0, 4)));
+    }
+    const seasonality = byCalendarMonth.map((v, i) => ({
+      name: String(i + 1).padStart(2, "0"),
+      avg: v.years.size > 0 ? Math.round(v.total / v.years.size) : 0,
     }));
 
-    // Tháng nào trong 12 tháng gần nhất không có đồng nào — dùng để soi xem có
-    // kỳ nào quên nhập. Tháng đang chạy không tính: nó chưa kết thúc.
+    const shareOfTotal = monthKeys.map((name) => {
+      const all = allByMonth.get(name) || 0;
+      const mine = series.get(name)!.amount;
+      return { name, pct: all > 0 ? Math.round((mine / all) * 100) : 0 };
+    });
+
     const nowKey = monthKey(new Date());
-    const missingMonths = monthlySeries
+    const missingMonths = monthKeys
       .slice(-12)
-      .filter((m) => m.amount === 0 && m.name !== nowKey)
-      .map((m) => m.name);
+      .filter((m) => (series.get(m)?.amount || 0) === 0 && m !== nowKey);
 
     const rank = (map: Map<string, { amount: number; count: number }>, total: number) =>
       [...map.entries()]
@@ -208,6 +325,21 @@ export async function GET(req: Request) {
         lastYtd: { total: lastYtdTotal, count: lastYtdCount },
         lastYearFull,
         monthlySeries,
+        subNames: subNames.map((s) => s || "__none"),
+        details,
+        cumulative,
+        seasonality,
+        shareOfTotal,
+        sizeBuckets: SIZE_BUCKETS.map((b, i) => ({
+          name: b.label,
+          count: sizeCounts[i].count,
+          amount: sizeCounts[i].amount,
+        })),
+        weekday: WEEKDAYS.map((w, i) => ({
+          name: w,
+          amount: weekday[i].amount,
+          count: weekday[i].count,
+        })),
         subGroupsMonth: rank(subMonth, monthTotal),
         subGroupsYear: rank(subYear, ytdTotal),
         merchants: rank(merchants, ytdTotal).slice(0, 8),
