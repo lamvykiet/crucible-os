@@ -9,6 +9,8 @@ import { type SupplierSuggestion } from "@/lib/useSuppliers";
 import SupplierInput from "./SupplierInput";
 import AmountInput from "@/components/ui/AmountInput";
 import CustomDatePicker from "@/components/ui/CustomDatePicker";
+import AccountSelect from "./AccountSelect";
+import { useAccounts } from "@/lib/useAccounts";
 
 interface ReviewQueueModalProps {
   isOpen: boolean;
@@ -38,6 +40,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
 
   const [activeDraft, setActiveDraft] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
+  const accounts = useAccounts();
   const [items, setItems] = useState<LineItem[]>([]);
   const [previewIds, setPreviewIds] = useState<string[]>([]);
 
@@ -149,6 +152,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
         discount: str(d.discount),
         totalAmount: str(d.totalAmount),
         paymentMethod: d.paymentMethod || "unknown",
+        accountId: str(d.accountId),
         notes: str(d.notes),
       });
       setItems(d.items || []);
@@ -577,6 +581,18 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                       </select>
                     </div>
                   </div>
+
+                  {/* Điền sẵn từ bản nháp, sửa lại được — đây là bước cuối cùng
+                      trước khi vào sổ, nên cũng là chỗ cuối cùng còn kịp sửa. */}
+                  <AccountSelect
+                    accounts={accounts}
+                    value={formData.accountId || ""}
+                    onChange={(id) => setFormData((prev: Record<string, unknown>) => ({ ...prev, accountId: id }))}
+                    type={formData.type || "Expense"}
+                    paymentMethod={formData.paymentMethod}
+                    selectClassName={inputClass}
+                    labelClassName={labelClass}
+                  />
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>

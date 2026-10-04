@@ -10,6 +10,8 @@ import SupplierInput from "./SupplierInput";
 import { todayLocalIso } from "@/lib/localDate";
 import AmountInput from "@/components/ui/AmountInput";
 import CustomDatePicker from "@/components/ui/CustomDatePicker";
+import AccountSelect from "./AccountSelect";
+import { useAccounts } from "@/lib/useAccounts";
 
 interface ScanInvoiceModalProps {
   isOpen: boolean;
@@ -38,6 +40,7 @@ const EMPTY_FORM = {
   discount: "",
   totalAmount: "",
   paymentMethod: "unknown",
+  accountId: "",
   language: "",
   notes: "",
 };
@@ -51,6 +54,7 @@ const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 
 export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInvoiceModalProps) {
   const { t } = useLanguage();
+  const accounts = useAccounts();
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -523,6 +527,19 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                       </select>
                     </div>
                   </div>
+
+                  {/* Chọn luôn ở bước quét, vì lúc cầm hoá đơn mới là lúc nhớ
+                      rõ đã quẹt thẻ nào. Giá trị đi theo bản nháp sang bước
+                      duyệt, sửa lại ở đó vẫn được. */}
+                  <AccountSelect
+                    accounts={accounts}
+                    value={formData.accountId}
+                    onChange={(id) => setFormData((prev) => ({ ...prev, accountId: id }))}
+                    type={formData.type}
+                    paymentMethod={formData.paymentMethod}
+                    selectClassName={inputClass}
+                    labelClassName={labelClass}
+                  />
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>

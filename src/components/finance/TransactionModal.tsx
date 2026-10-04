@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { X, ChevronDown, Loader2, Receipt } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
@@ -8,6 +8,8 @@ import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 import { invalidateSuppliers, type SupplierSuggestion } from "@/lib/useSuppliers";
 import SupplierInput from "./SupplierInput";
 import AmountInput from "@/components/ui/AmountInput";
+import AccountSelect from "./AccountSelect";
+import { useAccounts } from "@/lib/useAccounts";
 import { todayLocalIso } from "@/lib/localDate";
 import CustomDatePicker from "@/components/ui/CustomDatePicker";
 
@@ -52,30 +54,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
 
   // Danh sách tài khoản để chọn tiền ra/vào đâu. Không chặn form nếu hỏng:
   // chưa có tài khoản nào thì ô này chỉ đơn giản không hiện.
-  const [accounts, setAccounts] = useState<{ id: string; name: string; kind: string; last4: string | null }[]>([]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const controller = new AbortController();
-    let ignore = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/finance/accounts", { signal: controller.signal });
-        const json = await res.json();
-        if (!ignore && json.success) {
-          setAccounts(
-            json.data.accounts.filter((a: { status: string }) => a.status !== "closed")
-          );
-        }
-      } catch {
-        // Ô chọn tài khoản là phần phụ của form; hỏng thì ẩn, đừng chặn việc ghi sổ.
-      }
-    })();
-    return () => {
-      ignore = true;
-      controller.abort();
-    };
-  }, [isOpen]);
+  const accounts = useAccounts();
 
   // Ảnh hoá đơn gốc của giao dịch quét. `driveFileId` là chuỗi id ngăn bằng dấu
   // phẩy — một hoá đơn dài có thể chụp làm nhiều tấm.
@@ -397,32 +376,15 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
 
             {/* Tiền ra/vào tài khoản nào. `paymentMethod` chỉ nói "trả bằng
                 thẻ" — có ba thẻ thì không dò ra số dư từng thẻ. */}
-            {accounts.length > 0 && (
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                  {formData.type === "Income"
-                    ? t("Tiền vào tài khoản", "Money into")
-                    : t("Trả từ tài khoản", "Paid from")}
-                </label>
-                <div className="relative">
-                  <select
-                    name="accountId"
-                    value={formData.accountId}
-                    onChange={handleChange}
-                    className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none"
-                  >
-                    <option value="">{t("— Chưa chọn —", "— Not set —")}</option>
-                    {accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                        {a.last4 ? ` ···${a.last4}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
-                </div>
-              </div>
-            )}
+            <AccountSelect
+              accounts={accounts}
+              value={formData.accountId}
+              onChange={(id) => setFormData((prev) => ({ ...prev, accountId: id }))}
+              type={formData.type}
+              paymentMethod={formData.paymentMethod}
+              selectClassName="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+              labelClassName="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2"
+            />
 
             {/* Chuyển khoản chạm vào HAI tài khoản. Trả thẻ tín dụng là ví dụ
                 rõ nhất: tiền rời ngân hàng và dư nợ thẻ giảm đi. */}

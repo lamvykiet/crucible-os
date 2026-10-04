@@ -136,8 +136,9 @@ model Account {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  transactionsFrom Transaction[] @relation("TxAccount")
-  transactionsTo   Transaction[] @relation("TxToAccount")
+  transactionsFrom Transaction[]  @relation("TxAccount")
+  transactionsTo   Transaction[]  @relation("TxToAccount")
+  drafts           DraftReceipt[] @relation("DraftAccount")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -188,6 +189,12 @@ model DraftReceipt {
   paymentMethod String? // cash | card | bank_transfer | e-wallet | unknown
   language      String? // vi | en | mixed
   notes         String?
+
+  /// Trả bằng tài khoản/thẻ nào. `paymentMethod` chỉ nói "thẻ"; có ba thẻ tín
+  /// dụng thì không dò ra thẻ nào. Chọn ở bước quét thì phải sống được tới bước
+  /// duyệt, nên phải nằm trên bản nháp chứ không chỉ trên `Transaction`.
+  accountId String?
+  account   Account? @relation("DraftAccount", fields: [accountId], references: [id], onDelete: SetNull)
 
   // Danh sách fileId trên Drive, phân tách bằng dấu phẩy (một hoá đơn dài có
   // thể được chụp thành nhiều ảnh).

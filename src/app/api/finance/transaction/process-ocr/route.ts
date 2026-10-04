@@ -121,6 +121,9 @@ export async function POST(req: Request) {
           discount: toVnd(formData.discount) ?? 0,
           totalAmount,
           paymentMethod: formData.paymentMethod || "unknown",
+          // Thiếu dòng này thì hoá đơn quét xong luôn rơi vào khoảng không: vào
+          // sổ chi tiêu nhưng không đụng tới dư nợ thẻ nào.
+          accountId: formData.accountId || null,
           source: "ocr",
           driveFileId: draft.driveFileIds,
           notes: formData.notes || null,

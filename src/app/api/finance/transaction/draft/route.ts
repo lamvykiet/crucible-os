@@ -40,6 +40,9 @@ export async function POST(req: Request) {
         discount: toVnd(formData.discount),
         totalAmount: toVnd(formData.totalAmount),
         paymentMethod: formData.paymentMethod || "unknown",
+        // Chọn thẻ ở bước quét phải sống được tới bước duyệt, nên nó nằm trên
+        // bản nháp chứ không chờ tới lúc ghi `Transaction`.
+        accountId: formData.accountId || null,
         language: formData.language || null,
         notes: formData.notes || null,
         driveFileIds: driveFileIds.join(","),

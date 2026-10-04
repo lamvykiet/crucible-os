@@ -155,6 +155,16 @@ mới ghi `Transaction`**. Bước quét *không* ghi sổ; nhãn nút phải n�
 nếu không người dùng tưởng đã xong. Ảnh nằm ở `Incoming` sau khi quét là đúng
 thiết kế.
 
+**Thêm một trường vào form ghi giao dịch** → có BA hộp thoại cùng ghi giao
+dịch, không phải một: `TransactionModal` (nhập tay), `ScanInvoiceModal` (quét)
+và `ReviewQueueModal` (duyệt). Trường chỉ thêm ở một chỗ là luồng kia ghi
+thiếu mà không báo gì. Trường của bước quét còn phải đi qua `DraftReceipt`
+nữa — nó nằm giữa quét và duyệt, quên nó thì giá trị người dùng chọn lúc quét
+bốc hơi ở bước duyệt. Đã có tiền lệ: thêm `Account` xong chỉ gắn ô chọn vào
+`TransactionModal`, nên mọi hoá đơn quét đều vào sổ với `accountId = null` và
+dư nợ thẻ đứng im. Ô chọn tài khoản nay dùng chung `AccountSelect` +
+`useAccounts()`, đừng viết lại cái thứ tư.
+
 **Thêm route API** → mặc định là phải đăng nhập (`requireUser()`). Chỉ
 `api/video/upload` và `api/video/pending` là công khai, xác thực bằng
 `VIDEO_UPLOAD_TOKEN` cho Shortcut iOS — danh sách trong `src/proxy.ts`.
