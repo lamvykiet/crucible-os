@@ -9,6 +9,7 @@ import { invalidateSuppliers, type SupplierSuggestion } from "@/lib/useSuppliers
 import SupplierInput from "./SupplierInput";
 import AmountInput from "@/components/ui/AmountInput";
 import AccountSelect from "./AccountSelect";
+import LineItemsEditor from "./LineItemsEditor";
 import { useAccounts } from "@/lib/useAccounts";
 import { todayLocalIso } from "@/lib/localDate";
 import CustomDatePicker from "@/components/ui/CustomDatePicker";
@@ -160,12 +161,6 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
   };
 
   const handleRemoveItem = (index: number) => updateItems(items.filter((_, i) => i !== index));
-
-  // Ô nhập trong thẻ món hàng trên mobile. Cỡ chữ để mặc định (globals.css đặt
-  // sàn 16px dưới 768px) — hạ xuống dưới 16px là iOS Safari phóng to cả trang.
-  const mobileItemInput =
-    "w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 " +
-    "focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]";
 
   const handleSubmit = async () => {
     setError("");
@@ -433,145 +428,11 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
               </button>
             </div>
             
-            {/* Bảng 5 cột chỉ dùng được từ tablet trở lên. Ở 375px nó bóp cột
-                "Tên sản phẩm" còn 60px và cắt mất chữ ngay cả với "22000" —
-                nên mobile dùng bố cục thẻ bên dưới. */}
-            <div className="hidden md:block border border-[var(--color-border)] rounded-xl overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)] uppercase border-b border-[var(--color-border)]">
-                  <tr>
-                    <th className="px-3 py-3">Tên sản phẩm</th>
-                    <th className="px-3 py-3 w-16">SL</th>
-                    <th className="px-3 py-3 w-28">Đơn giá</th>
-                    <th className="px-3 py-3 w-32">Thành tiền</th>
-                    <th className="px-3 py-3 w-10"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, idx) => (
-                    <tr key={idx} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-2)]/50">
-                      <td className="px-2 py-2">
-                        <input
-                          type="text"
-                          value={item.productName}
-                          onChange={(e) => handleItemChange(idx, "productName", e.target.value)}
-                          className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-accent)] rounded outline-none text-[var(--color-text)]"
-                        />
-                      </td>
-                      <td className="px-2 py-2">
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          value={item.quantity}
-                          onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
-                          className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-accent)] rounded outline-none text-center text-[var(--color-text)]"
-                        />
-                      </td>
-                      <td className="px-2 py-2">
-                        <AmountInput
-                          value={item.unitPrice}
-                          onValueChange={(v) => handleItemChange(idx, "unitPrice", v)}
-                          className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-accent)] rounded outline-none text-right text-[var(--color-text)]"
-                        />
-                      </td>
-                      <td className="px-2 py-2">
-                        <AmountInput
-                          value={item.totalPrice}
-                          onValueChange={(v) => handleItemChange(idx, "totalPrice", v)}
-                          className="w-full bg-transparent p-1.5 border border-transparent focus:border-[var(--color-accent)] rounded outline-none text-right text-[var(--color-text)]"
-                        />
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <button
-                          onClick={() => handleRemoveItem(idx)}
-                          className="text-[var(--color-text-muted)] hover:text-[var(--color-error)] p-1.5 rounded-lg hover:bg-[var(--color-error-tint)] transition-colors"
-                        >
-                          <X size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {items.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="text-center py-6 text-[var(--color-text-faint)]">Không có dữ liệu mặt hàng</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile: mỗi món hàng một thẻ. Cùng handler với bảng ở trên nên
-                không có đường nào lệch nhau. */}
-            <div className="md:hidden space-y-3">
-              {items.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 space-y-3"
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1 min-w-0 space-y-1.5">
-                      <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                        {t("Tên sản phẩm", "Product")}
-                      </label>
-                      <input
-                        type="text"
-                        value={item.productName}
-                        onChange={(e) => handleItemChange(idx, "productName", e.target.value)}
-                        className={mobileItemInput}
-                      />
-                    </div>
-                    <button
-                      onClick={() => handleRemoveItem(idx)}
-                      aria-label={t("Xoá dòng", "Remove line")}
-                      className="mt-6 shrink-0 w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-tint)] transition-colors"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                        {t("SL", "Qty")}
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
-                        className={mobileItemInput}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                        {t("Đơn giá", "Unit price")}
-                      </label>
-                      <AmountInput
-                        value={item.unitPrice}
-                        onValueChange={(v) => handleItemChange(idx, "unitPrice", v)}
-                        className={mobileItemInput}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                      {t("Thành tiền", "Line total")}
-                    </label>
-                    <AmountInput
-                      value={item.totalPrice}
-                      onValueChange={(v) => handleItemChange(idx, "totalPrice", v)}
-                      className={mobileItemInput}
-                    />
-                  </div>
-                </div>
-              ))}
-              {items.length === 0 && (
-                <div className="rounded-xl border border-dashed border-[var(--color-border)] py-6 text-center text-[var(--color-text-faint)]">
-                  {t("Không có dữ liệu mặt hàng", "No line items")}
-                </div>
-              )}
-            </div>
+            <LineItemsEditor
+              items={items}
+              onChange={handleItemChange}
+              onRemove={handleRemoveItem}
+            />
           </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { X, Upload, FileText, Loader2, AlertCircle, Plus, Trash2, Check } from "lucide-react";
+import { X, Upload, FileText, Loader2, AlertCircle, Plus, Check } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
@@ -10,6 +10,7 @@ import SupplierInput from "./SupplierInput";
 import { todayLocalIso } from "@/lib/localDate";
 import AmountInput from "@/components/ui/AmountInput";
 import CustomDatePicker from "@/components/ui/CustomDatePicker";
+import LineItemsEditor from "./LineItemsEditor";
 import AccountSelect from "./AccountSelect";
 import { useAccounts } from "@/lib/useAccounts";
 
@@ -601,71 +602,12 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                   </button>
                 </div>
 
-                <div className="border border-[var(--color-border)] rounded-xl overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)] uppercase border-b border-[var(--color-border)]">
-                      <tr>
-                        <th className="px-3 py-2">{t("Mặt hàng", "Item")}</th>
-                        <th className="px-3 py-2 w-14">{t("SL", "Qty")}</th>
-                        <th className="px-3 py-2 w-24">{t("Đơn giá", "Price")}</th>
-                        <th className="px-3 py-2 w-24">{t("Thành tiền", "Amount")}</th>
-                        <th className="px-3 py-2 w-10"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((item, idx) => (
-                        <tr key={idx} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-2)]/50">
-                          <td className="px-2 py-2">
-                            <input
-                              type="text"
-                              value={item.productName}
-                              onChange={(e) => handleItemChange(idx, "productName", e.target.value)}
-                              className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded"
-                              placeholder={t("Tên SP", "Name")}
-                            />
-                          </td>
-                          <td className="px-2 py-2">
-                            <input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
-                              className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded text-center"
-                            />
-                          </td>
-                          <td className="px-2 py-2">
-                            <AmountInput
-                              value={item.unitPrice}
-                              onValueChange={(v) => handleItemChange(idx, "unitPrice", v)}
-                              className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded text-right"
-                            />
-                          </td>
-                          <td className="px-2 py-2">
-                            <AmountInput
-                              value={item.totalPrice}
-                              onValueChange={(v) => handleItemChange(idx, "totalPrice", v)}
-                              className="w-full bg-transparent p-1 border border-[var(--color-border)] focus:border-[var(--color-info)] rounded text-right"
-                            />
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <button
-                              onClick={() => handleRemoveItem(idx)}
-                              className="text-[var(--color-text-muted)] hover:text-[var(--color-error)] p-1"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {items.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="text-center py-4 text-[var(--color-text-faint)]">
-                            {t("Không có dữ liệu mặt hàng", "No line items")}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <LineItemsEditor
+                  items={items}
+                  onChange={handleItemChange}
+                  onRemove={handleRemoveItem}
+                  namePlaceholder={t("Name", "Tên SP")}
+                />
 
                 {items.length > 0 && (
                   <p className="mt-3 text-xs text-[var(--color-text-muted)] text-right">
