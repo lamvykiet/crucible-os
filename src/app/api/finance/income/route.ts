@@ -130,6 +130,43 @@ export async function GET(req: Request) {
       }))
       .sort((a, b) => b.amount - a.amount);
 
+    // Luỹ kế 12 tháng của năm nay đặt cạnh năm ngoái. Tổng năm chỉ nói kết
+    // quả; đường luỹ kế nói đang đi nhanh hay chậm hơn chính mình năm trước,
+    // và nói từ giữa năm chứ không đợi hết năm.
+    const cumMap = new Map<string, number>();
+    for (const t of incomes) {
+      const k = monthKey(t.date);
+      cumMap.set(k, (cumMap.get(k) || 0) + t.totalAmount);
+    }
+    let cumThis = 0;
+    let cumLast = 0;
+    const cumulative = Array.from({ length: 12 }, (_, i) => {
+      const mm = String(i + 1).padStart(2, "0");
+      cumThis += cumMap.get(`${year}-${mm}`) || 0;
+      cumLast += cumMap.get(`${year - 1}-${mm}`) || 0;
+      return {
+        name: mm,
+        // Tháng chưa tới thì để trống, đừng kẻ một đường ngang giả tới cuối năm.
+        thisYear: i + 1 <= monthNum ? cumThis : null,
+        lastYear: prevYearTotal > 0 ? cumLast : null,
+      };
+    });
+
+    // Trung bình từng tháng trong năm, gộp mọi năm có dữ liệu. Thưởng Tết và
+    // thưởng cuối năm rơi vào những tháng cố định — nhìn theo một năm thì chúng
+    // chỉ là cột vọt lên bất thường, gộp nhiều năm mới thành quy luật.
+    const calMonth = Array.from({ length: 12 }, () => ({ total: 0, years: new Set<number>() }));
+    for (const t of incomes) {
+      const idx = t.date.getUTCMonth();
+      calMonth[idx].total += t.totalAmount;
+      calMonth[idx].years.add(t.date.getUTCFullYear());
+    }
+    const seasonality = calMonth.map((v, i) => ({
+      name: String(i + 1).padStart(2, "0"),
+      avg: v.years.size > 0 ? Math.round(v.total / v.years.size) : 0,
+      years: v.years.size,
+    }));
+
     // --- So sánh giữa các nguồn thu ---
     //
     // Danh sách tỷ trọng ở trên chỉ trả lời "nguồn nào to nhất năm nay". Ba câu
@@ -235,6 +272,8 @@ export async function GET(req: Request) {
         monthlyIncome,
         monthlySeries,
         annualTotals,
+        cumulative,
+        seasonality,
         yearTotal,
         prevYearTotal,
         avgPerMonth,

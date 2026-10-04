@@ -22,26 +22,32 @@ const MONTHS_EN = [
 interface TickProps {
   x?: number;
   y?: number;
-  payload?: { value?: string | number };
+  /** `index` ở đây là vị trí trong MẢNG DỮ LIỆU; `index` ngoài cùng chỉ là vị
+   *  trí trong danh sách tick đã lọc, hai cái lệch nhau khi recharts bỏ bớt. */
+  payload?: { value?: string | number; index?: number };
   index?: number;
   visibleTicksCount?: number;
   /** Bề ngang vùng vẽ, recharts truyền vào — dùng để suy ra bề rộng một cột. */
   width?: number;
   /** Mọi giá trị trên trục, dạng YYYY-MM. Cần để biết một năm trải từ cột nào tới cột nào. */
   months?: string[];
+  /** Bỏ hàng tháng, chỉ còn dải năm. Dùng cho trục dài vài chục tháng. */
+  yearsOnly?: boolean;
 }
 
 export default function MonthAxisTick({
   x = 0,
   y = 0,
   payload,
-  index = 0,
+  index: tickIndex = 0,
   visibleTicksCount = 1,
   width = 0,
   months = [],
+  yearsOnly = false,
 }: TickProps) {
   const { t } = useLanguage();
 
+  const index = payload?.index ?? tickIndex;
   const value = String(payload?.value ?? "");
   const monthIdx = Number(value.slice(5, 7)) - 1;
   const year = value.slice(0, 4);
@@ -73,9 +79,11 @@ export default function MonthAxisTick({
 
   return (
     <g>
-      <text x={x} y={y} dy={11} textAnchor="middle" fontSize={10} fill="var(--color-text-faint)">
-        {label}
-      </text>
+      {!yearsOnly && (
+        <text x={x} y={y} dy={11} textAnchor="middle" fontSize={10} fill="var(--color-text-faint)">
+          {label}
+        </text>
+      )}
       {opensGroup && (
         <>
           {first > 0 && step > 0 && (
@@ -83,14 +91,14 @@ export default function MonthAxisTick({
               x1={x - step / 2}
               x2={x - step / 2}
               y1={y}
-              y2={y + 28}
+              y2={y + (yearsOnly ? 14 : 28)}
               stroke="var(--color-border)"
             />
           )}
           <text
             x={centre}
             y={y}
-            dy={27}
+            dy={yearsOnly ? 13 : 27}
             textAnchor="middle"
             fontSize={11}
             fontWeight={600}
@@ -116,5 +124,20 @@ export function monthAxis(months: string[]) {
     interval: 0 as const,
     height: 38,
     tick: <MonthAxisTick months={months} />,
+  };
+}
+
+/**
+ * Như `monthAxis` nhưng chỉ còn dải năm. Dùng khi trục dài vài chục tháng:
+ * 81 cột thì tên tháng nào cũng chồng lên nhau, mà cái cần đọc ở quy mô đó là
+ * năm chứ không phải tháng.
+ */
+export function careerMonthAxis(months: string[]) {
+  return {
+    axisLine: false,
+    tickLine: false,
+    interval: 0 as const,
+    height: 24,
+    tick: <MonthAxisTick months={months} yearsOnly />,
   };
 }

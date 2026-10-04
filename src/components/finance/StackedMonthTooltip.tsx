@@ -17,6 +17,10 @@ interface Props {
   /** Khoá của phần đã gộp, và chữ hiển thị cho nó. */
   otherKey: string;
   otherLabel: string;
+  /** Những series không phải khúc cột — tổng, đường trung bình… Mặc định chỉ
+   *  có "total"; biểu đồ nào kèm thêm đường thì phải kê ra, nếu không đường đó
+   *  hiện thành một khúc giả trong chú giải. */
+  skipKeys?: string[];
 }
 
 export default function StackedMonthTooltip({
@@ -25,9 +29,12 @@ export default function StackedMonthTooltip({
   label,
   otherKey,
   otherLabel,
+  skipKeys = ["total"],
 }: Props) {
   if (!active || !payload || payload.length === 0) return null;
-  const rows = payload.filter((p) => p.dataKey !== "total" && (p.value || 0) > 0);
+  const rows = payload.filter(
+    (p) => !skipKeys.includes(String(p.dataKey)) && (p.value || 0) > 0
+  );
   const totalRow = payload.find((p) => p.dataKey === "total");
   const total = Number(
     totalRow?.value ?? rows.reduce((sum, r) => sum + (r.value || 0), 0)

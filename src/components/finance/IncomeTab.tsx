@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ComposedChart, Line, Legend,
+  ComposedChart, LineChart, Line, Legend,
 } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
@@ -19,12 +19,17 @@ import StackedMonthTooltip from "./StackedMonthTooltip";
 import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
 import { monthAxis } from "./MonthAxisTick";
+import IncomeCareer from "./IncomeCareer";
 
 // Toàn bộ số liệu đến từ /api/finance/income.
 // Trước đây tab này chạy trên 4 mảng hardcode và cả tên công ty ("SHINHAN
 // FINANCE", "MIRAE ASSET") lẫn các ô "Tháng cao nhất" đều là số viết cứng.
 
 interface SeriesPoint { name: string; amount: number }
+/** Luỹ kế theo tháng; `null` ở tháng chưa tới. */
+interface CumulativePoint { name: string; thisYear: number | null; lastYear: number | null }
+/** Trung bình một tháng trong năm, gộp mọi năm có dữ liệu. */
+interface SeasonPoint { name: string; avg: number; years: number }
 interface SupplierSlice { name: string; amount: number; share: number }
 interface MonthPeak { month: string; amount: number }
 
@@ -59,6 +64,8 @@ interface IncomeData {
   monthlyIncome: number;
   monthlySeries: SeriesPoint[];
   annualTotals: SeriesPoint[];
+  cumulative: CumulativePoint[];
+  seasonality: SeasonPoint[];
   yearTotal: number;
   prevYearTotal: number;
   avgPerMonth: number;
@@ -79,6 +86,7 @@ interface IncomeData {
 
 const EMPTY: IncomeData = {
   month: "", year: 0, monthlyIncome: 0, monthlySeries: [], annualTotals: [],
+  cumulative: [], seasonality: [],
   yearTotal: 0, prevYearTotal: 0, avgPerMonth: 0, prevAvgPerMonth: 0,
   monthsWithIncome: 0, highestMonth: null, lowestMonth: null,
   bySupplier: [], sourceComparison: [],
@@ -133,7 +141,7 @@ export default function IncomeTab() {
   }, [selectedMonth, refreshKey]);
 
   const {
-    year, monthlyIncome, monthlySeries, annualTotals, yearTotal, prevYearTotal,
+    year, monthlyIncome, monthlySeries, annualTotals, cumulative, seasonality, yearTotal, prevYearTotal,
     avgPerMonth, prevAvgPerMonth, highestMonth, lowestMonth, bySupplier,
     sourceComparison, concentration, sourceMonthly, sourceKeys,
     largestSource, hasData,
@@ -298,10 +306,21 @@ export default function IncomeTab() {
         </div>
       </div>
 
-      <PeriodComparison
-        metrics={["income", "net", "count"]}
-        refreshKey={refreshKey}
-      />
+      {/* Sự nghiệp — khối này KHÔNG theo tháng báo cáo, nó đọc cả lịch sử.
+          Đặt ngay sau bốn ô tổng vì "chỗ nào trả khá hơn" mới là câu hỏi lớn,
+          còn tháng này thu bao nhiêu chỉ là một dòng trong đó. */}
+      <div>
+        <h3 className="c-h3 text-[var(--color-text)] mb-2 mt-8">
+          {t("Career & employers", "Sự nghiệp & nơi đã làm")}
+        </h3>
+        <p className="text-sm text-[var(--color-text-muted)] mb-6">
+          {t(
+            "the whole history, not the selected month",
+            "toàn bộ lịch sử, không phụ thuộc tháng đang chọn"
+          )}
+        </p>
+        <IncomeCareer refreshKey={refreshKey} />
+      </div>
 
       {/* Phân tích nguồn thu */}
       <div>
@@ -399,6 +418,79 @@ export default function IncomeTab() {
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} />
                 <Tooltip formatter={(v) => formatVND(Number(v) || 0)} />
                 <Bar dataKey="amount" fill="var(--chart-1)" radius={[4, 4, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Luỹ kế năm nay đặt cạnh năm ngoái. Tổng năm chỉ nói kết quả khi đã
+            hết năm; đường luỹ kế nói đang đi nhanh hay chậm hơn ngay từ giữa
+            năm, lúc còn kịp làm gì đó. */}
+        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
+          <h3 className="c-h5 text-[var(--color-text)]">
+            {t("Year to date vs last year", "Luỹ kế năm nay so năm trước")}
+          </h3>
+          <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-6">
+            {t(
+              "above the dashed line means earning faster than last year",
+              "nằm trên đường nét đứt là đang kiếm nhanh hơn năm ngoái"
+            )}
+          </p>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={cumulative} className="c-chart-multi">
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={50} />
+                <Tooltip formatter={(v, n) => [formatVND(Number(v) || 0), n]} />
+                <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                <Line
+                  type="monotone"
+                  dataKey="lastYear"
+                  name={String(year - 1)}
+                  className="c-series-muted"
+                  stroke="var(--color-text-faint)"
+                  strokeWidth={2}
+                  strokeDasharray="5 3"
+                  dot={false}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="thisYear"
+                  name={String(year)}
+                  className="c-series-1"
+                  stroke="var(--chart-1)"
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: "var(--chart-1)" }}
+                  connectNulls={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Thưởng Tết và thưởng cuối năm rơi vào tháng cố định. Nhìn một năm thì
+            chúng chỉ là cột vọt lên bất thường; gộp mọi năm mới thành quy luật
+            — và quy luật đó mới là thứ lập kế hoạch được. */}
+        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
+          <h3 className="c-h5 text-[var(--color-text)]">
+            {t("Which months pay best", "Tháng nào trong năm thường thu cao")}
+          </h3>
+          <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-6">
+            {t(
+              "average of that calendar month across every year with data",
+              "trung bình mỗi tháng trong năm, gộp mọi năm đã có dữ liệu"
+            )}
+          </p>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={seasonality}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={50} />
+                <Tooltip formatter={(v) => formatVND(Number(v) || 0)} labelFormatter={(l) => t(`Month ${l}`, `Tháng ${l}`)} />
+                <Bar dataKey="avg" name={t("Average", "Trung bình")} radius={[4, 4, 0, 0]} maxBarSize={36} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -593,6 +685,11 @@ export default function IncomeTab() {
           )}
         </div>
       </div>
+
+      <PeriodComparison
+        metrics={["income", "net", "count"]}
+        refreshKey={refreshKey}
+      />
     </div>
   );
 }

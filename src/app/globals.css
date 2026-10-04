@@ -774,6 +774,22 @@ body::before {
    màu khúc cột đầu tiên nên nhìn như một mảng liền. Đổi sang màu mực. */
 .c-chart-multi .recharts-line-curve { stroke: var(--color-text); }
 .c-chart-multi .recharts-line-dot { fill: var(--color-text); }
+
+/* Nhưng biểu đồ luỹ kế thì hai đường ĐỀU là dữ liệu, không có đường nào là
+   "đường tổng" — để luật trên lo thì cả hai ra cùng màu mực và chỉ còn nét
+   liền/nét đứt để phân biệt. `stroke` viết trong JSX không cứu được: nó là
+   presentation attribute, thua mọi quy tắc CSS. Nên phải có lối thoát bằng
+   class, giống .c-series-* của cột và vùng. */
+.c-chart-multi .c-series-1 .recharts-line-curve { stroke: var(--chart-1); }
+.c-chart-multi .c-series-2 .recharts-line-curve { stroke: var(--chart-2); }
+.c-chart-multi .c-series-3 .recharts-line-curve { stroke: var(--chart-3); }
+.c-chart-multi .c-series-4 .recharts-line-curve { stroke: var(--chart-4); }
+.c-chart-multi .c-series-muted .recharts-line-curve { stroke: var(--color-text-faint); }
+.c-chart-multi .c-series-1 .recharts-line-dot { fill: var(--chart-1); }
+.c-chart-multi .c-series-2 .recharts-line-dot { fill: var(--chart-2); }
+.c-chart-multi .c-series-3 .recharts-line-dot { fill: var(--chart-3); }
+.c-chart-multi .c-series-4 .recharts-line-dot { fill: var(--chart-4); }
+.c-chart-multi .c-series-muted .recharts-line-dot { fill: var(--color-text-faint); }
 .recharts-default-tooltip {
   background: var(--color-bg) !important;
   border: 1px solid var(--color-border) !important;
