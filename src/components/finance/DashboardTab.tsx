@@ -24,6 +24,7 @@ import { thisMonthLocalIso, todayLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
 import { monthAxis } from "./MonthAxisTick";
+import WeekPanel from "./WeekPanel";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,
@@ -602,6 +603,24 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
           </p>
         </div>
       )}
+
+      {/* Tuần này. Nằm giữa thẻ "Hôm nay" và khối tháng vì sổ thường được ghi
+          vào buổi tối: lúc đó cái cần là hôm nay tiêu gì, hôm qua tiêu gì, tuần
+          này đang đi về đâu — chứ chưa phải cả tháng. */}
+      <div className="flex flex-wrap items-end justify-between gap-3 -mb-2">
+        <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
+          <CalendarDays size={24} /> {t("This week", "Tuần này")}
+        </h3>
+        {onNavigate && (
+          <button
+            onClick={() => onNavigate("history")}
+            className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
+          >
+            {t("All transactions", "Toàn bộ giao dịch")} <ArrowUpRight size={14} />
+          </button>
+        )}
+      </div>
+      <WeekPanel refreshKey={refreshKey} />
 
       {/* Tháng này. Mỗi mục lớn của Dashboard đều có lối đi tiếp sang tab con:
           trang này để NẮM, tab con để ĐÀO. */}
