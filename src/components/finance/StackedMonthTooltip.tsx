@@ -12,7 +12,13 @@ import { formatVND } from "@/lib/formatMoney";
 
 interface Props {
   active?: boolean;
-  payload?: readonly { dataKey?: string | number; value?: number; color?: string }[];
+  payload?: readonly {
+    dataKey?: string | number;
+    /** Tên series do biểu đồ đặt. Ưu tiên nó: khoá dữ liệu có thể là "e0s". */
+    name?: string;
+    value?: number;
+    color?: string;
+  }[];
   label?: string;
   /** Khoá của phần đã gộp, và chữ hiển thị cho nó. */
   otherKey: string;
@@ -54,7 +60,7 @@ export default function StackedMonthTooltip({
               aria-hidden
             />
             <span className="flex-1 min-w-0 truncate text-[var(--color-text-muted)]">
-              {r.dataKey === otherKey ? otherLabel : String(r.dataKey)}
+              {r.dataKey === otherKey ? otherLabel : r.name || String(r.dataKey)}
             </span>
             <span className="tabular-nums font-bold text-[var(--color-text)]">
               {total > 0 ? Math.round(((r.value || 0) / total) * 100) : 0}%

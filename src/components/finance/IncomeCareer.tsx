@@ -22,6 +22,8 @@ interface SubSlice { sub: string; amount: number; share: number }
 
 interface Employer {
   name: string;
+  /** Bậc màu, gán theo tổng tiền chứ không theo vị trí trong danh sách. */
+  colourIndex: number;
   from: string;
   to: string;
   tenure: number;
@@ -50,6 +52,14 @@ interface CareerData {
   months: string[];
   employers: Employer[];
   employerKeys: string[];
+  employerSeries: { key: string; colourIndex: number }[];
+  /** Mỗi nơi hai chuỗi: lương và thưởng. Khoá đánh theo số thứ tự, không ghép tên. */
+  timelineSeries: {
+    key: string;
+    employer: string;
+    kind: "salary" | "bonus";
+    colourIndex: number;
+  }[];
   subKeys: string[];
   years: number[];
   yearByEmployer: Record<string, string | number>[];
@@ -124,14 +134,21 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
   if (!data.hasData || data.employers.length === 0) return null;
 
   const {
-    employers, employerKeys, subKeys, yearByEmployer, yearBySub,
-    timeline, gaps, totals, months, firstMonth,
+    employers, employerSeries, subKeys, yearByEmployer, yearBySub,
+    timeline, timelineSeries, gaps, totals, months, firstMonth, years,
   } = data;
 
   const span = months.length;
   const maxAvgSalary = Math.max(...employers.map((e) => e.avgSalaryPerMonth), 1);
   const colourOf = (i: number) =>
     i < 4 ? `var(--chart-${i + 1})` : "var(--color-border-strong)";
+  // Bậc nhạt cùng họ, cho khúc thưởng. Phải khớp đúng công thức trong
+  // globals.css (.c-series-N-soft) vì chỗ này chỉ tô ô chú giải, còn khúc cột
+  // thật do CSS tô — hai công thức lệch nhau là chú giải nói dối.
+  const softOf = (i: number) =>
+    i < 4
+      ? `color-mix(in srgb, var(--chart-${i + 1}) 42%, var(--color-surface))`
+      : "var(--color-border-strong)";
   const labelOf = (key: string, fallback: string) =>
     key === OTHER_KEY ? fallback : key;
   // Lương/thưởng phải giữ NGUYÊN màu ở mọi chỗ: nếu tô theo thứ tự trong từng
@@ -230,7 +247,7 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
         </div>
 
         <div className="space-y-2.5">
-          {employers.map((e, i) => {
+          {employers.map((e) => {
             const left = (monthIndex(e.from, firstMonth) / span) * 100;
             const width = (e.tenure / span) * 100;
             return (
@@ -242,7 +259,7 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                   <span className="flex items-center gap-2 min-w-0">
                     <span
                       className="w-2.5 h-2.5 rounded-sm flex-none"
-                      style={{ background: colourOf(i) }}
+                      style={{ background: colourOf(e.colourIndex) }}
                       aria-hidden
                     />
                     <span className="text-xs font-bold text-[var(--color-text)] truncate">
@@ -271,7 +288,7 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                     style={{
                       left: `${left}%`,
                       width: `${Math.max(width, 1.2)}%`,
-                      background: colourOf(i),
+                      background: colourOf(e.colourIndex),
                     }}
                     title={`${e.name}: ${formatVND(e.total)}`}
                   />
@@ -310,8 +327,8 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
         </h4>
         <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-6">
           {t(
-            "columns: who paid · dashed line: 12-month average, gaps included",
-            "cột: nơi trả tiền · đường nét đứt: trung bình 12 tháng, tính cả tháng trống"
+            "columns: who paid — solid shade is salary, pale is bonus · dashed line: average per month over the last 12, gaps included",
+            "cột: nơi trả tiền — bậc đậm là lương, bậc nhạt là thưởng · đường nét đứt: trung bình mỗi tháng của 12 tháng gần nhất, tính cả tháng trống"
           )}
         </p>
         <div className="h-72 w-full">
@@ -336,14 +353,30 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                 }
               />
               <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
-              {employerKeys.map((key, i) => (
+              {/* Chỉ khúc lương vào chú giải; khúc thưởng dùng chung tên công
+                  ty nên thêm vào là chú giải dài gấp đôi mà không nói thêm gì —
+                  phần đậm/nhạt đã giải thích ở dòng mô tả trên. */}
+              {timelineSeries.map((sr) => (
                 <Bar
-                  key={key}
-                  dataKey={key}
+                  key={sr.key}
+                  dataKey={sr.key}
                   stackId="emp"
-                  name={labelOf(key, t("Other payers", "Nơi khác"))}
-                  className={key === OTHER_KEY ? "c-series-other" : `c-series-${i + 1}`}
-                  fill={colourOf(i)}
+                  name={
+                    sr.key === OTHER_KEY
+                      ? t("Other payers", "Nơi khác")
+                      : `${sr.employer} · ${
+                          sr.kind === "salary" ? t("Salary", "Lương") : t("Bonus", "Thưởng")
+                        }`
+                  }
+                  legendType={sr.kind === "bonus" ? "none" : "rect"}
+                  className={
+                    sr.key === OTHER_KEY
+                      ? "c-series-other"
+                      : sr.kind === "bonus"
+                        ? `c-series-${sr.colourIndex + 1}-soft`
+                        : `c-series-${sr.colourIndex + 1}`
+                  }
+                  fill={sr.kind === "bonus" ? softOf(sr.colourIndex) : colourOf(sr.colourIndex)}
                   maxBarSize={18}
                 />
               ))}
@@ -399,14 +432,16 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                     />
                   }
                 />
-                {employerKeys.map((key, i) => (
+                {employerSeries.map((sr) => (
                   <Bar
-                    key={key}
-                    dataKey={key}
+                    key={sr.key}
+                    dataKey={sr.key}
                     stackId="emp"
-                    name={labelOf(key, t("Other payers", "Nơi khác"))}
-                    className={key === OTHER_KEY ? "c-series-other" : `c-series-${i + 1}`}
-                    fill={colourOf(i)}
+                    name={labelOf(sr.key, t("Other payers", "Nơi khác"))}
+                    className={
+                      sr.key === OTHER_KEY ? "c-series-other" : `c-series-${sr.colourIndex + 1}`
+                    }
+                    fill={colourOf(sr.colourIndex)}
                     maxBarSize={48}
                   />
                 ))}
@@ -468,6 +503,140 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
         </div>
       </div>
 
+      {/* --- Mọi nguồn, mọi năm, trong một bảng --- */}
+      {/*
+        Khối "So sánh từng nguồn thu" ở dưới chỉ đặt năm đang chọn cạnh năm
+        liền trước, nên nguồn đã dừng từ hai năm trước biến mất khỏi màn hình.
+        Bảng này giữ đủ: mỗi dòng một nơi, mỗi cột một năm, ô trống nghĩa là
+        năm đó không có đồng nào từ nơi đó — và chính những ô trống mới vẽ ra
+        hình dáng của cả chặng đường.
+      */}
+      <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)]">
+        <h4 className="c-h5 text-[var(--color-text)]">
+          {t("Every source, every year", "Mọi nguồn thu qua từng năm")}
+        </h4>
+        <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-5">
+          {t(
+            "an empty cell means nothing came from there that year",
+            "ô trống nghĩa là năm đó không có đồng nào từ nơi đó"
+          )}
+        </p>
+
+        <div className="overflow-x-auto -mx-1 px-1">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+                <th className="text-left py-2 pr-3 font-bold sticky left-0 bg-[var(--color-surface)]">
+                  {t("Source", "Nguồn")}
+                </th>
+                {years.map((y) => (
+                  <th key={y} className="text-right py-2 px-2 tabular-nums font-bold whitespace-nowrap">
+                    {y}
+                  </th>
+                ))}
+                <th className="text-right py-2 pl-3 font-bold whitespace-nowrap">
+                  {t("Total", "Tổng")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--color-border)]">
+              {employers.map((e) => {
+                const byYear = new Map(e.byYear.map((y) => [y.year, y.amount]));
+                return (
+                  <tr key={e.name}>
+                    <td className="py-2.5 pr-3 sticky left-0 bg-[var(--color-surface)]">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-sm flex-none"
+                          style={{ background: colourOf(e.colourIndex) }}
+                          aria-hidden
+                        />
+                        <span className="font-bold text-[var(--color-text)] truncate">{e.name}</span>
+                      </span>
+                    </td>
+                    {years.map((y) => {
+                      const amount = byYear.get(y) || 0;
+                      const prev = byYear.get(y - 1) || 0;
+                      return (
+                        <td
+                          key={y}
+                          className="py-2.5 px-2 text-right tabular-nums whitespace-nowrap"
+                        >
+                          {amount === 0 ? (
+                            <span className="text-[var(--color-border-strong)]">—</span>
+                          ) : (
+                            <>
+                              <span className="text-[var(--color-text)]">
+                                {compactMoney(amount, language === "vi")}
+                              </span>
+                              {/* Mũi tên chỉ có nghĩa khi năm trước CŨNG có số;
+                                  năm đầu tiên nhận lương ở một nơi không phải
+                                  là "tăng vô hạn". */}
+                              {prev > 0 && (
+                                <span
+                                  className={`ml-1 text-[10px] font-bold ${
+                                    amount > prev
+                                      ? "text-[var(--color-success)]"
+                                      : amount < prev
+                                        ? "text-[var(--color-error)]"
+                                        : "text-[var(--color-text-faint)]"
+                                  }`}
+                                >
+                                  {amount > prev ? "↑" : amount < prev ? "↓" : "→"}
+                                  {Math.abs(Math.round(((amount - prev) / prev) * 100))}%
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td className="py-2.5 pl-3 text-right tabular-nums font-bold text-[var(--color-text)] whitespace-nowrap">
+                      {compactMoney(e.total, language === "vi")}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-[var(--color-border-strong)]">
+                <td className="py-2.5 pr-3 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] sticky left-0 bg-[var(--color-surface)]">
+                  {t("All sources", "Tất cả")}
+                </td>
+                {years.map((y) => {
+                  const row = yearByEmployer.find((r) => r.name === String(y));
+                  const total = Number(row?.total) || 0;
+                  const prevRow = yearByEmployer.find((r) => r.name === String(y - 1));
+                  const prev = Number(prevRow?.total) || 0;
+                  return (
+                    <td key={y} className="py-2.5 px-2 text-right tabular-nums whitespace-nowrap">
+                      <span className="font-bold text-[var(--color-text)]">
+                        {compactMoney(total, language === "vi")}
+                      </span>
+                      {prev > 0 && (
+                        <span
+                          className={`ml-1 text-[10px] font-bold ${
+                            total > prev
+                              ? "text-[var(--color-success)]"
+                              : "text-[var(--color-error)]"
+                          }`}
+                        >
+                          {total > prev ? "↑" : "↓"}
+                          {Math.abs(Math.round(((total - prev) / prev) * 100))}%
+                        </span>
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="py-2.5 pl-3 text-right tabular-nums font-bold text-[var(--color-success)] whitespace-nowrap">
+                  {compactMoney(totals.allTime, language === "vi")}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
       {/* --- So sánh từng nơi --- */}
       <div>
         <h4 className="c-h5 text-[var(--color-text)] mb-1">
@@ -480,7 +649,7 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
           )}
         </p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {employers.map((e, i) => (
+          {employers.map((e) => (
             <div
               key={e.name}
               className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)]"
@@ -490,7 +659,7 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                   <div className="flex items-center gap-2">
                     <span
                       className="w-2.5 h-2.5 rounded-sm flex-none"
-                      style={{ background: colourOf(i) }}
+                      style={{ background: colourOf(e.colourIndex) }}
                       aria-hidden
                     />
                     <span className="font-bold text-[var(--color-text)] truncate">{e.name}</span>
@@ -531,7 +700,7 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                     className="h-full rounded-full"
                     style={{
                       width: `${Math.max(2, (e.avgSalaryPerMonth / maxAvgSalary) * 100)}%`,
-                      background: colourOf(i),
+                      background: colourOf(e.colourIndex),
                     }}
                   />
                 </div>

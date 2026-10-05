@@ -762,6 +762,15 @@ body::before {
 .c-chart-multi .c-series-3 .recharts-bar-rectangle path { fill: var(--chart-3); }
 .c-chart-multi .c-series-4 .recharts-bar-rectangle path { fill: var(--chart-4); }
 .c-chart-multi .c-series-other .recharts-bar-rectangle path { fill: var(--color-border-strong); }
+
+/* Bậc nhạt của cùng một màu, cho khúc phụ nằm chồng lên khúc chính của CÙNG
+   một đối tượng — lương đậm, thưởng nhạt, cùng màu công ty. Dùng màu khác hẳn
+   thì mắt đọc thành hai công ty; dùng cùng màu y hệt thì không thấy ranh giới.
+   `color-mix` pha với nền thẻ nên bậc nhạt vẫn nằm trong họ màu của bảng. */
+.c-chart-multi .c-series-1-soft .recharts-bar-rectangle path { fill: color-mix(in srgb, var(--chart-1) 42%, var(--color-surface)); }
+.c-chart-multi .c-series-2-soft .recharts-bar-rectangle path { fill: color-mix(in srgb, var(--chart-2) 42%, var(--color-surface)); }
+.c-chart-multi .c-series-3-soft .recharts-bar-rectangle path { fill: color-mix(in srgb, var(--chart-3) 42%, var(--color-surface)); }
+.c-chart-multi .c-series-4-soft .recharts-bar-rectangle path { fill: color-mix(in srgb, var(--chart-4) 42%, var(--color-surface)); }
 /* Cùng lý do cho biểu đồ vùng: luật chung tô MỌI vùng bằng --chart-1, nên hai
    đường luỹ kế Thu và Chi có hai màu viền khác nhau mà nền lại giống hệt —
    nhìn ra một vùng duy nhất. */

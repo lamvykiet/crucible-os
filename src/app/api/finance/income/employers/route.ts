@@ -79,6 +79,7 @@ export async function GET() {
     const byYearEmployer = new Map<number, Map<string, number>>();
     const byYearSub = new Map<number, Map<string, number>>();
     const salaryByEmployerMonth = new Map<string, Map<string, number>>();
+    const bonusByEmployerMonth = new Map<string, Map<string, number>>();
     const totalByMonth = new Map<string, number>();
 
     const bump = <K>(m: Map<K, number>, k: K, v: number) => m.set(k, (m.get(k) || 0) + v);
@@ -108,13 +109,34 @@ export async function GET() {
       // mức sống hàng tháng, nên đường lương tính riêng.
       if (s.toLowerCase() === "salary" || s.toLowerCase() === "lương") {
         bump(nest(salaryByEmployerMonth, e), k, v);
+      } else {
+        bump(nest(bonusByEmployerMonth, e), k, v);
       }
     }
 
     // --- Từng nơi đã làm ---
-    const employerNames = [...totalByEmployer.entries()]
+    // THỨ TỰ HIỂN THỊ: mới nhất trước. Xếp theo tổng tiền thì nơi làm lâu nhất
+    // luôn đứng đầu, mà đọc một dòng thời gian thì thứ muốn thấy trước là chỗ
+    // đang làm.
+    const lastMonthOf = (e: string) =>
+      [...(byEmployerMonth.get(e)?.keys() || [])].sort().pop() || "";
+    const employerNames = [...totalByEmployer.keys()].sort((a, b) =>
+      lastMonthOf(b).localeCompare(lastMonthOf(a))
+    );
+
+    // GÁN MÀU: theo tổng tiền, KHÔNG theo thứ tự hiển thị. Dải --chart-* đi từ
+    // đất nung đậm tới nâu rất nhạt, nên bậc 4 (và bậc nhạt của nó dành cho
+    // thưởng) gần như chìm vào nền thẻ. Gán theo thứ tự hiển thị thì nơi làm
+    // lâu nhất — chiếm nửa biểu đồ — có thể rơi đúng vào bậc nhạt nhất. Nơi trả
+    // nhiều nhất nhận bậc đậm nhất; màu chỉ là nhãn, ai mang màu nào không
+    // quan trọng, nhưng đọc được hay không thì quan trọng.
+    const byTotalDesc = [...totalByEmployer.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([n]) => n);
+    const colourIndexOf = (name: string) => {
+      const i = byTotalDesc.indexOf(name);
+      return i >= 0 && i < 4 ? i : 4;
+    };
 
     const employers = employerNames.map((name) => {
       const perMonth = byEmployerMonth.get(name)!;
@@ -139,6 +161,7 @@ export async function GET() {
 
       return {
         name,
+        colourIndex: colourIndexOf(name),
         from,
         to,
         /** Khoảng thời gian gắn bó, tính cả hai đầu. */
@@ -169,9 +192,17 @@ export async function GET() {
 
     // Bốn cột màu riêng, phần đuôi gộp — giống mọi biểu đồ chồng khác trong dự
     // án: dải --chart-* chỉ tách bạch được bốn bậc đầu.
-    const namedEmployers = employerNames.slice(0, 4);
+    // Bốn nơi lớn nhất có màu riêng; phần đuôi gộp. Giữ thứ tự hiển thị để
+    // khúc cột xếp chồng cùng chiều với danh sách bên trên.
+    const namedSet = new Set(byTotalDesc.slice(0, 4));
+    const namedEmployers = employerNames.filter((n) => namedSet.has(n));
     const employerTailUsed = employerNames.length > namedEmployers.length;
     const employerKeys = employerTailUsed ? [...namedEmployers, OTHER_KEY] : namedEmployers;
+    /** Cho hai biểu đồ theo năm: khoá nào mang màu nào. */
+    const employerSeries = employerKeys.map((key) => ({
+      key,
+      colourIndex: key === OTHER_KEY ? 4 : colourIndexOf(key),
+    }));
 
     const subNames = [...totalBySub.entries()]
       .sort((a, b) => b[1] - a[1])
@@ -211,10 +242,33 @@ export async function GET() {
       return { name: String(y), total, ...row };
     });
 
-    // --- Dòng thời gian từng tháng, tách theo nơi trả ---
+    // --- Dòng thời gian từng tháng, tách theo nơi trả VÀ theo lương/thưởng ---
+    //
+    // Mỗi nơi hai khoá: lương và thưởng. Gộp làm một thì tháng có thưởng chỉ là
+    // một cột vọt lên, không nói được vọt vì lương tăng hay vì một cục thưởng
+    // không lặp lại — mà hai chuyện đó dẫn tới hai quyết định khác hẳn nhau.
+    //
+    // Khoá đánh theo SỐ THỨ TỰ của nơi làm, không ghép từ tên: tên công ty có
+    // thể chứa bất cứ ký tự nào, ghép chuỗi là sớm muộn cũng đụng dấu phân cách.
+    const timelineSeries = namedEmployers.flatMap((name, i) => [
+      { key: `e${i}s`, employer: name, kind: "salary" as const, colourIndex: colourIndexOf(name) },
+      { key: `e${i}b`, employer: name, kind: "bonus" as const, colourIndex: colourIndexOf(name) },
+    ]);
+    if (employerTailUsed) {
+      timelineSeries.push({
+        key: OTHER_KEY,
+        employer: "",
+        kind: "salary" as const,
+        colourIndex: 4,
+      });
+    }
+
     const timeline = months.map((name) => {
       const row: Record<string, string | number | null> = { name, total: totalByMonth.get(name) || 0 };
-      for (const k of namedEmployers) row[k] = byEmployerMonth.get(k)?.get(name) || 0;
+      namedEmployers.forEach((e, i) => {
+        row[`e${i}s`] = salaryByEmployerMonth.get(e)?.get(name) || 0;
+        row[`e${i}b`] = bonusByEmployerMonth.get(e)?.get(name) || 0;
+      });
       if (employerTailUsed) {
         let tail = 0;
         for (const e of employerNames.slice(4)) tail += byEmployerMonth.get(e)?.get(name) || 0;
@@ -223,17 +277,18 @@ export async function GET() {
       return row;
     });
 
-    // Trung bình 12 tháng gần nhất, TÍNH CẢ tháng không có đồng nào. Đây là con
-    // số duy nhất so được giữa các chặng: lương tháng thì chặng nào cũng đẹp,
-    // chỉ có đường này mới cho thấy quãng thất nghiệp kéo mức sống xuống đâu.
+    // Trung bình mỗi tháng, TÍNH CẢ tháng không có đồng nào. Đây là con số duy
+    // nhất so được giữa các chặng: lương tháng thì chặng nào cũng đẹp, chỉ có
+    // đường này mới cho thấy quãng thất nghiệp kéo mức sống xuống đâu.
+    //
+    // Mười một tháng đầu cửa sổ chưa đủ 12, nhưng bỏ trống thì cả năm đầu tiên
+    // không có đường — đúng quãng đáng xem nhất lại trắng. Nên dùng cửa sổ nở
+    // dần: lấy tất cả số tháng đã có, tối đa 12.
     for (let i = 0; i < timeline.length; i++) {
-      if (i < 11) {
-        timeline[i].trailing12 = null;
-        continue;
-      }
+      const from = Math.max(0, i - 11);
       let sum = 0;
-      for (let j = i - 11; j <= i; j++) sum += Number(timeline[j].total) || 0;
-      timeline[i].trailing12 = Math.round(sum / 12);
+      for (let j = from; j <= i; j++) sum += Number(timeline[j].total) || 0;
+      timeline[i].trailing12 = Math.round(sum / (i - from + 1));
     }
 
     // --- Những tháng không có đồng nào ---
@@ -269,6 +324,8 @@ export async function GET() {
         months,
         employers,
         employerKeys,
+        employerSeries,
+        timelineSeries,
         subKeys,
         years,
         yearByEmployer,
