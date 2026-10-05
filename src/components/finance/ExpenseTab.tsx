@@ -5,9 +5,10 @@ import { ComposedChart, BarChart, Bar, LineChart as RechartsLineChart, Line, Pie
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import { useState, useEffect } from "react";
-import { CalendarX } from "lucide-react";
+import { CalendarX, CalendarDays, CalendarRange, CalendarCheck } from "lucide-react";
 import TransactionModal from "./TransactionModal";
 import ScanInvoiceModal from "./ScanInvoiceModal";
+import WeekPanel from "./WeekPanel";
 import PendingReviewButton from "./PendingReviewButton";
 import DayTransactionsCard from "./DayTransactionsCard";
 import IncompleteDataModal from "./IncompleteDataModal";
@@ -326,6 +327,13 @@ export default function ExpenseTab() {
             refreshKey={refreshKey}
           />
 
+          <div className="flex items-end gap-3 mt-10 -mb-2">
+            <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
+              <CalendarDays size={22} /> {t("By day", "Theo ngày")}
+            </h3>
+            <span className="flex-1 border-b border-[var(--color-border)] mb-3" />
+          </div>
+
           {/* Chi tiết từng ngày tách thành mục riêng. Trước đây nó nằm nhét
               dưới biểu đồ xu hướng, nên một thẻ vừa là biểu đồ vừa là bảng tra
               cứu — hai việc khác nhau trong cùng một khung. */}
@@ -418,7 +426,7 @@ export default function ExpenseTab() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
               <h3 className="c-h5 text-[var(--color-text)]">
                 {t("Which day of the month", "Ngày nào trong tháng hay tốn")}
@@ -450,41 +458,22 @@ export default function ExpenseTab() {
               </div>
             </div>
 
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-              <h3 className="c-h5 text-[var(--color-text)]">
-                {t("Year by year", "Tổng chi theo năm")}
-              </h3>
-              <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
-                {t(
-                  "every year on record · the current year is still running",
-                  "mọi năm đã có dữ liệu · năm nay vẫn đang chạy nên chưa trọn"
-                )}
-              </p>
-              {yearlySeries.length === 0 ? (
-                <p className="text-sm text-[var(--color-text-muted)]">
-                  {t("No spending recorded yet.", "Chưa ghi khoản chi nào.")}
-                </p>
-              ) : (
-                <div className="h-56 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={yearlySeries}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={48} />
-                      <Tooltip
-                        formatter={(v, n, item) => [
-                          `${formatVND(Number(v) || 0)} · ${
-                            (item?.payload as { count?: number })?.count || 0
-                          } ${t("transactions", "giao dịch")}`,
-                          t("Spending", "Số tiền"),
-                        ]}
-                      />
-                      <Bar dataKey="amount" name={t("Spending", "Số tiền")} maxBarSize={48} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
+          </div>
+
+          <div className="flex items-end gap-3 mt-10 -mb-2">
+            <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
+              <CalendarRange size={22} /> {t("By week", "Theo tuần")}
+            </h3>
+            <span className="flex-1 border-b border-[var(--color-border)] mb-3" />
+          </div>
+
+          <WeekPanel refreshKey={refreshKey} compact />
+
+          <div className="flex items-end gap-3 mt-10 -mb-2">
+            <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
+              <Calendar size={22} /> {t("By month", "Theo tháng")}
+            </h3>
+            <span className="flex-1 border-b border-[var(--color-border)] mb-3" />
           </div>
 
           <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
@@ -546,6 +535,49 @@ export default function ExpenseTab() {
             </div>
             )}
           </div>
+
+          <div className="flex items-end gap-3 mt-10 -mb-2">
+            <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
+              <CalendarCheck size={22} /> {t("By year", "Theo năm")}
+            </h3>
+            <span className="flex-1 border-b border-[var(--color-border)] mb-3" />
+          </div>
+
+            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
+              <h3 className="c-h5 text-[var(--color-text)]">
+                {t("Year by year", "Tổng chi theo năm")}
+              </h3>
+              <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
+                {t(
+                  "every year on record · the current year is still running",
+                  "mọi năm đã có dữ liệu · năm nay vẫn đang chạy nên chưa trọn"
+                )}
+              </p>
+              {yearlySeries.length === 0 ? (
+                <p className="text-sm text-[var(--color-text-muted)]">
+                  {t("No spending recorded yet.", "Chưa ghi khoản chi nào.")}
+                </p>
+              ) : (
+                <div className="h-56 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={yearlySeries}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={48} />
+                      <Tooltip
+                        formatter={(v, n, item) => [
+                          `${formatVND(Number(v) || 0)} · ${
+                            (item?.payload as { count?: number })?.count || 0
+                          } ${t("transactions", "giao dịch")}`,
+                          t("Spending", "Số tiền"),
+                        ]}
+                      />
+                      <Bar dataKey="amount" name={t("Spending", "Số tiền")} maxBarSize={48} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
 
           <ExpenseGroupAnalysis refreshKey={refreshKey} />
 

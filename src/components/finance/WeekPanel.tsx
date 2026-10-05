@@ -66,7 +66,14 @@ function shortDate(iso: string) {
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 }
 
-export default function WeekPanel({ refreshKey }: { refreshKey: number }) {
+interface PanelProps {
+  refreshKey: number;
+  /** Bỏ hai danh sách hôm nay/hôm qua. Tab Chi tiêu đã có mục "Chi tiết theo
+   *  ngày" làm đúng việc đó, bày lại là hai bản sao lệch nhau chờ xảy ra. */
+  compact?: boolean;
+}
+
+export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
   const { t, language } = useLanguage();
   const expenseCats = useCategories("Expense");
   const [data, setData] = useState<WeekData | null>(null);
@@ -355,7 +362,7 @@ export default function WeekPanel({ refreshKey }: { refreshKey: number }) {
       </div>
 
       {/* --- Hai danh sách: hôm nay và hôm qua --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${compact ? "hidden" : ""}`}>
         {[today, yesterday].map((slice, i) => (
           <div
             key={slice.date}
