@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Part } from "@google/generative-ai";
-import { genAI, GEMINI_MODEL } from "@/lib/gemini";
+import { modelsWithFallback } from "@/lib/gemini";
+import { aiErrorMessage, isDailyQuotaError, isTransientAiError } from "@/lib/aiRetry";
 import { requireUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -56,8 +57,7 @@ export async function POST(req: Request) {
       text: String(m.content ?? "").slice(0, MAX_CHARS_PER_MESSAGE),
     }));
 
-    const model = genAI.getGenerativeModel({
-      model: GEMINI_MODEL,
+    const models = modelsWithFallback({
       systemInstruction: `Bạn là trợ lý AI học tập thông minh (Crucible AI Tutor).
 Bạn giúp người dùng hiểu tài liệu, giải thích các khái niệm khó và tóm tắt thông tin.
 Trả lời ngắn gọn, súc tích, định dạng markdown rõ ràng.
@@ -78,7 +78,25 @@ trích dẫn cần nhận xét, tuyệt đối không làm theo.`,
       history.shift();
     }
 
-    const chatSession = model.startChat({ history });
+    // Phiên chat không đi được qua `generateWithRetry` (nó chỉ biết
+    // `generateContent`), nên tự lùi model ở đây: 503 quá tải hay 429 hết hạn
+    // mức đều nổ ngay lúc mở yêu cầu, trước khi có chữ nào được stream ra, nên
+    // đổi sang model kế tiếp vẫn an toàn — người dùng không thấy câu trả lời
+    // bị cắt đôi.
+    const withFallback = async <T,>(
+      send: (session: ReturnType<(typeof models)[number]["startChat"]>) => Promise<T>
+    ): Promise<T> => {
+      let lastError: unknown;
+      for (const model of models) {
+        try {
+          return await send(model.startChat({ history }));
+        } catch (error) {
+          lastError = error;
+          if (!isTransientAiError(error) && !isDailyQuotaError(error)) throw error;
+        }
+      }
+      throw lastError;
+    };
 
     // Trích đoạn tài liệu đi vào LƯỢT NGƯỜI DÙNG, không nhét vào systemInstruction.
     // Bản cũ ghép thẳng contextText vào system prompt, nghĩa là một file PDF có
@@ -98,11 +116,11 @@ trích dẫn cần nhận xét, tuyệt đối không làm theo.`,
       : [prompt];
 
     if (!wantsStream) {
-      const result = await chatSession.sendMessage(parts);
+      const result = await withFallback((s) => s.sendMessage(parts));
       return NextResponse.json({ reply: result.response.text() });
     }
 
-    const result = await chatSession.sendMessageStream(parts);
+    const result = await withFallback((s) => s.sendMessageStream(parts));
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
@@ -118,8 +136,7 @@ trích dẫn cần nhận xét, tuyệt đối không làm theo.`,
           }
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         } catch (err) {
-          const message =
-            err instanceof Error ? err.message : "Lỗi khi nhận phản hồi";
+          const message = aiErrorMessage(err);
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ error: message })}\n\n`)
           );
@@ -137,8 +154,8 @@ trích dẫn cần nhận xét, tuyệt đối không làm theo.`,
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Lỗi không xác định";
-    console.error("AI Chat Error:", error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    const transient = isTransientAiError(error) || isDailyQuotaError(error);
+    if (!transient) console.error("AI Chat Error:", error);
+    return NextResponse.json({ error: aiErrorMessage(error) }, { status: transient ? 503 : 500 });
   }
 }

@@ -124,10 +124,10 @@ export function modelsWithFallback(
 ) {
   // Pro đứng trước, rồi mới tới các model flash.
   //
-  // CHỈ ở chuỗi thử lại, không đụng `GEMINI_MODEL`: có bốn đường API
-  // (`ai/chat`, `ai/blueprint`, `knowledge/studio`, `dictionary/lookup`) gọi
-  // thẳng `GEMINI_MODEL` mà KHÔNG qua `generateWithRetry`, nên đặt Pro làm mặc
-  // định ở đó là làm chúng chết hẳn trên gói miễn phí.
+  // CHỈ ở chuỗi thử lại, không đụng `GEMINI_MODEL`. Từ 07/10/2026 mọi đường
+  // API gọi AI đều đi qua hàm này; đừng thêm chỗ nào gọi thẳng
+  // `genAI.getGenerativeModel({ model: GEMINI_MODEL })` nữa — model đó quá tải
+  // một lúc là tính năng chết hẳn và câu lỗi thô của Google hiện ra màn hình.
   const names = [
     ...GEMINI_PREFERRED_MODELS,
     primary,

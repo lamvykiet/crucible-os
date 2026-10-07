@@ -165,6 +165,13 @@ bốc hơi ở bước duyệt. Đã có tiền lệ: thêm `Account` xong chỉ
 dư nợ thẻ đứng im. Ô chọn tài khoản nay dùng chung `AccountSelect` +
 `useAccounts()`, đừng viết lại cái thứ tư.
 
+**Gọi Gemini** → luôn `generateWithRetry(modelsWithFallback({...}), ...)`
+(`src/lib/aiRetry.ts`, `src/lib/gemini.ts`) và trả lỗi qua `aiErrorMessage()`.
+Đừng gọi thẳng `genAI.getGenerativeModel({ model: GEMINI_MODEL })`: Gemini hay
+trả 503 "high demand" cho riêng một model, và gói miễn phí tính hạn mức theo
+từng model. Đã có tiền lệ: OCR rồi tới nút tạo dàn ý ý tưởng chết hẳn, hộp thoại
+hiện nguyên câu lỗi tiếng Anh của Google, trong khi model dự phòng vẫn chạy.
+
 **Thêm route API** → mặc định là phải đăng nhập (`requireUser()`). Chỉ
 `api/video/upload` và `api/video/pending` là công khai, xác thực bằng
 `VIDEO_UPLOAD_TOKEN` cho Shortcut iOS — danh sách trong `src/proxy.ts`.
