@@ -445,15 +445,35 @@ export default function DebtOverview({ refreshKey }: { refreshKey: number }) {
                 <CartesianGrid {...GRID} />
                 <XAxis dataKey="name" {...monthAxis(actualVsPlan.map((r) => r.name))} />
                 <YAxis {...yAxis(money, 50)} />
+                {/* Tooltip tự dựng: tooltip chung liệt kê cả trục x/y của
+                    <Scatter> thành một dòng "name : 0 ₫" vô nghĩa. */}
                 <Tooltip
                   {...TOOLTIP}
-                  formatter={(v, n) => [formatVND(Number(v) || 0), n]}
-                  // Lịch của tháng ghi ngay ở dòng đầu: tooltip chung không
-                  // phải lúc nào cũng liệt kê điểm của <Scatter>.
-                  labelFormatter={(l, p) => {
-                    const row = p?.[0]?.payload as { planned?: number } | undefined;
-                    const head = mLabel(String(l));
-                    return row?.planned ? `${head} · ${t("scheduled", "theo lịch")} ${formatVND(row.planned)}` : head;
+                  content={({ active, payload, label }) => {
+                    const row = payload?.[0]?.payload as { actual?: number; planned?: number } | undefined;
+                    if (!active || !row) return null;
+                    const actual = Number(row.actual) || 0;
+                    const planned = Number(row.planned) || 0;
+                    const gap = planned - actual;
+                    return (
+                      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs flex flex-col gap-1">
+                        <p className="font-bold text-[var(--color-text)]">{mLabel(String(label))}</p>
+                        <p className="flex justify-between gap-4 text-[var(--color-text-muted)]">
+                          {t("Paid", "Đã trả")}
+                          <span className="tabular-nums font-bold text-[var(--color-text)]">{formatVND(actual)}</span>
+                        </p>
+                        <p className="flex justify-between gap-4 text-[var(--color-text-muted)]">
+                          {t("Scheduled", "Theo lịch")}
+                          <span className="tabular-nums text-[var(--color-text)]">{formatVND(planned)}</span>
+                        </p>
+                        {planned > 0 && gap > planned * 0.01 && (
+                          <p className="flex justify-between gap-4 text-[var(--color-error)]">
+                            {t("Short", "Thiếu")}
+                            <span className="tabular-nums font-bold">{formatVND(gap)}</span>
+                          </p>
+                        )}
+                      </div>
+                    );
                   }}
                 />
                 <Bar dataKey="actual" name={t("Paid", "Đã trả")} fill={VIZ.muted} {...BAR}>
