@@ -83,7 +83,10 @@ export function CostPanel({
   const budgetPct = cogs.budget ? Math.round((cogs.totalCost / cogs.budget) * 1000) / 10 : null;
 
   return (
-    <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] space-y-6">
+    // `flex gap` chứ không `space-y-6`: globals.css gán nhịp KHỐI LỚN của trang
+    // (`--block-gap`) cho mọi `.space-y-6` trong `.c-main`, kể cả khi nó nằm
+    // trong một thẻ — các mục trong thẻ cách nhau cả gang tay.
+    <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h4 className="c-h5 text-[var(--color-text)]">{t("Cost & COGS", "Giá thành & giá vốn")}</h4>
@@ -252,7 +255,7 @@ export function LedgerPanel({ ledger, count }: { ledger: LedgerView[]; count: nu
           <span className="block c-h5 text-[var(--color-text)]">{t("Project ledger", "Sổ cái dự án")}</span>
           <span className="block text-xs text-[var(--color-text-faint)] mt-1">
             {t(
-              `${count} entries · append-only: edits and deletions add reversing entries, nothing is erased`,
+              `${count} ${count === 1 ? "entry" : "entries"} · append-only: edits and deletions add reversing entries, nothing is erased`,
               `${count} bút toán · chỉ ghi thêm: sửa hay xoá giao dịch sinh bút toán đảo, không dòng nào bị xoá`
             )}
           </span>

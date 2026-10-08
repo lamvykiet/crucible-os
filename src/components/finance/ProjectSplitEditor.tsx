@@ -85,8 +85,26 @@ export default function ProjectSplitEditor({
       next = value.map((s, j) => (j === value.length - 1 ? { ...s, percentage: last.percentage - half } : s));
       pct = half;
     }
-    const unused = options.find((p) => !value.some((s) => s.projectId === p.id)) ?? options[0];
-    onChange([...next, { projectId: unused.id, costCategory: defaultCategory, percentage: pct }]);
+    // Dòng mới phải là một cặp (dự án × nhóm) CHƯA có, nếu không lưu sẽ bị
+    // chặn vì trùng. Ưu tiên dự án chưa chọn; chỉ có một dự án (thường gặp)
+    // thì giữ dự án đó và lấy nhóm chi phí đầu tiên chưa dùng — chia một hoá
+    // đơn ra vật tư + kiểm thử.
+    const taken = new Set(value.map((s) => `${s.projectId}|${s.costCategory}`));
+    const otherProject = options.find((p) => !value.some((s) => s.projectId === p.id));
+    let pick: { projectId: string; costCategory: string } | undefined = otherProject
+      ? { projectId: otherProject.id, costCategory: defaultCategory }
+      : undefined;
+    if (!pick && side === "cost") {
+      for (const p of options) {
+        const c = COST_CATEGORIES.find((cat) => !taken.has(`${p.id}|${cat.code}`));
+        if (c) {
+          pick = { projectId: p.id, costCategory: c.code };
+          break;
+        }
+      }
+    }
+    if (!pick) return;
+    onChange([...next, { ...pick, percentage: pct }]);
   };
 
   const projectLabel = (p: ProjectOption) =>
@@ -223,7 +241,8 @@ export default function ProjectSplitEditor({
         </ul>
       )}
 
-      {value.length > 0 && (
+      {/* Doanh thu không có nhóm chi phí, nên chỉ chia được khi còn dự án khác. */}
+      {value.length > 0 && (side === "cost" || options.some((p) => !chosen.has(p.id))) && (
         <button
           type="button"
           onClick={addRow}
