@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { ownedProjectId } from "@/lib/projectAccess";
+import { cleanSplits } from "@/lib/projectCost";
 import { toVnd } from "@/lib/invoice";
 
 /**
@@ -44,7 +44,9 @@ export async function POST(req: Request) {
         // Chọn thẻ ở bước quét phải sống được tới bước duyệt, nên nó nằm trên
         // bản nháp chứ không chờ tới lúc ghi `Transaction`.
         accountId: formData.accountId || null,
-        projectId: await ownedProjectId(user.id, formData.projectId),
+        // Phân bổ dự án chọn lúc quét. Chỉ làm sạch ở đây; kiểm dự án có thuộc
+        // người dùng và còn đang chạy không là việc của bước duyệt.
+        projectSplits: cleanSplits(formData.projectSplits, formData.type || "Expense").splits as unknown as object,
         language: formData.language || null,
         notes: formData.notes || null,
         driveFileIds: driveFileIds.join(","),

@@ -2,6 +2,8 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { isCostCategory, REVENUE } from "@/lib/projectCost";
+import { syncProjectLedger } from "@/lib/projectLedger";
 
 // Gắn giao dịch ĐÃ GHI từ trước vào dự án.
 //
@@ -13,7 +15,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 const MAX_RESULTS = 80;
 
-/** Giao dịch chưa thuộc dự án nào, lọc theo từ khoá (nơi chi, ghi chú, tên món). */
+/** Giao dịch chưa phân bổ cho dự án nào, lọc theo từ khoá (nơi chi, ghi chú, tên món). */
 export async function GET(req: Request, { params }: Ctx) {
   const { user, response } = await requireUser();
   if (!user) return response;
@@ -33,7 +35,7 @@ export async function GET(req: Request, { params }: Ctx) {
     const rows = await prisma.transaction.findMany({
       where: {
         userId: user.id,
-        projectId: null,
+        allocations: { none: {} },
         type: type === "Income" ? "Income" : type === "Expense" ? { in: ["Expense", "Refund"] } : { in: ["Expense", "Refund", "Income"] },
         ...(q && {
           OR: [
@@ -70,7 +72,15 @@ export async function GET(req: Request, { params }: Ctx) {
   }
 }
 
-/** `{ transactionIds, attach }` — attach=false là gỡ khỏi dự án (không xoá giao dịch). */
+/**
+ * `{ transactionIds, attach, costCategory }`.
+ *
+ * Gắn: mỗi giao dịch nhận một phân bổ 100% cho dự án này — chỉ với giao dịch
+ * CHƯA phân bổ cho dự án nào (không lặng lẽ giật một khoản đang thuộc dự án
+ * khác). Khoản thu tự thành doanh thu, bỏ qua `costCategory`.
+ * Gỡ (attach=false): xoá phân bổ của dự án này, giao dịch vẫn còn trong sổ.
+ * Cả hai đều ghi sổ cái (ghi mới / đảo).
+ */
 export async function POST(req: Request, { params }: Ctx) {
   const { user, response } = await requireUser();
   if (!user) return response;
@@ -91,14 +101,51 @@ export async function POST(req: Request, { params }: Ctx) {
       return NextResponse.json({ success: false, error: "Không tìm thấy dự án" }, { status: 404 });
     }
 
-    const result = await prisma.transaction.updateMany({
-      // Gắn: chỉ lấy giao dịch chưa thuộc dự án nào — không lặng lẽ giật một
-      // khoản đang nằm ở dự án khác. Gỡ: chỉ gỡ khoản đang thuộc đúng dự án này.
-      where: { id: { in: ids }, userId: user.id, projectId: attach ? null : id },
-      data: { projectId: attach ? id : null },
+    const category = isCostCategory(String(body.costCategory)) ? String(body.costCategory) : "RAW_MATERIAL";
+
+    const count = await prisma.$transaction(async (tx) => {
+      let changed: string[] = [];
+      if (attach) {
+        if ((await tx.project.count({ where: { id, userId: user.id, status: "active" } })) === 0) {
+          throw new Error("Dự án không còn đang chạy — mở lại dự án rồi mới gắn chi phí mới được");
+        }
+        const targets = await tx.transaction.findMany({
+          where: {
+            id: { in: ids },
+            userId: user.id,
+            allocations: { none: {} },
+            type: { in: ["Expense", "Refund", "Income"] },
+          },
+          select: { id: true, type: true, totalAmount: true },
+        });
+        if (targets.length > 0) {
+          await tx.projectAllocation.createMany({
+            data: targets.map((t) => ({
+              transactionId: t.id,
+              projectId: id,
+              costCategory: t.type === "Income" ? REVENUE : category,
+              percentage: 100,
+              amount: Math.abs(t.totalAmount),
+              userId: user.id,
+            })),
+          });
+        }
+        changed = targets.map((t) => t.id);
+      } else {
+        const rows = await tx.projectAllocation.findMany({
+          where: { transactionId: { in: ids }, projectId: id, userId: user.id },
+          select: { transactionId: true },
+        });
+        await tx.projectAllocation.deleteMany({
+          where: { transactionId: { in: ids }, projectId: id, userId: user.id },
+        });
+        changed = rows.map((r) => r.transactionId);
+      }
+      await syncProjectLedger(tx, user.id, changed);
+      return new Set(changed).size;
     });
 
-    return NextResponse.json({ success: true, count: result.count });
+    return NextResponse.json({ success: true, count });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Server Error";
     return NextResponse.json({ success: false, error: message }, { status: 500 });

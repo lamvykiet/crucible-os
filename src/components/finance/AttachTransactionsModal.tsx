@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Loader2, Search, Check } from "lucide-react";
+import { X, Loader2, Search, Check, ChevronDown } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { formatVND } from "@/lib/formatMoney";
+import { COST_CATEGORIES } from "@/lib/projectCost";
 
 // Gắn giao dịch ĐÃ GHI từ trước vào dự án.
 //
 // Dự án hay được khai báo sau khi đã tiêu cho nó một thời gian — máy in mua
 // tháng trước, cuộn nhựa đầu tiên mua tuần trước. Thiếu hộp thoại này thì mấy
 // khoản đó phải xoá đi ghi lại mới vào được dự án, và vốn dự án đếm thiếu.
+// Gắn ở đây là phân bổ 100%; muốn chia % cho nhiều dự án thì mở giao dịch ra
+// sửa ở ô phân bổ.
 
 interface Candidate {
   id: string;
@@ -47,6 +50,7 @@ export default function AttachTransactionsModal({
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [costCategory, setCostCategory] = useState("RAW_MATERIAL");
   const [error, setError] = useState("");
 
   // Gõ tới đâu lọc tới đó, nhưng chờ người dùng ngừng gõ 300ms mới hỏi máy chủ.
@@ -105,7 +109,7 @@ export default function AttachTransactionsModal({
       const res = await fetch(`/api/finance/projects/${encodeURIComponent(projectId)}/transactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transactionIds: [...selected], attach: true }),
+        body: JSON.stringify({ transactionIds: [...selected], attach: true, costCategory }),
       });
       const json = await res.json();
       if (json.success) {
@@ -245,6 +249,25 @@ export default function AttachTransactionsModal({
         </div>
 
         <div className="shrink-0 p-5 border-t border-[var(--color-border)] flex flex-wrap items-center gap-3">
+          {/* Khoản chi được gắn vào nhóm chi phí nào. Khoản thu tự thành doanh
+              thu nên không cần chọn. Gắn xong vẫn sửa từng khoản được. */}
+          {rows.some((r) => selected.has(r.id) && r.type !== "Income") && (
+            <div className="relative w-full">
+              <select
+                value={costCategory}
+                onChange={(e) => setCostCategory(e.target.value)}
+                aria-label={t("Cost group for the spending", "Nhóm chi phí cho các khoản chi")}
+                className="w-full appearance-none bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-full pl-4 pr-10 py-2.5 min-h-11 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+              >
+                {COST_CATEGORIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {t(`Cost group: ${c.en}`, `Nhóm chi phí: ${c.vi}`)}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
+            </div>
+          )}
           <button
             onClick={handleAttach}
             disabled={saving || selected.size === 0}

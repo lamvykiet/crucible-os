@@ -8,13 +8,14 @@ import {
   Plus, Pencil, Link2, Unlink, Hammer, TrendingDown, TrendingUp, Loader2, RotateCcw,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
-import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { todayLocalIso } from "@/lib/localDate";
 import { monthAxis } from "./MonthAxisTick";
 import TransactionModal from "./TransactionModal";
 import ProjectModal, { emptyProject, type ProjectDraft } from "./ProjectModal";
 import AttachTransactionsModal from "./AttachTransactionsModal";
+import { CostPanel, LedgerPanel, CogsTransferModal, type CogsData, type LedgerView } from "./ProjectCostPanels";
+import { costCategoryOf } from "@/lib/projectCost";
 
 // Hiệu quả dự án: đã bỏ vào bao nhiêu, thu về bao nhiêu, bao giờ hoà vốn.
 //
@@ -58,6 +59,10 @@ interface ProjectTxRow {
   totalAmount: number;
   notes: string | null;
   items: { productName: string; quantity: number; unitPrice: number; totalPrice: number }[];
+  /** Phần của giao dịch thuộc dự án này (sau khi chia %). */
+  projectAmount: number;
+  projectPercentage: number;
+  costCategories: string[];
   [key: string]: unknown;
 }
 
@@ -84,6 +89,9 @@ interface Analysis {
   revenueBySource: { name: string; amount: number; count: number }[];
   topItems: { name: string; amount: number; quantity: number; count: number }[];
   transactions: ProjectTxRow[];
+  cogs: CogsData;
+  ledger: LedgerView[];
+  ledgerCount: number;
 }
 
 /** "2026-09" → "09/2026" */
@@ -105,7 +113,6 @@ export default function ProjectsTab() {
   const { t, language } = useLanguage();
   const vi = language === "vi";
   const money = (n: number) => compactMoney(n, vi);
-  const { label } = useCategories();
 
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -117,6 +124,7 @@ export default function ProjectsTab() {
 
   const [projectDraft, setProjectDraft] = useState<ProjectDraft | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [txModal, setTxModal] = useState<{ initialData: Record<string, unknown>; type: "Expense" | "Income" } | null>(null);
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
@@ -195,6 +203,16 @@ export default function ProjectsTab() {
   // bấm sang dự án khác thì `data` cũ vẫn còn trong state tới khi tải xong.
   const current = data && data.project.id === selectedId ? data : null;
   const project = current?.project;
+  const editProject = () =>
+    project &&
+    setProjectDraft({
+      id: project.id,
+      name: project.name,
+      status: project.status,
+      budget: project.budget,
+      startDate: project.startDate ?? "",
+      notes: project.notes ?? "",
+    });
 
   // ------------------------------------------------------------------------
   return (
@@ -282,20 +300,11 @@ export default function ProjectsTab() {
         <ProjectBody
           data={current}
           statusLabel={STATUS_LABELS[project.status] ?? project.status}
-          label={label}
           money={money}
-          onEditProject={() =>
-            setProjectDraft({
-              id: project.id,
-              name: project.name,
-              status: project.status,
-              budget: project.budget,
-              startDate: project.startDate ?? "",
-              notes: project.notes ?? "",
-            })
-          }
-          onAddCost={() => setTxModal({ type: "Expense", initialData: { type: "Expense", projectId: project.id } })}
-          onAddRevenue={() => setTxModal({ type: "Income", initialData: { type: "Income", projectId: project.id } })}
+          onEditProject={editProject}
+          onTransfer={() => setTransferOpen(true)}
+          onAddCost={() => setTxModal({ type: "Expense", initialData: { type: "Expense", projectSplits: [{ projectId: project.id, costCategory: "RAW_MATERIAL", percentage: 100 }] } })}
+          onAddRevenue={() => setTxModal({ type: "Income", initialData: { type: "Income", projectSplits: [{ projectId: project.id, costCategory: "REVENUE", percentage: 100 }] } })}
           onAttach={() => setAttachOpen(true)}
           onEditTx={(tx) => setTxModal({ type: tx.type === "Income" ? "Income" : "Expense", initialData: tx })}
           onUnlink={unlink}
@@ -312,6 +321,17 @@ export default function ProjectsTab() {
             else setSelectedId(null);
             refresh();
           }}
+        />
+      )}
+
+      {project && current && (
+        <CogsTransferModal
+          isOpen={transferOpen}
+          projectId={project.id}
+          wip={current.cogs.totalWip}
+          cogs={current.cogs.totalCogs}
+          onClose={() => setTransferOpen(false)}
+          onDone={refresh}
         />
       )}
 
@@ -342,9 +362,9 @@ export default function ProjectsTab() {
 interface BodyProps {
   data: Analysis;
   statusLabel: string;
-  label: (name: string) => string;
   money: (n: number) => string;
   onEditProject: () => void;
+  onTransfer: () => void;
   onAddCost: () => void;
   onAddRevenue: () => void;
   onAttach: () => void;
@@ -355,9 +375,9 @@ interface BodyProps {
 function ProjectBody({
   data,
   statusLabel,
-  label,
   money,
   onEditProject,
+  onTransfer,
   onAddCost,
   onAddRevenue,
   onAttach,
@@ -365,7 +385,7 @@ function ProjectBody({
   onUnlink,
 }: BodyProps) {
   const { t } = useLanguage();
-  const { project, totals, breakEven, monthly, costByCategory, revenueBySource, topItems, transactions } = data;
+  const { project, totals, breakEven, monthly, revenueBySource, topItems, transactions, cogs, ledger, ledgerCount } = data;
   const hasMoney = totals.cost !== 0 || totals.revenue !== 0;
   const profitable = totals.profit >= 0;
   const recovery = Math.max(0, Math.min(100, totals.recoveryPct ?? 0));
@@ -447,7 +467,6 @@ function ProjectBody({
           ? "text-[var(--color-error)]"
           : "text-[var(--color-text)]";
 
-  const maxCost = Math.max(1, ...costByCategory.map((c) => c.amount));
   const maxSource = Math.max(1, ...revenueBySource.map((c) => c.amount));
   const months = monthly.map((m) => m.name);
 
@@ -534,37 +553,6 @@ function ProjectBody({
               )}
             </p>
           </div>
-          {totals.budget && totals.budgetUsedPct !== null ? (
-            <div>
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-sm font-bold text-[var(--color-text)]">{t("Planned capital used", "Đã dùng vốn dự định")}</span>
-                <span
-                  className={`text-sm font-bold tabular-nums ${
-                    totals.budgetUsedPct > 100 ? "text-[var(--color-error)]" : "text-[var(--color-text)]"
-                  }`}
-                >
-                  {totals.budgetUsedPct}%
-                </span>
-              </div>
-              <div className="w-full bg-[var(--color-surface-2)] rounded-full h-2 mt-2 overflow-hidden">
-                <div
-                  className={`h-2 rounded-full ${totals.budgetUsedPct > 100 ? "bg-[var(--color-error)]" : "bg-[var(--color-warning)]"}`}
-                  style={{ width: `${Math.min(100, totals.budgetUsedPct)}%` }}
-                />
-              </div>
-              <p className="text-xs text-[var(--color-text-faint)] mt-1.5">
-                {totals.budgetUsedPct > 100
-                  ? t(
-                      `${money(totals.cost - totals.budget)} over the plan`,
-                      `vượt dự định ${money(totals.cost - totals.budget)}`
-                    )
-                  : t(
-                      `${money(totals.budget - totals.cost)} left in the plan`,
-                      `còn ${money(totals.budget - totals.cost)} trong dự định`
-                    )}
-              </p>
-            </div>
-          ) : null}
         </div>
       )}
 
@@ -688,43 +676,11 @@ function ProjectBody({
             </div>
           </div>
 
-          {/* --- Vốn đi đâu / Doanh thu từ ai --- */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
-              <h4 className="c-h5 text-[var(--color-text)]">{t("Where the capital went", "Vốn đi đâu")}</h4>
-              <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-5">{t("by category", "theo danh mục")}</p>
-              {costByCategory.length === 0 ? (
-                <p className="text-sm text-[var(--color-text-faint)]">{t("No costs yet", "Chưa có khoản chi nào")}</p>
-              ) : (
-                <ul className="space-y-3">
-                  {costByCategory.map((c) => (
-                    <li key={`${c.group}::${c.subGroup ?? ""}`}>
-                      <div className="flex items-baseline justify-between gap-3 text-sm">
-                        <span className="min-w-0 truncate text-[var(--color-text)]">
-                          {label(c.subGroup || c.group)}
-                          {c.subGroup && (
-                            <span className="text-[var(--color-text-faint)]"> · {label(c.group)}</span>
-                          )}
-                        </span>
-                        <span className="shrink-0 tabular-nums font-bold text-[var(--color-text)]">
-                          {formatVND(c.amount)}
-                          <span className="ml-1.5 font-normal text-[var(--color-text-faint)]">
-                            {totals.cost > 0 ? Math.round((c.amount / totals.cost) * 100) : 0}%
-                          </span>
-                        </span>
-                      </div>
-                      <div className="w-full bg-[var(--color-surface-2)] rounded-full h-1.5 mt-1.5 overflow-hidden">
-                        <div
-                          className="h-1.5 rounded-full"
-                          style={{ width: `${Math.max(2, (c.amount / maxCost) * 100)}%`, background: "var(--chart-3)" }}
-                        />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+          {/* --- Giá thành & giá vốn: 5 nhóm chi phí, WIP/COGS, ngân sách --- */}
+          <CostPanel cogs={cogs} money={money} onTransfer={onTransfer} onEditBudget={onEditProject} />
 
+          {/* --- Doanh thu từ ai / Mua gì nhiều nhất --- */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
               <h4 className="c-h5 text-[var(--color-text)]">{t("Where revenue came from", "Doanh thu từ ai")}</h4>
               <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-5">
@@ -759,7 +715,6 @@ function ProjectBody({
                 </ul>
               )}
             </div>
-          </div>
 
           {/* --- Mua gì nhiều nhất --- */}
           {topItems.length > 0 && (
@@ -781,13 +736,14 @@ function ProjectBody({
               </ul>
             </div>
           )}
+          </div>
         </>
       )}
 
       {/* --- Sổ của dự án --- */}
       {transactions.length > 0 && (
         <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
-          <h4 className="c-h5 text-[var(--color-text)]">{t("Project ledger", "Sổ của dự án")}</h4>
+          <h4 className="c-h5 text-[var(--color-text)]">{t("Project transactions", "Giao dịch của dự án")}</h4>
           <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
             {t(
               `${transactions.length} ${transactions.length === 1 ? "entry" : "entries"} · tap one to edit · they also stay in Expense / Income`,
@@ -813,11 +769,24 @@ function ProjectBody({
                         }`}
                       >
                         {income || refund ? "+" : "−"}
-                        {formatVND(tx.totalAmount)}
+                        {formatVND(tx.projectAmount)}
                       </span>
                     </span>
                     <span className="block text-xs text-[var(--color-text-faint)] mt-0.5 truncate">
-                      {dayLabel(tx.date)} · {income ? t("revenue", "doanh thu") : refund ? t("refund", "hoàn tiền") : label(tx.subGroup || tx.categoryGroup)}
+                      {dayLabel(tx.date)} ·{" "}
+                      {income
+                        ? t("revenue", "doanh thu")
+                        : tx.costCategories
+                            .map((c) => {
+                              const cat = costCategoryOf(c);
+                              return cat ? t(cat.en, cat.vi) : c;
+                            })
+                            .join(", ")}
+                      {refund ? ` (${t("refund", "hoàn tiền")})` : ""}
+                      {/* Hoá đơn chia cho nhiều dự án: nói rõ dự án này gánh bao nhiêu. */}
+                      {tx.projectPercentage < 100
+                        ? ` · ${tx.projectPercentage}% ${t("of", "của")} ${formatVND(tx.totalAmount)}`
+                        : ""}
                       {items ? ` · ${items}` : tx.notes ? ` · ${tx.notes}` : ""}
                     </span>
                   </button>
@@ -835,6 +804,9 @@ function ProjectBody({
           </ul>
         </div>
       )}
+
+      {/* --- Sổ cái chỉ-ghi-thêm --- */}
+      <LedgerPanel ledger={ledger} count={ledgerCount} />
     </div>
   );
 }

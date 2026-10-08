@@ -12,7 +12,8 @@ import CustomDatePicker from "@/components/ui/CustomDatePicker";
 import LineItemsEditor from "./LineItemsEditor";
 import AccountSelect from "./AccountSelect";
 import { useAccounts } from "@/lib/useAccounts";
-import ProjectSelect from "./ProjectSelect";
+import ProjectSplitEditor from "./ProjectSplitEditor";
+import type { Split } from "@/lib/projectCost";
 import { useProjects } from "@/lib/useProjects";
 
 interface ReviewQueueModalProps {
@@ -157,7 +158,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
         totalAmount: str(d.totalAmount),
         paymentMethod: d.paymentMethod || "unknown",
         accountId: str(d.accountId),
-        projectId: str(d.projectId),
+        projectSplits: Array.isArray(d.projectSplits) ? (d.projectSplits as Split[]) : [],
         notes: str(d.notes),
       });
       setItems(d.items || []);
@@ -599,11 +600,13 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                     labelClassName={labelClass}
                   />
 
-                  <ProjectSelect
+                  <ProjectSplitEditor
                     projects={projects}
-                    value={formData.projectId || ""}
-                    onChange={(id) => setFormData((prev: Record<string, unknown>) => ({ ...prev, projectId: id }))}
+                    value={formData.projectSplits || []}
+                    onChange={(splits) => setFormData((prev: Record<string, unknown>) => ({ ...prev, projectSplits: splits }))}
                     type={formData.type || "Expense"}
+                    totalAmount={formData.totalAmount}
+                    categoryGroup={formData.categoryGroup}
                     selectClassName={inputClass}
                     labelClassName={labelClass}
                   />

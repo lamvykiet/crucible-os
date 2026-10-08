@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { syncProjectLedger } from "@/lib/projectLedger";
 import {
   getDriveClient,
   deleteFile,
@@ -64,6 +65,8 @@ export async function POST(req: Request) {
         // deleteMany chứ không phải delete: giao dịch có thể đã bị xoá tay ở
         // màn hình Lịch sử, và khi đó `delete` sẽ ném lỗi P2025.
         await tx.transaction.deleteMany({ where: { id: draft.transactionId, userId: user.id } });
+        // Giao dịch từng được phân bổ cho dự án thì sổ cái dự án nhận bút toán đảo.
+        await syncProjectLedger(tx, user.id, [draft.transactionId]);
       }
 
       if (action === "delete") {

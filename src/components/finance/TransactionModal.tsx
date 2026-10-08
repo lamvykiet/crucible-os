@@ -11,7 +11,8 @@ import AmountInput from "@/components/ui/AmountInput";
 import AccountSelect from "./AccountSelect";
 import LineItemsEditor from "./LineItemsEditor";
 import { useAccounts } from "@/lib/useAccounts";
-import ProjectSelect from "./ProjectSelect";
+import ProjectSplitEditor from "./ProjectSplitEditor";
+import type { Split } from "@/lib/projectCost";
 import { useProjects } from "@/lib/useProjects";
 import { todayLocalIso } from "@/lib/localDate";
 import CustomDatePicker from "@/components/ui/CustomDatePicker";
@@ -52,7 +53,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
     paymentMethod: initialData?.paymentMethod || "unknown",
     accountId: initialData?.accountId || "",
     toAccountId: initialData?.toAccountId || "",
-    projectId: initialData?.projectId || "",
+    projectSplits: (initialData?.projectSplits ?? []) as Split[],
     notes: initialData?.notes || ""
   });
 
@@ -87,7 +88,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
         paymentMethod: initialData?.paymentMethod || "unknown",
         accountId: initialData?.accountId || "",
         toAccountId: initialData?.toAccountId || "",
-        projectId: initialData?.projectId || "",
+        projectSplits: (initialData?.projectSplits ?? []) as Split[],
         notes: initialData?.notes || ""
       });
       setItems(initialData?.items || []);
@@ -206,7 +207,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
           paymentMethod: "unknown",
           accountId: "",
           toAccountId: "",
-          projectId: "",
+          projectSplits: [] as Split[],
           notes: ""
         });
         setItems([]);
@@ -389,16 +390,21 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
               labelClassName="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2"
             />
 
-            {/* Chi cho dự án = vốn bỏ vào; thu từ dự án = doanh thu của nó.
-                Tab Dự án đọc đúng cột này để tính lời/lỗ. */}
-            <ProjectSelect
-              projects={projects}
-              value={formData.projectId}
-              onChange={(id) => setFormData((prev) => ({ ...prev, projectId: id }))}
-              type={formData.type}
-              selectClassName="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
-              labelClassName="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2"
-            />
+            {/* Phân bổ dự án: chi = vốn/giá thành dự án, thu = doanh thu.
+                Tab Dự án và sổ cái dự án đọc đúng phần này. Chiếm cả hàng vì
+                chia nhiều dự án thì mỗi phần là một khối. */}
+            <div className="col-span-1 md:col-span-2">
+              <ProjectSplitEditor
+                projects={projects}
+                value={formData.projectSplits}
+                onChange={(splits) => setFormData((prev) => ({ ...prev, projectSplits: splits }))}
+                type={formData.type}
+                totalAmount={formData.amount}
+                categoryGroup={formData.categoryGroup}
+                selectClassName="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+                labelClassName="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2"
+              />
+            </div>
 
             {/* Chuyển khoản chạm vào HAI tài khoản. Trả thẻ tín dụng là ví dụ
                 rõ nhất: tiền rời ngân hàng và dư nợ thẻ giảm đi. */}

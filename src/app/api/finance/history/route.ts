@@ -62,7 +62,7 @@ export async function GET(req: Request) {
       where: whereClause,
       orderBy: { date: "desc" },
       take: LIMIT,
-      include: { items: true }
+      include: { items: true, allocations: { orderBy: { createdAt: "asc" } } }
     });
 
     return NextResponse.json({
@@ -78,7 +78,7 @@ export async function GET(req: Request) {
       // `source` và `driveFileId` để form biết đây là hoá đơn quét và hiện lại
       // ảnh gốc cho đối chiếu.
       //
-      // `accountId`, `toAccountId`, `projectId` cũng vậy: thiếu chúng thì sửa
+      // `accountId`, `toAccountId`, `projectSplits` cũng vậy: thiếu chúng thì sửa
       // một giao dịch ở đây là nó lặng lẽ rời thẻ (dư nợ thẻ đổi) và rời dự án
       // (vốn dự án đếm thiếu).
       data: txs.map(t => ({
@@ -95,7 +95,12 @@ export async function GET(req: Request) {
         note: t.notes || '',
         accountId: t.accountId,
         toAccountId: t.toAccountId,
-        projectId: t.projectId,
+        projectSplits: t.allocations.map((a) => ({
+          projectId: a.projectId,
+          costCategory: a.costCategory,
+          percentage: a.percentage,
+          notes: a.notes,
+        })),
         items: t.items || []
       }))
     });

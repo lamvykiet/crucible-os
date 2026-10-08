@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { ownedProjectId } from "@/lib/projectAccess";
+import { applyProjectSplits, syncProjectLedger, ProjectSplitError } from "@/lib/projectLedger";
 import { getDriveClient, moveFile, getOrCreateFolderIds, INVOICE_ROOT_FOLDER_ID } from "@/lib/drive";
 
 export async function POST(req: Request) {
@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { date, supplier, type, categoryGroup, subGroup, totalAmount, amount, paymentMethod, notes, source, driveFileIds, subtotal, tax, serviceCharge, discount, items, accountId, toAccountId, projectId } = body;
+    const { date, supplier, type, categoryGroup, subGroup, totalAmount, amount, paymentMethod, notes, source, driveFileIds, subtotal, tax, serviceCharge, discount, items, accountId, toAccountId, projectSplits } = body;
 
     const finalAmount = totalAmount || amount;
 
@@ -20,8 +20,10 @@ export async function POST(req: Request) {
 
     const transactionId = `RCP-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-    const transaction = await prisma.transaction.create({
-      // ... creation logic unchanged
+    // Giao dịch, phân bổ dự án và bút toán sổ cái dự án ghi chung một lần:
+    // hỏng ở bước nào thì cả ba cùng huỷ.
+    const transaction = await prisma.$transaction(async (tx) => {
+     const created = await tx.transaction.create({
       data: {
         id: transactionId,
         userId: user.id,
@@ -40,8 +42,6 @@ export async function POST(req: Request) {
         // quét từ hoá đơn chưa chắc biết thẻ nào.
         accountId: accountId || null,
         toAccountId: toAccountId || null,
-        // Thuộc dự án nào (chi = vốn bỏ vào, thu = doanh thu của dự án).
-        projectId: await ownedProjectId(user.id, projectId),
         source: source || "manual",
         driveFileId: driveFileIds ? (Array.isArray(driveFileIds) ? driveFileIds.join(",") : driveFileIds) : null,
         notes: notes || null,
@@ -58,6 +58,15 @@ export async function POST(req: Request) {
       include: {
         items: true
       }
+     });
+     await applyProjectSplits(tx, {
+       userId: user.id,
+       transactionId: created.id,
+       type: created.type,
+       totalAmount: created.totalAmount,
+       rawSplits: projectSplits ?? [],
+     });
+     return created;
     });
 
     // If source is OCR and drive files exist, move them to Approved
@@ -83,6 +92,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data: transaction });
   } catch (error) {
+    if (error instanceof ProjectSplitError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
     console.error("Failed to create transaction:", error);
     return NextResponse.json({ success: false, error: "Server Error" }, { status: 500 });
   }
@@ -94,7 +106,7 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const { id, date, supplier, type, categoryGroup, subGroup, totalAmount, amount, paymentMethod, notes, source, driveFileIds, subtotal, tax, serviceCharge, discount, items, accountId, toAccountId, projectId } = body;
+    const { id, date, supplier, type, categoryGroup, subGroup, totalAmount, amount, paymentMethod, notes, source, driveFileIds, subtotal, tax, serviceCharge, discount, items, accountId, toAccountId, projectSplits } = body;
 
     const finalAmount = totalAmount || amount;
 
@@ -102,19 +114,20 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    // Delete existing items to recreate them
-    if (items !== undefined) {
-      await prisma.transactionLine.deleteMany({
-        where: { transactionId: id }
-      });
-    }
-
     const existing = await prisma.transaction.findUnique({ where: { id } });
     if (!existing || existing.userId !== user.id) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
-    const transaction = await prisma.transaction.update({
+    const transaction = await prisma.$transaction(async (tx) => {
+     // Delete existing items to recreate them
+     if (items !== undefined) {
+      await tx.transactionLine.deleteMany({
+        where: { transactionId: id }
+      });
+     }
+
+     const updated = await tx.transaction.update({
       where: {
         id: id
       },
@@ -130,12 +143,12 @@ export async function PUT(req: Request) {
         discount: discount ? Number(discount) : 0,
         totalAmount: Number(finalAmount),
         paymentMethod: paymentMethod || "cash",
-        // Chỉ đụng ba khoá ngoại khi form CÓ gửi chúng. Form nào không biết tới
+        // Chỉ đụng khoá ngoại khi form CÓ gửi chúng. Form nào không biết tới
         // một trường (gửi thiếu khoá) thì giữ nguyên giá trị trong DB — đừng
-        // coi "không gửi" là "xoá đi". Chuỗi rỗng mới là bỏ gắn.
+        // coi "không gửi" là "xoá đi". Chuỗi rỗng mới là bỏ gắn. Phân bổ dự án
+        // theo cùng luật, ở `applyProjectSplits` bên dưới.
         ...("accountId" in body && { accountId: accountId || null }),
         ...("toAccountId" in body && { toAccountId: toAccountId || null }),
-        ...("projectId" in body && { projectId: await ownedProjectId(user.id, projectId) }),
         source: source || "manual",
         ...(driveFileIds !== undefined && { driveFileId: Array.isArray(driveFileIds) ? driveFileIds.join(",") : driveFileIds }),
         notes: notes || null,
@@ -154,10 +167,22 @@ export async function PUT(req: Request) {
       include: {
         items: true
       }
+     });
+     await applyProjectSplits(tx, {
+       userId: user.id,
+       transactionId: updated.id,
+       type: updated.type,
+       totalAmount: updated.totalAmount,
+       rawSplits: "projectSplits" in body ? projectSplits ?? [] : undefined,
+     });
+     return updated;
     });
 
     return NextResponse.json({ success: true, data: transaction });
   } catch (error) {
+    if (error instanceof ProjectSplitError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
     console.error("Failed to update transaction:", error);
     return NextResponse.json({ success: false, error: "Server Error" }, { status: 500 });
   }
@@ -180,10 +205,11 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
-    await prisma.transaction.delete({
-      where: {
-        id: id
-      }
+    // Xoá giao dịch thì phân bổ đi theo (cascade), còn sổ cái dự án nhận bút
+    // toán đảo — dòng cũ không bao giờ bị xoá.
+    await prisma.$transaction(async (tx) => {
+      await tx.transaction.delete({ where: { id } });
+      await syncProjectLedger(tx, user.id, [id]);
     });
 
     return NextResponse.json({ success: true });

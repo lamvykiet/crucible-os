@@ -13,7 +13,8 @@ import CustomDatePicker from "@/components/ui/CustomDatePicker";
 import LineItemsEditor from "./LineItemsEditor";
 import AccountSelect from "./AccountSelect";
 import { useAccounts } from "@/lib/useAccounts";
-import ProjectSelect from "./ProjectSelect";
+import ProjectSplitEditor from "./ProjectSplitEditor";
+import type { Split } from "@/lib/projectCost";
 import { useProjects } from "@/lib/useProjects";
 
 interface ScanInvoiceModalProps {
@@ -44,7 +45,7 @@ const EMPTY_FORM = {
   totalAmount: "",
   paymentMethod: "unknown",
   accountId: "",
-  projectId: "",
+  projectSplits: [] as Split[],
   language: "",
   notes: "",
 };
@@ -546,12 +547,14 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                     labelClassName={labelClass}
                   />
 
-                  {/* Đi theo bản nháp (`DraftReceipt.projectId`) sang bước duyệt. */}
-                  <ProjectSelect
+                  {/* Đi theo bản nháp (`DraftReceipt.projectSplits`) sang bước duyệt. */}
+                  <ProjectSplitEditor
                     projects={projects}
-                    value={formData.projectId}
-                    onChange={(id) => setFormData((prev) => ({ ...prev, projectId: id }))}
+                    value={formData.projectSplits}
+                    onChange={(splits) => setFormData((prev) => ({ ...prev, projectSplits: splits }))}
                     type={formData.type}
+                    totalAmount={formData.totalAmount}
+                    categoryGroup={formData.categoryGroup}
                     selectClassName={inputClass}
                     labelClassName={labelClass}
                   />

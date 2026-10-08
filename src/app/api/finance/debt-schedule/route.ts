@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { refreshAllocations, syncProjectLedger } from "@/lib/projectLedger";
 import { recalcFrom, type ScheduleRow } from "@/lib/debtSchedule";
 import { buildDebtTransactions, debtTxIds } from "@/lib/debtTransactions";
 
@@ -256,6 +257,12 @@ export async function PATCH(req: Request) {
       // dư nợ đổi nhưng tiền lãi của kỳ ĐÃ CHỐT thì không đổi, nên giao dịch
       // của chúng vẫn đúng.
       const ids = debtTxIds(id);
+      // Giao dịch trả nợ có thể đã được phân bổ cho dự án (vay để đầu tư dự
+      // án). Xoá rồi tạo lại cùng id thì phân bổ mất theo cascade — giữ lại
+      // để gắn vào bản mới, số tiền tính lại theo tỷ lệ cũ.
+      const keptAllocations = await tx.projectAllocation.findMany({
+        where: { transactionId: { in: [ids.interest, ids.principal] }, userId: user.id },
+      });
       await tx.transaction.deleteMany({
         where: { id: { in: [ids.interest, ids.principal] }, userId: user.id },
       });
@@ -275,7 +282,28 @@ export async function PATCH(req: Request) {
           interestDays: edited.interestDays,
         });
         if (txRows.length > 0) await tx.transaction.createMany({ data: txRows });
+        for (const row of txRows) {
+          const kept = keptAllocations.filter((a) => a.transactionId === row.id);
+          if (kept.length === 0) continue;
+          await tx.projectAllocation.createMany({
+            data: kept.map((a) => ({
+              transactionId: a.transactionId,
+              projectId: a.projectId,
+              costCategory: a.costCategory,
+              percentage: a.percentage,
+              amount: a.amount,
+              notes: a.notes,
+              userId: a.userId,
+            })),
+          });
+          await refreshAllocations(tx, {
+            transactionId: String(row.id),
+            type: String(row.type),
+            totalAmount: Number(row.totalAmount),
+          });
+        }
       }
+      await syncProjectLedger(tx, user.id, [ids.interest, ids.principal]);
 
       // Dòng tóm tắt phải bám theo lịch, không nhập tay: dư nợ = số cuối của kỳ
       // đã chốt gần nhất, trả hàng tháng = kỳ chưa trả kế tiếp.

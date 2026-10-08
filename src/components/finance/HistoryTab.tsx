@@ -27,7 +27,7 @@ interface Transaction {
   note: string;
   accountId: string | null;
   toAccountId: string | null;
-  projectId: string | null;
+  projectSplits: { projectId: string; costCategory: string; percentage: number; notes: string | null }[];
   items?: any[];
 }
 
@@ -192,7 +192,7 @@ export default function HistoryTab() {
       totalAmount: tx.amount,
       accountId: tx.accountId,
       toAccountId: tx.toAccountId,
-      projectId: tx.projectId,
+      projectSplits: tx.projectSplits,
       items: tx.items
     });
     setEditModalOpen(true);

@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { PROJECT_STATUSES, projectTotals, type ProjectStatus } from "@/lib/projects";
+import { loadProjectRows } from "@/lib/projectData";
 
-// Dự án: một lăng kính thứ hai trên sổ thu chi. Giao dịch gắn `projectId` vẫn
+// Dự án: một lăng kính thứ hai trên sổ thu chi. Giao dịch phân bổ cho dự án vẫn
 // nằm trong Chi tiêu/Thu nhập chung — ở đây chỉ gom chúng lại để hỏi "dự án
 // này lời hay lỗ".
 
@@ -16,28 +17,19 @@ export async function GET() {
     const projects = await prisma.project.findMany({
       where: { userId: user.id },
       orderBy: [{ createdAt: "asc" }],
-      include: {
-        transactions: {
-          select: {
-            id: true,
-            date: true,
-            type: true,
-            supplier: true,
-            categoryGroup: true,
-            subGroup: true,
-            totalAmount: true,
-          },
-        },
-      },
     });
+    const rows = await loadProjectRows(user.id);
 
     // Đang chạy lên trước, đóng xuống cuối — thứ tự người dùng hay cần nhất.
     const rank = (s: string) => Math.max(0, PROJECT_STATUSES.indexOf(s as ProjectStatus));
     const data = projects
-      .map(({ transactions, ...p }) => ({
+      .map((p) => ({
         ...p,
         startDate: p.startDate ? p.startDate.toISOString().slice(0, 10) : null,
-        totals: projectTotals(transactions, p.budget),
+        totals: projectTotals(
+          rows.filter((r) => r.allocation.projectId === p.id).map((r) => r.row),
+          p.budget
+        ),
       }))
       .sort((a, b) => rank(a.status) - rank(b.status));
 
@@ -112,8 +104,8 @@ export async function PUT(req: Request) {
 }
 
 /**
- * Xoá dự án. Giao dịch KHÔNG bị xoá theo: khoá ngoại là `SetNull`, nên chúng
- * chỉ rời dự án và vẫn nằm nguyên trong sổ thu chi.
+ * Xoá dự án. Giao dịch KHÔNG bị xoá theo — chỉ phân bổ và sổ cái của riêng dự
+ * án này mất (cascade); giao dịch vẫn nằm nguyên trong sổ thu chi.
  */
 export async function DELETE(req: Request) {
   const { user, response } = await requireUser();

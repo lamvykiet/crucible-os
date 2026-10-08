@@ -1,8 +1,10 @@
 // Hiệu quả của một dự án: đã bỏ vào bao nhiêu, thu về bao nhiêu, bao giờ hoà
 // vốn.
 //
-// Mọi con số tính lại từ các `Transaction` gắn `projectId` — bảng `Project`
-// không giữ số tổng nào. Hàm ở đây là hàm thuần để route danh sách lẫn route
+// Mọi con số tính lại từ các `ProjectAllocation` (phần của từng giao dịch thuộc
+// dự án) — bảng `Project` không giữ số tổng nào. Route đổi mỗi phân bổ thành
+// một `ProjectTx` với `totalAmount` = số tiền ĐÃ PHÂN BỔ, không phải tổng hoá
+// đơn: hoá đơn chia 60/40 thì dự án chỉ gánh 60%. Hàm ở đây là hàm thuần để route danh sách lẫn route
 // phân tích cùng đếm một kiểu: hai công thức là hai con số khác nhau cho cùng
 // một dự án trên hai màn hình.
 
@@ -17,6 +19,8 @@ export interface ProjectTx {
   categoryGroup: string;
   subGroup: string | null;
   totalAmount: number;
+  /** RAW_MATERIAL | MACHINERY | TESTING | LABOR | OVERHEAD | REVENUE */
+  costCategory?: string;
   items?: { productName: string; quantity: number; totalPrice: number }[];
 }
 
@@ -176,6 +180,7 @@ export function projectAnalysis(
   const costMap = new Map<string, { group: string; subGroup: string | null; amount: number; count: number }>();
   const sourceMap = new Map<string, { name: string; amount: number; count: number }>();
   const itemMap = new Map<string, { name: string; amount: number; quantity: number; count: number }>();
+  const byCostCategory: Record<string, number> = {};
 
   for (const tx of txs) {
     const e = projectEffect(tx);
@@ -190,6 +195,8 @@ export function projectAnalysis(
       row.amount += e.cost;
       row.count += 1;
       costMap.set(key, row);
+      const cc = tx.costCategory ?? "RAW_MATERIAL";
+      byCostCategory[cc] = (byCostCategory[cc] ?? 0) + e.cost;
 
       // Món đã mua cho dự án, gộp theo tên. Chỉ tính khoản chi (không tính
       // hoàn tiền) để "mua gì nhiều nhất" không bị trừ ngược.
@@ -229,6 +236,8 @@ export function projectAnalysis(
     monthly,
     costByCategory: [...costMap.values()].filter((r) => r.amount !== 0).sort(byAmount),
     revenueBySource: [...sourceMap.values()].sort(byAmount),
+    /** Chi phí theo năm nhóm (vật tư, máy, kiểm thử, nhân công, khác). */
+    byCostCategory,
     topItems: [...itemMap.values()].sort(byAmount).slice(0, 8),
   };
 }

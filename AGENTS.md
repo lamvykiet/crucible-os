@@ -40,7 +40,7 @@ là thứ duy nhất cả năm phiên cùng đọc. Trước khi sửa bất c�
 |---|---|
 | Finance — sổ, dashboard | `src/app/finance/`, `src/components/finance/`, `src/app/api/finance/` |
 | Finance — OCR hoá đơn | `ScanInvoiceModal`, `ReviewQueueModal`, `PendingReviewButton`, `api/ocr/`, `api/finance/transaction/{draft,drafts,process-ocr,resolve-duplicate,check-duplicate}` |
-| Finance — Dự án | `ProjectsTab`, `ProjectSelect`, `src/lib/projects.ts` (tính toán), `api/finance/projects/` |
+| Finance — Dự án | `ProjectsTab`, `ProjectCostPanels`, `ProjectSplitEditor`, `src/lib/{projects,projectCost,projectLedger,projectData}.ts`, `api/finance/projects/` |
 | Danh mục | `api/finance/categories/route.ts`, `src/lib/useCategories.ts`, `settings/FinanceSettings.tsx` |
 | Knowledge / Document | `src/app/knowledge/`, `src/components/knowledge/`, `src/components/workspace/`, `api/knowledge/` |
 | Learning | `src/app/learning/`, `src/components/learning/`, `api/learning/`, `src/lib/fsrs.ts` |
@@ -164,19 +164,32 @@ nữa — nó nằm giữa quét và duyệt, quên nó thì giá trị người
 bốc hơi ở bước duyệt. Đã có tiền lệ: thêm `Account` xong chỉ gắn ô chọn vào
 `TransactionModal`, nên mọi hoá đơn quét đều vào sổ với `accountId = null` và
 dư nợ thẻ đứng im. Ô chọn tài khoản nay dùng chung `AccountSelect` +
-`useAccounts()`, đừng viết lại cái thứ tư. Ô "Thuộc dự án" cũng vậy:
-`ProjectSelect` + `useProjects()`, đi qua `DraftReceipt.projectId`.
+`useAccounts()`, đừng viết lại cái thứ tư. Ô phân bổ dự án cũng vậy:
+`ProjectSplitEditor` + `useProjects()`, đi qua `DraftReceipt.projectSplits`.
 
 **Form sửa giao dịch phải nhận đủ khoá ngoại** (`accountId`, `toAccountId`,
-`projectId`) từ API nguồn. `api/finance/history` từng bỏ sót `accountId`, nên
+`projectSplits`) từ API nguồn. `api/finance/history` từng bỏ sót `accountId`, nên
 sửa một giao dịch ở tab History là nó lặng lẽ rời thẻ. `PUT
 /api/finance/transaction` nay chỉ đụng ba cột đó khi body CÓ gửi khoá, nhưng
-nguồn nào mở `TransactionModal` để sửa vẫn phải trả về đủ.
+nguồn nào mở `TransactionModal` để sửa vẫn phải trả về đủ. (Phân bổ dự án
+theo cùng luật: không gửi khoá `projectSplits` = giữ tỷ lệ cũ, tính lại tiền.)
 
-**Dự án không có sổ riêng.** Chi/thu gắn `projectId` vẫn nằm trong Chi
-tiêu/Thu nhập chung; tab Dự án chỉ gom lại. `Refund` gắn dự án trừ vào vốn,
-không cộng vào doanh thu. Đừng tách khoản chi dự án ra khỏi sổ cá nhân mà
-không hỏi — tiền đó vẫn thật sự rời ví.
+**Dự án không có sổ thu chi riêng.** Chi/thu phân bổ cho dự án vẫn nằm trong
+Chi tiêu/Thu nhập chung; tab Dự án chỉ gom lại. `Refund` phân bổ cho dự án trừ
+vào vốn, không cộng vào doanh thu. Đừng tách khoản chi dự án ra khỏi sổ cá nhân
+mà không hỏi — tiền đó vẫn thật sự rời ví.
+
+**Tạo, sửa hay xoá một `Transaction` ở BẤT KỲ đâu** → gọi
+`applyProjectSplits` / `syncProjectLedger` (`src/lib/projectLedger.ts`) trong
+CÙNG `prisma.$transaction`. Nguồn sự thật về dự án là `ProjectAllocation` (một
+giao dịch chia được % cho nhiều dự án × 5 nhóm chi phí); `ProjectLedgerEntry` là
+sổ cái CHỈ GHI THÊM — không update/delete dòng nào, sửa/xoá giao dịch sinh bút
+toán đảo. Quên gọi là sổ cái lệch phân bổ; tab Dự án có dòng "Sổ cái khớp với
+phân bổ" để lộ ra chuyện đó. Đã nối ở: `transaction` (POST/PUT/DELETE),
+`process-ocr`, `resolve-duplicate`, `debt-schedule` (xoá rồi tạo lại cùng id —
+phải giữ phân bổ cũ), `projects/[id]/transactions`, `projects/allocations`.
+`Transaction.projectId` / `DraftReceipt.projectId` là cột CŨ, không đọc không
+ghi nữa — chỉ còn vì bản build cũ trên Vercel SELECT chúng.
 
 **Gọi Gemini** → luôn `generateWithRetry(modelsWithFallback({...}), ...)`
 (`src/lib/aiRetry.ts`, `src/lib/gemini.ts`) và trả lỗi qua `aiErrorMessage()`.
