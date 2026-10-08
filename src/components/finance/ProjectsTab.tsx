@@ -392,7 +392,7 @@ function ProjectBody({
               `${totals.budgetUsedPct}% of the ${money(totals.budget)} plan · ${totals.costCount} items`,
               `${totals.budgetUsedPct}% của ${money(totals.budget)} dự định · ${totals.costCount} khoản chi`
             )
-          : t(`${totals.costCount} spending entries`, `${totals.costCount} khoản chi`),
+          : t(`${totals.costCount} spending ${totals.costCount === 1 ? "entry" : "entries"}`, `${totals.costCount} khoản chi`),
       tone: "text",
     },
     {
@@ -400,7 +400,7 @@ function ProjectBody({
       value: formatVND(totals.revenue),
       note:
         totals.revenueCount > 0
-          ? t(`${totals.revenueCount} income entries`, `${totals.revenueCount} khoản thu`)
+          ? t(`${totals.revenueCount} income ${totals.revenueCount === 1 ? "entry" : "entries"}`, `${totals.revenueCount} khoản thu`)
           : t("no income recorded yet", "chưa ghi khoản thu nào"),
       tone: totals.revenue > 0 ? "success" : "text",
     },
@@ -576,7 +576,9 @@ function ProjectBody({
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={monthly} className="c-chart-multi">
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                  <XAxis dataKey="name" {...monthAxis(months)} />
+                  {/* Biểu đồ chỉ có đường: điểm đầu/cuối nằm sát mép, nhãn tháng cuối
+                      bị cắt ("oc"). Đệm hai đầu trục cho nhãn có chỗ. */}
+                  <XAxis dataKey="name" {...monthAxis(months)} padding={{ left: 24, right: 24 }} />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
@@ -593,6 +595,10 @@ function ProjectBody({
                     type="monotone"
                     dataKey="cumCost"
                     name={t("Capital put in", "Vốn đã bỏ vào")}
+                    // Phải đặt màu tường minh: CSS `.c-chart-multi` chỉ tô lại
+                    // đường kẻ, còn ô màu trong chú giải lấy từ prop này —
+                    // thiếu nó là chú giải hiện xanh dương mặc định của recharts.
+                    stroke="var(--color-text)"
                     strokeWidth={2}
                     strokeDasharray="5 3"
                     dot={{ r: 3 }}
@@ -654,6 +660,7 @@ function ProjectBody({
                     type="monotone"
                     dataKey="profit"
                     name={t("Profit", "Lãi/lỗ")}
+                    stroke="var(--color-text)"
                     strokeWidth={2}
                     dot={{ r: 2.5 }}
                   />
@@ -764,7 +771,7 @@ function ProjectBody({
           <h4 className="c-h5 text-[var(--color-text)]">{t("Project ledger", "Sổ của dự án")}</h4>
           <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
             {t(
-              `${transactions.length} entries · tap one to edit · they also stay in Expense / Income`,
+              `${transactions.length} ${transactions.length === 1 ? "entry" : "entries"} · tap one to edit · they also stay in Expense / Income`,
               `${transactions.length} khoản · chạm để sửa · các khoản này vẫn nằm trong Chi tiêu / Thu nhập chung`
             )}
           </p>
