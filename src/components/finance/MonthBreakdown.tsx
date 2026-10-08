@@ -309,6 +309,10 @@ function BreakdownRow({
   const delta = change(row.month, row.prev);
   const trend = data.trendMonths.map((m, i) => ({ name: m, value: row.trend[i] ?? 0 }));
   const yearDelta = change(row.ytd, row.lastYtd);
+  // Nhóm con chỉ so tháng này với tháng trước, nên dòng bằng 0 ở cả hai là nhiễu
+  // (nó lọt vào đây vì luỹ kế năm có số).
+  const children = (row.children ?? []).filter((c) => c.month !== 0 || c.prev !== 0);
+  const childScale = Math.max(1, ...children.map((x) => Math.max(x.month, x.prev)));
 
   return (
     <li>
@@ -384,9 +388,9 @@ function BreakdownRow({
             </ResponsiveContainer>
           </div>
 
-          {row.children && row.children.length > 0 && (
+          {children.length > 0 && (
             <ul className="flex flex-col gap-3">
-              {row.children.map((c) => (
+              {children.map((c) => (
                 <li key={c.key || "_"}>
                   <span className="flex items-baseline justify-between gap-3 text-xs">
                     <span className="min-w-0 truncate text-[var(--color-text)]">{childLabel(c.name)}</span>
@@ -397,7 +401,7 @@ function BreakdownRow({
                       </span>
                     </span>
                   </span>
-                  <Bars now={c.month} before={c.prev} scale={Math.max(1, ...row.children!.map((x) => Math.max(x.month, x.prev)))} />
+                  <Bars now={c.month} before={c.prev} scale={childScale} />
                 </li>
               ))}
             </ul>
