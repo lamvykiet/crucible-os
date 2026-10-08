@@ -19,7 +19,8 @@ import DayTransactionsCard from "./DayTransactionsCard";
 import TodaySpendingShare from "./TodaySpendingShare";
 import IncompleteDataModal from "./IncompleteDataModal";
 import PeriodComparison from "./PeriodComparison";
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Store } from "lucide-react";
+import MonthBreakdown from "./MonthBreakdown";
 import { thisMonthLocalIso, todayLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
@@ -796,6 +797,16 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
           </div>
         )}
       </div>
+
+      {/* Chi vào đâu, thu từ đâu. Thẻ phía trên nói "tháng này chi bao nhiêu";
+          khối này nói "chi cho AI, cho NHÓM nào" — và so với tháng trước, cùng
+          tháng năm trước, luỹ kế năm nay với cùng kỳ năm trước. */}
+      <div className="flex flex-wrap items-end justify-between gap-3 -mb-2">
+        <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
+          <Store size={24} /> {t("Where it goes, where it comes from", "Chi vào đâu, thu từ đâu")}
+        </h3>
+      </div>
+      <MonthBreakdown month={selectedMonth || thisMonthLocalIso()} refreshKey={refreshKey} />
 
       {/* Tài sản & Nợ. Hai con số tổng của cả Finance nằm ở đây: đang sở hữu
           bao nhiêu và đang nợ bao nhiêu. Trước đây phải mở hai tab khác nhau
