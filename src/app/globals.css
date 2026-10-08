@@ -105,31 +105,37 @@
      Vẽ ở `body::before` (position: fixed) chứ không ở <html> với
      background-attachment: fixed — iOS Safari bỏ qua thuộc tính đó và kéo dãn
      gradient theo cả chiều dài trang. */
-  --ambient-base: #c9bfb2;
+  --ambient-base: #bdb2a4;
   --ambient:
-    radial-gradient(50% 42% at 6% 4%, rgba(196, 112, 74, .62), transparent 70%),
-    radial-gradient(42% 40% at 98% 10%, rgba(118, 142, 162, .62), transparent 72%),
-    radial-gradient(48% 44% at 86% 98%, rgba(132, 146, 110, .55), transparent 72%),
-    radial-gradient(55% 50% at 30% 60%, rgba(240, 228, 210, .75), transparent 70%),
-    linear-gradient(165deg, #ddd4c8 0%, #b9ae9f 100%);
+    radial-gradient(38% 34% at 4% 2%, rgba(190, 104, 66, .75), transparent 70%),
+    radial-gradient(34% 32% at 100% 6%, rgba(104, 132, 156, .7), transparent 72%),
+    radial-gradient(40% 36% at 92% 100%, rgba(120, 136, 96, .65), transparent 72%),
+    radial-gradient(34% 30% at 0% 96%, rgba(150, 120, 92, .6), transparent 72%),
+    radial-gradient(30% 26% at 55% 45%, rgba(246, 236, 220, .7), transparent 70%),
+    linear-gradient(165deg, #d8cebf 0%, #a89c8e 100%);
 
   /* Kính. Mọi bậc mặt phẳng đều TRONG SUỐT — 400 chỗ trong JSX viết
      bg-[var(--color-surface*)] nên đổi ở đây là cả app đổi vật liệu. */
   --color-bg: rgba(255, 253, 249, .55);
-  --color-surface: rgba(255, 253, 249, .4);
-  --color-surface-2: rgba(255, 255, 255, .42);
+  /* Thẻ gần như trong suốt — nền ambient phải nhìn xuyên qua được, đúng bản
+     tham chiếu người dùng gửi (09/10). Đừng tăng độ đục lên lại. */
+  --color-surface: rgba(255, 252, 246, .17);
+  --color-surface-2: rgba(255, 252, 246, .26);
   --color-surface-3: rgba(255, 255, 255, .62);
-  --glass-edge: rgba(255, 255, 255, .72);
+  --glass-edge: rgba(255, 255, 255, .55);
   --glass-solid: rgba(251, 248, 243, .92);
   --glass-blur: blur(28px) saturate(1.5);
   --glass-pill: rgba(255, 255, 255, .92);
   --glass-pill-ink: var(--ink);
   /* Thanh điều hướng: có nội dung thật cuộn qua phía sau nên cần đục hơn thẻ. */
   --glass-nav: rgba(255, 253, 249, .5);
+  --glass-inset: rgba(60, 44, 30, .07);
 
   --color-text: var(--ink);
   --color-text-muted: #46423c;
-  --color-text-faint: #6b655c;
+  /* Đậm hơn bản giấy: chữ phụ giờ nằm trên nền ambient tầm trung, không
+     trên kem — #7d766c cũ chỉ đạt ~3:1 ở đó. */
+  --color-text-faint: #5c564d;
 
   /* Đường kẻ TRONG thẻ (giữa các dòng) — viền của chính tấm kính là
      `--glass-edge`, không phải biến này. */
@@ -167,7 +173,7 @@
      sáng 1px ở mép trên để thẻ đọc ra "tờ giấy đặt trên tờ giấy" chứ không
      phải một ô màu. */
   --card-edge: inset 0 1px 0 rgba(255, 255, 255, .9);
-  --card-sheen: linear-gradient(140deg, rgba(255, 255, 255, .38), rgba(255, 255, 255, 0) 55%);
+  --card-sheen: linear-gradient(140deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 50%);
   --shadow-card: 0 1px 2px rgba(40, 30, 20, .05), 0 22px 44px -26px rgba(40, 30, 20, .38);
   --shadow-card-hover: 0 2px 4px rgba(40, 30, 20, .06), 0 30px 56px -28px rgba(40, 30, 20, .45);
   --shadow-nav: var(--card-edge), 0 18px 40px -24px rgba(40, 30, 20, .4);
@@ -214,14 +220,17 @@
     linear-gradient(165deg, #231e19 0%, #0f0d0b 100%);
 
   --color-bg: rgba(12, 10, 8, .32);
-  --color-surface: rgba(255, 244, 228, .07);
-  --color-surface-2: rgba(255, 244, 228, .07);
+  /* Kính khói xám: tấm lớn sáng hơn nền một chút, ô bên trong TỐI hơn tấm
+     lớn — đúng cách bản tham chiếu phân tầng. */
+  --color-surface: rgba(150, 142, 132, .16);
+  --color-surface-2: rgba(10, 8, 6, .26);
   --color-surface-3: rgba(255, 244, 228, .14);
-  --glass-edge: rgba(255, 255, 255, .13);
+  --glass-edge: rgba(255, 255, 255, .14);
   --glass-solid: rgba(34, 29, 24, .94);
-  --glass-pill: rgba(255, 255, 255, .88);
+  --glass-pill: #f1ecdc;
   --glass-pill-ink: #1d1915;
   --glass-nav: rgba(30, 26, 22, .55);
+  --glass-inset: rgba(10, 8, 6, .3);
 
   --color-text: #f3ead9;
   --color-text-muted: #c2b7a4;
@@ -742,12 +751,13 @@ body::before {
   box-shadow: var(--card-edge), var(--shadow-card-hover);
   transform: translateY(-2px);
 }
-/* Thẻ lồng trong thẻ: một lớp kính mỏng nữa, sáng hơn thẻ mẹ một chút. */
+/* Thẻ lồng trong thẻ: một lớp tint TỐI hơn thẻ mẹ một chút, như ô trong
+   tấm kính của bản tham chiếu — không phải thêm một lớp trắng sữa. */
 .c-main .rounded-2xl .rounded-2xl[class*="border"]:not(.fixed *),
 .c-main .rounded-2xl .rounded-xl[class*="border"]:not(.fixed *) {
-  background-color: var(--color-surface-2);
+  background-color: var(--glass-inset);
   background-image: none;
-  border-color: color-mix(in srgb, var(--glass-edge) 70%, transparent);
+  border-color: color-mix(in srgb, var(--glass-edge) 60%, transparent);
   box-shadow: none;
   transform: none;
 }
