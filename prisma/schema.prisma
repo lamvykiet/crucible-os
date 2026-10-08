@@ -17,6 +17,7 @@ model User {
   createdAt          DateTime             @default(now())
   Transaction        Transaction[]
   Account            Account[]
+  Project            Project[]
   Category           Category[]
   Budget             Budget[]
   Debt               Debt[]
@@ -94,6 +95,12 @@ model Transaction {
   toAccountId String?
   toAccount   Account? @relation("TxToAccount", fields: [toAccountId], references: [id], onDelete: SetNull)
 
+  /// Giao dịch thuộc dự án nào. Chi gắn dự án = vốn bỏ vào dự án; thu gắn dự án
+  /// = doanh thu của nó. Giao dịch vẫn nằm trong sổ chi tiêu/thu nhập chung như
+  /// mọi giao dịch khác — dự án chỉ là một lăng kính thứ hai, không tách sổ.
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
   userId String // owner
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -139,6 +146,34 @@ model Account {
   transactionsFrom Transaction[]  @relation("TxAccount")
   transactionsTo   Transaction[]  @relation("TxToAccount")
   drafts           DraftReceipt[] @relation("DraftAccount")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+}
+
+/// Một dự án kinh doanh nhỏ (ví dụ "Xưởng in 3D") để đo hiệu quả: đã bỏ vào bao
+/// nhiêu, thu về bao nhiêu, bao giờ hoà vốn.
+///
+/// Không lưu số tổng nào cả — mọi con số tính lại từ các `Transaction` gắn
+/// `projectId`, cùng lý do `Account` không lưu số dư: lưu sẵn thì sửa một giao
+/// dịch cũ là số tổng lệch âm thầm.
+model Project {
+  id        String    @id @default(uuid())
+  name      String
+  /// active | paused | closed
+  status    String    @default("active")
+  /// Vốn dự định bỏ vào. Để so "đã tiêu bao nhiêu phần ngân sách".
+  budget    Int?
+  startDate DateTime?
+  notes     String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactions Transaction[]
+  drafts       DraftReceipt[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -195,6 +230,10 @@ model DraftReceipt {
   /// duyệt, nên phải nằm trên bản nháp chứ không chỉ trên `Transaction`.
   accountId String?
   account   Account? @relation("DraftAccount", fields: [accountId], references: [id], onDelete: SetNull)
+
+  /// Chọn dự án lúc quét phải sống được tới bước duyệt — cùng lý do với `accountId`.
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   // Danh sách fileId trên Drive, phân tách bằng dấu phẩy (một hoá đơn dài có
   // thể được chụp thành nhiều ảnh).
