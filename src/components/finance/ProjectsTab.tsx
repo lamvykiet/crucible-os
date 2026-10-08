@@ -5,7 +5,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import {
-  Plus, Pencil, Link2, Unlink, Hammer, TrendingDown, TrendingUp, Loader2,
+  Plus, Pencil, Link2, Unlink, Hammer, TrendingDown, TrendingUp, Loader2, RotateCcw,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
@@ -113,6 +113,7 @@ export default function ProjectsTab() {
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [error, setError] = useState("");
+  const [listFailed, setListFailed] = useState(false);
 
   const [projectDraft, setProjectDraft] = useState<ProjectDraft | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
@@ -129,14 +130,17 @@ export default function ProjectsTab() {
         const json = await res.json();
         if (!json.success) throw new Error(json.error);
         const list = json.data as ProjectSummary[];
+        setListFailed(false);
+        setError("");
         setProjects(list);
         // Giữ dự án đang xem nếu nó còn; không thì lấy dự án đầu (đang chạy
         // được xếp lên trước).
         setSelectedId((cur) => (cur && list.some((p) => p.id === cur) ? cur : list[0]?.id ?? null));
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
-          setProjects([]);
-          setError((err as Error).message || t("Could not load projects", "Không tải được danh sách dự án"));
+          // KHÔNG đặt danh sách rỗng: màn hình sẽ nói "chưa có dự án nào"
+          // trong khi dự án vẫn còn đó, chỉ là lần tải này hỏng.
+          setListFailed(true);
         }
       }
     })();
@@ -242,7 +246,16 @@ export default function ProjectsTab() {
         </div>
       )}
 
-      {projects === null || (loading && !current) ? (
+      {listFailed && !projects ? (
+        <div className="flex flex-col items-center justify-center gap-3 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-10">
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {t("Could not load your projects.", "Không tải được danh sách dự án.")}
+          </p>
+          <button onClick={refresh} className="c-btn c-btn-tertiary c-btn-sm">
+            <RotateCcw size={14} /> {t("Retry", "Thử lại")}
+          </button>
+        </div>
+      ) : projects === null || (loading && !current) ? (
         <div className="flex justify-center items-center h-64 text-[var(--color-text-faint)]">
           <Loader2 size={20} className="animate-spin" />
           <span className="ml-3 text-sm font-bold">{t("Loading data...", "Đang tải dữ liệu...")}</span>
