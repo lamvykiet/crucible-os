@@ -77,6 +77,10 @@ export async function GET(req: Request) {
       //
       // `source` và `driveFileId` để form biết đây là hoá đơn quét và hiện lại
       // ảnh gốc cho đối chiếu.
+      //
+      // `accountId`, `toAccountId`, `projectId` cũng vậy: thiếu chúng thì sửa
+      // một giao dịch ở đây là nó lặng lẽ rời thẻ (dư nợ thẻ đổi) và rời dự án
+      // (vốn dự án đếm thiếu).
       data: txs.map(t => ({
         id: t.id,
         date: t.date.toISOString().split('T')[0],
@@ -89,6 +93,9 @@ export async function GET(req: Request) {
         source: t.source,
         driveFileId: t.driveFileId || null,
         note: t.notes || '',
+        accountId: t.accountId,
+        toAccountId: t.toAccountId,
+        projectId: t.projectId,
         items: t.items || []
       }))
     });

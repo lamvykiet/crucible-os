@@ -11,6 +11,8 @@ import AmountInput from "@/components/ui/AmountInput";
 import AccountSelect from "./AccountSelect";
 import LineItemsEditor from "./LineItemsEditor";
 import { useAccounts } from "@/lib/useAccounts";
+import ProjectSelect from "./ProjectSelect";
+import { useProjects } from "@/lib/useProjects";
 import { todayLocalIso } from "@/lib/localDate";
 import CustomDatePicker from "@/components/ui/CustomDatePicker";
 
@@ -27,9 +29,11 @@ interface TransactionModalProps {
   onSuccess?: () => void;
   defaultType?: "Expense" | "Income" | "Transfer";
   initialData?: any;
+  /** Tab Dự án đổi số này sau khi tạo dự án mới, để ô chọn dự án có nó ngay. */
+  projectsRefreshKey?: number;
 }
 
-export default function TransactionModal({ isOpen, onClose, onSuccess, defaultType = "Expense", initialData }: TransactionModalProps) {
+export default function TransactionModal({ isOpen, onClose, onSuccess, defaultType = "Expense", initialData, projectsRefreshKey = 0 }: TransactionModalProps) {
   const { t } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -48,6 +52,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
     paymentMethod: initialData?.paymentMethod || "unknown",
     accountId: initialData?.accountId || "",
     toAccountId: initialData?.toAccountId || "",
+    projectId: initialData?.projectId || "",
     notes: initialData?.notes || ""
   });
 
@@ -56,6 +61,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
   // Danh sách tài khoản để chọn tiền ra/vào đâu. Không chặn form nếu hỏng:
   // chưa có tài khoản nào thì ô này chỉ đơn giản không hiện.
   const accounts = useAccounts();
+  const projects = useProjects(projectsRefreshKey);
 
   // Ảnh hoá đơn gốc của giao dịch quét. `driveFileId` là chuỗi id ngăn bằng dấu
   // phẩy — một hoá đơn dài có thể chụp làm nhiều tấm.
@@ -81,6 +87,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
         paymentMethod: initialData?.paymentMethod || "unknown",
         accountId: initialData?.accountId || "",
         toAccountId: initialData?.toAccountId || "",
+        projectId: initialData?.projectId || "",
         notes: initialData?.notes || ""
       });
       setItems(initialData?.items || []);
@@ -199,6 +206,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
           paymentMethod: "unknown",
           accountId: "",
           toAccountId: "",
+          projectId: "",
           notes: ""
         });
         setItems([]);
@@ -377,6 +385,17 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
               onChange={(id) => setFormData((prev) => ({ ...prev, accountId: id }))}
               type={formData.type}
               paymentMethod={formData.paymentMethod}
+              selectClassName="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+              labelClassName="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2"
+            />
+
+            {/* Chi cho dự án = vốn bỏ vào; thu từ dự án = doanh thu của nó.
+                Tab Dự án đọc đúng cột này để tính lời/lỗ. */}
+            <ProjectSelect
+              projects={projects}
+              value={formData.projectId}
+              onChange={(id) => setFormData((prev) => ({ ...prev, projectId: id }))}
+              type={formData.type}
               selectClassName="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
               labelClassName="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2"
             />

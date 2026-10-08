@@ -12,6 +12,8 @@ import CustomDatePicker from "@/components/ui/CustomDatePicker";
 import LineItemsEditor from "./LineItemsEditor";
 import AccountSelect from "./AccountSelect";
 import { useAccounts } from "@/lib/useAccounts";
+import ProjectSelect from "./ProjectSelect";
+import { useProjects } from "@/lib/useProjects";
 
 interface ReviewQueueModalProps {
   isOpen: boolean;
@@ -42,6 +44,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
   const [activeDraft, setActiveDraft] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
   const accounts = useAccounts();
+  const projects = useProjects();
   const [items, setItems] = useState<LineItem[]>([]);
   const [previewIds, setPreviewIds] = useState<string[]>([]);
 
@@ -154,6 +157,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
         totalAmount: str(d.totalAmount),
         paymentMethod: d.paymentMethod || "unknown",
         accountId: str(d.accountId),
+        projectId: str(d.projectId),
         notes: str(d.notes),
       });
       setItems(d.items || []);
@@ -591,6 +595,15 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                     onChange={(id) => setFormData((prev: Record<string, unknown>) => ({ ...prev, accountId: id }))}
                     type={formData.type || "Expense"}
                     paymentMethod={formData.paymentMethod}
+                    selectClassName={inputClass}
+                    labelClassName={labelClass}
+                  />
+
+                  <ProjectSelect
+                    projects={projects}
+                    value={formData.projectId || ""}
+                    onChange={(id) => setFormData((prev: Record<string, unknown>) => ({ ...prev, projectId: id }))}
+                    type={formData.type || "Expense"}
                     selectClassName={inputClass}
                     labelClassName={labelClass}
                   />

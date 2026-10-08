@@ -13,6 +13,8 @@ import CustomDatePicker from "@/components/ui/CustomDatePicker";
 import LineItemsEditor from "./LineItemsEditor";
 import AccountSelect from "./AccountSelect";
 import { useAccounts } from "@/lib/useAccounts";
+import ProjectSelect from "./ProjectSelect";
+import { useProjects } from "@/lib/useProjects";
 
 interface ScanInvoiceModalProps {
   isOpen: boolean;
@@ -42,6 +44,7 @@ const EMPTY_FORM = {
   totalAmount: "",
   paymentMethod: "unknown",
   accountId: "",
+  projectId: "",
   language: "",
   notes: "",
 };
@@ -56,6 +59,7 @@ const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInvoiceModalProps) {
   const { t } = useLanguage();
   const accounts = useAccounts();
+  const projects = useProjects();
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -538,6 +542,16 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                     onChange={(id) => setFormData((prev) => ({ ...prev, accountId: id }))}
                     type={formData.type}
                     paymentMethod={formData.paymentMethod}
+                    selectClassName={inputClass}
+                    labelClassName={labelClass}
+                  />
+
+                  {/* Đi theo bản nháp (`DraftReceipt.projectId`) sang bước duyệt. */}
+                  <ProjectSelect
+                    projects={projects}
+                    value={formData.projectId}
+                    onChange={(id) => setFormData((prev) => ({ ...prev, projectId: id }))}
+                    type={formData.type}
                     selectClassName={inputClass}
                     labelClassName={labelClass}
                   />

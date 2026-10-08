@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { ownedProjectId } from "@/lib/projectAccess";
 import { getDriveClient, moveFile, getOrCreateFolderIds, INVOICE_ROOT_FOLDER_ID } from "@/lib/drive";
 
 export async function POST(req: Request) {
@@ -9,7 +10,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { date, supplier, type, categoryGroup, subGroup, totalAmount, amount, paymentMethod, notes, source, driveFileIds, subtotal, tax, serviceCharge, discount, items, accountId, toAccountId } = body;
+    const { date, supplier, type, categoryGroup, subGroup, totalAmount, amount, paymentMethod, notes, source, driveFileIds, subtotal, tax, serviceCharge, discount, items, accountId, toAccountId, projectId } = body;
 
     const finalAmount = totalAmount || amount;
 
@@ -39,6 +40,8 @@ export async function POST(req: Request) {
         // quét từ hoá đơn chưa chắc biết thẻ nào.
         accountId: accountId || null,
         toAccountId: toAccountId || null,
+        // Thuộc dự án nào (chi = vốn bỏ vào, thu = doanh thu của dự án).
+        projectId: await ownedProjectId(user.id, projectId),
         source: source || "manual",
         driveFileId: driveFileIds ? (Array.isArray(driveFileIds) ? driveFileIds.join(",") : driveFileIds) : null,
         notes: notes || null,
@@ -91,7 +94,7 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const { id, date, supplier, type, categoryGroup, subGroup, totalAmount, amount, paymentMethod, notes, source, driveFileIds, subtotal, tax, serviceCharge, discount, items, accountId, toAccountId } = body;
+    const { id, date, supplier, type, categoryGroup, subGroup, totalAmount, amount, paymentMethod, notes, source, driveFileIds, subtotal, tax, serviceCharge, discount, items, accountId, toAccountId, projectId } = body;
 
     const finalAmount = totalAmount || amount;
 
@@ -127,10 +130,12 @@ export async function PUT(req: Request) {
         discount: discount ? Number(discount) : 0,
         totalAmount: Number(finalAmount),
         paymentMethod: paymentMethod || "cash",
-        // Tiền ra/vào tài khoản nào. Rỗng vẫn hợp lệ: giao dịch cũ và giao dịch
-        // quét từ hoá đơn chưa chắc biết thẻ nào.
-        accountId: accountId || null,
-        toAccountId: toAccountId || null,
+        // Chỉ đụng ba khoá ngoại khi form CÓ gửi chúng. Form nào không biết tới
+        // một trường (gửi thiếu khoá) thì giữ nguyên giá trị trong DB — đừng
+        // coi "không gửi" là "xoá đi". Chuỗi rỗng mới là bỏ gắn.
+        ...("accountId" in body && { accountId: accountId || null }),
+        ...("toAccountId" in body && { toAccountId: toAccountId || null }),
+        ...("projectId" in body && { projectId: await ownedProjectId(user.id, projectId) }),
         source: source || "manual",
         ...(driveFileIds !== undefined && { driveFileId: Array.isArray(driveFileIds) ? driveFileIds.join(",") : driveFileIds }),
         notes: notes || null,

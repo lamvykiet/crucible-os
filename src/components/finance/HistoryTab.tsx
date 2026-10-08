@@ -25,6 +25,9 @@ interface Transaction {
   /** Id ảnh trên Drive, nhiều ảnh thì ngăn bằng dấu phẩy. */
   driveFileId: string | null;
   note: string;
+  accountId: string | null;
+  toAccountId: string | null;
+  projectId: string | null;
   items?: any[];
 }
 
@@ -187,6 +190,9 @@ export default function HistoryTab() {
       driveFileId: tx.driveFileId,
       notes: tx.note,
       totalAmount: tx.amount,
+      accountId: tx.accountId,
+      toAccountId: tx.toAccountId,
+      projectId: tx.projectId,
       items: tx.items
     });
     setEditModalOpen(true);

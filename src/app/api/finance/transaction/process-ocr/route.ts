@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { ownedProjectId } from "@/lib/projectAccess";
 import {
   getDriveClient,
   moveFilesTo,
@@ -92,6 +93,8 @@ export async function POST(req: Request) {
       }
     }
 
+    const projectId = await ownedProjectId(user.id, formData.projectId);
+
     // --- Ghi chính thức ------------------------------------------------------
     const timestamp = Date.now();
     const { start: todayStart, end: todayEnd } = utcDayRange(new Date());
@@ -124,6 +127,8 @@ export async function POST(req: Request) {
           // Thiếu dòng này thì hoá đơn quét xong luôn rơi vào khoảng không: vào
           // sổ chi tiêu nhưng không đụng tới dư nợ thẻ nào.
           accountId: formData.accountId || null,
+          // Chọn ở bước quét (lưu trên bản nháp) hoặc ở bước duyệt.
+          projectId,
           source: "ocr",
           driveFileId: draft.driveFileIds,
           notes: formData.notes || null,
