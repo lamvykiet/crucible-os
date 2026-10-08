@@ -778,7 +778,7 @@ export default function ExpenseTab() {
             )}
           </ChartCard>
 
-          <ExpenseGroupAnalysis refreshKey={refreshKey} />
+          <ExpenseGroupAnalysis refreshKey={refreshKey} preferredGroup={topSlice?.name} />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <ChartCard

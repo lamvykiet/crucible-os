@@ -255,7 +255,14 @@ function dotAt(index: number) {
   return render;
 }
 
-export default function ExpenseGroupAnalysis({ refreshKey = 0 }: { refreshKey?: number }) {
+export default function ExpenseGroupAnalysis({
+  refreshKey = 0,
+  preferredGroup,
+}: {
+  refreshKey?: number;
+  /** Nhóm chi nhiều nhất của trang — mở sẵn nhóm này thay vì nhóm đầu bảng chữ cái. */
+  preferredGroup?: string;
+}) {
   const { t, language } = useLanguage();
   const vi = language === "vi";
   const { groupNames, label } = useCategories("Expense");
@@ -273,11 +280,17 @@ export default function ExpenseGroupAnalysis({ refreshKey = 0 }: { refreshKey?: 
   // So bằng CHUỖI chứ không bằng tham chiếu: `useCategories` dựng mảng mới ở
   // mỗi lần render, nên so bằng tham chiếu thì lần nào cũng setState và thành
   // vòng lặp render vô hạn — đã làm trắng cả tab Chi tiêu một lần.
-  const groupsKey = groupNames.join("|");
+  //
+  // Mặc định là nhóm chi nhiều nhất (`preferredGroup`): nhóm đầu bảng chữ cái
+  // thường là nhóm hai năm không tiêu đồng nào, mở ra chỉ thấy "chưa có dữ
+  // liệu". Người dùng đã tự chọn thì không giành lại.
+  const [picked, setPicked] = useState(false);
+  const groupsKey = `${groupNames.join("|")}#${preferredGroup ?? ""}`;
   const [lastGroupsKey, setLastGroupsKey] = useState("");
   if (groupNames.length > 0 && groupsKey !== lastGroupsKey) {
     setLastGroupsKey(groupsKey);
-    if (!group || !groupNames.includes(group)) setGroup(groupNames[0]);
+    const fallback = preferredGroup && groupNames.includes(preferredGroup) ? preferredGroup : groupNames[0];
+    if (!group || !groupNames.includes(group) || !picked) setGroup(fallback);
   }
 
   const isLoading =
@@ -337,7 +350,10 @@ export default function ExpenseGroupAnalysis({ refreshKey = 0 }: { refreshKey?: 
           <div className="relative">
             <select
               value={group}
-              onChange={(e) => setGroup(e.target.value)}
+              onChange={(e) => {
+                setPicked(true);
+                setGroup(e.target.value);
+              }}
               aria-label={t("Expense group", "Nhóm chi tiêu")}
               className={selectClass}
             >
