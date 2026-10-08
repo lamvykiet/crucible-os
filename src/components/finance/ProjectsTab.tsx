@@ -200,8 +200,10 @@ export default function ProjectsTab() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
+      {/* Nút "+" đứng cùng hàng tiêu đề kể cả trên điện thoại — xếp dọc thì nó
+          rơi xuống một dòng riêng, chừa một khoảng trống lớn trước thẻ dự án. */}
+      <div className="flex flex-row items-end justify-between gap-4">
+        <div className="min-w-0">
           <h2 className="c-h2 c-page-title text-[var(--color-text)]">{t("Projects", "Dự án")}</h2>
           <p className="text-[var(--color-text-muted)] text-sm mt-1">
             {t(
@@ -214,7 +216,7 @@ export default function ProjectsTab() {
           onClick={() => setProjectDraft(emptyProject())}
           aria-label={t("New project", "Dự án mới")}
           title={t("New project", "Dự án mới")}
-          className="c-btn c-btn-primary shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5! self-end md:self-auto"
+          className="c-btn c-btn-primary shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5! shrink-0"
         >
           <Plus size={16} /> <span className="hidden md:inline">{t("New project", "Dự án mới")}</span>
         </button>
@@ -456,7 +458,11 @@ function ProjectBody({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="c-h3 text-[var(--color-text)]">{project.name}</h3>
+              {/* globals.css kéo một đường taupe sau mọi h3.c-h3 — hợp với tiêu
+                  đề mục, nhưng nằm giữa tên dự án và nhãn trạng thái thì chỉ
+                  là một gạch lạc. Tắt riêng ở đây (quy tắc kia nằm ngoài
+                  @layer nên phải có `!`). */}
+              <h3 className="c-h3 text-[var(--color-text)] after:hidden!">{project.name}</h3>
               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
                 {statusLabel}
               </span>
