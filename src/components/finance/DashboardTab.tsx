@@ -26,7 +26,7 @@ import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
 import { monthAxis } from "./MonthAxisTick";
 import WeekPanel from "./WeekPanel";
-import { VIZ, GRID, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, xAxis, yAxis, labelAt, pctChange, soft } from "@/lib/viz";
+import { VIZ, GRID, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, xAxis, yAxis, labelAt, pctChange, soft, refLabel } from "@/lib/viz";
 import ChartCard from "@/components/charts/ChartCard";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
@@ -1356,7 +1356,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
                     y={avgDailyExpense}
                     stroke={VIZ.muted}
                     strokeDasharray="4 3"
-                    label={{ value: `${t("month avg", "TB tháng")} ${money(avgDailyExpense)}`, position: "insideTopLeft", fontSize: 10, fill: "var(--color-text-faint)" }}
+                    label={refLabel(`${t("month avg", "TB tháng")} ${money(avgDailyExpense)}`)}
                   />
                 )}
                 <Bar dataKey="expense" name={t("Spending", "Chi tiêu")} fill={VIZ.ghost} {...BAR} />

@@ -10,7 +10,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { todayLocalIso } from "@/lib/localDate";
-import { VIZ, GRID, BAR, TOOLTIP, xAxis, yAxis, labelAt, pctChange } from "@/lib/viz";
+import { VIZ, GRID, BAR, TOOLTIP, xAxis, yAxis, labelAt, pctChange, refLabel } from "@/lib/viz";
 import ChartCard, { Delta } from "@/components/charts/ChartCard";
 
 // Hôm nay, hôm qua, cả tuần.
@@ -516,7 +516,7 @@ export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
                     y={weekAvg}
                     stroke={VIZ.muted}
                     strokeDasharray="4 3"
-                    label={{ value: `${t("avg", "TB")} ${money(weekAvg)}`, position: "insideTopLeft", fontSize: 10, fill: "var(--color-text-faint)" }}
+                    label={refLabel(`${t("avg", "TB")} ${money(weekAvg)}`)}
                   />
                 )}
                 <Bar
@@ -552,7 +552,7 @@ export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
                     y={weekdayMean}
                     stroke={VIZ.muted}
                     strokeDasharray="4 3"
-                    label={{ value: `${t("avg/day", "TB/ngày")} ${money(weekdayMean)}`, position: "insideTopLeft", fontSize: 10, fill: "var(--color-text-faint)" }}
+                    label={refLabel(`${t("avg/day", "TB/ngày")} ${money(weekdayMean)}`)}
                   />
                 )}
                 <Bar

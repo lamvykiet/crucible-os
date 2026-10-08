@@ -14,7 +14,7 @@ import { thisMonthLocalIso } from "@/lib/localDate";
 import PeriodComparison from "./PeriodComparison";
 import StackedMonthTooltip from "./StackedMonthTooltip";
 import { compactMoney, formatVND } from "@/lib/formatMoney";
-import { VIZ, GRID, yAxis, xAxis, BAR, LINE, STACK_GAP, TOOLTIP, TOOLTIP_LINE, labelAt, pctChange } from "@/lib/viz";
+import { VIZ, GRID, yAxis, xAxis, BAR, LINE, STACK_GAP, TOOLTIP, TOOLTIP_LINE, labelAt, pctChange, refLabel } from "@/lib/viz";
 import ChartCard, { SeriesKey, Delta, StatTile } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 import IncomeCareer from "./IncomeCareer";
@@ -546,7 +546,7 @@ export default function IncomeTab() {
                     y={avg12}
                     stroke={VIZ.muted}
                     strokeDasharray="4 3"
-                    label={{ value: `${t("avg", "TB")} ${money(avg12)}`, position: "insideTopLeft", fontSize: 10, fill: "var(--color-text-faint)" }}
+                    label={refLabel(`${t("avg", "TB")} ${money(avg12)}`)}
                   />
                 )}
                 <Bar dataKey="amount" fill={VIZ.muted} {...BAR} label={labelAt(curIdx, money)}>

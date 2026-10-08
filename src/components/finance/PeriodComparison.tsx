@@ -151,9 +151,12 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
   /** Hai kỳ cùng 0 thì là "không đổi", không phải "mới" — `pct` rỗng khi kỳ gốc bằng 0. */
   const pctOf = (d: DeltaVal | undefined) => (!d ? null : d.abs === 0 ? 0 : d.pct);
 
-  // --- Câu kết luận: chỉ số ĐẦU TIÊN của tab, so kỳ liền trước ---------------
+  // --- Câu kết luận: chỉ số đầu tiên CÓ SỐ của tab, so kỳ liền trước ---------
+  // Đầu tháng chưa có lương thì "Thu nhập 0 và 0" là câu vô nghĩa — nhường cho
+  // chỉ số kế tiếp có dữ liệu (thường là chi tiêu).
   let headline: string = title ?? t("Compared with earlier periods", "So với các kỳ trước");
-  const lead = metrics[0];
+  const lead =
+    (data && metrics.find((m) => data.current[m] !== 0 || data.previous[m] !== 0)) || metrics[0];
   if (data && !isLoading && lead) {
     const meta = METRIC_META[lead];
     const name = t(meta.en, meta.vi);

@@ -493,7 +493,6 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
               ))}
               <Line
                 {...LINE}
-                type="monotone"
                 dataKey="trailing12"
                 name={t("12-month average", "Bình quân 12 tháng")}
                 stroke={VIZ.ink}

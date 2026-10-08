@@ -94,13 +94,9 @@ export function Delta({
 }) {
   const { t } = useLanguage();
   const tail = vs ? <span className="font-normal text-[var(--color-text-faint)]"> {vs}</span> : null;
+  // Kỳ gốc bằng 0: chỉ ghi "mới" — "mới so 0" thì thừa chữ.
   if (pct === null)
-    return (
-      <span className="text-[11px] text-[var(--color-text-faint)]">
-        {t("new", "mới")}
-        {tail}
-      </span>
-    );
+    return <span className="text-[11px] text-[var(--color-text-faint)]">{t("new", "mới")}</span>;
   if (pct === 0)
     return (
       <span className="text-[11px] text-[var(--color-text-faint)]">

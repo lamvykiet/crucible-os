@@ -58,8 +58,27 @@ export const LINE = {
   strokeWidth: 2,
   dot: false,
   activeDot: { r: 5, strokeWidth: 2, stroke: "var(--color-surface)" },
-  type: "monotone" as const,
+  // Đường thẳng giữa các điểm: đường cong "monotone" vẽ ra những giá trị giữa
+  // hai tháng không hề có, và trông như số liệu mượt hơn thực tế.
+  type: "linear" as const,
 };
+
+/**
+ * Nhãn của đường tham chiếu (trung bình, kế hoạch). Có viền màu nền quanh chữ
+ * nên vẫn đọc được khi đè lên cột — vị trí cột cao nhất tuỳ dữ liệu, không
+ * chọn trước được chỗ trống.
+ */
+export const refLabel = (value: string, position: "insideTopLeft" | "insideTopRight" = "insideTopLeft") =>
+  ({
+    value,
+    position,
+    fontSize: 10,
+    fontWeight: 700,
+    fill: "var(--color-text-muted)",
+    stroke: "var(--color-surface)",
+    strokeWidth: 3,
+    paintOrder: "stroke",
+  }) as const;
 
 /** Tooltip: con trỏ là một dải nền nhạt, không phải vạch đen. */
 export const TOOLTIP = {

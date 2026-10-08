@@ -11,7 +11,7 @@ import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
-import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, labelAt, pctChange, catColor } from "@/lib/viz";
+import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, labelAt, pctChange, catColor, refLabel } from "@/lib/viz";
 import { SeriesKey, Delta, StatTile, type SeriesKeyItem } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 
@@ -763,7 +763,7 @@ function GroupCharts({
                     y={shareAvg}
                     stroke={VIZ.muted}
                     strokeDasharray="4 3"
-                    label={{ value: `${t("avg", "TB")} ${shareAvg}%`, position: "insideTopLeft", fontSize: 10, fill: "var(--color-text-faint)" }}
+                    label={refLabel(`${t("avg", "TB")} ${shareAvg}%`)}
                   />
                 )}
                 <Line

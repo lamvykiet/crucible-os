@@ -19,7 +19,7 @@ import StackedMonthTooltip from "./StackedMonthTooltip";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
-import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, TOOLTIP, labelAt, pctChange, catColor } from "@/lib/viz";
+import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, TOOLTIP, labelAt, pctChange, catColor, refLabel } from "@/lib/viz";
 import ChartCard, { StatTile } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 
@@ -519,7 +519,7 @@ export default function ExpenseTab() {
                           y={avgDailyExpense}
                           stroke={VIZ.muted}
                           strokeDasharray="4 3"
-                          label={{ value: `${t("avg", "TB")} ${money(avgDailyExpense)}`, position: "insideTopLeft", fontSize: 10, fill: "var(--color-text-faint)" }}
+                          label={refLabel(`${t("avg", "TB")} ${money(avgDailyExpense)}`)}
                         />
                       )}
                       <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={labelAt(peakDay, money)}>
