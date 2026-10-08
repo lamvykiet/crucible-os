@@ -124,6 +124,16 @@ biến thành hình tròn.
 1200px, 96px giữa các khối lớn, 24px đệm thẻ. Đừng chồng `max-w-*` hay
 `py-*` lên `<main>`.
 
+**Vẽ hay sửa biểu đồ** → đọc `docs/bieu-do.md` trước (rút từ *Storytelling
+with Data*). Tóm tắt: tiêu đề là câu kết luận tính từ dữ liệu; XÁM là mặc
+định, màu nhấn `VIZ.accent` chỉ cho điểm câu chuyện nói tới; không pie/donut,
+không hai trục Y, không `<Legend>` dưới đáy, lưới chỉ ngang và nét liền. Dùng
+`src/lib/viz.tsx` + `src/components/charts/ChartCard.tsx`; mẫu chuẩn là
+`MonthBreakdown.tsx`. globals.css KHÔNG còn ép màu dữ liệu — các class
+`.c-chart-multi` / `.c-series-*` đã gỡ; mỗi `<Bar>/<Line>/<Area>` phải tự đặt
+`fill`/`stroke` bằng token `--viz-*`. Bảng `--viz-cat-1..4` đã qua kiểm mù màu,
+đừng tự thêm màu thứ năm — gộp vào "Khác".
+
 **Trục thời gian theo tháng** → `<XAxis dataKey="name" {...monthAxis(series.map((d) => d.name))} />`
 (`src/components/finance/MonthAxisTick.tsx`). Nhãn `YYYY-MM` viết đủ thì không
 vừa, nên bản cũ xoay -45° — kéo theo trục cao 56px và recharts phải bỏ bớt tick,

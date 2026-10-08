@@ -6,6 +6,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import AssetModal, { type AssetDraft } from "./AssetModal";
 import { todayLocalIso } from "@/lib/localDate";
 import { formatVND } from "@/lib/formatMoney";
+import { VIZ } from "@/lib/viz";
 
 // Tài sản và công cụ dụng cụ.
 //
@@ -349,10 +350,12 @@ export default function AssetsTab() {
                       {a.remainingLifeMonths} {t("months left", "tháng còn lại")}
                     </span>
                   </div>
-                  <div className="h-2 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
+                  {/* Khấu hao là tiến độ, không phải tốt/xấu: rãnh xám, phần
+                      đã khấu hao màu nhấn — không dùng màu cảnh báo. */}
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: VIZ.ghost }} aria-hidden>
                     <div
-                      className="h-full rounded-full bg-[var(--color-warning)] transition-all"
-                      style={{ width: `${Math.max(2, worn)}%` }}
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${Math.max(0, Math.min(100, worn))}%`, minWidth: worn > 0 ? 4 : 0, background: VIZ.accent }}
                     />
                   </div>
                   <p className="mt-1 text-xs text-[var(--color-text-faint)]">

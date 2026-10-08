@@ -159,6 +159,22 @@
   --chart-5: #d1c9bf;
   --chart-6: #e6ddcd;
 
+  /* Trực quan hoá dữ liệu — xem docs/bieu-do.md. Mặc định là XÁM; màu nhấn
+     chỉ cho điểm mà câu chuyện nói tới. `--viz-cat-*` chỉ dùng khi bản thân
+     các chuỗi là đối tượng so sánh (công ty, khoản vay…); đã chạy kiểm mù màu
+     (dataviz validate_palette, 08/10/2026): light trên #f5eee1, dark trên
+     #211d17 — đạt cả năm phép kiểm cho cặp liền kề. Thứ tự cố định, không xoay. */
+  --viz-accent: #b05a36;
+  --viz-muted: #b5a994;
+  --viz-ghost: #ddd3c3;
+  --viz-other: #c9bfaf;
+  --viz-ink: #2a2b2f;
+  --viz-grid: #e3d9ca;
+  --viz-cat-1: #b05a36;
+  --viz-cat-2: #0e7aa0;
+  --viz-cat-3: #a87812;
+  --viz-cat-4: #8c3f8e;
+
   --heat-rgb: 176, 90, 54;
   --heat-empty: #efe7d8;
   --heat-fg-strong: #fef9ef;
@@ -224,6 +240,17 @@
   --chart-4: #7d6e58;
   --chart-5: #544a3c;
   --chart-6: #3a332a;
+
+  --viz-accent: #c96c43;
+  --viz-muted: #6f6555;
+  --viz-ghost: #3d362c;
+  --viz-other: #5a5246;
+  --viz-ink: #f3ead9;
+  --viz-grid: #322c24;
+  --viz-cat-1: #c96c43;
+  --viz-cat-2: #2f93bd;
+  --viz-cat-3: #b98a1e;
+  --viz-cat-4: #a865a5;
 
   --heat-rgb: 212, 121, 79;
   --heat-empty: #241f18;
@@ -737,68 +764,20 @@ body::before {
   background: linear-gradient(90deg, var(--color-border), transparent);
 }
 
-/* Biểu đồ. Recharts nhận màu qua thuộc tính trình bày (fill=/stroke=) mà một
-   số component còn viết cứng bằng mã hex; thuộc tính trình bày có độ ưu tiên
-   thấp nhất trong CSS nên vẽ đè ở đây là đủ. Biểu đồ mới thì dùng token.
-   Cột để góc gần vuông (2px) — cố ý chọi với giao diện bo tròn. */
-.recharts-cartesian-grid line { stroke: var(--color-border); }
-.recharts-text { fill: var(--color-text-faint); font-family: var(--font-body); font-size: 12px; }
+/* Biểu đồ — chỉ phần "khung": lưới, trục, chữ, chú giải, tooltip. MÀU CỦA
+   DỮ LIỆU do từng biểu đồ tự đặt bằng token `--viz-*` (src/lib/viz.ts), không
+   ép từ đây nữa. Bản cũ ép mọi cột thành đất nung rồi bắt từng biểu đồ lách
+   bằng .c-chart-multi/.c-series-N — kết quả là cái gì cũng nổi, không có gì
+   được nhấn. Xem docs/bieu-do.md.
+
+   Lưới: một nét mảnh, LIỀN, lùi hẳn về sau. Nhiều biểu đồ còn truyền
+   strokeDasharray="3 3"; thuộc tính trình bày thua CSS nên dòng dưới xoá nét
+   đứt ở mọi nơi. */
+.recharts-cartesian-grid line { stroke: var(--viz-grid); stroke-dasharray: none; }
 .recharts-cartesian-axis-line,
-.recharts-cartesian-axis-tick-line { stroke: var(--color-border); }
-.recharts-line-curve, .recharts-area-curve { stroke: var(--chart-1); }
-.recharts-line:nth-of-type(2) .recharts-line-curve,
-.recharts-area:nth-of-type(2) .recharts-area-curve { stroke: var(--chart-3); }
-.recharts-line-dot { fill: var(--chart-1); stroke: none; }
-.recharts-area-area { fill: var(--chart-1); opacity: .14; }
-.recharts-bar-rectangle path { fill: var(--chart-1); }
-
-/* Cột CHỒNG nhiều nhóm cần mỗi khúc một màu, mà luật ngay trên ép hết về
-   --chart-1 — đúng cho biểu đồ một series, nhưng biến cột chồng thành một khối
-   liền màu, không đọc được gì. Biểu đồ nào cần nhiều màu thì tự nhận
-   `.c-chart-multi`, và mỗi series mang `.c-series-N`. Mọi biểu đồ còn lại
-   không đổi. */
-.c-chart-multi .c-series-1 .recharts-bar-rectangle path { fill: var(--chart-1); }
-.c-chart-multi .c-series-2 .recharts-bar-rectangle path { fill: var(--chart-2); }
-.c-chart-multi .c-series-3 .recharts-bar-rectangle path { fill: var(--chart-3); }
-.c-chart-multi .c-series-4 .recharts-bar-rectangle path { fill: var(--chart-4); }
-.c-chart-multi .c-series-other .recharts-bar-rectangle path { fill: var(--color-border-strong); }
-
-/* Bậc nhạt của cùng một màu, cho khúc phụ nằm chồng lên khúc chính của CÙNG
-   một đối tượng — lương đậm, thưởng nhạt, cùng màu công ty. Dùng màu khác hẳn
-   thì mắt đọc thành hai công ty; dùng cùng màu y hệt thì không thấy ranh giới.
-   `color-mix` pha với nền thẻ nên bậc nhạt vẫn nằm trong họ màu của bảng. */
-.c-chart-multi .c-series-1-soft .recharts-bar-rectangle path { fill: color-mix(in srgb, var(--chart-1) 42%, var(--color-surface)); }
-.c-chart-multi .c-series-2-soft .recharts-bar-rectangle path { fill: color-mix(in srgb, var(--chart-2) 42%, var(--color-surface)); }
-.c-chart-multi .c-series-3-soft .recharts-bar-rectangle path { fill: color-mix(in srgb, var(--chart-3) 42%, var(--color-surface)); }
-.c-chart-multi .c-series-4-soft .recharts-bar-rectangle path { fill: color-mix(in srgb, var(--chart-4) 42%, var(--color-surface)); }
-/* Cùng lý do cho biểu đồ vùng: luật chung tô MỌI vùng bằng --chart-1, nên hai
-   đường luỹ kế Thu và Chi có hai màu viền khác nhau mà nền lại giống hệt —
-   nhìn ra một vùng duy nhất. */
-.c-chart-multi .c-series-1 .recharts-area-area { fill: var(--chart-1); }
-.c-chart-multi .c-series-2 .recharts-area-area { fill: var(--chart-2); }
-.c-chart-multi .c-series-3 .recharts-area-area { fill: var(--chart-3); }
-.c-chart-multi .c-series-4 .recharts-area-area { fill: var(--chart-4); }
-
-/* Đường tổng trong biểu đồ combo: luật chung tô nó bằng --chart-1, trùng đúng
-   màu khúc cột đầu tiên nên nhìn như một mảng liền. Đổi sang màu mực. */
-.c-chart-multi .recharts-line-curve { stroke: var(--color-text); }
-.c-chart-multi .recharts-line-dot { fill: var(--color-text); }
-
-/* Nhưng biểu đồ luỹ kế thì hai đường ĐỀU là dữ liệu, không có đường nào là
-   "đường tổng" — để luật trên lo thì cả hai ra cùng màu mực và chỉ còn nét
-   liền/nét đứt để phân biệt. `stroke` viết trong JSX không cứu được: nó là
-   presentation attribute, thua mọi quy tắc CSS. Nên phải có lối thoát bằng
-   class, giống .c-series-* của cột và vùng. */
-.c-chart-multi .c-series-1 .recharts-line-curve { stroke: var(--chart-1); }
-.c-chart-multi .c-series-2 .recharts-line-curve { stroke: var(--chart-2); }
-.c-chart-multi .c-series-3 .recharts-line-curve { stroke: var(--chart-3); }
-.c-chart-multi .c-series-4 .recharts-line-curve { stroke: var(--chart-4); }
-.c-chart-multi .c-series-muted .recharts-line-curve { stroke: var(--color-text-faint); }
-.c-chart-multi .c-series-1 .recharts-line-dot { fill: var(--chart-1); }
-.c-chart-multi .c-series-2 .recharts-line-dot { fill: var(--chart-2); }
-.c-chart-multi .c-series-3 .recharts-line-dot { fill: var(--chart-3); }
-.c-chart-multi .c-series-4 .recharts-line-dot { fill: var(--chart-4); }
-.c-chart-multi .c-series-muted .recharts-line-dot { fill: var(--color-text-faint); }
+.recharts-cartesian-axis-tick-line { stroke: var(--viz-grid); }
+.recharts-text { fill: var(--color-text-faint); font-family: var(--font-body); font-size: 12px; }
+.recharts-legend-item-text { color: var(--color-text-muted) !important; }
 .recharts-default-tooltip {
   background: var(--color-bg) !important;
   border: 1px solid var(--color-border) !important;
@@ -806,12 +785,15 @@ body::before {
   font-family: var(--font-body);
   font-size: 14px;
 }
-.recharts-pie-sector:nth-of-type(6n + 1) path { fill: var(--chart-1); }
-.recharts-pie-sector:nth-of-type(6n + 2) path { fill: var(--chart-2); }
-.recharts-pie-sector:nth-of-type(6n + 3) path { fill: var(--chart-3); }
-.recharts-pie-sector:nth-of-type(6n + 4) path { fill: var(--chart-4); }
-.recharts-pie-sector:nth-of-type(6n + 5) path { fill: var(--chart-5); }
-.recharts-pie-sector:nth-of-type(6n + 6) path { fill: var(--chart-6); }
+/* Lưới an toàn: biểu đồ nào quên đặt màu thì recharts tô xanh tím mặc định
+   (#8884d8 / #3182bd) — chói và lạc hẳn bảng màu. Kéo chúng về xám. */
+.recharts-bar-rectangle path[fill="#8884d8"],
+.recharts-area-area[fill="#8884d8"],
+.recharts-area-area[fill="#3182bd"],
+.recharts-pie-sector path[fill="#808080"] { fill: var(--viz-muted); }
+.recharts-line-curve[stroke="#3182bd"],
+.recharts-area-curve[stroke="#3182bd"],
+.recharts-line-curve[stroke="#8884d8"] { stroke: var(--viz-muted); }
 
 /* Thanh cuộn theo bảng màu. */
 * { scrollbar-color: var(--color-border-strong) transparent; }

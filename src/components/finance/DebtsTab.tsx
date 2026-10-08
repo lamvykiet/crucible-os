@@ -11,6 +11,7 @@ import { thisMonthLocalIso } from "@/lib/localDate";
 import PeriodComparison from "./PeriodComparison";
 import DebtOverview from "./DebtOverview";
 import { formatVND } from "@/lib/formatMoney";
+import { VIZ } from "@/lib/viz";
 
 interface DebtInfo {
   id: string;
@@ -123,7 +124,7 @@ export default function DebtsTab() {
 
       {/* Main Cards Row */}
       {!hasData && !isLoading ? (
-        <div className="flex flex-col items-center justify-center h-80 gap-4 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm">
+        <div className="flex flex-col items-center justify-center h-80 gap-4 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)]">
           <div className="w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center">
             <CalendarX size={32} />
           </div>
@@ -144,7 +145,7 @@ export default function DebtsTab() {
           <DebtOverview refreshKey={refreshKey} />
 
           {dueThisMonth.length > 0 && (
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
+            <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
               <h3 className="c-h5 text-[var(--color-text)] mb-4">
                 {t("Due this month", "Đến hạn trong tháng này")}
               </h3>
@@ -172,17 +173,19 @@ export default function DebtsTab() {
           )}
 
           {/* Danh sách khoản nợ */}
-          <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm mt-8">
+          <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
             <h3 className="c-h5 text-[var(--color-text)] mb-6">
               {t("Loan by loan", "Theo dõi từng khoản vay")}
             </h3>
             
-            <div className="space-y-6">
+            {/* `flex gap` chứ không `space-y-6`: globals.css gán nhịp khối lớn
+                của trang cho mọi `.space-y-6` trong `.c-main`, kể cả trong thẻ. */}
+            <div className="flex flex-col gap-4">
               {debtsList.length === 0 ? (
                 <div className="text-sm text-[var(--color-text-faint)]">{t("No debts available", "Chưa có danh sách nợ")}</div>
               ) : (
                 debtsList.map(debt => (
-                  <div key={debt.id} className="border border-[var(--color-border)] rounded-xl p-6">
+                  <div key={debt.id} className="border border-[var(--color-border)] rounded-2xl p-4 md:p-5">
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <span className="bg-[var(--color-success-tint)] text-[var(--color-success)] text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider mb-2 inline-block">{debt.type}</span>
@@ -195,8 +198,22 @@ export default function DebtsTab() {
                       </div>
                     </div>
 
-                    <div className="w-full bg-[var(--color-surface-2)] rounded-full h-1.5 mb-6">
-                      <div className="bg-[var(--color-success)] h-1.5 rounded-full" style={{ width: `${debt.paidPercentage}%` }}></div>
+                    {/* Thanh tiến độ: rãnh xám, phần đã trả màu nhấn, luôn có chữ ghi số
+                        ngay dưới — màu trạng thái để dành cho tốt/xấu, không cho "đã đi được bao xa". */}
+                    <div className="mb-6 flex flex-col gap-1.5">
+                      <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: VIZ.ghost }} aria-hidden>
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.max(0, Math.min(100, debt.paidPercentage))}%`,
+                            minWidth: debt.paidPercentage > 0 ? 4 : 0,
+                            background: VIZ.accent,
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold tabular-nums text-[var(--color-text)]">
+                        {t(`${debt.paidPercentage}% of principal repaid`, `Đã trả ${debt.paidPercentage}% gốc`)}
+                      </span>
                     </div>
 
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-[var(--color-text-muted)] mb-6 border-b border-[var(--color-border)] pb-4">
@@ -204,7 +221,6 @@ export default function DebtsTab() {
                       <div>{t("Interest Rate:", "Lãi suất:")} <strong className="text-[var(--color-text)]">{debt.interestRate}%/{t("yr", "năm")}</strong></div>
                       <div>{t("Due Date:", "Đến hạn:")} <strong className="text-[var(--color-text)]">{t("day", "ngày")} {debt.dueDate}</strong></div>
                       <div>{t("Remaining:", "Còn")} <strong className="text-[var(--color-text)]">~{debt.remainingMonths} {t("months", "tháng")}</strong></div>
-                      <div>{t("Paid:", "Đã trả:")} <strong className="text-[var(--color-text)]">{debt.paidPercentage}%</strong></div>
                     </div>
 
                     <div className="flex flex-wrap gap-2">

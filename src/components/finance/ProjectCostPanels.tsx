@@ -8,6 +8,8 @@ import { todayLocalIso } from "@/lib/localDate";
 import AmountInput from "@/components/ui/AmountInput";
 import CustomDatePicker from "@/components/ui/CustomDatePicker";
 import { CLASSIFICATIONS, COST_CATEGORIES, costCategoryOf } from "@/lib/projectCost";
+import { VIZ, catColor } from "@/lib/viz";
+import { StatTile } from "@/components/charts/ChartCard";
 
 // Ba khối "kế toán giá thành" của tab Dự án: bảng giá thành (5 nhóm chi phí,
 // WIP / giá vốn, so ngân sách), sổ cái chỉ-ghi-thêm, và hộp thoại kết chuyển
@@ -41,11 +43,12 @@ export interface LedgerView {
   runningTotalCost: number;
 }
 
-/** Màu cho năm nhóm, theo thang ấm của hệ (--chart-1…5). */
-const colourOf = (code: string) => {
-  const i = COST_CATEGORIES.findIndex((c) => c.code === code);
-  return i >= 0 ? `var(--chart-${i + 1})` : "var(--color-border-strong)";
-};
+/**
+ * Màu cho năm nhóm chi phí — các nhóm LÀ đối tượng so sánh nên dùng bảng phân
+ * loại, theo thứ tự CỐ ĐỊNH của COST_CATEGORIES (màu đi theo nhóm, không theo
+ * thứ hạng). Bảng chỉ có bốn màu đã kiểm mù màu; nhóm thứ năm dùng `VIZ.other`.
+ */
+const colourOf = (code: string) => catColor(COST_CATEGORIES.findIndex((c) => c.code === code));
 
 const dayLabel = (iso: string) => iso.split("-").reverse().join("/");
 
@@ -65,35 +68,33 @@ export function CostPanel({
   const { t } = useLanguage();
   const totalOf = (code: string) => (cogs.wip[code] ?? 0) + (cogs.cogs[code] ?? 0);
   const rows = COST_CATEGORIES.map((c) => ({ ...c, total: totalOf(c.code) }));
-  const base = Math.max(1, rows.reduce((s, r) => s + Math.max(0, r.total), 0));
   const margin = cogs.revenue > 0 ? Math.round((cogs.grossProfit / cogs.revenue) * 1000) / 10 : null;
 
-  const stats = [
-    { label: t("Total cost", "Tổng chi phí"), value: formatVND(cogs.totalCost), tone: "" },
-    { label: t("Work in progress", "Dở dang (WIP)"), value: formatVND(cogs.totalWip), tone: "" },
-    { label: t("Cost of goods sold", "Giá vốn (COGS)"), value: formatVND(cogs.totalCogs), tone: "" },
-    {
-      label: t("Gross profit", "Lợi nhuận gộp"),
-      value: `${cogs.grossProfit < 0 ? "−" : ""}${formatVND(Math.abs(cogs.grossProfit))}`,
-      note: margin !== null ? t(`margin ${margin}%`, `biên ${margin}%`) : t("no revenue yet", "chưa có doanh thu"),
-      tone: cogs.grossProfit > 0 ? "text-[var(--color-success)]" : cogs.grossProfit < 0 ? "text-[var(--color-error)]" : "",
-    },
-  ];
-
   const budgetPct = cogs.budget ? Math.round((cogs.totalCost / cogs.budget) * 1000) / 10 : null;
+
+  // Câu kết luận: nhóm chi phí lớn nhất chiếm bao nhiêu phần.
+  const largest = rows.reduce<(typeof rows)[number] | null>((best, r) => (!best || r.total > best.total ? r : best), null);
+  const title =
+    largest && largest.total > 0 && cogs.totalCost > 0
+      ? t(
+          `${Math.round((largest.total / cogs.totalCost) * 100)}% of the cost goes to ${largest.en.toLowerCase()}`,
+          `${largest.vi} chiếm ${Math.round((largest.total / cogs.totalCost) * 100)}% chi phí`
+        )
+      : t("No cost recorded yet", "Chưa ghi khoản chi phí nào");
+  const segments = rows.filter((r) => r.total > 0);
 
   return (
     // `flex gap` chứ không `space-y-6`: globals.css gán nhịp KHỐI LỚN của trang
     // (`--block-gap`) cho mọi `.space-y-6` trong `.c-main`, kể cả khi nó nằm
     // trong một thẻ — các mục trong thẻ cách nhau cả gang tay.
-    <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-6 min-w-0">
+      <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h4 className="c-h5 text-[var(--color-text)]">{t("Cost & COGS", "Giá thành & giá vốn")}</h4>
+          <h4 className="c-h5 text-[var(--color-text)] text-balance">{title}</h4>
           <p className="text-xs text-[var(--color-text-faint)] mt-1 max-w-xl">
             {t(
-              "Costs build up as work in progress; move them to cost of goods sold when you deliver.",
-              "Chi phí dồn vào dở dang (WIP) trong lúc làm; khi giao hàng thì kết chuyển phần tương ứng sang giá vốn."
+              "Cost & COGS · costs build up as work in progress; move them to cost of goods sold when you deliver.",
+              "Giá thành & giá vốn · chi phí dồn vào dở dang (WIP) trong lúc làm; khi giao hàng thì kết chuyển phần tương ứng sang giá vốn."
             )}
           </p>
         </div>
@@ -104,36 +105,55 @@ export function CostPanel({
         >
           <ArrowRightLeft size={15} /> {t("Move to COGS", "Kết chuyển giá vốn")}
         </button>
-      </div>
+      </header>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        {stats.map((s) => (
-          <div key={s.label} className="rounded-2xl bg-[var(--color-surface-2)] p-4">
-            <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{s.label}</div>
-            <div className={`text-base md:text-lg font-bold tabular-nums mt-1 ${s.tone || "text-[var(--color-text)]"}`}>
-              {s.value}
-            </div>
-            {"note" in s && s.note && <div className="text-[11px] text-[var(--color-text-faint)] mt-0.5">{s.note}</div>}
-          </div>
-        ))}
+        <StatTile emphasis label={t("Total cost", "Tổng chi phí")} value={formatVND(cogs.totalCost)} />
+        <StatTile label={t("Work in progress", "Dở dang (WIP)")} value={formatVND(cogs.totalWip)} />
+        <StatTile label={t("Cost of goods sold", "Giá vốn (COGS)")} value={formatVND(cogs.totalCogs)} />
+        <StatTile
+          label={cogs.grossProfit < 0 ? t("Gross loss", "Lỗ gộp") : t("Gross profit", "Lợi nhuận gộp")}
+          value={
+            // Màu trạng thái chỉ trên con số, nhãn ô đã nói bằng chữ là lãi hay lỗ.
+            <span
+              className={
+                cogs.grossProfit > 0 ? "text-[var(--color-success)]" : cogs.grossProfit < 0 ? "text-[var(--color-error)]" : ""
+              }
+            >
+              {`${cogs.grossProfit < 0 ? "−" : ""}${formatVND(Math.abs(cogs.grossProfit))}`}
+            </span>
+          }
+          note={margin !== null ? t(`margin ${margin}%`, `biên ${margin}%`) : t("no revenue yet", "chưa có doanh thu")}
+        />
       </div>
 
-      {/* --- Năm nhóm chi phí --- */}
-      <div>
-        <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-2)]" aria-hidden>
-          {rows
-            .filter((r) => r.total > 0)
-            .map((r) => (
-              <div key={r.code} style={{ width: `${(r.total / base) * 100}%`, background: colourOf(r.code) }} />
+      {/* --- Năm nhóm chi phí ---
+          Một thanh chồng ngang (phần trong tổng), các khúc tách nhau bằng khe
+          2px màu nền thay cho viền; danh sách bên dưới giữ thứ tự cố định để ô
+          màu luôn khớp với khúc. */}
+      <div className="flex flex-col gap-4">
+        {segments.length > 0 && (
+          <div className="flex h-3 w-full gap-0.5 overflow-hidden rounded-full" aria-hidden>
+            {segments.map((r) => (
+              <div
+                key={r.code}
+                className="h-full min-w-[3px]"
+                style={{ flexGrow: r.total, flexBasis: 0, background: colourOf(r.code) }}
+              />
             ))}
-        </div>
-        <ul className="mt-4 divide-y divide-[var(--color-border)]">
+          </div>
+        )}
+        <ul className="divide-y divide-[var(--color-border)]">
           {rows.map((r) => (
             <li key={r.code} className="py-3 first:pt-0 last:pb-0">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="flex items-center gap-2 min-w-0">
-                  <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: colourOf(r.code) }} aria-hidden />
-                  <span className={`text-sm truncate ${r.total ? "text-[var(--color-text)]" : "text-[var(--color-text-faint)]"}`}>
+                  <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: colourOf(r.code) }} aria-hidden />
+                  <span
+                    className={`text-sm truncate ${
+                      r.total ? "text-[var(--color-text)]" : "text-[var(--color-text-faint)]"
+                    } ${largest && r.code === largest.code && r.total > 0 ? "font-bold" : ""}`}
+                  >
                     {t(r.en, r.vi)}
                   </span>
                 </span>
@@ -158,17 +178,20 @@ export function CostPanel({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {Object.entries(CLASSIFICATIONS).map(([key, c]) => {
           const sum = c.codes.reduce((s, code) => s + totalOf(code), 0);
+          const share = cogs.totalCost > 0 ? Math.round((sum / cogs.totalCost) * 100) : 0;
+          const parts = c.codes
+            .map((code) => {
+              const cat = costCategoryOf(code);
+              return cat ? t(cat.en, cat.vi) : code;
+            })
+            .join(" + ");
           return (
-            <div key={key} className="rounded-2xl border border-[var(--color-border)] p-4">
-              <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t(c.en, c.vi)}</div>
-              <div className="text-base font-bold tabular-nums text-[var(--color-text)] mt-1">{formatVND(sum)}</div>
-              <div className="text-[11px] text-[var(--color-text-faint)] mt-0.5">
-                {c.codes.map((code) => {
-                  const cat = costCategoryOf(code);
-                  return cat ? t(cat.en, cat.vi) : code;
-                }).join(" + ")}
-              </div>
-            </div>
+            <StatTile
+              key={key}
+              label={t(c.en, c.vi)}
+              value={formatVND(sum)}
+              note={`${share}% · ${parts}`}
+            />
           );
         })}
       </div>
@@ -192,10 +215,16 @@ export function CostPanel({
                   : t("Under budget", "Dưới ngân sách")}
             </span>
           </div>
-          <div className="w-full bg-[var(--color-surface-2)] rounded-full h-2 mt-2 overflow-hidden">
+          {/* Rãnh xám, phần đã chi màu nhấn; chỉ khi VƯỢT ngân sách (xấu, và
+              nhãn bên trên đã nói bằng chữ) mới đổi sang màu lỗi. */}
+          <div className="w-full h-2 mt-2 rounded-full overflow-hidden" style={{ background: VIZ.ghost }} aria-hidden>
             <div
-              className={`h-2 rounded-full ${cogs.status === "OVER_BUDGET" ? "bg-[var(--color-error)]" : "bg-[var(--color-warning)]"}`}
-              style={{ width: `${Math.min(100, budgetPct)}%` }}
+              className="h-full rounded-full"
+              style={{
+                width: `${Math.max(0, Math.min(100, budgetPct))}%`,
+                minWidth: budgetPct > 0 ? 4 : 0,
+                background: cogs.status === "OVER_BUDGET" ? VIZ.bad : VIZ.accent,
+              }}
             />
           </div>
           <p className="text-xs text-[var(--color-text-faint)] mt-1.5 tabular-nums">
@@ -226,7 +255,7 @@ export function CostPanel({
           ? t("Ledger matches the allocations", "Sổ cái khớp với phân bổ")
           : t("Ledger does not match the allocations — tell Claude", "Sổ cái lệch với phân bổ — cần kiểm tra lại")}
       </p>
-    </div>
+    </section>
   );
 }
 

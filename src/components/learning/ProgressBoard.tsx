@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, TrendingUp, TrendingDown, Minus, Trophy } from "lucide-react";
+import { Loader2, Trophy } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { VIZ, pctChange } from "@/lib/viz";
+import ChartCard, { Delta, StatTile } from "@/components/charts/ChartCard";
 
 interface Progress {
   thisWeek: number;
@@ -12,6 +14,9 @@ interface Progress {
   activeDays: number;
   recent: { week: string; xp: number }[];
 }
+
+/** "2026-10-05" → "05/10" */
+const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
 /**
  * Bảng tiến độ.
@@ -23,6 +28,9 @@ interface Progress {
  * Giữ lại cái lõi thật sự của leaderboard — "tôi đang tiến hay đang lùi" — rồi
  * đổi đối thủ: so với chính mình tuần trước, và với tuần tốt nhất từ trước tới
  * nay. Người học một mình dùng được ngay, không cần chờ có người thứ hai.
+ *
+ * Biểu đồ theo docs/bieu-do.md: tiêu đề là câu kết luận tính từ số liệu, cột
+ * xám, chỉ tuần này mang màu nhấn và ghi số.
  */
 export default function ProgressBoard() {
   const { t } = useLanguage();
@@ -55,13 +63,42 @@ export default function ProgressBoard() {
     );
   }
 
-  const delta = data.thisWeek - data.lastWeek;
-  const Trend = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
-  const trendColor =
-    delta > 0 ? "var(--color-success)" : delta < 0 ? "var(--color-error)" : "var(--color-text-faint)";
-
+  const recent = data.recent;
+  const cur = recent.length - 1;
   // Cột cao nhất làm mốc; tối thiểu 1 để tuần trống không chia cho 0.
-  const peak = Math.max(1, ...data.recent.map((r) => r.xp));
+  const peak = Math.max(1, ...recent.map((r) => r.xp));
+  const isBest = data.thisWeek > 0 && data.thisWeek >= data.best;
+  const change = pctChange(data.thisWeek, data.lastWeek);
+
+  // --- Câu kết luận, tính từ dữ liệu (docs/bieu-do.md §1) -------------------
+  // Tuần này chưa hết, nên câu nói "tới nay" — so một tuần dở với một tuần trọn.
+  const headline =
+    data.totalXp === 0 || recent.every((r) => r.xp === 0)
+      ? t("No points in the last 12 weeks yet", "12 tuần gần nhất chưa có điểm nào")
+      : isBest
+        ? t(
+            `This week is your best week yet — ${data.thisWeek} points`,
+            `Tuần này là tuần tốt nhất từ trước tới nay — ${data.thisWeek} điểm`
+          )
+        : data.thisWeek === 0
+          ? t(
+              `No points this week yet — last week had ${data.lastWeek}`,
+              `Tuần này chưa có điểm — tuần trước được ${data.lastWeek}`
+            )
+          : change === null
+            ? t(
+                `${data.thisWeek} points this week so far — none last week`,
+                `Tuần này tới nay ${data.thisWeek} điểm — tuần trước không học`
+              )
+            : change === 0
+              ? t(
+                  `${data.thisWeek} points this week so far — level with last week`,
+                  `Tuần này tới nay ${data.thisWeek} điểm — ngang tuần trước`
+                )
+              : t(
+                  `${data.thisWeek} points this week so far — ${Math.abs(change)}% ${change > 0 ? "more" : "fewer"} than last week`,
+                  `Tuần này tới nay ${data.thisWeek} điểm — ${change > 0 ? "nhiều" : "ít"} hơn tuần trước ${Math.abs(change)}%`
+                );
 
   return (
     <div className="space-y-6">
@@ -72,75 +109,92 @@ export default function ProgressBoard() {
         )}
       </p>
 
-      {/* Số liệu chính */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="c-card p-5">
-          <p className="c-card-kicker">{t("This week", "Tuần này")}</p>
-          <p className="c-stat-value">{data.thisWeek}</p>
-          <p className="c-stat-label inline-flex items-center gap-1" style={{ color: trendColor }}>
-            <Trend size={13} />
-            {delta > 0 ? "+" : ""}{delta} {t("vs last week", "so tuần trước")}
-          </p>
+      <ChartCard
+        title={headline}
+        subtitle={t(
+          `Points per week, last 12 weeks (${dm(recent[0].week)} – ${dm(recent[cur].week)})`,
+          `Điểm mỗi tuần, 12 tuần gần nhất (${dm(recent[0].week)} – ${dm(recent[cur].week)})`
+        )}
+        footnote={t(
+          "One point per card reviewed, two when you answer an exercise correctly.",
+          "Mỗi thẻ ôn được một điểm; trả lời đúng một câu bài tập được hai điểm."
+        )}
+      >
+        {/* Bốn con số: tuần này là ô chính, ba ô còn lại là bối cảnh */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatTile
+            emphasis
+            label={t("This week", "Tuần này")}
+            value={data.thisWeek}
+            delta={
+              change === null ? undefined : (
+                <Delta pct={change} upIsGood vs={t(`vs ${data.lastWeek} last week`, `so ${data.lastWeek} tuần trước`)} />
+              )
+            }
+            note={change === null ? t("nothing last week", "tuần trước không học") : undefined}
+          />
+          <StatTile
+            label={
+              <span className="inline-flex items-center gap-1">
+                <Trophy size={11} aria-hidden />
+                {t("Best week", "Tuần tốt nhất")}
+              </span>
+            }
+            value={data.best}
+            note={isBest ? t("that is this week", "chính là tuần này") : t("points", "điểm")}
+          />
+          <StatTile label={t("All time", "Tổng cộng")} value={data.totalXp} note={t("points", "điểm")} />
+          <StatTile
+            label={t("Active days", "Số ngày có học")}
+            value={data.activeDays}
+            note={t("last 26 weeks", "26 tuần gần nhất")}
+          />
         </div>
 
-        <div className="c-card p-5">
-          <p className="c-card-kicker inline-flex items-center gap-1.5">
-            <Trophy size={13} />
-            {t("Best week", "Tuần tốt nhất")}
-          </p>
-          <p className="c-stat-value">{data.best}</p>
-          <p className="c-stat-label">
-            {data.thisWeek >= data.best && data.best > 0
-              ? t("that is this week", "chính là tuần này")
-              : t("points", "điểm")}
-          </p>
-        </div>
-
-        <div className="c-card p-5">
-          <p className="c-card-kicker">{t("All time", "Tổng cộng")}</p>
-          <p className="c-stat-value">{data.totalXp}</p>
-          <p className="c-stat-label">{t("points", "điểm")}</p>
-        </div>
-
-        <div className="c-card p-5">
-          <p className="c-card-kicker">{t("Active days", "Số ngày có học")}</p>
-          <p className="c-stat-value">{data.activeDays}</p>
-          <p className="c-stat-label">{t("last 26 weeks", "26 tuần gần nhất")}</p>
-        </div>
-      </div>
-
-      {/* Mười hai tuần gần nhất */}
-      <div className="c-card p-5 space-y-4">
-        <p className="c-card-kicker">{t("Last 12 weeks", "12 tuần gần nhất")}</p>
-
-        <div className="flex items-end gap-1.5 h-32">
-          {data.recent.map((r, i) => {
-            const isNow = i === data.recent.length - 1;
-            return (
-              <div key={r.week} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
+        {/* 12 cột: xám, tuần này màu nhấn và là cột DUY NHẤT ghi số. Không trục Y,
+            không lưới — một đường gốc là đủ. */}
+        <div role="img" aria-label={headline} className="pt-5">
+          <div className="flex items-end gap-1.5 h-28 border-b border-[var(--viz-grid)]">
+            {recent.map((r, i) => {
+              const isNow = i === cur;
+              return (
                 <div
-                  className="w-full rounded-t-md transition-all"
-                  style={{
-                    height: `${Math.max(2, (r.xp / peak) * 100)}%`,
-                    background: isNow ? "var(--color-primary)" : "var(--color-surface-3, var(--color-surface-2))",
-                  }}
-                  title={`${r.week}: ${r.xp}`}
-                />
-                <span className="c-stat-label text-[10px] tabular-nums truncate w-full text-center">
-                  {r.week.slice(5)}
-                </span>
-              </div>
-            );
-          })}
+                  key={r.week}
+                  className="relative flex-1 h-full min-w-0 flex items-end justify-center"
+                  title={`${dm(r.week)}: ${r.xp}`}
+                >
+                  {r.xp > 0 && (
+                    <div
+                      className="relative w-full max-w-6 rounded-t-[4px] transition-[height] duration-300"
+                      style={{
+                        height: `${(r.xp / peak) * 100}%`,
+                        minHeight: 2,
+                        background: isNow ? VIZ.accent : VIZ.muted,
+                      }}
+                    >
+                      {isNow && (
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 text-[11px] font-bold tabular-nums text-[var(--color-text)] whitespace-nowrap">
+                          {r.xp}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {isNow && r.xp === 0 && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 mb-1 text-[11px] font-bold tabular-nums text-[var(--color-text)]">
+                      0
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {/* Hai mốc ở hai đầu thay cho 12 nhãn chen nhau ở khổ 375px */}
+          <div className="mt-1.5 flex justify-between text-[11px] text-[var(--color-text-faint)] tabular-nums">
+            <span>{dm(recent[0].week)}</span>
+            <span className="font-bold text-[var(--color-text)]">{t("This week", "Tuần này")}</span>
+          </div>
         </div>
-
-        <p className="c-help">
-          {t(
-            "One point per card reviewed, two when you answer an exercise correctly.",
-            "Mỗi thẻ ôn được một điểm; trả lời đúng một câu bài tập được hai điểm."
-          )}
-        </p>
-      </div>
+      </ChartCard>
     </div>
   );
 }

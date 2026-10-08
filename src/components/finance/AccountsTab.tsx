@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { formatVND } from "@/lib/formatMoney";
+import { VIZ } from "@/lib/viz";
 import { todayLocalIso } from "@/lib/localDate";
 import AccountModal, { emptyAccount, type AccountDraft } from "./AccountModal";
 
@@ -375,22 +376,39 @@ export default function AccountsTab() {
                     {a.creditLimit ? (
                       <>
                         {/* Trên 30% hạn mức là mốc các bên chấm điểm tín dụng
-                            bắt đầu để ý, nên đổi màu ở đó chứ không đợi chạm trần. */}
-                        <div className="mt-3 h-2 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
+                            bắt đầu để ý, nên đổi màu ở đó chứ không đợi chạm
+                            trần. Dưới mốc thì thanh xám — "bình thường" không
+                            cần màu. Trên mốc mới mang màu trạng thái, và luôn
+                            có chữ nói ra (màu không đứng một mình). Vạch mảnh
+                            đánh dấu chính mốc 30%. */}
+                        <div className="relative mt-3">
+                          <div className="h-2 rounded-full overflow-hidden" style={{ background: VIZ.ghost }} aria-hidden>
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{
+                                width: `${Math.min(100, Math.max(0, a.utilization || 0))}%`,
+                                minWidth: (a.utilization || 0) > 0 ? 4 : 0,
+                                background:
+                                  (a.utilization || 0) > 80 ? VIZ.bad : (a.utilization || 0) > 30 ? "var(--color-warning)" : VIZ.muted,
+                              }}
+                            />
+                          </div>
                           <div
-                            className={`h-full rounded-full transition-all ${
-                              (a.utilization || 0) > 80
-                                ? "bg-[var(--color-error)]"
-                                : (a.utilization || 0) > 30
-                                  ? "bg-[var(--color-warning)]"
-                                  : "bg-[var(--color-success)]"
-                            }`}
-                            style={{ width: `${Math.min(100, Math.max(2, a.utilization || 0))}%` }}
+                            className="absolute -top-1 -bottom-1 w-0.5 rounded-full"
+                            style={{ left: "calc(30% - 1px)", background: VIZ.ink }}
+                            aria-hidden
                           />
                         </div>
                         <p className="text-xs text-[var(--color-text-muted)] mt-1.5">
                           {t("used", "đã dùng")} {a.utilization}% {t("of", "trên")}{" "}
                           {formatVND(a.creditLimit)}
+                          {(a.utilization || 0) > 80 ? (
+                            <strong className="text-[var(--color-error)]"> · {t("very high", "rất cao")}</strong>
+                          ) : (a.utilization || 0) > 30 ? (
+                            <strong className="text-[var(--color-warning)]"> · {t("above the 30% mark", "vượt mốc 30%")}</strong>
+                          ) : (
+                            <span className="text-[var(--color-text-faint)]"> · {t("under the 30% mark", "dưới mốc 30%")}</span>
+                          )}
                         </p>
                       </>
                     ) : (

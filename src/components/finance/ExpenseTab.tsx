@@ -1,11 +1,12 @@
 "use client";
 
-import { Calendar, CreditCard, LineChart as LineChartIcon, Tag, Receipt, ChevronDown, AlertCircle, ListChecks, ArrowUpRight } from "lucide-react";
-import { ComposedChart, BarChart, Bar, LineChart as RechartsLineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Calendar, Receipt, ChevronDown, AlertCircle, ListChecks, ArrowUpRight } from "lucide-react";
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useCategories } from "@/lib/useCategories";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import { useState, useEffect } from "react";
-import { CalendarX, CalendarDays, CalendarRange, CalendarCheck } from "lucide-react";
+import { CalendarDays, CalendarRange, CalendarCheck } from "lucide-react";
 import TransactionModal from "./TransactionModal";
 import ScanInvoiceModal from "./ScanInvoiceModal";
 import WeekPanel from "./WeekPanel";
@@ -18,8 +19,16 @@ import StackedMonthTooltip from "./StackedMonthTooltip";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
+import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, TOOLTIP, labelAt, pctChange, catColor } from "@/lib/viz";
+import ChartCard, { StatTile } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
+
+// Biểu đồ trong tab này theo docs/bieu-do.md: tiêu đề là câu kết luận tính từ
+// dữ liệu, cột xám, chỉ điểm mà câu đó nói tới mang màu nhấn, ghi số ở MỘT chỗ.
+
 const OTHER_KEY = "__other";
+/** Số nhóm hiện riêng trong thẻ "theo nhóm"; phần đuôi gộp thành "Khác". */
+const RANK_SHOW = 6;
 
 interface CategorySlice { name: string; amount: number }
 interface SeriesPoint { name: string; amount: number }
@@ -75,8 +84,101 @@ const EMPTY: ExpenseData = {
   topMerchants: [], recentTransactions: [], hasData: false,
 };
 
+/** Vị trí giá trị lớn nhất; -1 khi mảng rỗng hoặc không có giá trị dương. */
+function argmax(values: number[]) {
+  let at = -1;
+  let best = 0;
+  values.forEach((v, i) => {
+    if (v > best) {
+      best = v;
+      at = i;
+    }
+  });
+  return at;
+}
+
+/** Trục ngày 01–31: chỉ ghi ngày 1, 5, 10, 15… — 31 nhãn không vừa khổ 375px. */
+const dayTick = (d: string | number) => {
+  const n = Number(d);
+  return n === 1 || n % 5 === 0 ? String(n) : "";
+};
+
+/** "2026-10" → "T10" / "Oct" */
+const monthShort = (k: string, vi: boolean) => {
+  const m = Number(k.slice(5, 7));
+  if (!m) return k;
+  return vi ? `T${m}` : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1];
+};
+
+interface RankRow {
+  key: string;
+  name: string;
+  amount: number;
+  color: string;
+  strong?: boolean;
+  note?: string;
+}
+
+/**
+ * Cột ngang xếp hạng (vẽ bằng div): tên và số ở dòng trên, thanh mảnh ở dòng
+ * dưới — vừa cả thẻ hẹp một phần ba lẫn khổ 375px, số luôn thấy trọn.
+ */
+function RankList({ rows, scale }: { rows: RankRow[]; scale: number }) {
+  return (
+    <ul className="flex flex-col gap-3">
+      {rows.map((r) => (
+        <li key={r.key} className="flex flex-col gap-1">
+          <div className="flex items-baseline justify-between gap-3">
+            <span
+              className={`min-w-0 truncate text-sm text-[var(--color-text)] ${r.strong ? "font-bold" : ""}`}
+              title={r.name}
+            >
+              {r.name}
+            </span>
+            <span className="flex-none text-sm font-bold tabular-nums text-[var(--color-text)]">
+              {formatVND(r.amount)}
+              {r.note && <span className="ml-1.5 text-xs font-normal text-[var(--color-text-faint)]">{r.note}</span>}
+            </span>
+          </div>
+          <div className="h-3 w-full" aria-hidden>
+            <div
+              className="h-full rounded-r-[4px]"
+              style={{
+                width: `${(Math.max(0, r.amount) / Math.max(1, scale)) * 100}%`,
+                minWidth: r.amount > 0 ? 3 : 0,
+                background: r.color,
+              }}
+            />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Nhãn tổng tháng trên đỉnh cột chồng, chỉ ở MỘT cột. Gắn vào khúc trên cùng
+ * có giá trị của cột đó, nên `y` là đỉnh cả chồng.
+ */
+function stackTotalAt(index: number, total: number, format: (v: number) => string) {
+  const render = (props: { index?: number; x?: number | string; y?: number | string; width?: number | string }) => {
+    if (props.index !== index) return null;
+    const x = Number(props.x) + Number(props.width ?? 0) / 2;
+    const y = Number(props.y) - 8;
+    return (
+      <text x={x} y={y} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--color-text)">
+        {format(total)}
+      </text>
+    );
+  };
+  return render;
+}
+
 export default function ExpenseTab() {
   const { t, language } = useLanguage();
+  const vi = language === "vi";
+  const money = (n: number) => compactMoney(n, vi);
+  const { label } = useCategories("Expense");
   const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
   const [timeRange, setTimeRange] = useState<"day" | "month" | "year">("month");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -117,18 +219,162 @@ export default function ExpenseTab() {
     totals, categoryBreakdowns, avgDailyExpense, eomForecast, categoriesCount,
     monthlyBreakdown, monthlyCategoryKeys,
     dailySeries, dayOfMonth, yearlySeries,
-    topMerchants, recentTransactions, hasData
+    topMerchants, recentTransactions,
   } = data;
 
   const currentTotal = totals[timeRange] || 0;
   const currentCategoryBreakdown = categoryBreakdowns[timeRange] || [];
-  const maxMerchant = topMerchants[0]?.amount || 1;
+  const mm = monthShort(selectedMonth, vi);
+  const year = selectedMonth.slice(0, 4);
+  const isThisMonth = selectedMonth === thisMonthLocalIso();
+  const groupName = (k: string) => (k === OTHER_KEY ? t("Other", "Khác") : label(k));
 
-  const getRangeLabel = () => {
-    if (timeRange === "day") return t("Daily Expense", "Chi tiêu ngày");
-    if (timeRange === "year") return t("Yearly Expense", "Chi tiêu năm");
-    return t("Monthly Expense", "Chi tiêu tháng");
-  };
+  // --- Bốn con số -----------------------------------------------------------
+  const paceHeadline =
+    totals.month <= 0
+      ? t(`No spending recorded in ${mm} ${year}`, `${mm}/${year} chưa ghi khoản chi nào`)
+      : isThisMonth
+        ? t(
+            `${money(totals.month)} spent in ${mm} so far — on pace for ${money(eomForecast)}`,
+            `${mm} đã chi ${money(totals.month)} — đà này cuối tháng khoảng ${money(eomForecast)}`
+          )
+        : t(`${money(totals.month)} spent in ${mm} ${year}`, `${mm}/${year} chi ${money(totals.month)}`);
+
+  // --- Theo nhóm (thay cho bánh donut) -------------------------------------
+  const sliceSum = currentCategoryBreakdown.reduce((s, c) => s + c.amount, 0);
+  const shareOf = (v: number) => (sliceSum > 0 ? Math.round((v / sliceSum) * 100) : 0);
+  const rangeVi = timeRange === "day" ? "chi trong ngày" : timeRange === "year" ? `chi năm ${year}` : `chi ${mm}`;
+  const rangeEn = timeRange === "day" ? "the day's spending" : timeRange === "year" ? `${year} spending` : `${mm} spending`;
+  const topSlice = currentCategoryBreakdown[0];
+  const categoryHeadline = topSlice
+    ? t(
+        `${label(topSlice.name)} takes ${shareOf(topSlice.amount)}% of ${rangeEn}`,
+        `${label(topSlice.name)} chiếm ${shareOf(topSlice.amount)}% ${rangeVi}`
+      )
+    : t("Nothing spent in this range", "Khoảng này chưa chi gì");
+  const shownSlices = currentCategoryBreakdown.slice(0, RANK_SHOW);
+  const restSlices = currentCategoryBreakdown.slice(RANK_SHOW);
+  const categoryRows: RankRow[] = shownSlices.map((c, i) => ({
+    key: c.name,
+    name: label(c.name),
+    amount: c.amount,
+    color: i === 0 ? VIZ.accent : VIZ.muted,
+    strong: i === 0,
+    note: `${shareOf(c.amount)}%`,
+  }));
+  if (restSlices.length > 0) {
+    const rest = restSlices.reduce((s, c) => s + c.amount, 0);
+    categoryRows.push({
+      key: OTHER_KEY,
+      name: t(`Other (${restSlices.length})`, `Khác (${restSlices.length} nhóm)`),
+      amount: rest,
+      color: VIZ.other,
+      note: `${shareOf(rest)}%`,
+    });
+  }
+  const categoryScale = Math.max(1, ...categoryRows.map((r) => r.amount));
+
+  // --- Từng ngày trong tháng -------------------------------------------------
+  const peakDay = argmax(dailySeries.map((d) => d.amount));
+  const dailyHeadline =
+    peakDay < 0
+      ? t(`No spending recorded in ${mm} yet`, `${mm} chưa ghi khoản chi nào`)
+      : t(
+          `The ${Number(dailySeries[peakDay].name)}${ordinal(Number(dailySeries[peakDay].name))} was the biggest day — ${money(dailySeries[peakDay].amount)}, against ${money(avgDailyExpense)} on an average day`,
+          `Ngày ${Number(dailySeries[peakDay].name)} chi nhiều nhất — ${money(dailySeries[peakDay].amount)}, trong khi trung bình ${money(avgDailyExpense)} một ngày`
+        );
+
+  const peakCount = argmax(dailySeries.map((d) => d.count));
+  const txCount = dailySeries.reduce((s, d) => s + d.count, 0);
+  const activeDays = dailySeries.filter((d) => d.count > 0).length;
+  const countHeadline =
+    peakCount < 0
+      ? t(`No transactions in ${mm} yet`, `${mm} chưa có giao dịch nào`)
+      : t(
+          `${txCount} transactions over ${activeDays} days — the busiest was the ${Number(dailySeries[peakCount].name)}${ordinal(Number(dailySeries[peakCount].name))} with ${dailySeries[peakCount].count}`,
+          `${txCount} giao dịch trong ${activeDays} ngày — đông nhất là ngày ${Number(dailySeries[peakCount].name)} với ${dailySeries[peakCount].count} khoản`
+        );
+
+  const peakDom = argmax(dayOfMonth.map((d) => d.amount));
+  const domSum = dayOfMonth.reduce((s, d) => s + Math.max(0, d.amount), 0);
+  const domHeadline =
+    peakDom < 0
+      ? t("No spending in the last 12 months", "12 tháng qua chưa có khoản chi nào")
+      : t(
+          `The ${Number(dayOfMonth[peakDom].name)}${ordinal(Number(dayOfMonth[peakDom].name))} of the month costs the most — ${Math.round((dayOfMonth[peakDom].amount / Math.max(1, domSum)) * 100)}% of a year's spending lands on it`,
+          `Ngày ${Number(dayOfMonth[peakDom].name)} hằng tháng tốn nhất — ${Math.round((dayOfMonth[peakDom].amount / Math.max(1, domSum)) * 100)}% chi tiêu cả năm rơi vào ngày này`
+        );
+
+  // --- 12 tháng theo nhóm ----------------------------------------------------
+  const curMonthIdx = monthlyBreakdown.length - 1;
+  const groupTotals = monthlyCategoryKeys.map((k) =>
+    monthlyBreakdown.reduce((s, row) => s + (Number(row[k]) || 0), 0)
+  );
+  const allGroups = groupTotals.reduce((s, v) => s + v, 0);
+  const leadKey = monthlyCategoryKeys.find((k) => k !== OTHER_KEY);
+  const leadShare =
+    leadKey && allGroups > 0 ? Math.round((groupTotals[monthlyCategoryKeys.indexOf(leadKey)] / allGroups) * 100) : 0;
+  const monthlyHeadline = leadKey
+    ? t(
+        `${groupName(leadKey)} is the biggest slice of the last 12 months — ${leadShare}% of spending`,
+        `${groupName(leadKey)} là phần lớn nhất 12 tháng qua — ${leadShare}% tổng chi`
+      )
+    : t("No expenses in the last 12 months", "12 tháng qua chưa có khoản chi nào");
+  const curRow = monthlyBreakdown[curMonthIdx];
+  const curMonthTotal = curRow ? Number(curRow.total) || 0 : 0;
+  // Khúc trên cùng CÓ GIÁ TRỊ của cột tháng đang xem — nhãn tổng gắn vào đó.
+  const topKeyAtCur = curRow
+    ? [...monthlyCategoryKeys].reverse().find((k) => (Number(curRow[k]) || 0) > 0)
+    : undefined;
+  const lastKey = monthlyCategoryKeys[monthlyCategoryKeys.length - 1];
+
+  // --- Theo năm ----------------------------------------------------------------
+  const lastYearIdx = yearlySeries.length - 1;
+  const ly = yearlySeries[lastYearIdx];
+  const prevY = yearlySeries[lastYearIdx - 1];
+  const running = ly && ly.name === String(new Date().getFullYear());
+  const yearlyHeadline = !ly
+    ? t("No spending recorded yet", "Chưa ghi khoản chi nào")
+    : prevY && prevY.amount > 0
+      ? running
+        ? t(
+            `${ly.name} so far: ${money(ly.amount)} — ${Math.round((ly.amount / prevY.amount) * 100)}% of all of ${prevY.name}`,
+            `${ly.name} tới nay: ${money(ly.amount)} — bằng ${Math.round((ly.amount / prevY.amount) * 100)}% cả năm ${prevY.name}`
+          )
+        : t(
+            `${ly.name} spending: ${money(ly.amount)}, ${signedPct(pctChange(ly.amount, prevY.amount))} on ${prevY.name}`,
+            `Năm ${ly.name} chi ${money(ly.amount)}, ${signedPct(pctChange(ly.amount, prevY.amount))} so ${prevY.name}`
+          )
+      : t(`${ly.name}: ${money(ly.amount)} spent`, `Năm ${ly.name} chi ${money(ly.amount)}`);
+
+  // --- Nơi chi -------------------------------------------------------------------
+  const merchantTop = topMerchants[0];
+  const merchantHeadline = merchantTop
+    ? totals.month > 0
+      ? t(
+          `${merchantTop.name} is where the most went in ${mm} — ${Math.round((merchantTop.amount / totals.month) * 100)}% of spending`,
+          `${merchantTop.name} là nơi chi nhiều nhất ${mm} — ${Math.round((merchantTop.amount / totals.month) * 100)}% tổng chi`
+        )
+      : t(`${merchantTop.name} is where the most went in ${mm}`, `${merchantTop.name} là nơi chi nhiều nhất ${mm}`)
+    : t("Top merchants", "Nơi chi nhiều nhất");
+  const merchantRows: RankRow[] = topMerchants.map((m, i) => ({
+    key: m.name,
+    name: m.name,
+    amount: m.amount,
+    color: i === 0 ? VIZ.accent : VIZ.muted,
+    strong: i === 0,
+  }));
+
+  function ordinal(n: number) {
+    if (vi) return "";
+    const s = n % 100;
+    if (s >= 11 && s <= 13) return "th";
+    return ["th", "st", "nd", "rd"][n % 10] ?? "th";
+  }
+  function signedPct(p: number | null) {
+    if (p === null) return t("new", "mới");
+    return `${p > 0 ? "+" : ""}${p}%`;
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -140,7 +386,7 @@ export default function ExpenseTab() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             aria-label={t("Add Expense", "Thêm chi tiêu")}
             title={t("Add Expense", "Thêm chi tiêu")}
@@ -148,7 +394,7 @@ export default function ExpenseTab() {
           >
             <ArrowUpRight size={16} /> <span className="hidden md:inline">{t("Add Expense", "Thêm chi tiêu")}</span>
           </button>
-          <button 
+          <button
             onClick={() => setIsScanModalOpen(true)}
             aria-label={t("Scan Invoice", "Quét hóa đơn")}
             title={t("Scan Invoice", "Quét hóa đơn")}
@@ -160,22 +406,22 @@ export default function ExpenseTab() {
         </div>
       </div>
 
-      <TransactionModal 
-        isOpen={isModalOpen} 
+      <TransactionModal
+        isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           setScannedData(null);
-        }} 
-        onSuccess={() => setRefreshKey(k => k + 1)} 
+        }}
+        onSuccess={() => setRefreshKey(k => k + 1)}
         initialData={scannedData}
       />
-      <ScanInvoiceModal 
-        isOpen={isScanModalOpen} 
-        onClose={() => setIsScanModalOpen(false)} 
+      <ScanInvoiceModal
+        isOpen={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
         onSuccess={() => {
           setIsScanModalOpen(false);
           setRefreshKey(k => k + 1);
-        }} 
+        }}
       />
       <IncompleteDataModal
         isOpen={isIncompleteOpen}
@@ -191,133 +437,101 @@ export default function ExpenseTab() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[var(--color-warning-tint)] text-[var(--color-warning)] flex items-center justify-center flex-none">
-                    <CreditCard size={20} />
-                  </div>
-                  <div className="relative group">
-                    <select 
-                      value={timeRange} 
-                      onChange={(e) => setTimeRange(e.target.value as any)}
-                      className="appearance-none bg-transparent text-base md:text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text)] uppercase tracking-wider focus:outline-none cursor-pointer pr-4"
+          {/* Bốn con số: một ô chính (theo khoảng đang chọn), ba ô bối cảnh. */}
+          <section className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-4 min-w-0">
+            <header>
+              <h4 className="c-h5 text-[var(--color-text)] text-balance">{paceHeadline}</h4>
+              <p className="text-xs text-[var(--color-text-faint)] mt-1">
+                {isThisMonth
+                  ? t(
+                      "forecast = average day so far × days in the month",
+                      "dự báo = trung bình một ngày tới nay × số ngày trong tháng"
+                    )
+                  : t(`spending in ${mm}/${year}`, `chi tiêu ${mm}/${year}`)}
+              </p>
+            </header>
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+              <StatTile
+                emphasis
+                label={
+                  <span className="relative inline-flex items-center">
+                    <select
+                      value={timeRange}
+                      onChange={(e) => setTimeRange(e.target.value as "day" | "month" | "year")}
+                      aria-label={t("Range", "Khoảng thời gian")}
+                      className="appearance-none bg-transparent text-base md:text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] focus:outline-none cursor-pointer pr-4"
                     >
                       <option value="day">{t("Daily Expense", "Chi tiêu ngày")}</option>
                       <option value="month">{t("Monthly Expense", "Chi tiêu tháng")}</option>
                       <option value="year">{t("Yearly Expense", "Chi tiêu năm")}</option>
                     </select>
-                    <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none group-hover:text-[var(--color-text)]" />
-                  </div>
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-[var(--color-warning)] truncate">{formatVND(currentTotal)}</div>
+                    <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
+                  </span>
+                }
+                value={formatVND(currentTotal)}
+              />
+              <StatTile label={t("Avg per day", "Trung bình/ngày")} value={formatVND(avgDailyExpense)} />
+              <StatTile label={t("End of month forecast", "Dự báo cuối tháng")} value={formatVND(eomForecast)} />
+              <StatTile label={t("Categories used", "Số nhóm đã chi")} value={categoriesCount} />
             </div>
-
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-[var(--color-success-tint)] text-[var(--color-success)] flex items-center justify-center">
-                  <Calendar size={20} />
-                </div>
-                <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Avg Daily Expense", "Chi tiêu TB/ngày")}</div>
-              </div>
-              <div className="text-2xl font-bold text-[var(--color-text)]">{formatVND(avgDailyExpense)}</div>
-            </div>
-
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-[var(--color-warning-tint)] text-[var(--color-warning)] flex items-center justify-center">
-                  <LineChartIcon size={20} />
-                </div>
-                <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("End of Month Forecast", "Dự báo cuối tháng")}</div>
-              </div>
-              <div className="text-2xl font-bold text-[var(--color-text)]">{formatVND(eomForecast)}</div>
-            </div>
-
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center">
-                  <Tag size={20} />
-                </div>
-                <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Categories", "Số danh mục")}</div>
-              </div>
-              <div className="text-2xl font-bold text-[var(--color-text)]">{categoriesCount}</div>
-            </div>
-          </div>
+          </section>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col">
-              <h3 className="c-h5 text-[var(--color-text)] mb-2">{t("Expense by Category", "Chi tiêu theo nhóm")}</h3>
-              <p className="text-xs text-[var(--color-text-faint)] mb-6">({getRangeLabel()})</p>
-              
-              {/* `flex-1` trong cột flex cao tự động đặt flex-basis: 0 và thắng
-                  `h-64`, nên trên mobile ô này co về 0 và thẻ trống trơn —
-                  desktop không lộ vì lưới kéo giãn thẻ theo cột cao nhất.
-                  Giữ chiều cao cố định ở mobile, chỉ cho giãn từ 768px. */}
-              <div className="relative w-full h-64 md:h-auto md:flex-1 md:min-h-64">
-                {currentCategoryBreakdown.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-32 h-32 rounded-full border-[12px] border-[var(--color-surface-2)] flex items-center justify-center">
-                      <span className="text-4xl font-bold text-[var(--color-surface-2)]">0</span>
-                    </div>
-                  </div>
-                )}
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={currentCategoryBreakdown.length > 0 ? currentCategoryBreakdown : [{ name: "Empty", amount: 1 }]}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="amount"
-                      nameKey="name"
-                      stroke="none"
-                      fill={currentCategoryBreakdown.length > 0 ? undefined : "transparent"}
-                    >
-                      {currentCategoryBreakdown.length > 0 && currentCategoryBreakdown.map((entry, index) => (
-                        // Cùng token màu mà globals.css dùng cho lát bánh
-                        // (.recharts-pie-sector:nth-of-type). Phải nói ra ở đây
-                        // nữa, nếu không ô màu trong chú giải xám hết và không
-                        // khớp với lát nào.
-                        <Cell key={`cell-${index}`} fill={`var(--chart-${(index % 6) + 1})`} />
-                      ))}
-                    </Pie>
-                    {currentCategoryBreakdown.length > 0 && (
-                      <Tooltip 
-                        formatter={(value) => formatVND(Number(value))}
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+            {/* Theo nhóm: cột ngang xếp hạng thay cho bánh donut — so độ dài
+                thanh dễ hơn so góc lát bánh, và tên dài không phải chen vào
+                chú giải dưới đáy. */}
+            <ChartCard
+              title={categoryHeadline}
+              subtitle={t(`Spending by category · ${rangeEn}`, `Chi theo nhóm · ${rangeVi}`)}
+            >
+              {categoryRows.length === 0 ? (
+                <p className="text-sm text-[var(--color-text-faint)]">
+                  {t("No spending in this range yet.", "Khoảng này chưa có khoản chi nào.")}
+                </p>
+              ) : (
+                <RankList rows={categoryRows} scale={categoryScale} />
+              )}
+            </ChartCard>
+
+            {/* Từng ngày: cột xám, ngày chi nhiều nhất màu nhấn + ghi số;
+                đường trung bình ghi nhãn tại chỗ. Không trục Y, không lưới. */}
+            <ChartCard
+              className="md:col-span-2"
+              title={dailyHeadline}
+              subtitle={t(`Spending per day, ${mm}/${year} · dashed line = daily average`, `Chi mỗi ngày, ${mm}/${year} · nét đứt = trung bình một ngày`)}
+            >
+              {dailySeries.length === 0 ? (
+                <p className="text-sm text-[var(--color-text-faint)]">
+                  {t("No days to show yet.", "Chưa có ngày nào để hiện.")}
+                </p>
+              ) : (
+                <div className="h-56 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dailySeries} margin={{ top: 18, right: 4, left: 4, bottom: 0 }}>
+                      <XAxis dataKey="name" {...xAxis} interval={0} tickFormatter={dayTick} />
+                      <Tooltip
+                        {...TOOLTIP}
+                        formatter={(v) => [formatVND(Number(v) || 0), t("Spent", "Đã chi")]}
+                        labelFormatter={(d) => t(`Day ${Number(d)}`, `Ngày ${Number(d)}`)}
                       />
-                    )}
-                    {currentCategoryBreakdown.length > 0 && (
-                      <Legend 
-                        layout="horizontal" 
-                        verticalAlign="bottom" 
-                        align="center"
-                        wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }}
-                      />
-                    )}
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            
-            <div className="md:col-span-2 bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-              <h3 className="c-h5 text-[var(--color-text)] mb-6">{t("Daily Expense Trend", "Xu hướng chi theo ngày")}</h3>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsLineChart data={dailySeries}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={50} />
-                    <Tooltip formatter={(v) => formatVND(Number(v) || 0)} />
-                    <Line type="monotone" dataKey="amount" stroke="var(--chart-1)" strokeWidth={3} dot={{ r: 3, fill: "var(--chart-1)" }} activeDot={{ r: 6 }} name={t("Expense", "Chi tiêu")} />
-                  </RechartsLineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+                      {avgDailyExpense > 0 && (
+                        <ReferenceLine
+                          y={avgDailyExpense}
+                          stroke={VIZ.muted}
+                          strokeDasharray="4 3"
+                          label={{ value: `${t("avg", "TB")} ${money(avgDailyExpense)}`, position: "insideTopLeft", fontSize: 10, fill: "var(--color-text-faint)" }}
+                        />
+                      )}
+                      <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={labelAt(peakDay, money)}>
+                        {dailySeries.map((d, i) => (
+                          <Cell key={d.name} fill={i === peakDay ? VIZ.accent : VIZ.muted} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </ChartCard>
           </div>
 
           {/* Bảng so sánh kỳ xuống dưới hai biểu đồ: hai biểu đồ là thứ nhìn
@@ -337,7 +551,7 @@ export default function ExpenseTab() {
           {/* Chi tiết từng ngày tách thành mục riêng. Trước đây nó nằm nhét
               dưới biểu đồ xu hướng, nên một thẻ vừa là biểu đồ vừa là bảng tra
               cứu — hai việc khác nhau trong cùng một khung. */}
-          <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
+          <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
             <h3 className="c-h5 text-[var(--color-text)]">
               {t("Day by day", "Chi tiết theo ngày")}
             </h3>
@@ -396,69 +610,67 @@ export default function ExpenseTab() {
           </div>
 
           {/* Ba lát cắt về NHỊP: theo ngày, theo ngày trong tháng, theo năm. */}
-          <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-            <h3 className="c-h5 text-[var(--color-text)]">
-              {t("How many transactions a day", "Mỗi ngày bao nhiêu giao dịch")}
-            </h3>
-            <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
-              {t(
-                "spending alone cannot tell one big purchase from twenty small ones",
-                "chỉ nhìn số tiền thì không phân biệt được một khoản lớn với hai mươi khoản nhỏ"
-              )}
-            </p>
-            <div className="h-56 w-full">
+          <ChartCard
+            title={countHeadline}
+            subtitle={t(
+              `Transactions per day, ${mm}/${year} · spending alone cannot tell one big purchase from twenty small ones`,
+              `Số giao dịch mỗi ngày, ${mm}/${year} · chỉ nhìn số tiền thì không phân biệt được một khoản lớn với hai mươi khoản nhỏ`
+            )}
+          >
+            <div className="h-48 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailySeries}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} width={32} allowDecimals={false} />
+                <BarChart data={dailySeries} margin={{ top: 18, right: 4, left: 4, bottom: 0 }}>
+                  <XAxis dataKey="name" {...xAxis} interval={0} tickFormatter={dayTick} />
                   <Tooltip
+                    {...TOOLTIP}
                     formatter={(v, n, item) => [
                       `${v} ${t("transactions", "giao dịch")} · ${formatVND(
                         Number((item?.payload as { amount?: number })?.amount) || 0
                       )}`,
                       t("Count", "Số giao dịch"),
                     ]}
+                    labelFormatter={(d) => t(`Day ${Number(d)}`, `Ngày ${Number(d)}`)}
                   />
-                  <Bar dataKey="count" name={t("Count", "Số giao dịch")} maxBarSize={22} />
+                  <Bar dataKey="count" {...BAR} fill={VIZ.muted} label={labelAt(peakCount, (v) => String(v))}>
+                    {dailySeries.map((d, i) => (
+                      <Cell key={d.name} fill={i === peakCount ? VIZ.accent : VIZ.muted} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </ChartCard>
 
-          <div className="grid grid-cols-1 gap-6">
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-              <h3 className="c-h5 text-[var(--color-text)]">
-                {t("Which day of the month", "Ngày nào trong tháng hay tốn")}
-              </h3>
-              <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
-                {t(
-                  "12 months stacked on top of each other — fixed-date bills show up as spikes",
-                  "xếp chồng 12 tháng lên nhau — khoản rơi vào ngày cố định sẽ nhô lên thành cột"
-                )}
-              </p>
-              <div className="h-56 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dayOfMonth}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "var(--color-text-faint)" }} interval={2} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={48} />
-                    <Tooltip
-                      formatter={(v, n, item) => [
-                        `${formatVND(Number(v) || 0)} · ${
-                          (item?.payload as { count?: number })?.count || 0
-                        } ${t("transactions", "giao dịch")}`,
-                        t("Spending", "Số tiền"),
-                      ]}
-                      labelFormatter={(d) => t(`Day ${d}`, `Ngày ${d}`)}
-                    />
-                    <Bar dataKey="amount" name={t("Spending", "Số tiền")} maxBarSize={18} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+          <ChartCard
+            title={domHeadline}
+            subtitle={t(
+              "Spending by day of the month, last 12 months stacked — fixed-date bills show up as spikes",
+              "Chi theo ngày trong tháng, cộng dồn 12 tháng — khoản rơi vào ngày cố định sẽ nhô lên thành cột"
+            )}
+          >
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dayOfMonth} margin={{ top: 18, right: 4, left: 4, bottom: 0 }}>
+                  <XAxis dataKey="name" {...xAxis} interval={0} tickFormatter={dayTick} />
+                  <Tooltip
+                    {...TOOLTIP}
+                    formatter={(v, n, item) => [
+                      `${formatVND(Number(v) || 0)} · ${
+                        (item?.payload as { count?: number })?.count || 0
+                      } ${t("transactions", "giao dịch")}`,
+                      t("Spending", "Số tiền"),
+                    ]}
+                    labelFormatter={(d) => t(`Day ${Number(d)}`, `Ngày ${Number(d)}`)}
+                  />
+                  <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={labelAt(peakDom, money)}>
+                    {dayOfMonth.map((d, i) => (
+                      <Cell key={d.name} fill={i === peakDom ? VIZ.accent : VIZ.muted} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-
-          </div>
+          </ChartCard>
 
           <div className="flex items-end gap-3 mt-10 -mb-2">
             <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
@@ -476,65 +688,52 @@ export default function ExpenseTab() {
             <span className="flex-1 border-b border-[var(--color-border)] mb-3" />
           </div>
 
-          <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-            <h3 className="c-h5 text-[var(--color-text)]">{t("Monthly Expense Trend (12 Months)", "Xu hướng chi theo tháng (12 tháng)")}</h3>
-            <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-6">
-              {t(
-                "columns: what each group took · line: the month total",
-                "cột: từng nhóm chiếm bao nhiêu · đường: tổng chi tháng đó"
-              )}
-            </p>
+          {/* Cột chồng 12 tháng: các nhóm CHÍNH LÀ đối tượng so sánh, nên bốn
+              nhóm lớn nhất (API xếp theo tổng cả 12 tháng — thứ tự cố định)
+              mỗi nhóm một màu phân loại, phần đuôi gộp "Khác". Bỏ đường tổng
+              nét đứt: tổng đã là đỉnh cột, chỉ ghi số ở tháng đang xem. */}
+          <ChartCard
+            title={monthlyHeadline}
+            subtitle={t(
+              `Spending per month by category, 12 months to ${mm}/${year} · number = ${mm} total`,
+              `Chi mỗi tháng theo nhóm, 12 tháng tới ${mm}/${year} · số trên cột = tổng ${mm}`
+            )}
+            keys={monthlyCategoryKeys.map((k, i) => ({
+              label: groupName(k),
+              color: k === OTHER_KEY ? VIZ.other : catColor(i),
+              shape: "bar" as const,
+            }))}
+          >
             {monthlyCategoryKeys.length === 0 ? (
               <p className="text-sm text-[var(--color-text-muted)]">
                 {t("No expenses in the last 12 months.", "12 tháng qua chưa có khoản chi nào.")}
               </p>
             ) : (
-            <div className="h-80 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={monthlyBreakdown} className="c-chart-multi">
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                  <XAxis dataKey="name" {...monthAxis(monthlyBreakdown.map((d) => String(d.name)))} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: 'var(--color-text-faint)'}} tickFormatter={(value) => compactMoney(Number(value), language === "vi")} width={50} />
-                  <Tooltip content={<StackedMonthTooltip otherKey={OTHER_KEY} otherLabel={t("Other", "Khác")} />} />
-                  <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
-                  {/* Cột chồng: chiều cao mỗi khúc là phần nhóm đó chiếm trong
-                      tháng. Viền màu nền 1px để hai khúc liền màu vẫn tách ra. */}
-                  {monthlyCategoryKeys.map((key, i) => (
-                    <Bar
-                      key={key}
-                      dataKey={key}
-                      stackId="cat"
-                      name={key === OTHER_KEY ? t("Other", "Khác") : key}
-                      // `fill` ở đây chỉ để tô ô chú giải; màu khúc cột do
-                      // lớp .c-series-* trong globals.css quyết định, vì luật
-                      // chung của hệ ép mọi cột về --chart-1.
-                      className={key === OTHER_KEY ? "c-series-other" : `c-series-${i + 1}`}
-                      fill={key === OTHER_KEY ? "var(--color-border-strong)" : `var(--chart-${i + 1})`}
-                      stroke="var(--color-surface)"
-                      strokeWidth={1}
-                      maxBarSize={44}
-                    />
-                  ))}
-                  {/* Đường tổng đi trên đỉnh cột — cùng một trục, không thêm
-                      trục thứ hai: hai thang số trên một khung là cách nhanh
-                      nhất để đọc sai biểu đồ. */}
-                  <Line
-                    type="monotone"
-                    dataKey="total"
-                    name={t("Month total", "Tổng tháng")}
-                    stroke="var(--color-text)"
-                    strokeWidth={2}
-                    // Nét đứt: --chart-2 cũng là màu mực, nên đường liền sẽ
-                    // lẫn với khúc cột của nhóm thứ hai.
-                    strokeDasharray="5 3"
-                    dot={{ r: 2.5, fill: "var(--color-text)" }}
-                    activeDot={{ r: 5 }}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={monthlyBreakdown} margin={{ top: 18, right: 4, left: 0, bottom: 0 }}>
+                    <CartesianGrid {...GRID} />
+                    <XAxis dataKey="name" {...monthAxis(monthlyBreakdown.map((d) => String(d.name)))} />
+                    <YAxis {...yAxis(money)} />
+                    <Tooltip {...TOOLTIP} content={<StackedMonthTooltip otherKey={OTHER_KEY} otherLabel={t("Other", "Khác")} />} />
+                    {monthlyCategoryKeys.map((key, i) => (
+                      <Bar
+                        key={key}
+                        dataKey={key}
+                        stackId="cat"
+                        name={groupName(key)}
+                        fill={key === OTHER_KEY ? VIZ.other : catColor(i)}
+                        {...STACK_GAP}
+                        maxBarSize={BAR.maxBarSize}
+                        radius={key === lastKey ? BAR.radius : 0}
+                        label={key === topKeyAtCur ? stackTotalAt(curMonthIdx, curMonthTotal, money) : undefined}
+                      />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             )}
-          </div>
+          </ChartCard>
 
           <div className="flex items-end gap-3 mt-10 -mb-2">
             <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
@@ -543,47 +742,49 @@ export default function ExpenseTab() {
             <span className="flex-1 border-b border-[var(--color-border)] mb-3" />
           </div>
 
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-              <h3 className="c-h5 text-[var(--color-text)]">
-                {t("Year by year", "Tổng chi theo năm")}
-              </h3>
-              <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
-                {t(
-                  "every year on record · the current year is still running",
-                  "mọi năm đã có dữ liệu · năm nay vẫn đang chạy nên chưa trọn"
-                )}
+          <ChartCard
+            title={yearlyHeadline}
+            subtitle={t(
+              "Total spending per year, every year on record · the current year is still running",
+              "Tổng chi mỗi năm, mọi năm đã có dữ liệu · năm nay vẫn đang chạy nên chưa trọn"
+            )}
+          >
+            {yearlySeries.length === 0 ? (
+              <p className="text-sm text-[var(--color-text-muted)]">
+                {t("No spending recorded yet.", "Chưa ghi khoản chi nào.")}
               </p>
-              {yearlySeries.length === 0 ? (
-                <p className="text-sm text-[var(--color-text-muted)]">
-                  {t("No spending recorded yet.", "Chưa ghi khoản chi nào.")}
-                </p>
-              ) : (
-                <div className="h-56 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={yearlySeries}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-text-faint)" }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--color-text-faint)" }} tickFormatter={(v) => compactMoney(Number(v), language === "vi")} width={48} />
-                      <Tooltip
-                        formatter={(v, n, item) => [
-                          `${formatVND(Number(v) || 0)} · ${
-                            (item?.payload as { count?: number })?.count || 0
-                          } ${t("transactions", "giao dịch")}`,
-                          t("Spending", "Số tiền"),
-                        ]}
-                      />
-                      <Bar dataKey="amount" name={t("Spending", "Số tiền")} maxBarSize={48} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
+            ) : (
+              <div className="h-48 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={yearlySeries} margin={{ top: 18, right: 4, left: 4, bottom: 0 }}>
+                    <XAxis dataKey="name" {...xAxis} />
+                    <Tooltip
+                      {...TOOLTIP}
+                      formatter={(v, n, item) => [
+                        `${formatVND(Number(v) || 0)} · ${
+                          (item?.payload as { count?: number })?.count || 0
+                        } ${t("transactions", "giao dịch")}`,
+                        t("Spending", "Số tiền"),
+                      ]}
+                    />
+                    <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={labelAt(lastYearIdx, money)}>
+                      {yearlySeries.map((y, i) => (
+                        <Cell key={y.name} fill={i === lastYearIdx ? VIZ.accent : VIZ.muted} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </ChartCard>
 
           <ExpenseGroupAnalysis refreshKey={refreshKey} />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-              <h3 className="c-h5 text-[var(--color-text)] mb-4">{t("Top Merchants", "Top nhà cung cấp")}</h3>
+            <ChartCard
+              title={merchantHeadline}
+              subtitle={t(`Top 5 merchants, ${mm}/${year}`, `5 nơi chi nhiều nhất, ${mm}/${year}`)}
+            >
               {topMerchants.length === 0 ? (
                 <p className="text-[var(--color-text-muted)] text-sm">
                   {t(
@@ -592,26 +793,11 @@ export default function ExpenseTab() {
                   )}
                 </p>
               ) : (
-                <div className="space-y-4 mt-4">
-                  {topMerchants.map(m => (
-                    <div key={m.name}>
-                      <div className="flex justify-between items-baseline mb-1">
-                        <span className="min-w-0 text-xs font-bold text-[var(--color-text-muted)] break-words">{m.name}</span>
-                        <span className="text-xs font-bold text-[var(--color-text)] flex-none ml-3">{formatVND(m.amount)}</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-[var(--color-info)] transition-all"
-                          style={{ width: `${Math.max(2, (m.amount / maxMerchant) * 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <RankList rows={merchantRows} scale={Math.max(1, merchantTop?.amount ?? 1)} />
               )}
-            </div>
-            
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm md:col-span-2">
+            </ChartCard>
+
+            <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] md:col-span-2">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <h3 className="c-h5 text-[var(--color-text)]">{t("Recent Transactions", "Giao dịch chi tiêu gần đây")}</h3>
                 <button
@@ -625,7 +811,7 @@ export default function ExpenseTab() {
               {recentTransactions.length === 0 ? (
                 <p className="text-[var(--color-text-muted)] text-sm">{t("No expenses this month.", "Chưa có giao dịch chi tiêu tháng này.")}</p>
               ) : (
-                <div className="space-y-3 mt-4">
+                <div className="flex flex-col gap-3 mt-4">
                   {/* Biến vòng lặp đặt tên `tx`, không phải `t` — `t` là hàm dịch,
                       đặt trùng thì không gọi được t() bên trong dòng nào cả. */}
                   {recentTransactions.map(tx => {
@@ -643,7 +829,7 @@ export default function ExpenseTab() {
                               {tx.date} · {tx.category}{tx.subGroup ? ` · ${tx.subGroup}` : ""}
                             </div>
                           </div>
-                          <div className="shrink-0 text-sm font-bold text-[var(--color-warning)] tabular-nums">{formatVND(tx.amount)}</div>
+                          <div className="shrink-0 text-sm font-bold text-[var(--color-text)] tabular-nums">{formatVND(tx.amount)}</div>
                         </div>
                         {gaps.length > 0 && (
                           <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-warning)]">

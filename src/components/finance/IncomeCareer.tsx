@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import {
   ComposedChart, BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend,
+  ResponsiveContainer,
 } from "recharts";
 import { Briefcase, AlertCircle } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
+import { VIZ, GRID, yAxis, xAxis, BAR, LINE, STACK_GAP, TOOLTIP, catColor, soft, pctChange } from "@/lib/viz";
+import ChartCard, { Delta, StatTile, type SeriesKeyItem } from "@/components/charts/ChartCard";
 import StackedMonthTooltip from "./StackedMonthTooltip";
 import { careerMonthAxis } from "./MonthAxisTick";
 
@@ -17,6 +19,11 @@ import { careerMonthAxis } from "./MonthAxisTick";
 // Phần còn lại của tab Thu nhập chạy theo tháng báo cáo. Khối này KHÔNG: nó
 // luôn đọc toàn bộ lịch sử, vì câu hỏi "chỗ nào trả khá hơn" không trả lời được
 // bằng một cửa sổ 12 tháng.
+//
+// Biểu đồ theo docs/bieu-do.md. Ở đây các chuỗi CHÍNH LÀ đối tượng so sánh
+// (nơi trả lương), nên mỗi nơi một màu `catColor(colourIndex)` — màu đi theo
+// công ty (API gán theo tổng tiền, cố định), không theo thứ tự hiển thị; quá 4
+// nơi thì phần đuôi là `VIZ.other`. Thưởng là bậc nhạt `soft()` của cùng màu.
 
 interface SubSlice { sub: string; amount: number; share: number }
 
@@ -90,8 +97,37 @@ function monthIndex(key: string, first: string) {
   return y * 12 + (Number(key.slice(5, 7)) - Number(first.slice(5, 7)));
 }
 
+/** Cùng quy tắc với API (`api/finance/income/employers`): "Lương" là khoản đều đặn. */
+const isSalary = (sub: string) => {
+  const s = sub.trim().toLowerCase();
+  return s === "salary" || s === "lương";
+};
+
+/** Nhãn ở đầu mút đường trung bình, thay cho chú giải. */
+function endLabel(index: number, text: (v: number) => string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const render = (props: any) => {
+    if (props.index !== index || props.value === undefined || props.value === null) return null;
+    return (
+      <text
+        x={Number(props.x)}
+        y={Number(props.y) - 10}
+        textAnchor="end"
+        fontSize={11}
+        fontWeight={700}
+        fill="var(--color-text)"
+      >
+        {text(Number(props.value))}
+      </text>
+    );
+  };
+  return render;
+}
+
 export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
   const { t, language } = useLanguage();
+  const vi = language === "vi";
+  const money = (n: number) => compactMoney(n, vi);
   const [data, setData] = useState<CareerData | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -140,23 +176,22 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
 
   const span = months.length;
   const maxAvgSalary = Math.max(...employers.map((e) => e.avgSalaryPerMonth), 1);
-  const colourOf = (i: number) =>
-    i < 4 ? `var(--chart-${i + 1})` : "var(--color-border-strong)";
-  // Bậc nhạt cùng họ, cho khúc thưởng. Phải khớp đúng công thức trong
-  // globals.css (.c-series-N-soft) vì chỗ này chỉ tô ô chú giải, còn khúc cột
-  // thật do CSS tô — hai công thức lệch nhau là chú giải nói dối.
-  const softOf = (i: number) =>
-    i < 4
-      ? `color-mix(in srgb, var(--chart-${i + 1}) 42%, var(--color-surface))`
-      : "var(--color-border-strong)";
+  const otherPayers = t("Other payers", "Nơi khác");
   const labelOf = (key: string, fallback: string) =>
     key === OTHER_KEY ? fallback : key;
-  // Lương/thưởng phải giữ NGUYÊN màu ở mọi chỗ: nếu tô theo thứ tự trong từng
-  // thẻ thì nơi nào thưởng nhiều hơn lương sẽ đảo màu, và người đọc đang so hai
-  // thẻ cạnh nhau lại thấy cùng một màu mang hai nghĩa.
+  const nameOfEmployerKey = (key: string) => labelOf(key, otherPayers);
+
+  // Lương/thưởng phải giữ NGUYÊN màu ở mọi chỗ (biểu đồ theo năm và từng thẻ
+  // công ty): tô theo thứ tự trong từng thẻ thì nơi nào thưởng nhiều hơn lương
+  // sẽ đảo màu. Lương là nền → xám; khoản ngoài lương lớn nhất là thứ câu
+  // chuyện nói tới ("phần không chắc năm sau còn") → màu nhấn; các khoản ngoài
+  // lương khác → bậc nhạt của nhấn; phần đuôi đã gộp → "Khác".
+  const firstExtra = subKeys.find((k) => k !== OTHER_KEY && !isSalary(k));
   const subColour = (sub: string) => {
-    const i = subKeys.indexOf(sub);
-    return colourOf(i >= 0 ? i : subKeys.length);
+    if (isSalary(sub)) return VIZ.muted;
+    if (sub === firstExtra) return VIZ.accent;
+    if (sub !== OTHER_KEY && subKeys.includes(sub)) return soft(VIZ.accent);
+    return VIZ.other;
   };
 
   // Nhãn năm chạy dọc dải thời gian. Chỉ lấy năm có mốc tháng 1 trong khoảng,
@@ -165,141 +200,223 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
     .map((m, i) => ({ m, i }))
     .filter(({ m, i }) => i === 0 || m.endsWith("-01"));
 
+  // Chú giải nơi trả tiền — cùng một bộ cho mọi thẻ, thứ tự như danh sách (mới nhất trước).
+  const employerKeyItems: SeriesKeyItem[] = employerSeries.map((sr) => ({
+    label: nameOfEmployerKey(sr.key),
+    color: catColor(sr.colourIndex),
+    shape: "bar",
+  }));
+
+  // ==========================================================================
+  // Câu kết luận cho từng thẻ.
+  // ==========================================================================
+
+  // Dải thời gian: chặng dài nhất.
+  const longest = [...employers].sort((a, b) => b.tenure - a.tenure)[0];
+  const bandsHeadline =
+    employers.length === 1
+      ? t(`${longest.name}: ${longest.tenure} months so far`, `${longest.name}: ${longest.tenure} tháng`)
+      : t(
+          `${employers.length} employers in ${totals.careerMonths} months — longest at ${longest.name} (${longest.tenure} mo)`,
+          `${employers.length} nơi trong ${totals.careerMonths} tháng — gắn bó lâu nhất ở ${longest.name} (${longest.tenure} tháng)`
+        );
+
+  // Từng tháng: bình quân 12 tháng gần nhất so với 12 tháng trước đó.
+  const lastIdx = timeline.length - 1;
+  const trailNow = Number(timeline[lastIdx]?.trailing12) || 0;
+  const trailBefore = lastIdx >= 12 ? Number(timeline[lastIdx - 12]?.trailing12) || 0 : 0;
+  const trailPct = pctChange(trailNow, trailBefore);
+  const timelineHeadline =
+    trailPct === null
+      ? t(`Last 12 months average ${money(trailNow)} a month`, `12 tháng gần nhất bình quân ${money(trailNow)}/tháng`)
+      : Math.abs(trailPct) < 3
+        ? t(
+            `Last 12 months average ${money(trailNow)} a month, level with the year before`,
+            `12 tháng gần nhất bình quân ${money(trailNow)}/tháng, ngang 12 tháng trước đó`
+          )
+        : trailPct > 0
+          ? t(
+              `Last 12 months average ${money(trailNow)} a month — ${trailPct}% more than the year before`,
+              `12 tháng gần nhất bình quân ${money(trailNow)}/tháng — hơn 12 tháng trước đó ${trailPct}%`
+            )
+          : t(
+              `Last 12 months average ${money(trailNow)} a month — ${Math.abs(trailPct)}% less than the year before`,
+              `12 tháng gần nhất bình quân ${money(trailNow)}/tháng — kém 12 tháng trước đó ${Math.abs(trailPct)}%`
+            );
+  // Khe nền giữa các khúc chỉ khi cột đủ rộng; 80 cột mảnh 3px mà thêm viền
+  // 2px là cột biến mất.
+  const timelineGap = months.length <= 36 ? STACK_GAP : {};
+  const hasBonus = timelineSeries.some((sr) => sr.kind === "bonus" && timeline.some((r) => Number(r[sr.key]) > 0));
+
+  // Theo năm, tách theo nơi: năm thu nhiều nhất, và ai trả phần lớn năm đó.
+  const bestYearRow = [...yearByEmployer].sort((a, b) => (Number(b.total) || 0) - (Number(a.total) || 0))[0];
+  const bestYearTotal = Number(bestYearRow?.total) || 0;
+  const bestYearPayer = bestYearRow
+    ? employerSeries
+        .filter((sr) => sr.key !== OTHER_KEY)
+        .map((sr) => ({ key: sr.key, v: Number(bestYearRow[sr.key]) || 0 }))
+        .sort((a, b) => b.v - a.v)[0]
+    : undefined;
+  const yearHeadline = !bestYearRow
+    ? t("Each year, split by employer", "Mỗi năm, tách theo nơi làm")
+    : bestYearPayer && bestYearTotal > 0 && bestYearPayer.v / bestYearTotal >= 0.5 && years.length > 1
+      ? t(
+          `${bestYearRow.name} was the best year — ${money(bestYearTotal)}, mostly from ${bestYearPayer.key}`,
+          `${bestYearRow.name} là năm thu nhiều nhất — ${money(bestYearTotal)}, phần lớn từ ${bestYearPayer.key}`
+        )
+      : t(
+          `${bestYearRow.name} was the best year — ${money(bestYearTotal)}`,
+          `${bestYearRow.name} là năm thu nhiều nhất — ${money(bestYearTotal)}`
+        );
+
+  // Lương và thưởng: năm gần nhất có bao nhiêu phần nằm ngoài lương.
+  const salaryKey = subKeys.find(isSalary);
+  const latestSubRow = yearBySub[yearBySub.length - 1];
+  const latestTotal = Number(latestSubRow?.total) || 0;
+  const latestExtraShare =
+    salaryKey && latestTotal > 0
+      ? Math.round(((latestTotal - (Number(latestSubRow?.[salaryKey]) || 0)) / latestTotal) * 100)
+      : null;
+  const subHeadline =
+    latestExtraShare === null || !latestSubRow
+      ? t("Salary vs bonus, year by year", "Lương và thưởng, theo từng năm")
+      : latestExtraShare === 0
+        ? t(`${latestSubRow.name} income is all salary so far`, `Năm ${latestSubRow.name} toàn bộ thu nhập là lương`)
+        : t(
+            `${latestExtraShare}% of ${latestSubRow.name} income came on top of salary`,
+            `Năm ${latestSubRow.name}, ${latestExtraShare}% thu nhập nằm ngoài lương`
+          );
+  // Lương nằm sát đáy: phần ổn định là gốc để so các năm với nhau.
+  const subOrder = salaryKey ? [salaryKey, ...subKeys.filter((k) => k !== salaryKey)] : subKeys;
+
+  // Bảng: nơi mang về nhiều tiền nhất tính cả chặng.
+  const topTotal = [...employers].sort((a, b) => b.total - a.total)[0];
+  const tableHeadline =
+    topTotal && totals.allTime > 0
+      ? t(
+          `${topTotal.name} paid the most overall — ${money(topTotal.total)}, ${Math.round((topTotal.total / totals.allTime) * 100)}% of everything`,
+          `${topTotal.name} trả nhiều nhất tính cả chặng — ${money(topTotal.total)}, ${Math.round((topTotal.total / totals.allTime) * 100)}% tổng thu`
+        )
+      : t("Every source, every year", "Mọi nguồn thu qua từng năm");
+
+  // Từng nơi: lương bình quân/tháng cao nhất.
+  const topSalary = [...employers]
+    .filter((e) => e.avgSalaryPerMonth > 0)
+    .sort((a, b) => b.avgSalaryPerMonth - a.avgSalaryPerMonth)[0];
+  const placesHeadline =
+    topSalary && employers.length > 1
+      ? t(
+          `${topSalary.name} pays the highest average salary — ${money(topSalary.avgSalaryPerMonth)} a month`,
+          `${topSalary.name} trả lương trung bình cao nhất — ${money(topSalary.avgSalaryPerMonth)}/tháng`
+        )
+      : t("Place by place", "So sánh từng nơi");
+
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* --- Bốn con số của cả chặng đường --- */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          {
-            label: t("Earned all time", "Tổng thu từ trước tới nay"),
-            value: formatVND(totals.allTime),
-            note: t(
-              `${totals.employerCount} places · ${totals.careerMonths} months`,
-              `${totals.employerCount} nơi · ${totals.careerMonths} tháng`
-            ),
-            strong: true,
-          },
-          {
-            label: t("Avg per paid month", "BQ tháng CÓ lương"),
-            value: formatVND(totals.avgPerPaidMonth),
-            note: t(`${totals.monthsPaid} months paid`, `${totals.monthsPaid} tháng có tiền về`),
-          },
-          {
-            label: t("Avg across the whole run", "BQ cả chặng đường"),
-            value: formatVND(totals.avgPerCareerMonth),
-            note: t("gaps included", "tính cả tháng trống"),
-          },
-          {
-            label: t("Months with nothing", "Tháng không có đồng nào"),
-            value: String(totals.gapMonths),
-            note:
-              totals.careerMonths > 0
-                ? t(
-                    `${Math.round((totals.gapMonths / totals.careerMonths) * 100)}% of the run`,
-                    `${Math.round((totals.gapMonths / totals.careerMonths) * 100)}% quãng đường`
-                  )
-                : "",
-            warn: totals.gapMonths > 0,
-          },
-        ].map((c) => (
-          <div
-            key={c.label}
-            className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)]"
-          >
-            <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-              {c.label}
-            </div>
-            <div
-              className={`text-xl font-bold tabular-nums mt-2 ${
-                c.warn
-                  ? "text-[var(--color-warning)]"
-                  : c.strong
-                    ? "text-[var(--color-success)]"
-                    : "text-[var(--color-text)]"
-              }`}
-            >
-              {c.value}
-            </div>
-            <div className="text-xs text-[var(--color-text-faint)] mt-1">{c.note}</div>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatTile
+          emphasis
+          label={t("Earned all time", "Tổng thu từ trước tới nay")}
+          value={formatVND(totals.allTime)}
+          note={t(
+            `${totals.employerCount} places · ${totals.careerMonths} months`,
+            `${totals.employerCount} nơi · ${totals.careerMonths} tháng`
+          )}
+        />
+        <StatTile
+          label={t("Avg per paid month", "BQ tháng CÓ lương")}
+          value={formatVND(totals.avgPerPaidMonth)}
+          note={t(`${totals.monthsPaid} months paid`, `${totals.monthsPaid} tháng có tiền về`)}
+        />
+        <StatTile
+          label={t("Avg across the whole run", "BQ cả chặng đường")}
+          value={formatVND(totals.avgPerCareerMonth)}
+          note={t("gaps included", "tính cả tháng trống")}
+        />
+        <StatTile
+          label={t("Months with nothing", "Tháng không có đồng nào")}
+          value={String(totals.gapMonths)}
+          note={
+            totals.careerMonths > 0
+              ? t(
+                  `${Math.round((totals.gapMonths / totals.careerMonths) * 100)}% of the run`,
+                  `${Math.round((totals.gapMonths / totals.careerMonths) * 100)}% quãng đường`
+                )
+              : undefined
+          }
+        />
       </div>
 
       {/* --- Dải thời gian: nằm ở đâu, bao lâu, và hở chỗ nào --- */}
-      <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)]">
-        <h4 className="c-h5 text-[var(--color-text)]">
-          {t("Where the money came from, and when", "Đã làm ở đâu, trong bao lâu")}
-        </h4>
-        <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-6">
-          {t(
-            "each band is one employer, drawn over the months it actually paid",
-            "mỗi dải là một nơi, vẽ đúng quãng tháng có tiền về"
-          )}
-        </p>
+      <ChartCard
+        title={bandsHeadline}
+        subtitle={t(
+          "Each band is one employer, drawn over the months it actually paid",
+          "Mỗi dải là một nơi, vẽ đúng quãng tháng có tiền về"
+        )}
+      >
+        <div>
+          <div className="relative flex justify-between text-[10px] tabular-nums text-[var(--color-text-faint)] mb-2">
+            {yearTicks.map(({ m, i }) => (
+              <span key={m} style={{ position: "absolute", left: `${(i / span) * 100}%` }}>
+                {m.slice(0, 4)}
+              </span>
+            ))}
+            <span className="invisible">0000</span>
+          </div>
 
-        <div className="relative flex justify-between text-[10px] tabular-nums text-[var(--color-text-faint)] mb-2">
-          {yearTicks.map(({ m, i }) => (
-            <span key={m} style={{ position: "absolute", left: `${(i / span) * 100}%` }}>
-              {m.slice(0, 4)}
-            </span>
-          ))}
-          <span className="invisible">0000</span>
-        </div>
-
-        <div className="space-y-2.5">
-          {employers.map((e) => {
-            const left = (monthIndex(e.from, firstMonth) / span) * 100;
-            const width = (e.tenure / span) * 100;
-            return (
-              <div key={e.name}>
-                {/* Ở 375px tên công ty và dòng mô tả không đứng cùng hàng được:
-                    "80,5tr · 06/2026 – 09/2026 · 4 tháng" ăn gần hết bề ngang và
-                    "SHINHAN FINANCE" bị cắt còn "S...". Xuống dòng từ dưới 640px. */}
-                <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 sm:gap-3 mb-1">
-                  <span className="flex items-center gap-2 min-w-0">
-                    <span
-                      className="w-2.5 h-2.5 rounded-sm flex-none"
-                      style={{ background: colourOf(e.colourIndex) }}
-                      aria-hidden
-                    />
-                    <span className="text-xs font-bold text-[var(--color-text)] truncate">
-                      {e.name}
-                    </span>
-                    {e.active && (
-                      <span className="text-[10px] font-bold text-[var(--color-accent)] flex-none">
-                        {t("current", "đang nhận")}
+          <div className="flex flex-col gap-3">
+            {employers.map((e) => {
+              const left = (monthIndex(e.from, firstMonth) / span) * 100;
+              const width = (e.tenure / span) * 100;
+              return (
+                <div key={e.name}>
+                  {/* Ở 375px tên công ty và dòng mô tả không đứng cùng hàng được:
+                      "80,5tr · 06/2026 – 09/2026 · 4 tháng" ăn gần hết bề ngang và
+                      "SHINHAN FINANCE" bị cắt còn "S...". Xuống dòng từ dưới 640px. */}
+                  <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 sm:gap-3 mb-1">
+                    <span className="flex items-center gap-2 min-w-0">
+                      <span
+                        className="w-2.5 h-2.5 rounded-[3px] flex-none"
+                        style={{ background: catColor(e.colourIndex) }}
+                        aria-hidden
+                      />
+                      <span className="text-xs font-bold text-[var(--color-text)] truncate">
+                        {e.name}
                       </span>
-                    )}
-                  </span>
-                  <span className="sm:flex-none text-[11px] tabular-nums text-[var(--color-text-faint)]">
-                    <b className="text-[var(--color-text)]">
-                      {compactMoney(e.total, language === "vi")}
-                    </b>{" "}
-                    · {viMonth(e.from)} – {viMonth(e.to)} · {e.tenure} {t("mo", "tháng")}
-                  </span>
+                      {e.active && (
+                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] flex-none">
+                          · {t("current", "đang nhận")}
+                        </span>
+                      )}
+                    </span>
+                    <span className="sm:flex-none text-[11px] tabular-nums text-[var(--color-text-faint)]">
+                      <b className="text-[var(--color-text)]">{money(e.total)}</b>{" "}
+                      · {viMonth(e.from)} – {viMonth(e.to)} · {e.tenure} {t("mo", "tháng")}
+                    </span>
+                  </div>
+                  {/* Số tiền nằm NGOÀI dải: dải hai tháng không đủ chỗ cho chữ,
+                      và chữ trên bốn màu khác nhau không đọc đều được. */}
+                  <div className="relative h-3 rounded-[4px] bg-[var(--color-surface-2)] overflow-hidden">
+                    <div
+                      className="absolute inset-y-0 rounded-[4px]"
+                      style={{
+                        left: `${left}%`,
+                        width: `${Math.max(width, 1.2)}%`,
+                        background: catColor(e.colourIndex),
+                      }}
+                      title={`${e.name}: ${formatVND(e.total)}`}
+                    />
+                  </div>
                 </div>
-                {/* Số tiền nằm NGOÀI dải. Viết vào trong thì bốn bậc màu
-                    --chart-* có bậc sáng bậc tối, chữ đọc được trên bậc này lại
-                    mất hút trên bậc kia; dải hai tháng thì không đủ chỗ cho chữ
-                    và co thành một chấm tròn. */}
-                <div className="relative h-5 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 rounded-full"
-                    style={{
-                      left: `${left}%`,
-                      width: `${Math.max(width, 1.2)}%`,
-                      background: colourOf(e.colourIndex),
-                    }}
-                    title={`${e.name}: ${formatVND(e.total)}`}
-                  />
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {gaps.length > 0 && (
-          <p className="mt-5 text-sm flex items-start gap-2">
+          <p className="text-sm flex items-start gap-2">
             <AlertCircle size={16} className="shrink-0 mt-0.5 text-[var(--color-warning)]" />
             <span className="text-[var(--color-text)]">
               {t(
@@ -318,44 +435,39 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
             </span>
           </p>
         )}
-      </div>
+      </ChartCard>
 
       {/* --- Từng tháng suốt sự nghiệp --- */}
-      <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)]">
-        <h4 className="c-h5 text-[var(--color-text)]">
-          {t("Every month since the first payslip", "Từng tháng kể từ khoản lương đầu tiên")}
-        </h4>
-        <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-6">
-          {t(
-            "columns: who paid — solid shade is salary, pale is bonus · dashed line: average per month over the last 12, gaps included",
-            "cột: nơi trả tiền — bậc đậm là lương, bậc nhạt là thưởng · đường nét đứt: trung bình mỗi tháng của 12 tháng gần nhất, tính cả tháng trống"
-          )}
-        </p>
+      <ChartCard
+        title={timelineHeadline}
+        subtitle={t(
+          "Income per month since the first payslip, by who paid · dashed line = average of the last 12 months, gaps included",
+          "Thu nhập mỗi tháng kể từ khoản lương đầu tiên, theo nơi trả · nét đứt = bình quân 12 tháng gần nhất, tính cả tháng trống"
+        )}
+        keys={[
+          ...employerKeyItems,
+          ...(hasBonus
+            ? [{ label: t("pale = bonus", "bậc nhạt = thưởng"), color: soft(VIZ.muted), shape: "bar" as const }]
+            : []),
+          { label: t("12-month average", "Bình quân 12 tháng"), color: VIZ.ink, shape: "dash" as const },
+        ]}
+      >
         <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={timeline} className="c-chart-multi">
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+            <ComposedChart data={timeline} margin={{ top: 22, right: 4, left: 0, bottom: 0 }}>
+              <CartesianGrid {...GRID} />
               <XAxis dataKey="name" {...careerMonthAxis(months)} />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fill: "var(--color-text-faint)" }}
-                tickFormatter={(v) => compactMoney(Number(v), language === "vi")}
-                width={50}
-              />
+              <YAxis {...yAxis(money)} />
               <Tooltip
+                {...TOOLTIP}
                 content={
                   <StackedMonthTooltip
                     otherKey={OTHER_KEY}
-                    otherLabel={t("Other payers", "Nơi khác")}
+                    otherLabel={otherPayers}
                     skipKeys={["total", "trailing12"]}
                   />
                 }
               />
-              <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
-              {/* Chỉ khúc lương vào chú giải; khúc thưởng dùng chung tên công
-                  ty nên thêm vào là chú giải dài gấp đôi mà không nói thêm gì —
-                  phần đậm/nhạt đã giải thích ở dòng mô tả trên. */}
               {timelineSeries.map((sr) => (
                 <Bar
                   key={sr.key}
@@ -363,121 +475,101 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                   stackId="emp"
                   name={
                     sr.key === OTHER_KEY
-                      ? t("Other payers", "Nơi khác")
+                      ? otherPayers
                       : `${sr.employer} · ${
                           sr.kind === "salary" ? t("Salary", "Lương") : t("Bonus", "Thưởng")
                         }`
                   }
-                  legendType={sr.kind === "bonus" ? "none" : "rect"}
-                  className={
+                  fill={
                     sr.key === OTHER_KEY
-                      ? "c-series-other"
+                      ? VIZ.other
                       : sr.kind === "bonus"
-                        ? `c-series-${sr.colourIndex + 1}-soft`
-                        : `c-series-${sr.colourIndex + 1}`
+                        ? soft(catColor(sr.colourIndex))
+                        : catColor(sr.colourIndex)
                   }
-                  fill={sr.kind === "bonus" ? softOf(sr.colourIndex) : colourOf(sr.colourIndex)}
-                  maxBarSize={18}
+                  {...timelineGap}
+                  maxBarSize={BAR.maxBarSize}
                 />
               ))}
               <Line
+                {...LINE}
                 type="monotone"
                 dataKey="trailing12"
-                name={t("12-month average", "Trung bình 12 tháng")}
-                stroke="var(--color-text)"
-                strokeWidth={2}
-                strokeDasharray="5 3"
-                dot={false}
+                name={t("12-month average", "Bình quân 12 tháng")}
+                stroke={VIZ.ink}
+                strokeWidth={1.5}
+                strokeDasharray="4 3"
                 connectNulls={false}
+                isAnimationActive={false}
+                label={endLabel(lastIdx, (v) => `${t("avg", "BQ")} ${money(v)}`)}
               />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </ChartCard>
 
       {/* --- Hai biểu đồ theo năm --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)]">
-          <h4 className="c-h5 text-[var(--color-text)]">
-            {t("Each year, split by employer", "Mỗi năm, tách theo nơi làm")}
-          </h4>
-          <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-6">
-            {t(
-              "a year split in two means you changed jobs mid-year",
-              "năm nào có hai màu là năm đó chuyển việc"
-            )}
-          </p>
+        <ChartCard
+          title={yearHeadline}
+          subtitle={t(
+            "Income per year by employer · a year in two colours is a year you changed jobs",
+            "Thu nhập mỗi năm theo nơi làm · năm nào có hai màu là năm đó chuyển việc"
+          )}
+          keys={employerKeyItems}
+        >
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={yearByEmployer} className="c-chart-multi">
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "var(--color-text-faint)" }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "var(--color-text-faint)" }}
-                  tickFormatter={(v) => compactMoney(Number(v), language === "vi")}
-                  width={50}
-                />
+              <BarChart data={yearByEmployer} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                <CartesianGrid {...GRID} />
+                <XAxis dataKey="name" {...xAxis} interval={0} />
+                <YAxis {...yAxis(money)} />
                 <Tooltip
+                  {...TOOLTIP}
                   content={
                     <StackedMonthTooltip
                       otherKey={OTHER_KEY}
-                      otherLabel={t("Other payers", "Nơi khác")}
+                      otherLabel={otherPayers}
                     />
                   }
                 />
-                {employerSeries.map((sr) => (
+                {employerSeries.map((sr, i) => (
                   <Bar
                     key={sr.key}
                     dataKey={sr.key}
                     stackId="emp"
-                    name={labelOf(sr.key, t("Other payers", "Nơi khác"))}
-                    className={
-                      sr.key === OTHER_KEY ? "c-series-other" : `c-series-${sr.colourIndex + 1}`
-                    }
-                    fill={colourOf(sr.colourIndex)}
-                    maxBarSize={48}
+                    name={nameOfEmployerKey(sr.key)}
+                    fill={catColor(sr.colourIndex)}
+                    {...STACK_GAP}
+                    maxBarSize={BAR.maxBarSize}
+                    radius={i === employerSeries.length - 1 ? BAR.radius : 0}
                   />
                 ))}
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </ChartCard>
 
-        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)]">
-          <h4 className="c-h5 text-[var(--color-text)]">
-            {t("Salary vs bonus, year by year", "Lương và thưởng, theo từng năm")}
-          </h4>
-          <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-6">
-            {t(
-              "bonus is the part that does not repeat next year",
-              "thưởng là phần không chắc năm sau còn"
-            )}
-          </p>
+        <ChartCard
+          title={subHeadline}
+          subtitle={t(
+            "Income per year, salary against everything on top · the part on top may not repeat next year",
+            "Thu nhập mỗi năm, lương so với phần ngoài lương · phần ngoài lương không chắc năm sau còn"
+          )}
+          keys={subOrder.map((key) => ({
+            label: labelOf(key, t("Other income", "Thu khác")),
+            color: subColour(key),
+            shape: "bar" as const,
+          }))}
+        >
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={yearBySub} className="c-chart-multi">
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "var(--color-text-faint)" }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "var(--color-text-faint)" }}
-                  tickFormatter={(v) => compactMoney(Number(v), language === "vi")}
-                  width={50}
-                />
+              <BarChart data={yearBySub} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                <CartesianGrid {...GRID} />
+                <XAxis dataKey="name" {...xAxis} interval={0} />
+                <YAxis {...yAxis(money)} />
                 <Tooltip
+                  {...TOOLTIP}
                   content={
                     <StackedMonthTooltip
                       otherKey={OTHER_KEY}
@@ -485,22 +577,22 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                     />
                   }
                 />
-                <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
-                {subKeys.map((key, i) => (
+                {subOrder.map((key, i) => (
                   <Bar
                     key={key}
                     dataKey={key}
                     stackId="sub"
                     name={labelOf(key, t("Other income", "Thu khác"))}
-                    className={key === OTHER_KEY ? "c-series-other" : `c-series-${i + 1}`}
-                    fill={colourOf(i)}
-                    maxBarSize={48}
+                    fill={subColour(key)}
+                    {...STACK_GAP}
+                    maxBarSize={BAR.maxBarSize}
+                    radius={i === subOrder.length - 1 ? BAR.radius : 0}
                   />
                 ))}
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </ChartCard>
       </div>
 
       {/* --- Mọi nguồn, mọi năm, trong một bảng --- */}
@@ -511,21 +603,17 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
         năm đó không có đồng nào từ nơi đó — và chính những ô trống mới vẽ ra
         hình dáng của cả chặng đường.
       */}
-      <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)]">
-        <h4 className="c-h5 text-[var(--color-text)]">
-          {t("Every source, every year", "Mọi nguồn thu qua từng năm")}
-        </h4>
-        <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-5">
-          {t(
-            "an empty cell means nothing came from there that year",
-            "ô trống nghĩa là năm đó không có đồng nào từ nơi đó"
-          )}
-        </p>
-
+      <ChartCard
+        title={tableHeadline}
+        subtitle={t(
+          "Every source, every year · an empty cell means nothing came from there that year",
+          "Mọi nguồn thu qua từng năm · ô trống nghĩa là năm đó không có đồng nào từ nơi đó"
+        )}
+      >
         <div className="overflow-x-auto -mx-1 px-1">
           <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+              <tr className="text-[11px] text-[var(--color-text-muted)]">
                 <th className="text-left py-2 pr-3 font-bold sticky left-0 bg-[var(--color-surface)]">
                   {t("Source", "Nguồn")}
                 </th>
@@ -544,14 +632,19 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                 const byYear = new Map(e.byYear.map((y) => [y.year, y.amount]));
                 return (
                   <tr key={e.name}>
-                    <td className="py-2.5 pr-3 sticky left-0 bg-[var(--color-surface)]">
+                    <td className="py-2.5 pr-3 sticky left-0 bg-[var(--color-surface)] max-w-[10rem]">
                       <span className="flex items-center gap-2 min-w-0">
                         <span
-                          className="w-2.5 h-2.5 rounded-sm flex-none"
-                          style={{ background: colourOf(e.colourIndex) }}
+                          className="w-2.5 h-2.5 rounded-[3px] flex-none"
+                          style={{ background: catColor(e.colourIndex) }}
                           aria-hidden
                         />
-                        <span className="font-bold text-[var(--color-text)] truncate">{e.name}</span>
+                        <span
+                          className={`truncate text-[var(--color-text)] ${e.name === topTotal?.name ? "font-bold" : ""}`}
+                          title={e.name}
+                        >
+                          {e.name}
+                        </span>
                       </span>
                     </td>
                     {years.map((y) => {
@@ -566,24 +659,13 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                             <span className="text-[var(--color-border-strong)]">—</span>
                           ) : (
                             <>
-                              <span className="text-[var(--color-text)]">
-                                {compactMoney(amount, language === "vi")}
-                              </span>
+                              <span className="text-[var(--color-text)]">{money(amount)}</span>
                               {/* Mũi tên chỉ có nghĩa khi năm trước CŨNG có số;
                                   năm đầu tiên nhận lương ở một nơi không phải
                                   là "tăng vô hạn". */}
                               {prev > 0 && (
-                                <span
-                                  className={`ml-1 text-[10px] font-bold ${
-                                    amount > prev
-                                      ? "text-[var(--color-success)]"
-                                      : amount < prev
-                                        ? "text-[var(--color-error)]"
-                                        : "text-[var(--color-text-faint)]"
-                                  }`}
-                                >
-                                  {amount > prev ? "↑" : amount < prev ? "↓" : "→"}
-                                  {Math.abs(Math.round(((amount - prev) / prev) * 100))}%
+                                <span className="ml-1">
+                                  <Delta pct={pctChange(amount, prev)} upIsGood />
                                 </span>
                               )}
                             </>
@@ -592,7 +674,7 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                       );
                     })}
                     <td className="py-2.5 pl-3 text-right tabular-nums font-bold text-[var(--color-text)] whitespace-nowrap">
-                      {compactMoney(e.total, language === "vi")}
+                      {money(e.total)}
                     </td>
                   </tr>
                 );
@@ -600,7 +682,7 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-[var(--color-border-strong)]">
-                <td className="py-2.5 pr-3 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] sticky left-0 bg-[var(--color-surface)]">
+                <td className="py-2.5 pr-3 text-[11px] font-bold text-[var(--color-text-muted)] sticky left-0 bg-[var(--color-surface)]">
                   {t("All sources", "Tất cả")}
                 </td>
                 {years.map((y) => {
@@ -610,187 +692,169 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                   const prev = Number(prevRow?.total) || 0;
                   return (
                     <td key={y} className="py-2.5 px-2 text-right tabular-nums whitespace-nowrap">
-                      <span className="font-bold text-[var(--color-text)]">
-                        {compactMoney(total, language === "vi")}
-                      </span>
+                      <span className="font-bold text-[var(--color-text)]">{money(total)}</span>
                       {prev > 0 && (
-                        <span
-                          className={`ml-1 text-[10px] font-bold ${
-                            total > prev
-                              ? "text-[var(--color-success)]"
-                              : "text-[var(--color-error)]"
-                          }`}
-                        >
-                          {total > prev ? "↑" : "↓"}
-                          {Math.abs(Math.round(((total - prev) / prev) * 100))}%
+                        <span className="ml-1">
+                          <Delta pct={pctChange(total, prev)} upIsGood />
                         </span>
                       )}
                     </td>
                   );
                 })}
-                <td className="py-2.5 pl-3 text-right tabular-nums font-bold text-[var(--color-success)] whitespace-nowrap">
-                  {compactMoney(totals.allTime, language === "vi")}
+                <td className="py-2.5 pl-3 text-right tabular-nums font-bold text-[var(--color-text)] whitespace-nowrap">
+                  {money(totals.allTime)}
                 </td>
               </tr>
             </tfoot>
           </table>
         </div>
-      </div>
+      </ChartCard>
 
       {/* --- So sánh từng nơi --- */}
-      <div>
-        <h4 className="c-h5 text-[var(--color-text)] mb-1">
-          {t("Place by place", "So sánh từng nơi")}
-        </h4>
-        <p className="text-xs text-[var(--color-text-faint)] mb-4">
-          {t(
-            "the bar compares average monthly salary — the only number comparable across jobs of different lengths",
-            "thanh ngang so lương bình quân/tháng — con số duy nhất so được giữa những chặng dài ngắn khác nhau"
-          )}
-        </p>
+      <div className="flex flex-col gap-4">
+        <header>
+          <h4 className="c-h5 text-[var(--color-text)] text-balance">{placesHeadline}</h4>
+          <p className="text-xs text-[var(--color-text-faint)] mt-1">
+            {t(
+              "The bar compares average monthly salary — the only number comparable across jobs of different lengths",
+              "Thanh ngang so lương bình quân/tháng — con số duy nhất so được giữa những chặng dài ngắn khác nhau"
+            )}
+          </p>
+        </header>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {employers.map((e) => (
-            <div
-              key={e.name}
-              className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)]"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-sm flex-none"
-                      style={{ background: colourOf(e.colourIndex) }}
-                      aria-hidden
-                    />
-                    <span className="font-bold text-[var(--color-text)] truncate">{e.name}</span>
-                    {e.active && (
-                      <span className="text-[10px] font-bold text-[var(--color-accent)] flex-none">
-                        {t("current", "đang nhận")}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-[var(--color-text-faint)] mt-1 tabular-nums">
-                    {viMonth(e.from)} – {viMonth(e.to)} · {e.tenure} {t("months", "tháng")}
-                    {e.paid !== e.tenure &&
-                      ` · ${t(`${e.paid} paid`, `${e.paid} tháng có tiền`)}`}
-                  </div>
-                </div>
-                <div className="text-right flex-none">
-                  <div className="font-bold tabular-nums text-[var(--color-text)]">
-                    {formatVND(e.total)}
-                  </div>
-                  <div className="text-xs text-[var(--color-text-faint)]">
-                    {t("total", "tổng")}
-                  </div>
-                </div>
-              </div>
-
-              {/* Lương bình quân/tháng, so trực tiếp giữa các nơi */}
-              <div className="mt-4">
-                <div className="flex items-baseline justify-between text-xs">
-                  <span className="text-[var(--color-text-muted)]">
-                    {t("Avg salary / month", "Lương BQ/tháng")}
-                  </span>
-                  <span className="font-bold tabular-nums text-[var(--color-text)]">
-                    {formatVND(e.avgSalaryPerMonth)}
-                  </span>
-                </div>
-                <div className="mt-1.5 h-2 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${Math.max(2, (e.avgSalaryPerMonth / maxAvgSalary) * 100)}%`,
-                      background: colourOf(e.colourIndex),
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Lương / thưởng / khác */}
-              <div className="mt-4">
-                <div className="flex h-2.5 rounded-full overflow-hidden bg-[var(--color-surface-2)]">
-                  {e.subs.map((s) => (
-                    <div
-                      key={s.sub}
-                      style={{ width: `${s.share}%`, background: subColour(s.sub) }}
-                      title={`${s.sub}: ${formatVND(s.amount)}`}
-                    />
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs">
-                  {e.subs.map((s) => (
-                    <span key={s.sub} className="flex items-center gap-1.5">
+          {employers.map((e) => {
+            const isTop = e.name === topSalary?.name && employers.length > 1;
+            return (
+              <div
+                key={e.name}
+                className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] flex flex-col gap-4 min-w-0"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
                       <span
-                        className="w-2 h-2 rounded-sm"
-                        style={{ background: subColour(s.sub) }}
+                        className="w-2.5 h-2.5 rounded-[3px] flex-none"
+                        style={{ background: catColor(e.colourIndex) }}
                         aria-hidden
                       />
-                      <span className="text-[var(--color-text-muted)]">{s.sub}</span>
-                      <span className="font-bold tabular-nums text-[var(--color-text)]">
-                        {s.share}%
-                      </span>
-                      <span className="tabular-nums text-[var(--color-text-faint)]">
-                        {compactMoney(s.amount, language === "vi")}
-                      </span>
-                    </span>
-                  ))}
+                      <span className="font-bold text-[var(--color-text)] truncate" title={e.name}>{e.name}</span>
+                      {e.active && (
+                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] flex-none">
+                          · {t("current", "đang nhận")}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-[var(--color-text-faint)] mt-1 tabular-nums">
+                      {viMonth(e.from)} – {viMonth(e.to)} · {e.tenure} {t("months", "tháng")}
+                      {e.paid !== e.tenure &&
+                        ` · ${t(`${e.paid} paid`, `${e.paid} tháng có tiền`)}`}
+                    </div>
+                  </div>
+                  <div className="text-right flex-none">
+                    <div className="font-bold tabular-nums text-[var(--color-text)]">
+                      {formatVND(e.total)}
+                    </div>
+                    <div className="text-xs text-[var(--color-text-faint)]">
+                      {t("total", "tổng")}
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                {/* Lương bình quân/tháng, cùng một thước cho mọi thẻ. Thanh xám;
+                    nơi trả cao nhất (câu tiêu đề) mang màu của chính nó. */}
                 <div>
-                  <div className="text-[var(--color-text-muted)]">
-                    {t("First → last salary", "Lương đầu → lương cuối")}
-                  </div>
-                  <div className="font-bold tabular-nums text-[var(--color-text)] mt-0.5">
-                    {e.firstSalary > 0 ? compactMoney(e.firstSalary, language === "vi") : "—"}
-                    {" → "}
-                    {e.lastSalary > 0 ? compactMoney(e.lastSalary, language === "vi") : "—"}
-                    {e.salaryGrowthPct !== null && (
-                      <span
-                        className={`ml-2 font-bold ${
-                          e.salaryGrowthPct > 0
-                            ? "text-[var(--color-success)]"
-                            : e.salaryGrowthPct < 0
-                              ? "text-[var(--color-error)]"
-                              : "text-[var(--color-text-faint)]"
-                        }`}
-                      >
-                        {e.salaryGrowthPct > 0 ? "+" : ""}
-                        {e.salaryGrowthPct}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[var(--color-text-muted)]">
-                    {t("Best month", "Tháng cao nhất")}
-                  </div>
-                  <div className="font-bold tabular-nums text-[var(--color-text)] mt-0.5">
-                    {e.best ? `${compactMoney(e.best.amount, language === "vi")}` : "—"}
-                    {e.best && (
-                      <span className="ml-2 font-normal text-[var(--color-text-faint)]">
-                        {viMonth(e.best.month)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {e.byYear.length > 1 && (
-                <div className="mt-4 pt-3 border-t border-[var(--color-border)] flex flex-wrap gap-x-4 gap-y-1 text-xs tabular-nums">
-                  {e.byYear.map((y) => (
-                    <span key={y.year} className="text-[var(--color-text-muted)]">
-                      {y.year}{" "}
-                      <b className="text-[var(--color-text)]">
-                        {compactMoney(y.amount, language === "vi")}
-                      </b>
+                  <div className="flex items-baseline justify-between text-xs">
+                    <span className="text-[var(--color-text-muted)]">
+                      {t("Avg salary / month", "Lương BQ/tháng")}
                     </span>
-                  ))}
+                    <span className="font-bold tabular-nums text-[var(--color-text)]">
+                      {formatVND(e.avgSalaryPerMonth)}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-3 rounded-r-[4px] bg-[var(--color-surface-2)] overflow-hidden">
+                    <div
+                      className="h-full rounded-r-[4px]"
+                      style={{
+                        width: `${e.avgSalaryPerMonth > 0 ? Math.max(2, (e.avgSalaryPerMonth / maxAvgSalary) * 100) : 0}%`,
+                        background: isTop ? catColor(e.colourIndex) : VIZ.muted,
+                      }}
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Lương / thưởng / khác — một thanh chồng, khúc tách bằng khe nền. */}
+                <div>
+                  <div className="flex h-3 gap-0.5 overflow-hidden rounded-[4px]">
+                    {e.subs.map((s) => (
+                      <div
+                        key={s.sub}
+                        style={{ width: `${s.share}%`, background: subColour(s.sub) }}
+                        title={`${s.sub}: ${formatVND(s.amount)}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs">
+                    {e.subs.map((s) => (
+                      <span key={s.sub} className="flex items-center gap-1.5">
+                        <span
+                          className="w-2 h-2 rounded-[2px]"
+                          style={{ background: subColour(s.sub) }}
+                          aria-hidden
+                        />
+                        <span className="text-[var(--color-text-muted)]">{s.sub}</span>
+                        <span className="font-bold tabular-nums text-[var(--color-text)]">
+                          {s.share}%
+                        </span>
+                        <span className="tabular-nums text-[var(--color-text-faint)]">
+                          {money(s.amount)}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <div className="text-[var(--color-text-muted)]">
+                      {t("First → last salary", "Lương đầu → lương cuối")}
+                    </div>
+                    <div className="font-bold tabular-nums text-[var(--color-text)] mt-0.5 flex flex-wrap items-baseline gap-x-2">
+                      <span>
+                        {e.firstSalary > 0 ? money(e.firstSalary) : "—"}
+                        {" → "}
+                        {e.lastSalary > 0 ? money(e.lastSalary) : "—"}
+                      </span>
+                      {e.salaryGrowthPct !== null && <Delta pct={e.salaryGrowthPct} upIsGood />}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[var(--color-text-muted)]">
+                      {t("Best month", "Tháng cao nhất")}
+                    </div>
+                    <div className="font-bold tabular-nums text-[var(--color-text)] mt-0.5">
+                      {e.best ? money(e.best.amount) : "—"}
+                      {e.best && (
+                        <span className="ml-2 font-normal text-[var(--color-text-faint)]">
+                          {viMonth(e.best.month)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {e.byYear.length > 1 && (
+                  <div className="pt-3 border-t border-[var(--color-border)] flex flex-wrap gap-x-4 gap-y-1 text-xs tabular-nums">
+                    {e.byYear.map((y) => (
+                      <span key={y.year} className="text-[var(--color-text-muted)]">
+                        {y.year}{" "}
+                        <b className="text-[var(--color-text)]">{money(y.amount)}</b>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

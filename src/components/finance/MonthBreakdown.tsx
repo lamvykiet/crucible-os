@@ -1,19 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { ArrowUp, ArrowDown, ChevronDown, Search, Store, Shapes } from "lucide-react";
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
+import { ChevronDown, Search, Store, Shapes } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
+import { VIZ, BAR, TOOLTIP, labelAt, pctChange } from "@/lib/viz";
+import { SeriesKey, Delta, StatTile } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 
 // Chi vào đâu, thu từ đâu — theo nơi chi và theo nhóm danh mục.
 //
-// Câu hỏi nó trả lời: "tháng này Highlands hết bao nhiêu, tháng trước bao
-// nhiêu, năm ngoái bao nhiêu?", "ăn uống / cafe tháng này bao nhiêu?". Mỗi dòng
-// là hai thanh nằm ngang (tháng này / tháng trước) cùng một thước đo, nên nhìn
-// độ dài là thấy tăng hay giảm, khỏi đọc số.
+// MẪU CHUẨN cho biểu đồ của Crucible (docs/bieu-do.md):
+// - Tiêu đề là câu kết luận tính từ dữ liệu, không phải tên biểu đồ.
+// - Mỗi mục: MỘT thanh cho tháng này + MỘT vạch mốc cho tháng trước (kiểu
+//   bullet graph) trên cùng một thước. Bản trước vẽ hai thanh dài kéo hết bề
+//   ngang — nhìn như thước kẻ, không thấy mục nào đáng để ý.
+// - Thanh xám; chỉ mục mà tiêu đề nói tới mang màu nhấn.
+// - Số căn một cột bên phải để dò dọc; mũi tên chênh lệch có chữ, không chỉ màu.
 
 interface Metrics {
   key: string;
@@ -53,13 +58,17 @@ const mLabel = (k: string) => {
   const [y, m] = k.split("-");
   return `${m}/${y}`;
 };
+/** "2026-10" → "T10" / "Oct" */
+const mShort = (k: string, vi: boolean) => {
+  const m = Number(k.split("-")[1]);
+  return vi ? `T${m}` : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1];
+};
 
 const fold = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase();
 
-/** % thay đổi, null khi kỳ so sánh bằng 0 (không chia được). */
-const change = (now: number, before: number) =>
-  before > 0 ? Math.round(((now - before) / before) * 100) : null;
+/** Mục có gì để so trong tháng: tháng này hoặc tháng trước khác 0. */
+const active = (r: Metrics) => r.month !== 0 || r.prev !== 0;
 
 export default function MonthBreakdown({ month, refreshKey }: { month: string; refreshKey: number }) {
   const { t, language } = useLanguage();
@@ -93,17 +102,21 @@ export default function MonthBreakdown({ month, refreshKey }: { month: string; r
   }, [month, refreshKey]);
 
   const sideData = data?.[side];
+  const nameOf = (r: Metrics) => (view === "groups" ? label(r.name) : r.name);
+
   const rows = useMemo(() => {
     if (!sideData) return [];
-    const list = view === "vendors" ? sideData.vendors : sideData.groups;
+    const list = (view === "vendors" ? sideData.vendors : sideData.groups).filter(active);
     const q = fold(query.trim());
-    if (!q) return list;
-    return list.filter(
-      (r) =>
-        fold(r.name).includes(q) ||
-        fold(label(r.name)).includes(q) ||
-        (r.children ?? []).some((c) => fold(c.name).includes(q) || fold(label(c.name)).includes(q))
-    );
+    const filtered = q
+      ? list.filter(
+          (r) =>
+            fold(r.name).includes(q) ||
+            fold(label(r.name)).includes(q) ||
+            (r.children ?? []).some((c) => fold(c.name).includes(q) || fold(label(c.name)).includes(q))
+        )
+      : list;
+    return [...filtered].sort((a, b) => b.month - a.month || b.prev - a.prev);
   }, [sideData, view, query, label]);
 
   if (failed && !data) {
@@ -119,32 +132,28 @@ export default function MonthBreakdown({ month, refreshKey }: { month: string; r
 
   const income = side === "income";
   const T = sideData.totals;
-  const yearDelta = change(T.ytd, T.lastYtd);
-  const monthDelta = change(T.month, T.prev);
-  const [, mm] = data.month.split("-");
+  const thisM = mShort(data.month, vi);
+  const prevM = mShort(data.prevMonth, vi);
+
+  // --- Câu kết luận ---------------------------------------------------------
+  const top = rows[0];
+  const share = top && T.month > 0 ? Math.round((top.month / T.month) * 100) : 0;
+  const riser = rows
+    .filter((r) => r.prev > 0 && r.month > r.prev)
+    .sort((a, b) => b.month - b.prev - (a.month - a.prev))[0];
+  const kind = view === "vendors" ? (income ? t("source", "nguồn thu") : t("place", "nơi chi")) : t("category", "nhóm");
+  const headline =
+    top && top.month > 0
+      ? t(
+          `${nameOf(top)} is the biggest ${kind} in ${thisM} — ${share}% of ${income ? "income" : "spending"}`,
+          `${nameOf(top)} là ${kind} lớn nhất ${thisM} — ${share}% tổng ${income ? "thu" : "chi"}`
+        )
+      : income
+        ? t(`No income recorded in ${thisM}`, `${thisM} chưa ghi khoản thu nào`)
+        : t(`No spending recorded in ${thisM}`, `${thisM} chưa ghi khoản chi nào`);
+
   const shown = showAll || query ? rows : rows.slice(0, SHOW);
   const scale = Math.max(1, ...shown.map((r) => Math.max(r.month, r.prev)));
-  const nameOf = (r: Metrics) => (view === "groups" ? label(r.name) : r.name);
-
-  const stats = [
-    {
-      label: t(`This month (${mLabel(data.month)})`, `Tháng này (${mLabel(data.month)})`),
-      value: formatVND(T.month),
-      delta: monthDelta,
-      note: t("vs last month", "so tháng trước"),
-    },
-    { label: t(`Last month (${mLabel(data.prevMonth)})`, `Tháng trước (${mLabel(data.prevMonth)})`), value: formatVND(T.prev) },
-    { label: t(`Same month last year (${mLabel(data.lastYearMonth)})`, `Cùng tháng năm trước (${mLabel(data.lastYearMonth)})`), value: formatVND(T.lastYearMonth) },
-    {
-      label: t(`${data.year} to ${mm}`, `Năm ${data.year} (tới T${Number(mm)})`),
-      value: formatVND(T.ytd),
-      delta: yearDelta,
-      note: t(
-        `vs same period ${data.year - 1} (${money(T.lastYtd)}) · all of ${data.year - 1}: ${money(T.lastYearTotal)}`,
-        `so cùng kỳ ${data.year - 1} (${money(T.lastYtd)}) · cả năm ${data.year - 1}: ${money(T.lastYearTotal)}`
-      ),
-    },
-  ];
 
   const seg = (on: boolean) =>
     `flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-4 min-h-10 rounded-full text-xs font-bold transition-colors ${
@@ -152,10 +161,10 @@ export default function MonthBreakdown({ month, refreshKey }: { month: string; r
     }`;
 
   return (
-    <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-6">
-      {/* --- Điều khiển --- */}
+    <div className="flex flex-col gap-4">
+      {/* --- Bộ lọc: một hàng phía trên, ngoài thẻ --- */}
       <div className="flex flex-col md:flex-row md:items-center gap-3">
-        <div className="flex gap-1 p-1 rounded-full bg-[var(--color-surface-2)]">
+        <div className="flex gap-1 p-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)]">
           <button onClick={() => { setSide("expense"); setOpen(null); }} className={seg(!income)}>
             {t("Spending", "Chi tiêu")}
           </button>
@@ -163,7 +172,7 @@ export default function MonthBreakdown({ month, refreshKey }: { month: string; r
             {t("Income", "Thu nhập")}
           </button>
         </div>
-        <div className="flex gap-1 p-1 rounded-full bg-[var(--color-surface-2)]">
+        <div className="flex gap-1 p-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)]">
           <button onClick={() => { setView("vendors"); setOpen(null); }} className={seg(view === "vendors")}>
             <Store size={14} /> {income ? t("By source", "Theo nguồn thu") : t("By place", "Theo nơi chi")}
           </button>
@@ -176,110 +185,114 @@ export default function MonthBreakdown({ month, refreshKey }: { month: string; r
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={view === "vendors" ? t("Find a place… e.g. highlands", "Tìm nơi chi… VD: highlands") : t("Find a category…", "Tìm nhóm… VD: cafe")}
-            className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-full pl-10 pr-4 py-2 min-h-10 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+            placeholder={view === "vendors" ? t("Find… e.g. highlands", "Tìm… VD: highlands") : t("Find… e.g. coffee", "Tìm… VD: cafe")}
+            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full pl-10 pr-4 py-2 min-h-10 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
           />
         </div>
       </div>
 
-      {/* --- Bốn con số tổng --- */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        {stats.map((s) => (
-          <div key={s.label} className="rounded-2xl bg-[var(--color-surface-2)] p-4 min-w-0">
-            <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{s.label}</div>
-            <div className="text-base md:text-lg font-bold tabular-nums text-[var(--color-text)] mt-1">{s.value}</div>
-            {"note" in s && (
-              <div className="text-[11px] text-[var(--color-text-faint)] mt-0.5 flex flex-wrap items-center gap-x-1.5">
-                {s.delta !== undefined && <Delta pct={s.delta ?? null} income={income} />}
-                <span>{s.note}</span>
-              </div>
+      <section className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-5 min-w-0">
+        <header>
+          <h4 className="c-h5 text-[var(--color-text)] text-balance">{headline}</h4>
+          <p className="text-xs text-[var(--color-text-faint)] mt-1">
+            {t(
+              `${income ? "Income" : "Spending"} by ${kind}, ${mLabel(data.month)} against ${mLabel(data.prevMonth)}`,
+              `${income ? "Thu" : "Chi"} theo ${kind}, ${mLabel(data.month)} so với ${mLabel(data.prevMonth)}`
             )}
-          </div>
-        ))}
-      </div>
+          </p>
+        </header>
 
-      {/* --- Chú giải hai thanh --- */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[var(--color-text-faint)] -mb-3">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="w-3 h-1.5 rounded-full" style={{ background: "var(--chart-1)" }} /> {t("this month", "tháng này")}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="w-3 h-1.5 rounded-full" style={{ background: "var(--chart-4)" }} /> {t("last month", "tháng trước")}
-        </span>
-        <span>{t("tap a row for 12 months and last year", "chạm vào dòng để xem 12 tháng và năm trước")}</span>
-      </div>
+        {/* --- Bốn con số: tháng này là ô chính, ba ô còn lại là bối cảnh --- */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+          <StatTile
+            emphasis
+            label={t(`${thisM} ${data.year}`, `${thisM}/${data.year}`)}
+            value={formatVND(T.month)}
+            delta={<Delta pct={pctChange(T.month, T.prev)} upIsGood={income} vs={t(`vs ${prevM}`, `so ${prevM}`)} />}
+          />
+          <StatTile label={t(`Last month (${mLabel(data.prevMonth)})`, `Tháng trước (${mLabel(data.prevMonth)})`)} value={formatVND(T.prev)} />
+          <StatTile label={t(`Same month last year (${mLabel(data.lastYearMonth)})`, `Cùng tháng năm trước (${mLabel(data.lastYearMonth)})`)} value={formatVND(T.lastYearMonth)} />
+          <StatTile
+            label={t(`${data.year} so far`, `Năm ${data.year} tới nay`)}
+            value={formatVND(T.ytd)}
+            delta={<Delta pct={pctChange(T.ytd, T.lastYtd)} upIsGood={income} vs={t(`vs same period ${data.year - 1}`, `so cùng kỳ ${data.year - 1}`)} />}
+          />
+        </div>
 
-      {/* --- Danh sách --- */}
-      {rows.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-faint)]">
-          {query
-            ? t("Nothing matches.", "Không có dòng nào khớp.")
-            : income
-              ? t("No income in this period.", "Chưa có khoản thu nào trong khoảng này.")
-              : t("No spending in this period.", "Chưa có khoản chi nào trong khoảng này.")}
-        </p>
-      ) : (
-        <ul className="divide-y divide-[var(--color-border)] -mx-2">
-          {shown.map((r) => (
-            <BreakdownRow
-              key={r.key}
-              row={r}
-              name={nameOf(r)}
-              scale={scale}
-              income={income}
-              isOpen={open === r.key}
-              onToggle={() => setOpen(open === r.key ? null : r.key)}
-              data={data}
-              money={money}
-              childLabel={(n) => (n ? label(n) : t("(no sub-category)", "(chưa có nhóm con)"))}
-            />
-          ))}
-        </ul>
-      )}
+        {riser && (
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {t("Biggest rise vs last month:", "Tăng nhiều nhất so tháng trước:")}{" "}
+            <strong className="text-[var(--color-text)]">{nameOf(riser)}</strong>{" "}
+            <span className="tabular-nums">+{money(riser.month - riser.prev)}</span>
+          </p>
+        )}
 
-      {!query && rows.length > SHOW && (
-        <button
-          onClick={() => setShowAll((v) => !v)}
-          className="self-start text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text)] min-h-9"
-        >
-          {showAll ? t("Show top 10", "Thu gọn còn 10 dòng") : t(`Show all ${rows.length}`, `Xem tất cả ${rows.length} dòng`)}
-        </button>
-      )}
+        <SeriesKey
+          items={[
+            { label: thisM, color: VIZ.muted, shape: "bar" },
+            { label: prevM, color: VIZ.ink, shape: "tick" },
+          ]}
+        />
+
+        {rows.length === 0 ? (
+          <p className="text-sm text-[var(--color-text-faint)]">
+            {query
+              ? t("Nothing matches.", "Không có mục nào khớp.")
+              : income
+                ? t("No income in these two months.", "Hai tháng này chưa có khoản thu nào.")
+                : t("No spending in these two months.", "Hai tháng này chưa có khoản chi nào.")}
+          </p>
+        ) : (
+          <ul className="-mx-2 flex flex-col">
+            {shown.map((r) => (
+              <BreakdownRow
+                key={r.key}
+                row={r}
+                name={nameOf(r)}
+                scale={scale}
+                income={income}
+                highlight={r.key === top?.key}
+                isOpen={open === r.key}
+                onToggle={() => setOpen(open === r.key ? null : r.key)}
+                data={data}
+                money={money}
+                prevM={prevM}
+                childLabel={(n) => (n ? label(n) : t("(no sub-category)", "(chưa có nhóm con)"))}
+              />
+            ))}
+          </ul>
+        )}
+
+        {!query && rows.length > SHOW && (
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="self-start text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text)] min-h-9"
+          >
+            {showAll ? t("Show top 10", "Thu gọn còn 10 mục") : t(`Show all ${rows.length}`, `Xem tất cả ${rows.length} mục`)}
+          </button>
+        )}
+      </section>
     </div>
   );
 }
 
 // ==========================================================================
 
-/** Mũi tên tăng/giảm. Chi tăng là xấu, thu tăng là tốt — màu theo đó. */
-function Delta({ pct, income }: { pct: number | null; income: boolean }) {
-  const { t } = useLanguage();
-  if (pct === null) return <span className="text-[var(--color-text-faint)]">{t("new", "mới")}</span>;
-  if (pct === 0) return <span className="text-[var(--color-text-faint)]">±0%</span>;
-  const up = pct > 0;
-  const good = income ? up : !up;
+/** Một thanh kỳ này + vạch mốc kỳ trước, cùng thước `scale`. */
+function Bullet({ now, before, scale, color }: { now: number; before: number; scale: number; color: string }) {
+  const pos = (v: number) => `${(Math.max(0, v) / scale) * 100}%`;
   return (
-    <span
-      className={`inline-flex items-center gap-0.5 font-bold tabular-nums ${
-        good ? "text-[var(--color-success)]" : "text-[var(--color-error)]"
-      }`}
-    >
-      {up ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
-      {Math.abs(pct)}%
-    </span>
-  );
-}
-
-function Bars({ now, before, scale }: { now: number; before: number; scale: number }) {
-  const w = (v: number) => `${Math.max(v > 0 ? 1.5 : 0, (Math.max(0, v) / scale) * 100)}%`;
-  return (
-    <div className="flex flex-col gap-1 mt-1.5" aria-hidden>
-      <div className="h-1.5 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: w(now), background: "var(--chart-1)" }} />
-      </div>
-      <div className="h-1.5 rounded-full bg-[var(--color-surface-2)] overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: w(before), background: "var(--chart-4)" }} />
-      </div>
+    <div className="relative h-5 w-full" aria-hidden>
+      <div
+        className="absolute left-0 top-1/2 -translate-y-1/2 h-3 rounded-r-[4px]"
+        style={{ width: pos(now), minWidth: now > 0 ? 3 : 0, background: color }}
+      />
+      {before > 0 && (
+        <div
+          className="absolute top-0 bottom-0 w-0.5 rounded-full"
+          style={{ left: `calc(${pos(before)} - 1px)`, background: VIZ.ink }}
+        />
+      )}
     </div>
   );
 }
@@ -289,122 +302,130 @@ function BreakdownRow({
   name,
   scale,
   income,
+  highlight,
   isOpen,
   onToggle,
   data,
   money,
+  prevM,
   childLabel,
 }: {
   row: Metrics;
   name: string;
   scale: number;
   income: boolean;
+  highlight: boolean;
   isOpen: boolean;
   onToggle: () => void;
   data: Breakdown;
   money: (n: number) => string;
+  prevM: string;
   childLabel: (name: string) => string;
 }) {
   const { t } = useLanguage();
-  const delta = change(row.month, row.prev);
   const trend = data.trendMonths.map((m, i) => ({ name: m, value: row.trend[i] ?? 0 }));
-  const yearDelta = change(row.ytd, row.lastYtd);
-  // Nhóm con chỉ so tháng này với tháng trước, nên dòng bằng 0 ở cả hai là nhiễu
-  // (nó lọt vào đây vì luỹ kế năm có số).
-  const children = (row.children ?? []).filter((c) => c.month !== 0 || c.prev !== 0);
+  const avg = Math.round(row.trend.reduce((a, b) => a + b, 0) / 12);
+  const cur = trend.length - 1;
+  const children = (row.children ?? []).filter(active);
   const childScale = Math.max(1, ...children.map((x) => Math.max(x.month, x.prev)));
 
   return (
-    <li>
+    <li className="border-b border-[var(--color-border)] last:border-b-0">
       <button
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="w-full text-left px-2 py-3 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
+        className="w-full text-left px-2 py-2.5 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_8.5rem] items-center gap-x-4 gap-y-1"
       >
-        <span className="flex items-baseline justify-between gap-3">
-          <span className="min-w-0 flex items-center gap-1.5">
-            <ChevronDown
-              size={14}
-              className={`shrink-0 text-[var(--color-text-faint)] transition-transform ${isOpen ? "rotate-180" : ""}`}
-            />
-            <span className="text-sm font-bold text-[var(--color-text)] truncate">{name}</span>
-            {row.count > 0 && (
-              <span className="shrink-0 text-[11px] text-[var(--color-text-faint)]">· {row.count} {t("tx", "lần")}</span>
-            )}
+        <span className="min-w-0 flex items-center gap-1.5">
+          <ChevronDown
+            size={14}
+            className={`shrink-0 text-[var(--color-text-faint)] transition-transform ${isOpen ? "rotate-180" : ""}`}
+          />
+          <span className={`text-sm truncate ${highlight ? "font-bold text-[var(--color-text)]" : "text-[var(--color-text)]"}`}>
+            {name}
           </span>
-          <span className="shrink-0 text-sm font-bold tabular-nums text-[var(--color-text)]">{formatVND(row.month)}</span>
         </span>
-        <Bars now={row.month} before={row.prev} scale={scale} />
-        <span className="flex flex-wrap items-center gap-x-1.5 mt-1.5 text-[11px] text-[var(--color-text-faint)] tabular-nums">
-          <span>
-            {t("last month", "tháng trước")} {money(row.prev)}
-          </span>
-          {(row.month !== 0 || row.prev !== 0) && <Delta pct={delta} income={income} />}
-          <span>
-            · {t("same month last year", "cùng tháng năm trước")} {money(row.lastYearMonth)}
+        <span className="order-3 col-span-2 md:order-none md:col-span-1">
+          <Bullet now={row.month} before={row.prev} scale={scale} color={highlight ? VIZ.accent : VIZ.muted} />
+        </span>
+        <span className="text-right">
+          <span className="block text-sm font-bold tabular-nums text-[var(--color-text)]">{formatVND(row.month)}</span>
+          <span className="block">
+            <Delta pct={pctChange(row.month, row.prev)} upIsGood={income} vs={t(`vs ${money(row.prev)}`, `từ ${money(row.prev)}`)} />
           </span>
         </span>
       </button>
 
       {isOpen && (
-        <div className="px-2 pb-4 flex flex-col gap-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-            {[
-              { l: t(`${data.year} to date`, `Năm ${data.year} tới nay`), v: row.ytd, d: yearDelta },
-              { l: t(`Same period ${data.year - 1}`, `Cùng kỳ ${data.year - 1}`), v: row.lastYtd },
-              { l: t(`All of ${data.year - 1}`, `Cả năm ${data.year - 1}`), v: row.lastYearTotal },
-              { l: t("12-month average", "TB 12 tháng"), v: Math.round(row.trend.reduce((a, b) => a + b, 0) / 12) },
-            ].map((x) => (
-              <div key={x.l} className="rounded-xl bg-[var(--color-surface-2)] p-3">
-                <div className="text-[var(--color-text-muted)]">{x.l}</div>
-                <div className="text-sm font-bold tabular-nums text-[var(--color-text)] mt-0.5">{formatVND(x.v)}</div>
-                {"d" in x && (row.ytd !== 0 || row.lastYtd !== 0) && (
-                  <div className="mt-0.5">
-                    <Delta pct={x.d ?? null} income={income} />
-                  </div>
-                )}
-              </div>
-            ))}
+        <div className="px-2 pb-5 pt-1 flex flex-col gap-4">
+          {/* Năm nay so cùng kỳ — câu hỏi "năm trước bao nhiêu" */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <StatTile
+              emphasis
+              label={t(`${data.year} so far`, `Năm ${data.year} tới nay`)}
+              value={formatVND(row.ytd)}
+              delta={<Delta pct={pctChange(row.ytd, row.lastYtd)} upIsGood={income} vs={t(`vs same period ${data.year - 1}`, `so cùng kỳ ${data.year - 1}`)} />}
+            />
+            <StatTile label={t(`Same period ${data.year - 1}`, `Cùng kỳ ${data.year - 1}`)} value={formatVND(row.lastYtd)} />
+            <StatTile label={t(`All of ${data.year - 1}`, `Cả năm ${data.year - 1}`)} value={formatVND(row.lastYearTotal)} />
           </div>
 
-          <div className="h-32 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={trend} className="c-chart-multi" margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-                <XAxis dataKey="name" {...monthAxis(data.trendMonths)} />
-                <Tooltip
-                  formatter={(v) => [formatVND(Number(v) || 0), t("Amount", "Số tiền")]}
-                  labelFormatter={(l) => mLabel(String(l))}
-                />
-                <Bar dataKey="value" radius={[3, 3, 0, 0]} maxBarSize={22}>
-                  {/* Tháng báo cáo đậm, các tháng khác nhạt — biết ngay cột nào là "tháng này". */}
-                  {trend.map((p) => (
-                    <Cell
-                      key={p.name}
-                      style={{ fill: p.name === data.month ? "var(--chart-1)" : "var(--chart-4)" }}
+          {/* 12 tháng: cột xám, tháng đang xem màu nhấn + ghi số; đường trung bình
+              ghi nhãn tại chỗ thay cho chú giải. Không trục Y, không lưới. */}
+          <div>
+            <p className="text-xs text-[var(--color-text-faint)] mb-2">
+              {t("Last 12 months · dashed line = 12-month average", "12 tháng gần nhất · nét đứt = trung bình 12 tháng")}
+            </p>
+            <div className="h-36 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trend} margin={{ top: 18, right: 4, left: 4, bottom: 0 }}>
+                  <XAxis dataKey="name" {...monthAxis(data.trendMonths)} />
+                  <Tooltip
+                    {...TOOLTIP}
+                    formatter={(v) => [formatVND(Number(v) || 0), t("Amount", "Số tiền")]}
+                    labelFormatter={(l) => mLabel(String(l))}
+                  />
+                  {avg > 0 && (
+                    <ReferenceLine
+                      y={avg}
+                      stroke={VIZ.muted}
+                      strokeDasharray="4 3"
+                      label={{ value: `${t("avg", "TB")} ${money(avg)}`, position: "insideTopLeft", fontSize: 10, fill: "var(--color-text-faint)" }}
                     />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+                  )}
+                  <Bar dataKey="value" {...BAR} label={labelAt(cur, money)}>
+                    {trend.map((p, i) => (
+                      <Cell key={p.name} fill={i === cur ? VIZ.accent : VIZ.muted} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
           {children.length > 0 && (
-            <ul className="flex flex-col gap-3">
-              {children.map((c) => (
-                <li key={c.key || "_"}>
-                  <span className="flex items-baseline justify-between gap-3 text-xs">
-                    <span className="min-w-0 truncate text-[var(--color-text)]">{childLabel(c.name)}</span>
-                    <span className="shrink-0 tabular-nums font-bold text-[var(--color-text)]">
-                      {formatVND(c.month)}
-                      <span className="ml-1.5 font-normal text-[var(--color-text-faint)]">
-                        {t("prev", "trước")} {money(c.prev)}
-                      </span>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-[var(--color-text-faint)]">
+                {t(`Sub-categories · tick = ${prevM}`, `Nhóm con · vạch = ${prevM}`)}
+              </p>
+              <ul className="flex flex-col">
+                {children.map((c) => (
+                  <li
+                    key={c.key || "_"}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,10rem)_minmax(0,1fr)_8.5rem] items-center gap-x-4 gap-y-1 py-1.5"
+                  >
+                    <span className="text-xs text-[var(--color-text)] truncate">{childLabel(c.name)}</span>
+                    <span className="order-3 col-span-2 md:order-none md:col-span-1">
+                      <Bullet now={c.month} before={c.prev} scale={childScale} color={VIZ.muted} />
                     </span>
-                  </span>
-                  <Bars now={c.month} before={c.prev} scale={childScale} />
-                </li>
-              ))}
-            </ul>
+                    <span className="text-right text-xs">
+                      <span className="font-bold tabular-nums text-[var(--color-text)]">{formatVND(c.month)}</span>{" "}
+                      <Delta pct={pctChange(c.month, c.prev)} upIsGood={income} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {row.variants && row.variants > 1 ? (

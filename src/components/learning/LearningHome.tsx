@@ -17,6 +17,7 @@ import DailyQuoteCard from "@/components/learning/DailyQuoteCard";
 import NotificationBell from "@/components/learning/NotificationBell";
 import WordSearch from "@/components/learning/WordSearch";
 import type { DomainStat } from "@/lib/learningStats";
+import { VIZ } from "@/lib/viz";
 
 /** Các chặng của tour, trỏ tới phần tử qua thuộc tính `data-tour`. */
 const TOUR: TourStep[] = [
@@ -284,7 +285,7 @@ export default function LearningHome() {
         <section className="space-y-4">
           <h2 className="c-h2">{t("Recent mock exams", "Bài thi thử gần đây")}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {attempts.map((a) => {
+            {attempts.map((a, i) => {
               const pct = a.questionCount
                 ? Math.round((a.correctCount / a.questionCount) * 100)
                 : 0;
@@ -296,8 +297,10 @@ export default function LearningHome() {
                   <p className="c-stat-label mb-3">
                     {a.correctCount}/{a.questionCount} {t("correct", "câu đúng")}
                   </p>
+                  {/* Xám là mặc định; chỉ lần thi mới nhất (API trả mới trước) mang
+                      màu nhấn — ba thanh đất nung cạnh nhau thì không thanh nào nổi. */}
                   <div className="c-progress">
-                    <span style={{ width: `${pct}%` }} />
+                    <span style={{ width: `${pct}%`, background: i === 0 ? VIZ.accent : VIZ.muted }} />
                   </div>
                 </div>
               );

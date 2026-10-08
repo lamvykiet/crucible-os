@@ -78,7 +78,7 @@ export default function GroupCoverage({ onPickMonth }: Props) {
   const thisMonth = thisMonthLocalIso();
 
   return (
-    <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-5">
+    <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-5 md:p-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
         <div>
           <h3 className="c-h5 text-[var(--color-text)]">

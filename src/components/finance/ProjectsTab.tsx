@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  BarChart, LineChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import {
   Plus, Pencil, Link2, Unlink, Hammer, TrendingDown, TrendingUp, Loader2, RotateCcw,
@@ -11,6 +11,8 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { todayLocalIso } from "@/lib/localDate";
 import { monthAxis } from "./MonthAxisTick";
+import { VIZ, GRID, yAxis, BAR, LINE, TOOLTIP, TOOLTIP_LINE } from "@/lib/viz";
+import ChartCard, { StatTile } from "@/components/charts/ChartCard";
 import TransactionModal from "./TransactionModal";
 import ProjectModal, { emptyProject, type ProjectDraft } from "./ProjectModal";
 import AttachTransactionsModal from "./AttachTransactionsModal";
@@ -107,6 +109,51 @@ function monthAfter(months: number) {
   const d = new Date();
   d.setMonth(d.getMonth() + months);
   return `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
+
+/** Thanh tiến độ: rãnh `VIZ.ghost`, phần đã đi màu nhấn. Luôn đi kèm chữ ghi số. */
+function Meter({ pct, color = VIZ.accent }: { pct: number; color?: string }) {
+  const w = Math.max(0, Math.min(100, pct));
+  return (
+    <div className="h-2 w-full rounded-full overflow-hidden" style={{ background: VIZ.ghost }} aria-hidden>
+      <div className="h-full rounded-full" style={{ width: `${w}%`, minWidth: w > 0 ? 4 : 0, background: color }} />
+    </div>
+  );
+}
+
+/** Thanh xếp hạng ngang (không rãnh): dài theo `value / max`, đầu bo 4px như `BAR_H`. */
+function RankBar({ value, max, color }: { value: number; max: number; color: string }) {
+  const w = max > 0 ? (Math.max(0, value) / max) * 100 : 0;
+  return (
+    <div className="h-3 w-full" aria-hidden>
+      <div className="h-full rounded-r-[4px]" style={{ width: `${w}%`, minWidth: value > 0 ? 3 : 0, background: color }} />
+    </div>
+  );
+}
+
+/**
+ * Nhãn ở ĐIỂM CUỐI của một đường: tên chuỗi + số, căn phải về điểm cuối.
+ * `above` = đường nằm trên thì nhãn đặt trên, đường dưới thì nhãn đặt dưới —
+ * hai nhãn không đè nhau khi hai đường sát nhau.
+ */
+function endLabel(index: number, text: (v: number) => string, above: boolean) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const render = (props: any) => {
+    if (props.index !== index || props.value === undefined || props.value === null) return null;
+    return (
+      <text
+        x={Number(props.x)}
+        y={Number(props.y) + (above ? -10 : 18)}
+        textAnchor="end"
+        fontSize={11}
+        fontWeight={700}
+        fill="var(--color-text)"
+      >
+        {text(Number(props.value))}
+      </text>
+    );
+  };
+  return render;
 }
 
 export default function ProjectsTab() {
@@ -390,15 +437,32 @@ function ProjectBody({
   const profitable = totals.profit >= 0;
   const recovery = Math.max(0, Math.min(100, totals.recoveryPct ?? 0));
 
-  // --- Bốn câu trả lời --------------------------------------------------
-  const breakEvenCard = breakEven.reachedMonth
+  // --- Câu kết luận: tình trạng thu hồi vốn --------------------------------
+  // Câu người ta hỏi đầu tiên về một dự án: đã lấy lại được bao nhiêu vốn,
+  // còn thiếu bao nhiêu. Tính từ dữ liệu; chưa bỏ vốn thì nói đúng như vậy.
+  const shortfall = breakEven.shortfall > 0 ? breakEven.shortfall : Math.max(0, totals.cost - totals.revenue);
+  const recoveryTitle =
+    totals.cost <= 0
+      ? totals.revenue > 0
+        ? t(`${money(totals.revenue)} earned, no capital recorded yet`, `Đã thu ${money(totals.revenue)}, chưa ghi khoản vốn nào`)
+        : t("No capital put in yet", "Chưa bỏ vốn vào dự án này")
+      : breakEven.reachedMonth
+        ? t(
+            `Broke even in ${monthLabel(breakEven.reachedMonth)} — ${money(totals.profit)} profit so far`,
+            `Đã hoà vốn từ ${monthLabel(breakEven.reachedMonth)} — lãi ${money(totals.profit)} tới nay`
+          )
+        : t(
+            `${totals.recoveryPct ?? 0}% of capital recovered — ${money(shortfall)} to go`,
+            `Đã thu hồi ${totals.recoveryPct ?? 0}% vốn — còn thiếu ${money(shortfall)}`
+          );
+
+  const breakEvenTile = breakEven.reachedMonth
     ? {
         value: t("Broke even", "Đã hoà vốn"),
         note: t(`since ${monthLabel(breakEven.reachedMonth)}`, `từ tháng ${monthLabel(breakEven.reachedMonth)}`),
-        tone: "success",
       }
     : totals.cost <= 0
-      ? { value: "—", note: t("nothing invested yet", "chưa bỏ vốn"), tone: "text" }
+      ? { value: "—", note: t("nothing invested yet", "chưa bỏ vốn") }
       : breakEven.monthsToGo
         ? {
             value: t(`~${breakEven.monthsToGo} months`, `~${breakEven.monthsToGo} tháng nữa`),
@@ -406,69 +470,84 @@ function ProjectBody({
               `around ${monthAfter(breakEven.monthsToGo)}, at the last ${breakEven.paceMonths} months' pace (${money(breakEven.avgMonthlyProfit)}/mo)`,
               `khoảng ${monthAfter(breakEven.monthsToGo)}, nếu giữ nhịp lãi ${breakEven.paceMonths} tháng gần nhất (${money(breakEven.avgMonthlyProfit)}/tháng)`
             ),
-            tone: "text",
           }
         : {
-            value: t(`${money(breakEven.shortfall)} to go`, `còn thiếu ${money(breakEven.shortfall)}`),
-            note: t(
-              "no profitable month yet to estimate from",
-              "chưa có tháng nào lãi để ước ngày hoà vốn"
-            ),
-            tone: "warning",
+            value: t("Not yet", "Chưa ước được"),
+            note: t("no profitable month yet to estimate from", "chưa có tháng nào lãi để ước ngày hoà vốn"),
           };
 
-  const headline = [
-    {
-      label: t("Invested", "Đã đầu tư"),
-      value: formatVND(totals.cost),
-      note:
-        totals.budget && totals.budgetUsedPct !== null
-          ? t(
-              `${totals.budgetUsedPct}% of the ${money(totals.budget)} plan · ${totals.costCount} items`,
-              `${totals.budgetUsedPct}% của ${money(totals.budget)} dự định · ${totals.costCount} khoản chi`
-            )
-          : t(`${totals.costCount} spending ${totals.costCount === 1 ? "entry" : "entries"}`, `${totals.costCount} khoản chi`),
-      tone: "text",
-    },
-    {
-      label: t("Revenue", "Doanh thu"),
-      value: formatVND(totals.revenue),
-      note:
-        totals.revenueCount > 0
-          ? t(`${totals.revenueCount} income ${totals.revenueCount === 1 ? "entry" : "entries"}`, `${totals.revenueCount} khoản thu`)
-          : t("no income recorded yet", "chưa ghi khoản thu nào"),
-      tone: totals.revenue > 0 ? "success" : "text",
-    },
-    {
-      label: profitable ? t("Net profit", "Lãi ròng") : t("Net loss so far", "Đang lỗ"),
-      value: `${profitable ? "" : "−"}${formatVND(Math.abs(totals.profit))}`,
-      // Chưa thu đồng nào thì ROI luôn là −100% — đúng nhưng vô nghĩa, chỉ làm
-      // một dự án mới khởi động trông như thảm hoạ.
-      note:
-        totals.revenue <= 0
-          ? t("ROI shows once revenue comes in", "ROI tính khi bắt đầu có doanh thu")
-          : totals.roiPct !== null
-          ? t(
-              `ROI ${totals.roiPct}%${totals.marginPct !== null ? ` · margin ${totals.marginPct}%` : ""}`,
-              `ROI ${totals.roiPct}%${totals.marginPct !== null ? ` · biên lãi ${totals.marginPct}%` : ""}`
-            )
-          : "—",
-      tone: profitable ? (totals.profit > 0 ? "success" : "text") : "error",
-    },
-    { label: t("Break-even", "Hoà vốn"), ...breakEvenCard },
-  ];
+  // Màu trạng thái chỉ trên con số lãi/lỗ, và nhãn ô đã nói bằng chữ là lãi hay lỗ.
+  const profitClass =
+    totals.profit > 0 ? "text-[var(--color-success)]" : totals.profit < 0 ? "text-[var(--color-error)]" : "";
 
-  const toneClass = (tone: string) =>
-    tone === "success"
-      ? "text-[var(--color-success)]"
-      : tone === "warning"
-        ? "text-[var(--color-warning)]"
-        : tone === "error"
-          ? "text-[var(--color-error)]"
-          : "text-[var(--color-text)]";
-
-  const maxSource = Math.max(1, ...revenueBySource.map((c) => c.amount));
+  // --- Đường hoà vốn ------------------------------------------------------
   const months = monthly.map((m) => m.name);
+  const lastIdx = monthly.length - 1;
+  const lastRow = monthly[lastIdx];
+  const lineMax = Math.max(1, ...monthly.map((m) => Math.max(m.cumCost, m.cumRevenue)));
+  // Hai điểm cuối sát nhau thì nhãn đường dưới xuống dưới, kẻo hai nhãn đè nhau.
+  const endsClose = lastRow ? Math.abs(lastRow.cumRevenue - lastRow.cumCost) < lineMax * 0.12 : false;
+  const revenueOnTop = lastRow ? lastRow.cumRevenue >= lastRow.cumCost : true;
+  const singleDot = (color: string) => (monthly.length === 1 ? { r: 3, fill: color, strokeWidth: 0 } : false);
+  const roadTitle = breakEven.reachedMonth
+    ? t(`Revenue has stayed above capital since ${monthLabel(breakEven.reachedMonth)}`, `Doanh thu vượt vốn từ ${monthLabel(breakEven.reachedMonth)} tới nay`)
+    : totals.cost > 0 && breakEven.monthsToGo
+      ? t(
+          `At the last ${breakEven.paceMonths} months' pace, break-even comes around ${monthAfter(breakEven.monthsToGo)}`,
+          `Giữ nhịp lãi ${breakEven.paceMonths} tháng gần nhất thì hoà vốn khoảng ${monthAfter(breakEven.monthsToGo)}`
+        )
+      : totals.cost > 0
+        ? t(
+            `Revenue is ${money(shortfall)} short of capital, with no recent profit to close the gap`,
+            `Doanh thu còn kém vốn ${money(shortfall)} — chưa có nhịp lãi nào để ước ngày hoà vốn`
+          )
+        : t("The road to break-even", "Đường hoà vốn");
+
+  // --- Thu chi từng tháng --------------------------------------------------
+  const activeMonths = monthly.filter((m) => m.cost !== 0 || m.revenue !== 0);
+  const profitableMonths = activeMonths.filter((m) => m.profit > 0).length;
+  const lastActive = lastRow && (lastRow.cost !== 0 || lastRow.revenue !== 0);
+  const lastPart = !lastRow
+    ? ""
+    : lastActive
+      ? t(
+          ` — ${monthLabel(lastRow.name)}: ${lastRow.profit >= 0 ? "profit" : "loss"} ${money(Math.abs(lastRow.profit))}`,
+          ` — tháng ${monthLabel(lastRow.name)} ${lastRow.profit >= 0 ? "lãi" : "lỗ"} ${money(Math.abs(lastRow.profit))}`
+        )
+      : t(` — nothing yet in ${monthLabel(lastRow.name)}`, ` — tháng ${monthLabel(lastRow.name)} chưa phát sinh`);
+  const monthlyTitle =
+    activeMonths.length === 0
+      ? t("Month by month", "Thu chi từng tháng")
+      : t(
+          `${profitableMonths} of ${activeMonths.length} active ${activeMonths.length === 1 ? "month" : "months"} made a profit${lastPart}`,
+          `Có lãi ${profitableMonths}/${activeMonths.length} tháng có thu chi${lastPart}`
+        );
+
+  // --- Doanh thu từ ai / Mua gì nhiều nhất ----------------------------------
+  const maxSource = Math.max(1, ...revenueBySource.map((c) => c.amount));
+  const topSource = revenueBySource.reduce<(typeof revenueBySource)[number] | null>(
+    (best, s) => (!best || s.amount > best.amount ? s : best),
+    null
+  );
+  const sourceSum = revenueBySource.reduce((sum, s) => sum + Math.max(0, s.amount), 0);
+  const sourceTitle =
+    !topSource || topSource.amount <= 0
+      ? t("Where revenue came from", "Doanh thu từ ai")
+      : revenueBySource.length === 1
+        ? t(`All revenue so far came from ${topSource.name}`, `Toàn bộ doanh thu tới nay đến từ ${topSource.name}`)
+        : t(
+            `${topSource.name} brought in ${Math.round((topSource.amount / Math.max(1, sourceSum)) * 100)}% of revenue`,
+            `${topSource.name} mang về ${Math.round((topSource.amount / Math.max(1, sourceSum)) * 100)}% doanh thu`
+          );
+  const maxItem = Math.max(1, ...topItems.map((c) => c.amount));
+  const topItem = topItems.reduce<(typeof topItems)[number] | null>(
+    (best, s) => (!best || s.amount > best.amount ? s : best),
+    null
+  );
+  const itemTitle =
+    topItem && topItem.amount > 0
+      ? t(`${topItem.name} is the biggest purchase — ${money(topItem.amount)}`, `${topItem.name} tốn nhiều nhất — ${money(topItem.amount)}`)
+      : t("Most bought", "Mua gì nhiều nhất");
 
   return (
     <div className="space-y-6">
@@ -524,37 +603,69 @@ function ProjectBody({
         </div>
       </div>
 
-      {/* --- Bốn câu trả lời --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {headline.map((c) => (
-          <div key={c.label} className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)]">
-            <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{c.label}</div>
-            <div className={`text-xl font-bold tabular-nums mt-2 ${toneClass(c.tone)}`}>{c.value}</div>
-            <div className="text-xs text-[var(--color-text-faint)] mt-1">{c.note}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* --- Thanh thu hồi vốn --- */}
-      {totals.cost > 0 && (
-        <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] space-y-4">
-          <div>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-sm font-bold text-[var(--color-text)]">{t("Capital recovered", "Đã thu hồi vốn")}</span>
-              <span className="text-sm font-bold tabular-nums text-[var(--color-text)]">{totals.recoveryPct ?? 0}%</span>
-            </div>
-            <div className="w-full bg-[var(--color-surface-2)] rounded-full h-2 mt-2 overflow-hidden">
-              <div className="bg-[var(--color-success)] h-2 rounded-full" style={{ width: `${recovery}%` }} />
-            </div>
-            <p className="text-xs text-[var(--color-text-faint)] mt-1.5">
+      {/* --- Thu hồi vốn: câu kết luận, thanh tiến độ, bốn con số ---
+          Thanh thu hồi vốn và bốn ô cũ nằm ở hai thẻ rời; gộp lại để câu
+          kết luận đứng trên cả hai. Ô lãi/lỗ là ô chính. */}
+      <ChartCard
+        title={recoveryTitle}
+        subtitle={t(
+          "Revenue earned back against capital put in, running totals",
+          "Doanh thu thu về so với vốn đã bỏ ra, cộng dồn từ đầu"
+        )}
+      >
+        {totals.cost > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <Meter pct={recovery} />
+            <p className="text-xs text-[var(--color-text-muted)] tabular-nums">
               {t(
                 `${money(totals.revenue)} earned back of ${money(totals.cost)} put in`,
                 `doanh thu ${money(totals.revenue)} trên ${money(totals.cost)} vốn đã bỏ ra`
               )}
             </p>
           </div>
+        )}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+          <StatTile
+            label={t("Invested", "Đã đầu tư")}
+            value={formatVND(totals.cost)}
+            note={
+              totals.budget && totals.budgetUsedPct !== null
+                ? t(
+                    `${totals.budgetUsedPct}% of the ${money(totals.budget)} plan · ${totals.costCount} items`,
+                    `${totals.budgetUsedPct}% của ${money(totals.budget)} dự định · ${totals.costCount} khoản chi`
+                  )
+                : t(`${totals.costCount} spending ${totals.costCount === 1 ? "entry" : "entries"}`, `${totals.costCount} khoản chi`)
+            }
+          />
+          <StatTile
+            label={t("Revenue", "Doanh thu")}
+            value={formatVND(totals.revenue)}
+            note={
+              totals.revenueCount > 0
+                ? t(`${totals.revenueCount} income ${totals.revenueCount === 1 ? "entry" : "entries"}`, `${totals.revenueCount} khoản thu`)
+                : t("no income recorded yet", "chưa ghi khoản thu nào")
+            }
+          />
+          <StatTile
+            emphasis
+            label={profitable ? t("Net profit", "Lãi ròng") : t("Net loss so far", "Đang lỗ")}
+            value={<span className={profitClass}>{`${profitable ? "" : "−"}${formatVND(Math.abs(totals.profit))}`}</span>}
+            // Chưa thu đồng nào thì ROI luôn là −100% — đúng nhưng vô nghĩa, chỉ
+            // làm một dự án mới khởi động trông như thảm hoạ.
+            note={
+              totals.revenue <= 0
+                ? t("ROI shows once revenue comes in", "ROI tính khi bắt đầu có doanh thu")
+                : totals.roiPct !== null
+                  ? t(
+                      `ROI ${totals.roiPct}%${totals.marginPct !== null ? ` · margin ${totals.marginPct}%` : ""}`,
+                      `ROI ${totals.roiPct}%${totals.marginPct !== null ? ` · biên lãi ${totals.marginPct}%` : ""}`
+                    )
+                  : "—"
+            }
+          />
+          <StatTile label={t("Break-even", "Hoà vốn")} value={breakEvenTile.value} note={breakEvenTile.note} />
         </div>
-      )}
+      </ChartCard>
 
       {!hasMoney ? (
         <div className="bg-[var(--color-surface)] rounded-2xl p-8 border border-dashed border-[var(--color-border)] text-center">
@@ -570,122 +681,104 @@ function ProjectBody({
         </div>
       ) : (
         <>
-          {/* --- Đường hoà vốn --- */}
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
-            <h4 className="c-h5 text-[var(--color-text)]">{t("The road to break-even", "Đường hoà vốn")}</h4>
-            <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-6">
-              {t(
-                "running totals · where the revenue line crosses the cost line, the project has paid for itself",
-                "cộng dồn từ đầu · chỗ đường doanh thu cắt qua đường vốn là lúc dự án tự trả được vốn"
-              )}
-            </p>
-            <div className="h-72 w-full">
+          {/* --- Đường hoà vốn ---
+              Hai đường cộng dồn: vốn xám, doanh thu màu nhấn — chỗ doanh thu
+              cắt qua vốn là lúc dự án tự trả được vốn. Nhãn ghi thẳng ở đầu
+              mút mỗi đường thay cho chú giải. */}
+          <ChartCard
+            title={roadTitle}
+            subtitle={t(
+              "Capital put in and revenue earned, running totals by month",
+              "Vốn đã bỏ vào và doanh thu thu về, cộng dồn theo tháng"
+            )}
+          >
+            <div className="h-60 md:h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={monthly} className="c-chart-multi">
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                  {/* Biểu đồ chỉ có đường: điểm đầu/cuối nằm sát mép, nhãn tháng cuối
-                      bị cắt ("oc"). Đệm hai đầu trục cho nhãn có chỗ. */}
-                  <XAxis dataKey="name" {...monthAxis(months)} padding={{ left: 24, right: 24 }} />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: "var(--color-text-faint)" }}
-                    tickFormatter={(v) => money(Number(v))}
-                    width={52}
-                  />
+                <LineChart data={monthly} margin={{ top: 22, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid {...GRID} />
+                  {/* Đệm hai đầu trục: điểm cuối sát mép thì nhãn tháng cuối bị cắt. */}
+                  <XAxis dataKey="name" {...monthAxis(months)} padding={{ left: 16, right: 16 }} />
+                  <YAxis {...yAxis(money, 52)} />
                   <Tooltip
+                    {...TOOLTIP_LINE}
                     formatter={(v, n) => [formatVND(Number(v) || 0), n]}
                     labelFormatter={(l) => monthLabel(String(l))}
                   />
-                  <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                  {breakEven.reachedMonth && (
+                    <ReferenceLine
+                      x={breakEven.reachedMonth}
+                      stroke={VIZ.muted}
+                      strokeDasharray="4 3"
+                      label={{ value: t("break-even", "hoà vốn"), position: "top", fontSize: 10, fill: "var(--color-text-faint)" }}
+                    />
+                  )}
                   <Line
-                    type="monotone"
+                    {...LINE}
+                    dot={singleDot(VIZ.muted)}
                     dataKey="cumCost"
                     name={t("Capital put in", "Vốn đã bỏ vào")}
-                    // Phải đặt màu tường minh: CSS `.c-chart-multi` chỉ tô lại
-                    // đường kẻ, còn ô màu trong chú giải lấy từ prop này —
-                    // thiếu nó là chú giải hiện xanh dương mặc định của recharts.
-                    stroke="var(--color-text)"
-                    strokeWidth={2}
-                    strokeDasharray="5 3"
-                    dot={{ r: 3 }}
+                    stroke={VIZ.muted}
+                    label={endLabel(lastIdx, (v) => `${t("Capital", "Vốn")} ${money(v)}`, !revenueOnTop || !endsClose)}
                   />
                   <Line
-                    type="monotone"
+                    {...LINE}
+                    dot={singleDot(VIZ.accent)}
                     dataKey="cumRevenue"
                     name={t("Revenue earned", "Doanh thu thu về")}
-                    className="c-series-1"
-                    stroke="var(--chart-1)"
-                    strokeWidth={2.5}
-                    dot={{ r: 3 }}
+                    stroke={VIZ.accent}
+                    label={endLabel(lastIdx, (v) => `${t("Revenue", "Doanh thu")} ${money(v)}`, revenueOnTop || !endsClose)}
                   />
-                </ComposedChart>
+                </LineChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </ChartCard>
 
-          {/* --- Thu chi từng tháng --- */}
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
-            <h4 className="c-h5 text-[var(--color-text)]">{t("Month by month", "Thu chi từng tháng")}</h4>
-            <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-6">
-              {t("columns: revenue and cost · line: that month's profit", "cột: doanh thu và chi phí · đường: lãi/lỗ của riêng tháng đó")}
-            </p>
-            <div className="h-64 w-full">
+          {/* --- Thu chi từng tháng ---
+              Hai cột cạnh nhau trên CÙNG một trục: doanh thu màu nhấn, chi phí
+              xám. Lãi/lỗ của tháng nằm trong tooltip và trong tiêu đề, không
+              vẽ thêm đường thứ ba đè lên cột. */}
+          <ChartCard
+            title={monthlyTitle}
+            subtitle={t("Revenue and cost recorded each month", "Doanh thu và chi phí ghi nhận mỗi tháng")}
+            keys={[
+              { label: t("Revenue", "Doanh thu"), color: VIZ.accent, shape: "bar" },
+              { label: t("Cost", "Chi phí"), color: VIZ.muted, shape: "bar" },
+            ]}
+          >
+            <div className="h-56 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={monthly} className="c-chart-multi">
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                <BarChart data={monthly} barGap={2} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <CartesianGrid {...GRID} />
                   <XAxis dataKey="name" {...monthAxis(months)} />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: "var(--color-text-faint)" }}
-                    tickFormatter={(v) => money(Number(v))}
-                    width={52}
-                  />
+                  <YAxis {...yAxis(money, 52)} />
                   <Tooltip
+                    {...TOOLTIP}
                     formatter={(v, n) => [formatVND(Number(v) || 0), n]}
-                    labelFormatter={(l) => monthLabel(String(l))}
+                    labelFormatter={(l, p) => {
+                      const row = p?.[0]?.payload as { profit?: number } | undefined;
+                      const head = monthLabel(String(l));
+                      if (row?.profit === undefined) return head;
+                      return `${head} · ${row.profit >= 0 ? t("profit", "lãi") : t("loss", "lỗ")} ${money(Math.abs(row.profit))}`;
+                    }}
                   />
-                  <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
-                  <Bar
-                    dataKey="revenue"
-                    name={t("Revenue", "Doanh thu")}
-                    className="c-series-1"
-                    fill="var(--chart-1)"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={26}
-                  />
-                  <Bar
-                    dataKey="cost"
-                    name={t("Cost", "Chi phí")}
-                    className="c-series-3"
-                    fill="var(--chart-3)"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={26}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="profit"
-                    name={t("Profit", "Lãi/lỗ")}
-                    stroke="var(--color-text)"
-                    strokeWidth={2}
-                    dot={{ r: 2.5 }}
-                  />
-                </ComposedChart>
+                  <Bar dataKey="revenue" name={t("Revenue", "Doanh thu")} fill={VIZ.accent} {...BAR} />
+                  <Bar dataKey="cost" name={t("Cost", "Chi phí")} fill={VIZ.muted} {...BAR} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </ChartCard>
 
           {/* --- Giá thành & giá vốn: 5 nhóm chi phí, WIP/COGS, ngân sách --- */}
           <CostPanel cogs={cogs} money={money} onTransfer={onTransfer} onEditBudget={onEditProject} />
 
-          {/* --- Doanh thu từ ai / Mua gì nhiều nhất --- */}
+          {/* --- Doanh thu từ ai / Mua gì nhiều nhất ---
+              Cột ngang xếp hạng, số căn phải; mục lớn nhất (mục tiêu đề nói tới)
+              màu nhấn, còn lại xám. */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
-              <h4 className="c-h5 text-[var(--color-text)]">{t("Where revenue came from", "Doanh thu từ ai")}</h4>
-              <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-5">
-                {t("by customer (the “from” field of income)", "theo khách hàng (ô “Nơi chi / nguồn” của khoản thu)")}
-              </p>
+            <ChartCard
+              title={sourceTitle}
+              subtitle={t("Revenue by customer (the “from” field of income)", "Doanh thu theo khách hàng (ô “Nơi chi / nguồn” của khoản thu)")}
+            >
               {revenueBySource.length === 0 ? (
                 <p className="text-sm text-[var(--color-text-faint)]">
                   {t(
@@ -694,52 +787,50 @@ function ProjectBody({
                   )}
                 </p>
               ) : (
-                <ul className="space-y-3">
-                  {revenueBySource.map((s) => (
-                    <li key={s.name}>
-                      <div className="flex items-baseline justify-between gap-3 text-sm">
-                        <span className="min-w-0 truncate text-[var(--color-text)]">
-                          {s.name}
-                          <span className="text-[var(--color-text-faint)]"> · {s.count} {t("orders", "lần")}</span>
-                        </span>
-                        <span className="shrink-0 tabular-nums font-bold text-[var(--color-success)]">{formatVND(s.amount)}</span>
-                      </div>
-                      <div className="w-full bg-[var(--color-surface-2)] rounded-full h-1.5 mt-1.5 overflow-hidden">
-                        <div
-                          className="h-1.5 rounded-full"
-                          style={{ width: `${Math.max(2, (s.amount / maxSource) * 100)}%`, background: "var(--chart-1)" }}
-                        />
-                      </div>
-                    </li>
-                  ))}
+                <ul className="flex flex-col gap-3">
+                  {revenueBySource.map((s) => {
+                    const top = s.name === topSource?.name;
+                    return (
+                      <li key={s.name} className="flex flex-col gap-1.5">
+                        <div className="flex items-baseline justify-between gap-3 text-sm">
+                          <span className={`min-w-0 truncate text-[var(--color-text)] ${top ? "font-bold" : ""}`}>
+                            {s.name}
+                            <span className="font-normal text-[var(--color-text-faint)]"> · {s.count} {t("orders", "lần")}</span>
+                          </span>
+                          <span className="shrink-0 tabular-nums font-bold text-[var(--color-text)]">{formatVND(s.amount)}</span>
+                        </div>
+                        <RankBar value={s.amount} max={maxSource} color={top ? VIZ.accent : VIZ.muted} />
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
-            </div>
+            </ChartCard>
 
-          {/* --- Mua gì nhiều nhất --- */}
-          {topItems.length > 0 && (
-            <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
-              <h4 className="c-h5 text-[var(--color-text)]">{t("Most bought", "Mua gì nhiều nhất")}</h4>
-              <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
-                {t("from receipt line items", "gộp từ chi tiết hoá đơn")}
-              </p>
-              <ul className="divide-y divide-[var(--color-border)]">
-                {topItems.map((it) => (
-                  <li key={it.name} className="flex items-baseline justify-between gap-3 py-2.5 first:pt-0 last:pb-0 text-sm">
-                    <span className="min-w-0 text-[var(--color-text)]">
-                      {it.name}
-                      <span className="text-[var(--color-text-faint)]"> · SL {it.quantity}</span>
-                    </span>
-                    <span className="shrink-0 tabular-nums font-bold text-[var(--color-text)]">{formatVND(it.amount)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+            {topItems.length > 0 && (
+              <ChartCard title={itemTitle} subtitle={t("Most bought, from receipt line items", "Mua gì nhiều nhất, gộp từ chi tiết hoá đơn")}>
+                <ul className="flex flex-col gap-3">
+                  {topItems.map((it) => {
+                    const top = it.name === topItem?.name;
+                    return (
+                      <li key={it.name} className="flex flex-col gap-1.5">
+                        <div className="flex items-baseline justify-between gap-3 text-sm">
+                          <span className={`min-w-0 truncate text-[var(--color-text)] ${top ? "font-bold" : ""}`}>
+                            {it.name}
+                            <span className="font-normal text-[var(--color-text-faint)]"> · SL {it.quantity}</span>
+                          </span>
+                          <span className="shrink-0 tabular-nums font-bold text-[var(--color-text)]">{formatVND(it.amount)}</span>
+                        </div>
+                        <RankBar value={it.amount} max={maxItem} color={top ? VIZ.accent : VIZ.muted} />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </ChartCard>
+            )}
           </div>
         </>
       )}
-
       {/* --- Sổ của dự án --- */}
       {transactions.length > 0 && (
         <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">

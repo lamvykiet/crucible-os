@@ -46,7 +46,7 @@ export default function StackedMonthTooltip({
     totalRow?.value ?? rows.reduce((sum, r) => sum + (r.value || 0), 0)
   );
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 shadow-sm text-xs">
+    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs">
       <p className="font-bold text-[var(--color-text)]">{label}</p>
       <p className="font-bold tabular-nums text-[var(--color-text)] mb-1.5">
         {formatVND(total)}

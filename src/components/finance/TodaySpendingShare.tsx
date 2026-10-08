@@ -1,16 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { formatVND } from "@/lib/formatMoney";
+import { VIZ } from "@/lib/viz";
+import ChartCard from "@/components/charts/ChartCard";
 
 // Tỷ trọng chi tiêu của MỘT ngày theo nhóm danh mục.
 //
 // Đi cặp với DayTransactionsCard ở đầu Dashboard: thẻ kia liệt kê từng khoản,
 // thẻ này trả lời "tiền hôm nay đổ vào nhóm nào nhiều nhất". Chỉ tính khoản
 // Chi — thu nhập và chuyển khoản không phải chi tiêu.
+//
+// Bản trước là donut sáu màu. Mắt người so độ dài tốt hơn so góc nhiều lần, và
+// sáu màu thì người đọc phải dò chú giải mới biết lát nào là gì — nên giờ là
+// cột ngang xếp hạng (docs/bieu-do.md §2): nhóm lớn nhất mang màu nhấn vì tiêu
+// đề nói về nó, các nhóm còn lại xám. Số và % nằm ngay trên dòng, không cần
+// chú giải.
 
 interface DayTx {
   type: string;
@@ -18,48 +25,19 @@ interface DayTx {
   totalAmount: number;
 }
 
-interface Slice {
+interface Row {
   key: string;
   name: string;
   amount: number;
-  color: string;
 }
 
-// Màu lát bánh lấy từ hệ màu biểu đồ của dự án (--chart-1..6 trong
-// globals.css), cùng bảng với donut bên tab Chi tiêu. Trước đây thẻ này dùng
-// một bảng riêng, nên cùng một nhóm chi tiêu lại mang hai màu ở hai màn hình
-// kề nhau.
-//
-// Hệ chỉ có sáu bậc và hai bậc cuối rất nhạt, nên quá sáu nhóm thì phần đuôi
-// gộp thành "Khác" màu xám thay vì xoay vòng màu.
-const SERIES_COUNT = 6;
-const OTHER_COLOR = "var(--color-border-strong)";
+/** Quá chừng này nhóm thì phần đuôi gộp thành "Khác" — danh sách chỉ để đọc lướt. */
+const MAX_ROWS = 6;
 
 const formatPct = (part: number, total: number) => {
   const pct = (part / total) * 100;
   return pct > 0 && pct < 1 ? "<1%" : `${Math.round(pct)}%`;
 };
-
-function SliceTooltip({
-  active,
-  payload,
-  total,
-}: {
-  active?: boolean;
-  payload?: readonly { payload?: unknown }[];
-  total: number;
-}) {
-  const slice = payload?.[0]?.payload as Slice | undefined;
-  if (!active || !slice) return null;
-  return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 shadow-sm text-xs">
-      <p className="font-bold text-[var(--color-text)]">{slice.name}</p>
-      <p className="text-[var(--color-text-muted)] tabular-nums mt-0.5">
-        {formatVND(slice.amount)} · {formatPct(slice.amount, total)}
-      </p>
-    </div>
-  );
-}
 
 interface Props {
   /** YYYY-MM-DD */
@@ -106,9 +84,8 @@ export default function TodaySpendingShare({ date, refreshKey = 0, title }: Prop
 
   const isLoading = !errorCode && (!data || data.date !== date);
 
-  // Cộng theo nhóm, lớn trước. Quá 6 nhóm thì 5 nhóm đầu giữ màu riêng, phần
-  // đuôi gộp thành "Khác" màu xám — không sinh thêm màu thứ 7.
-  const palette = Array.from({ length: SERIES_COUNT }, (_, i) => `var(--chart-${i + 1})`);
+  // Cộng theo nhóm, lớn trước. Quá MAX_ROWS nhóm thì giữ MAX_ROWS - 1 nhóm đầu,
+  // phần đuôi gộp thành "Khác".
   const byGroup = new Map<string, number>();
   for (const tx of data?.transactions ?? []) {
     if (tx.type?.trim().toLowerCase() !== "expense") continue;
@@ -119,23 +96,24 @@ export default function TodaySpendingShare({ date, refreshKey = 0, title }: Prop
     .sort((a, b) => b[1] - a[1]);
   const total = ranked.reduce((s, [, amount]) => s + amount, 0);
 
-  const head = ranked.length > palette.length ? ranked.slice(0, palette.length - 1) : ranked;
-  const slices: Slice[] = head.map(([group, amount], i) => ({
+  const head = ranked.length > MAX_ROWS ? ranked.slice(0, MAX_ROWS - 1) : ranked;
+  const rows: Row[] = head.map(([group, amount]) => ({
     key: group || "__none",
     name: group ? label(group) : t("No group", "Chưa có nhóm"),
     amount,
-    color: palette[i],
   }));
   if (ranked.length > head.length) {
-    slices.push({
+    rows.push({
       key: "__other",
       name: `${t("Other", "Khác")} (${ranked.length - head.length})`,
       amount: ranked.slice(head.length).reduce((s, [, amount]) => s + amount, 0),
-      color: OTHER_COLOR,
     });
   }
+  // Thước chung là nhóm lớn nhất, không phải tổng: cột dài nhất chạm mép phải,
+  // các cột khác so được với nó bằng mắt.
+  const scale = Math.max(1, ...rows.map((r) => r.amount));
 
-  const heading =
+  const rawHeading =
     title ??
     new Date(`${date}T00:00:00Z`).toLocaleDateString("vi-VN", {
       timeZone: "UTC",
@@ -143,98 +121,77 @@ export default function TodaySpendingShare({ date, refreshKey = 0, title }: Prop
       day: "numeric",
       month: "numeric",
     });
+  // "thứ hai, 5/10" đứng đầu câu tiêu đề thì phải viết hoa.
+  const heading = rawHeading.charAt(0).toUpperCase() + rawHeading.slice(1);
+
+  // --- Câu kết luận ---------------------------------------------------------
+  const top = rows[0];
+  const ready = !errorCode && !isLoading && top !== undefined;
+  const headline = !ready
+    ? `${t("Spending share", "Tỷ trọng chi tiêu")} · ${heading}`
+    : rows.length === 1
+      ? t(`${heading}: all spending went to ${top.name}`, `${heading}: mọi khoản chi đều vào ${top.name}`)
+      : t(
+          `${heading}: ${top.name} took ${formatPct(top.amount, total)} of spending`,
+          `${heading}: ${top.name} chiếm ${formatPct(top.amount, total)} tổng chi`
+        );
+  const subtitle = ready
+    ? t(
+        `Spending by category group · total ${formatVND(total)}`,
+        `Chi theo nhóm danh mục · tổng ${formatVND(total)}`
+      )
+    : t("by category group", "theo nhóm danh mục");
 
   return (
-    <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
-      <div className="p-5 border-b border-[var(--color-border)]">
-        <h3 className="c-h5 text-[var(--color-text)] truncate">
-          {t("Spending share", "Tỷ trọng chi tiêu")} · {heading}
-        </h3>
-        <p className="text-xs text-[var(--color-text-faint)] mt-1">
-          {t("by category group", "theo nhóm danh mục")}
-        </p>
-      </div>
-
+    <ChartCard title={headline} subtitle={subtitle}>
       {errorCode && (
-        <div className="p-5 text-sm text-[var(--color-error)]">
+        <p className="text-sm text-[var(--color-error)]">
           {errorCode === "load" ? t("Could not load", "Không tải được") : errorCode}
-        </div>
+        </p>
       )}
 
       {!errorCode && isLoading && (
-        <div className="p-5 text-sm text-[var(--color-text-faint)]">
-          {t("Loading...", "Đang tải...")}
-        </div>
+        <p className="text-sm text-[var(--color-text-faint)]">{t("Loading...", "Đang tải...")}</p>
       )}
 
-      {!errorCode && !isLoading && slices.length === 0 && (
-        <div className="px-5 py-8 text-center text-sm text-[var(--color-text-muted)]">
+      {!errorCode && !isLoading && rows.length === 0 && (
+        <p className="py-4 text-center text-sm text-[var(--color-text-muted)]">
           {t("No spending recorded for this day.", "Ngày này chưa ghi khoản chi nào.")}
-        </div>
+        </p>
       )}
 
-      {!errorCode && !isLoading && slices.length > 0 && (
-        // Donut trên, nhãn dưới — kể cả màn rộng. Thẻ chỉ chiếm nửa hàng, đặt cạnh
-        // nhau thì donut 208px ăn hết chỗ và tên nhóm bị cắt còn 0 ký tự.
-        <div className="p-5 flex flex-col gap-5">
-          <div className="relative h-52 w-52 max-w-full mx-auto flex-none">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={slices}
-                  dataKey="amount"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="68%"
-                  outerRadius="100%"
-                  startAngle={90}
-                  endAngle={-270}
-                  // Khe 2px màu nền giữa các lát — để các lát liền màu vẫn tách được.
-                  stroke="var(--color-surface)"
-                  strokeWidth={2}
-                  isAnimationActive={false}
-                >
-                  {slices.map((s) => (
-                    <Cell key={s.key} fill={s.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<SliceTooltip total={total} />} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-faint)]">
-                {t("Total", "Tổng chi")}
-              </span>
-              <span className="text-sm font-bold tabular-nums text-[var(--color-text)]">
-                {formatVND(total)}
-              </span>
-            </div>
-          </div>
-
-          {/* Nhãn chữ cho từng lát — màu không bao giờ là cách duy nhất để đọc. */}
-          <ul className="min-w-0 space-y-2">
-            {slices.map((s) => (
-              <li key={s.key} className="flex items-center gap-3 text-sm">
+      {ready && (
+        <ul className="flex flex-col gap-3 min-w-0">
+          {rows.map((r, i) => (
+            <li key={r.key} className="flex flex-col gap-1 min-w-0">
+              <div className="flex items-baseline justify-between gap-3 text-sm">
                 <span
-                  className="w-3 h-3 rounded-sm flex-none"
-                  style={{ background: s.color }}
-                  aria-hidden
+                  className={`min-w-0 truncate text-[var(--color-text)] ${i === 0 ? "font-bold" : ""}`}
+                  title={r.name}
+                >
+                  {r.name}
+                </span>
+                <span className="flex-none tabular-nums">
+                  <span className="font-bold text-[var(--color-text)]">{formatVND(r.amount)}</span>
+                  <span className="ml-2 inline-block w-9 text-right text-xs text-[var(--color-text-faint)]">
+                    {formatPct(r.amount, total)}
+                  </span>
+                </span>
+              </div>
+              <div className="relative h-3 w-full" aria-hidden>
+                <div
+                  className="absolute inset-y-0 left-0 rounded-r-[4px]"
+                  style={{
+                    width: `${(r.amount / scale) * 100}%`,
+                    minWidth: 3,
+                    background: i === 0 ? VIZ.accent : r.key === "__other" ? VIZ.other : VIZ.muted,
+                  }}
                 />
-                <span className="flex-1 min-w-0 truncate text-[var(--color-text-muted)]" title={s.name}>
-                  {s.name}
-                </span>
-                <span className="font-bold tabular-nums text-[var(--color-text)]">
-                  {formatPct(s.amount, total)}
-                </span>
-                <span className="w-24 text-right tabular-nums text-[var(--color-text-faint)] text-xs">
-                  {formatVND(s.amount)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
+    </ChartCard>
   );
 }
