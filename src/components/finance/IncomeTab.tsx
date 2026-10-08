@@ -14,7 +14,7 @@ import { thisMonthLocalIso } from "@/lib/localDate";
 import PeriodComparison from "./PeriodComparison";
 import StackedMonthTooltip from "./StackedMonthTooltip";
 import { compactMoney, formatVND } from "@/lib/formatMoney";
-import { VIZ, GRID, yAxis, xAxis, BAR, LINE, STACK_GAP, TOOLTIP, TOOLTIP_LINE, labelAt, pctChange, refLabel, barLabelAt } from "@/lib/viz";
+import { VIZ, GRID, yAxis, xAxis, BAR, LINE, STACK_GAP, TOOLTIP, TOOLTIP_LINE, pctChange, refLabel, barLabelAt } from "@/lib/viz";
 import ChartCard, { SeriesKey, Delta, StatTile } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 import IncomeCareer from "./IncomeCareer";

@@ -10,7 +10,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { todayLocalIso } from "@/lib/localDate";
-import { VIZ, GRID, BAR, TOOLTIP, xAxis, yAxis, labelAt, pctChange, refLabel, barLabelAt } from "@/lib/viz";
+import { VIZ, GRID, BAR, TOOLTIP, xAxis, yAxis, pctChange, refLabel, barLabelAt } from "@/lib/viz";
 import ChartCard, { Delta } from "@/components/charts/ChartCard";
 
 // Hôm nay, hôm qua, cả tuần.

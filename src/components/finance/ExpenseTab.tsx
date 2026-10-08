@@ -19,7 +19,7 @@ import StackedMonthTooltip from "./StackedMonthTooltip";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
-import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, TOOLTIP, labelAt, pctChange, catColor, refLabel, barLabelAt, drawnIndex } from "@/lib/viz";
+import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, TOOLTIP, pctChange, catColor, refLabel, barLabelAt, drawnIndex } from "@/lib/viz";
 import ChartCard, { StatTile } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 

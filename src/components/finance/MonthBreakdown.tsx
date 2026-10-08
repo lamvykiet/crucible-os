@@ -6,7 +6,7 @@ import { ChevronDown, Search, Store, Shapes } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
-import { VIZ, BAR, TOOLTIP, labelAt, pctChange, refLabel, barLabelAt } from "@/lib/viz";
+import { VIZ, BAR, TOOLTIP, pctChange, refLabel, barLabelAt } from "@/lib/viz";
 import { SeriesKey, Delta, StatTile } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 
