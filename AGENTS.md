@@ -76,7 +76,11 @@ Ngày 08/10/2026 người dùng chủ động chọn **lớp kính** (kiểu vis
 xanh tro, rêu trên đá ấm, vẽ ở `body::before`), viền sáng `--glass-edge`, chữ
 mực `#2a2b2f`, và **một** màu đất nung `#b05a36`. Luật: độ nổi đến từ độ trong
 + viền sáng + một bóng rộng rất mềm, không bóng nhỏ sắc nét; thứ gì đè lên nội
-dung khác (modal, menu thả, tooltip, cột dính) dùng `--glass-solid` gần đục;
+dung khác (modal, lịch chọn ngày, menu thả, tooltip, cột dính) dùng
+`--glass-solid` ĐẶC hẳn — globals.css tự bắt chúng theo class vị trí
+(`fixed/absolute/md:absolute/sticky` hoặc `shadow-xl`) + nền `--color-surface*`;
+lớp nổi viết kiểu khác thì phải tự đặt `bg-[var(--glass-solid)]`, nếu không chữ
+hai lớp đọc chồng lên nhau (09/10: lịch chọn ngày đè form thêm giao dịch);
 đất nung chỉ cho nút chính, nhãn mắt, điểm nhấn dữ liệu; tab/mục điều hướng
 ĐANG CHỌN là viên kính trắng đục `--glass-pill` chữ mực; serif chỉ cho tiêu đề
 biên tập, còn thân bài/nhãn/nút là sans bó chữ `-0.023em`; thẻ 24px, nút 40px,

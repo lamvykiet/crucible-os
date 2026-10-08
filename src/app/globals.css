@@ -123,7 +123,7 @@
   --color-surface-2: rgba(255, 252, 246, .26);
   --color-surface-3: rgba(255, 255, 255, .62);
   --glass-edge: rgba(255, 255, 255, .55);
-  --glass-solid: rgba(251, 248, 243, .92);
+  --glass-solid: #faf7f1;  /* ĐẶC hẳn: lớp nổi đè lên chữ, lọt 3% cũng thấy bóng chữ */
   --glass-blur: blur(28px) saturate(1.5);
   --glass-pill: rgba(255, 255, 255, .92);
   --glass-pill-ink: var(--ink);
@@ -226,7 +226,7 @@
   --color-surface-2: rgba(10, 8, 6, .26);
   --color-surface-3: rgba(255, 244, 228, .14);
   --glass-edge: rgba(255, 255, 255, .14);
-  --glass-solid: rgba(34, 29, 24, .94);
+  --glass-solid: #221d18;
   --glass-pill: #f1ecdc;
   --glass-pill-ink: #1d1915;
   --glass-nav: rgba(30, 26, 22, .55);
@@ -779,18 +779,28 @@ body::before {
   border-color: var(--glass-edge);
 }
 
-/* Những thứ nổi ĐÈ lên nội dung khác — menu thả của ô gợi ý, lớp phủ kín một
-   thẻ, cột dính khi cuộn ngang bảng — nếu trong suốt thì chữ bên dưới xuyên
-   qua đọc lẫn vào nhau. Cho chúng kính gần đục. */
-.absolute[class*="bg-[var(--color-surface"],
-.absolute[class*="bg-[var(--color-bg)]"],
-.sticky[class*="bg-[var(--color-surface"] {
-  background-color: var(--glass-solid);
-}
-.absolute.z-30[class*="bg-[var(--color-surface"],
-.absolute.z-40[class*="bg-[var(--color-surface"],
-.absolute.z-50[class*="bg-[var(--color-surface"] {
-  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+/* Những thứ nổi ĐÈ lên nội dung khác — lịch chọn ngày, chọn tháng, menu thả
+   của ô gợi ý, tấm modal, mặt thẻ lật, cột dính khi cuộn ngang bảng. Thẻ
+   giờ chỉ đục 17%, nên lớp nào trong suốt là chữ của nó và chữ bên dưới đọc
+   chồng lên nhau (09/10: lịch chọn ngày đè lên form thêm giao dịch).
+
+   Nhận diện bằng CLASS VỊ TRÍ chứ không bằng tên component, để lớp nổi viết
+   sau này cũng tự đúng. Phải liệt kê cả biến thể responsive: lịch chọn ngày
+   viết `fixed … md:absolute`, quy tắc cũ chỉ bắt `.absolute` nên bỏ sót nó.
+   `shadow-xl/2xl` là dấu của tấm modal. So token bằng `~=` (đúng một class)
+   chứ không `*=`, nếu không `hover:bg-[var(--color-surface-2)]` của một nút
+   trong suốt cũng bị tô đặc.
+
+   `!important` vì quy tắc thẻ trang `.c-main .rounded-2xl[class*="border"]…`
+   đặc hiệu hơn và sẽ trả lại nền trong suốt cho lớp nổi nằm thẳng trên trang. */
+:is(.fixed, .absolute, .sticky, .md\:absolute, .sm\:absolute, .lg\:sticky, .shadow-lg, .shadow-xl, .shadow-2xl):is(
+  [class~="bg-[var(--color-surface)]"],
+  [class~="bg-[var(--color-surface-2)]"],
+  [class~="bg-[var(--color-bg)]"],
+  [class~="bg-[var(--color-surface)]/85"]
+) {
+  background-color: var(--glass-solid) !important;
+  background-image: none !important;
 }
 
 /* Dải tab dạng viên thuốc (Sổ chi tiêu, Knowledge, Cài đặt viết giống nhau:
