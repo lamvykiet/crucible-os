@@ -11,7 +11,7 @@ import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
-import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, labelAt, pctChange, catColor, refLabel, barLabelAt, drawnIndex } from "@/lib/viz";
+import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, labelAt, pctChange, catColor, refLabel, barLabelAt, drawnIndex, stackTotalAt } from "@/lib/viz";
 import { SeriesKey, Delta, StatTile, type SeriesKeyItem } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 
@@ -230,20 +230,6 @@ function BarRows({ rows }: { rows: BarRow[] }) {
       ))}
     </ul>
   );
-}
-
-/** Nhãn tổng trên đỉnh cột chồng, chỉ ở MỘT cột (gắn vào khúc trên cùng có giá trị). */
-function stackTotalAt(index: number, total: number, format: (v: number) => string) {
-  const render = (props: { index?: number; x?: number | string; y?: number | string; width?: number | string }) => {
-    if (props.index !== index) return null;
-    const x = Number(props.x) + Number(props.width ?? 0) / 2;
-    return (
-      <text x={x} y={Number(props.y) - 8} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--color-text)">
-        {format(total)}
-      </text>
-    );
-  };
-  return render;
 }
 
 /** Chấm màu nhấn chỉ ở MỘT điểm của đường. */
@@ -597,12 +583,12 @@ function GroupCharts({
         <StatTile
           label={`${t("Last month", "Tháng trước")} · ${data.prevMonth.label}`}
           value={formatVND(data.prevMonth.total)}
-          delta={<Delta pct={change(data.current.total, data.prevMonth.total)} upIsGood={false} vs={t(`${mm} vs this`, `${mm} so với số này`)} />}
+          delta={<Delta pct={change(data.current.total, data.prevMonth.total)} upIsGood={false} vs={t(`${mm} vs this figure`, `${mm} so với mốc này`)} />}
         />
         <StatTile
           label={`${t("Same month last year", "Cùng kỳ năm trước")} · ${data.lastYearMonth.label}`}
           value={formatVND(data.lastYearMonth.total)}
-          delta={<Delta pct={change(data.current.total, data.lastYearMonth.total)} upIsGood={false} vs={t(`${mm} vs this`, `${mm} so với số này`)} />}
+          delta={<Delta pct={change(data.current.total, data.lastYearMonth.total)} upIsGood={false} vs={t(`${mm} vs this figure`, `${mm} so với mốc này`)} />}
         />
         <StatTile
           label={`${t("Year to date", "Luỹ kế năm")} ${data.year}`}

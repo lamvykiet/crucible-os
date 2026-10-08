@@ -19,7 +19,7 @@ import StackedMonthTooltip from "./StackedMonthTooltip";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
-import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, TOOLTIP, pctChange, catColor, refLabel, barLabelAt, drawnIndex } from "@/lib/viz";
+import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, TOOLTIP, pctChange, catColor, refLabel, barLabelAt, drawnIndex, stackTotalAt } from "@/lib/viz";
 import ChartCard, { StatTile } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 
@@ -154,24 +154,6 @@ function RankList({ rows, scale }: { rows: RankRow[]; scale: number }) {
       ))}
     </ul>
   );
-}
-
-/**
- * Nhãn tổng tháng trên đỉnh cột chồng, chỉ ở MỘT cột. Gắn vào khúc trên cùng
- * có giá trị của cột đó, nên `y` là đỉnh cả chồng.
- */
-function stackTotalAt(index: number, total: number, format: (v: number) => string) {
-  const render = (props: { index?: number; x?: number | string; y?: number | string; width?: number | string }) => {
-    if (props.index !== index) return null;
-    const x = Number(props.x) + Number(props.width ?? 0) / 2;
-    const y = Number(props.y) - 8;
-    return (
-      <text x={x} y={y} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--color-text)">
-        {format(total)}
-      </text>
-    );
-  };
-  return render;
 }
 
 export default function ExpenseTab() {
