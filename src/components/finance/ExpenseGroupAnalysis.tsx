@@ -11,7 +11,7 @@ import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
-import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, labelAt, pctChange, catColor, refLabel } from "@/lib/viz";
+import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, labelAt, pctChange, catColor, refLabel, barLabelAt, drawnIndex } from "@/lib/viz";
 import { SeriesKey, Delta, StatTile, type SeriesKeyItem } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 
@@ -646,7 +646,7 @@ function GroupCharts({
                 }
               />
               {single ? (
-                <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={labelAt(cur, money)}>
+                <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={barLabelAt(series, "amount", cur, money)}>
                   {series.map((r, i) => (
                     <Cell key={String(r.name)} fill={i === cur ? VIZ.accent : VIZ.muted} />
                   ))}
@@ -664,7 +664,7 @@ function GroupCharts({
                     radius={sub === lastStackKey ? BAR.radius : 0}
                     onMouseEnter={() => setActiveSub(sub === REST_KEY ? null : sub)}
                     onMouseLeave={() => setActiveSub(null)}
-                    label={sub === topKeyAtCur ? stackTotalAt(cur, data.current.total, money) : undefined}
+                    label={sub === topKeyAtCur ? stackTotalAt(drawnIndex(series, sub, cur), data.current.total, money) : undefined}
                   />
                 ))
               )}
@@ -732,7 +732,7 @@ function GroupCharts({
                   formatter={(v) => [formatVND(Number(v) || 0), t("Average", "Trung bình")]}
                   labelFormatter={(l) => monthShort(String(l), vi)}
                 />
-                <Bar dataKey="avg" {...BAR} fill={VIZ.muted} label={labelAt(hot, money)}>
+                <Bar dataKey="avg" {...BAR} fill={VIZ.muted} label={barLabelAt(data.seasonality, "avg", hot, money)}>
                   {data.seasonality.map((s, i) => (
                     <Cell key={s.name} fill={i === hot ? VIZ.accent : VIZ.muted} />
                   ))}
@@ -809,7 +809,7 @@ function GroupCharts({
                     t("Spending", "Số tiền"),
                   ]}
                 />
-                <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={labelAt(heavy, money)}>
+                <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={barLabelAt(week, "amount", heavy, money)}>
                   {week.map((w, i) => (
                     <Cell key={w.name} fill={i === heavy ? VIZ.accent : VIZ.muted} />
                   ))}

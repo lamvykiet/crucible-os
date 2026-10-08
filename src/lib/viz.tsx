@@ -115,3 +115,30 @@ export function labelAt(index: number, format: (v: number) => string, opts: { dy
   };
   return render;
 }
+
+/**
+ * Đổi chỉ số trong `data` sang chỉ số mà NHÃN của một <Bar> nhận được.
+ * recharts 3 BỎ các cột cao 0 (hoặc rỗng) trước khi đánh số nhãn, nên `index`
+ * của nhãn là thứ tự trong các cột ĐƯỢC VẼ. Có một ngày/tháng trống đứng trước
+ * là nhãn nhảy sang cột bên cạnh — đã gặp: cột đất nung là ngày 3 mà số in trên
+ * cột ngày 4. Trả -1 khi chính cột đó không được vẽ.
+ */
+export function drawnIndex<T>(data: readonly T[], key: keyof T, index: number) {
+  const drawn = (d: T | undefined) => {
+    const v = Number(d?.[key]);
+    return Number.isFinite(v) && v !== 0;
+  };
+  if (index < 0 || !drawn(data[index])) return -1;
+  return data.slice(0, index).filter(drawn).length;
+}
+
+/** `labelAt` cho <Bar> — `index` tính trong `data` (xem `drawnIndex`). */
+export function barLabelAt<T>(
+  data: readonly T[],
+  key: keyof T,
+  index: number,
+  format: (v: number) => string,
+  opts: { dy?: number; anchor?: "start" | "middle" | "end" } = {}
+) {
+  return labelAt(drawnIndex(data, key, index), format, opts);
+}

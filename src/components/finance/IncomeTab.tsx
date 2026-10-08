@@ -14,7 +14,7 @@ import { thisMonthLocalIso } from "@/lib/localDate";
 import PeriodComparison from "./PeriodComparison";
 import StackedMonthTooltip from "./StackedMonthTooltip";
 import { compactMoney, formatVND } from "@/lib/formatMoney";
-import { VIZ, GRID, yAxis, xAxis, BAR, LINE, STACK_GAP, TOOLTIP, TOOLTIP_LINE, labelAt, pctChange, refLabel } from "@/lib/viz";
+import { VIZ, GRID, yAxis, xAxis, BAR, LINE, STACK_GAP, TOOLTIP, TOOLTIP_LINE, labelAt, pctChange, refLabel, barLabelAt } from "@/lib/viz";
 import ChartCard, { SeriesKey, Delta, StatTile } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 import IncomeCareer from "./IncomeCareer";
@@ -549,7 +549,7 @@ export default function IncomeTab() {
                     label={refLabel(`${t("avg", "TB")} ${money(avg12)}`)}
                   />
                 )}
-                <Bar dataKey="amount" fill={VIZ.muted} {...BAR} label={labelAt(curIdx, money)}>
+                <Bar dataKey="amount" fill={VIZ.muted} {...BAR} label={barLabelAt(monthlySeries, "amount", curIdx, money)}>
                   {monthlySeries.map((p, i) => (
                     <Cell key={p.name} fill={i === curIdx ? VIZ.accent : VIZ.muted} />
                   ))}
@@ -582,7 +582,7 @@ export default function IncomeTab() {
                   dataKey="amount"
                   fill={VIZ.muted}
                   {...BAR}
-                  label={labelEveryYear ? barLabels(money, bestYearIdx) : labelAt(bestYearIdx, money)}
+                  label={labelEveryYear ? barLabels(money, bestYearIdx) : barLabelAt(annualTotals, "amount", bestYearIdx, money)}
                 >
                   {annualTotals.map((p, i) => (
                     <Cell key={p.name} fill={i === bestYearIdx ? VIZ.accent : VIZ.muted} />
@@ -677,7 +677,7 @@ export default function IncomeTab() {
                   name={t("Average", "Trung bình")}
                   fill={VIZ.muted}
                   {...BAR}
-                  label={seasonTop && seasonTop.avg > 0 ? labelAt(seasonTopIdx, money) : undefined}
+                  label={seasonTop && seasonTop.avg > 0 ? barLabelAt(seasonality, "avg", seasonTopIdx, money) : undefined}
                 >
                   {seasonality.map((p, i) => (
                     <Cell key={p.name} fill={i === seasonTopIdx && p.avg > 0 ? VIZ.accent : VIZ.muted} />

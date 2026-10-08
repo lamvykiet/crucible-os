@@ -19,7 +19,7 @@ import StackedMonthTooltip from "./StackedMonthTooltip";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
-import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, TOOLTIP, labelAt, pctChange, catColor, refLabel } from "@/lib/viz";
+import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, TOOLTIP, labelAt, pctChange, catColor, refLabel, barLabelAt, drawnIndex } from "@/lib/viz";
 import ChartCard, { StatTile } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 
@@ -522,7 +522,7 @@ export default function ExpenseTab() {
                           label={refLabel(`${t("avg", "TB")} ${money(avgDailyExpense)}`)}
                         />
                       )}
-                      <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={labelAt(peakDay, money)}>
+                      <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={barLabelAt(dailySeries, "amount", peakDay, money)}>
                         {dailySeries.map((d, i) => (
                           <Cell key={d.name} fill={i === peakDay ? VIZ.accent : VIZ.muted} />
                         ))}
@@ -631,7 +631,7 @@ export default function ExpenseTab() {
                     ]}
                     labelFormatter={(d) => t(`Day ${Number(d)}`, `Ngày ${Number(d)}`)}
                   />
-                  <Bar dataKey="count" {...BAR} fill={VIZ.muted} label={labelAt(peakCount, (v) => String(v))}>
+                  <Bar dataKey="count" {...BAR} fill={VIZ.muted} label={barLabelAt(dailySeries, "count", peakCount, (v) => String(v))}>
                     {dailySeries.map((d, i) => (
                       <Cell key={d.name} fill={i === peakCount ? VIZ.accent : VIZ.muted} />
                     ))}
@@ -662,7 +662,7 @@ export default function ExpenseTab() {
                     ]}
                     labelFormatter={(d) => t(`Day ${Number(d)}`, `Ngày ${Number(d)}`)}
                   />
-                  <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={labelAt(peakDom, money)}>
+                  <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={barLabelAt(dayOfMonth, "amount", peakDom, money)}>
                     {dayOfMonth.map((d, i) => (
                       <Cell key={d.name} fill={i === peakDom ? VIZ.accent : VIZ.muted} />
                     ))}
@@ -726,7 +726,7 @@ export default function ExpenseTab() {
                         {...STACK_GAP}
                         maxBarSize={BAR.maxBarSize}
                         radius={key === lastKey ? BAR.radius : 0}
-                        label={key === topKeyAtCur ? stackTotalAt(curMonthIdx, curMonthTotal, money) : undefined}
+                        label={key === topKeyAtCur ? stackTotalAt(drawnIndex(monthlyBreakdown, key, curMonthIdx), curMonthTotal, money) : undefined}
                       />
                     ))}
                   </BarChart>
@@ -767,7 +767,7 @@ export default function ExpenseTab() {
                         t("Spending", "Số tiền"),
                       ]}
                     />
-                    <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={labelAt(lastYearIdx, money)}>
+                    <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={barLabelAt(yearlySeries, "amount", lastYearIdx, money)}>
                       {yearlySeries.map((y, i) => (
                         <Cell key={y.name} fill={i === lastYearIdx ? VIZ.accent : VIZ.muted} />
                       ))}

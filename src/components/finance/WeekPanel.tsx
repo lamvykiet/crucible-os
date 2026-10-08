@@ -10,7 +10,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { todayLocalIso } from "@/lib/localDate";
-import { VIZ, GRID, BAR, TOOLTIP, xAxis, yAxis, labelAt, pctChange, refLabel } from "@/lib/viz";
+import { VIZ, GRID, BAR, TOOLTIP, xAxis, yAxis, labelAt, pctChange, refLabel, barLabelAt } from "@/lib/viz";
 import ChartCard, { Delta } from "@/components/charts/ChartCard";
 
 // Hôm nay, hôm qua, cả tuần.
@@ -370,7 +370,7 @@ export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
                   name={t("This week", "Tuần này")}
                   {...BAR}
                   fill={VIZ.muted}
-                  label={todayIdx >= 0 ? labelAt(todayIdx, money) : undefined}
+                  label={todayIdx >= 0 ? barLabelAt(dayChart, "expense", todayIdx, money) : undefined}
                 >
                   {dayChart.map((d) => (
                     <Cell key={d.date} fill={d.isToday ? VIZ.accent : VIZ.muted} />
@@ -524,7 +524,7 @@ export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
                   name={t("Cash out", "Tiền ra")}
                   {...BAR}
                   fill={VIZ.muted}
-                  label={curWeekIdx >= 0 ? labelAt(curWeekIdx, money) : undefined}
+                  label={curWeekIdx >= 0 ? barLabelAt(weeks, "expense", curWeekIdx, money) : undefined}
                 >
                   {weeks.map((w) => (
                     <Cell key={w.from} fill={w.current ? VIZ.accent : VIZ.muted} />
@@ -560,7 +560,7 @@ export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
                   name={t("Average", "Trung bình")}
                   {...BAR}
                   fill={VIZ.muted}
-                  label={maxWeekday && maxWeekday.avg > 0 ? labelAt(maxWeekdayIdx, money) : undefined}
+                  label={maxWeekday && maxWeekday.avg > 0 ? barLabelAt(weekdayChart, "avg", maxWeekdayIdx, money) : undefined}
                 >
                   {weekdayChart.map((w, i) => (
                     <Cell key={w.name} fill={i === maxWeekdayIdx && w.avg > 0 ? VIZ.accent : VIZ.muted} />

@@ -6,7 +6,7 @@ import { ChevronDown, Search, Store, Shapes } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
-import { VIZ, BAR, TOOLTIP, labelAt, pctChange, refLabel } from "@/lib/viz";
+import { VIZ, BAR, TOOLTIP, labelAt, pctChange, refLabel, barLabelAt } from "@/lib/viz";
 import { SeriesKey, Delta, StatTile } from "@/components/charts/ChartCard";
 import { monthAxis } from "./MonthAxisTick";
 
@@ -393,7 +393,7 @@ function BreakdownRow({
                       label={refLabel(`${t("avg", "TB")} ${money(avg)}`)}
                     />
                   )}
-                  <Bar dataKey="value" {...BAR} label={labelAt(cur, money)}>
+                  <Bar dataKey="value" {...BAR} label={barLabelAt(trend, "value", cur, money)}>
                     {trend.map((p, i) => (
                       <Cell key={p.name} fill={i === cur ? VIZ.accent : VIZ.muted} />
                     ))}
