@@ -18,6 +18,8 @@ model User {
   Transaction        Transaction[]
   Account            Account[]
   Project            Project[]
+  ProjectAllocation  ProjectAllocation[]
+  ProjectLedgerEntry ProjectLedgerEntry[]
   Category           Category[]
   Budget             Budget[]
   Debt               Debt[]
@@ -95,11 +97,15 @@ model Transaction {
   toAccountId String?
   toAccount   Account? @relation("TxToAccount", fields: [toAccountId], references: [id], onDelete: SetNull)
 
-  /// Giao dịch thuộc dự án nào. Chi gắn dự án = vốn bỏ vào dự án; thu gắn dự án
-  /// = doanh thu của nó. Giao dịch vẫn nằm trong sổ chi tiêu/thu nhập chung như
-  /// mọi giao dịch khác — dự án chỉ là một lăng kính thứ hai, không tách sổ.
+  /// KHÔNG CÒN DÙNG từ 08/10/2026 — thay bằng `allocations` (một giao dịch chia
+  /// được cho nhiều dự án). Giữ cột lại vì bản build cũ trên Vercel vẫn SELECT
+  /// nó; xoá cột trước khi bản mới lên là mọi truy vấn giao dịch đều nổ. Mọi
+  /// dòng đã được dời sang `ProjectAllocation` và đặt về null.
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  /// Phần của giao dịch này thuộc về dự án nào, nhóm chi phí nào, bao nhiêu %.
+  allocations ProjectAllocation[]
 
   userId String // owner
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -174,11 +180,81 @@ model Project {
 
   transactions Transaction[]
   drafts       DraftReceipt[]
+  allocations  ProjectAllocation[]
+  ledger       ProjectLedgerEntry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId, status])
+}
+
+/// Một phần của một giao dịch được phân bổ cho một dự án.
+///
+/// Đây là NGUỒN SỰ THẬT về "giao dịch này thuộc dự án nào": một hoá đơn thuê
+/// máy có thể chia 60% dự án A, 40% dự án B; tổng các phần được phép dưới 100%
+/// — phần còn lại là chi tiêu cá nhân. Sửa/xoá thoải mái; mỗi lần thay đổi,
+/// `syncProjectLedger` (src/lib/projectLedger.ts) ghi bút toán đảo + ghi lại
+/// vào `ProjectLedgerEntry` để sổ cái giữ nguyên lịch sử.
+model ProjectAllocation {
+  id            String      @id @default(uuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  projectId     String
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  /// RAW_MATERIAL | MACHINERY | TESTING | LABOR | OVERHEAD | REVENUE
+  /// (danh sách cố định ở `src/lib/projectCost.ts`).
+  costCategory String
+  /// 0 < % ≤ 100. Tổng các phần của một giao dịch ≤ 100.
+  percentage   Float   @default(100)
+  /// VND, = tổng giao dịch × %; phần lẻ làm tròn dồn vào phần cuối khi tổng đủ 100%.
+  /// Tính lại mỗi khi tổng tiền giao dịch đổi.
+  amount       Int
+  notes        String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([transactionId, projectId, costCategory])
+  @@index([projectId])
+}
+
+/// Sổ cái dự án — CHỈ GHI THÊM. Không bao giờ update hay delete một dòng: sửa
+/// hay xoá giao dịch sinh bút toán đảo (REVERSAL) rồi bút toán mới (POSTING);
+/// kết chuyển WIP sang giá vốn là một cặp COGS_TRANSFER.
+///
+/// `transactionId` cố ý KHÔNG có khoá ngoại: giao dịch bị xoá thì sổ vẫn phải
+/// giữ dòng cũ và dòng đảo của nó. Số luỹ kế không lưu, tính lúc đọc.
+model ProjectLedgerEntry {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  transactionId String?
+  /// RAW_MATERIAL | MACHINERY | TESTING | LABOR | OVERHEAD | REVENUE
+  costCategory  String
+  /// WIP (chi phí dở dang) | COGS (giá vốn) | REVENUE (doanh thu)
+  bucket        String
+  /// DEBIT | CREDIT — luôn đi với `amount` dương.
+  entryType     String
+  amount        Int
+  /// POSTING | REVERSAL | COGS_TRANSFER
+  kind          String
+  /// Ngày kinh tế: ngày giao dịch với POSTING, ngày sửa với REVERSAL.
+  postingDate   DateTime
+  note          String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId, postingDate])
+  @@index([transactionId])
 }
 
 model TransactionLine {
@@ -231,9 +307,16 @@ model DraftReceipt {
   accountId String?
   account   Account? @relation("DraftAccount", fields: [accountId], references: [id], onDelete: SetNull)
 
-  /// Chọn dự án lúc quét phải sống được tới bước duyệt — cùng lý do với `accountId`.
+  /// KHÔNG CÒN DÙNG — thay bằng `projectSplits`. Giữ cột vì cùng lý do với
+  /// `Transaction.projectId`.
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  /// Phân bổ dự án chọn lúc quét: `[{ projectId, costCategory, percentage }]`.
+  /// JSON chứ không phải bảng vì bản nháp chỉ sống tới lúc duyệt — khi đó nó
+  /// thành `ProjectAllocation` thật. Phải đi qua đây, nếu không lựa chọn lúc
+  /// quét bốc hơi ở bước duyệt (cùng bài học với `accountId`).
+  projectSplits Json?
 
   // Danh sách fileId trên Drive, phân tách bằng dấu phẩy (một hoá đơn dài có
   // thể được chụp thành nhiều ảnh).
