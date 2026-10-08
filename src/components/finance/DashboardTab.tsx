@@ -95,6 +95,7 @@ const EMPTY: DashboardData = {
 };
 
 const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const WEEKDAYS_EN = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 /** "2026-10" → "10/2026" */
 const mLabel = (k: string) => {
@@ -1378,8 +1379,8 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
         >
           <div className="flex flex-col gap-1.5">
             <div className="grid grid-cols-7 gap-1.5 mb-1">
-              {WEEKDAYS.map((d) => (
-                <div key={d} className="text-[10px] font-bold text-[var(--color-text-faint)] text-center">{d}</div>
+              {WEEKDAYS.map((d, i) => (
+                <div key={d} className="text-[10px] font-bold text-[var(--color-text-faint)] text-center">{t(WEEKDAYS_EN[i], d)}</div>
               ))}
             </div>
             {weeks.map((week, wi) => (
