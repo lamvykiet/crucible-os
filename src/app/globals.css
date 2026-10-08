@@ -11,14 +11,22 @@
  * Thay cho hệ AuthKit (82c5a4c, b8359ff) và Mercury (1b990bc). Các bản cũ vẫn
  * nằm trong lịch sử git nếu cần xem lại.
  *
+ * LỚP KÍNH (08/10/2026, theo yêu cầu người dùng — tham chiếu kiểu visionOS):
+ * mặt phẳng không còn là giấy đục mà là kính mờ ấm đặt trên một nền "phòng"
+ * mờ (`--ambient`: đất nung, xanh tro, rêu trên nền đá ấm). Chữ, serif và màu
+ * đất nung giữ nguyên — chỉ vật liệu đổi. Xem docs/huong-thiet-ke-2026.md.
+ *
  * Năm nguyên tắc, đừng phá:
  *
- *   1. Không dùng trắng tinh #ffffff làm nền. Mặt phẳng đi theo bậc
- *      Parchment -> Aged Paper -> viền Taupe.
- *   2. Độ nổi đến từ BẬC MÀU, không từ bóng. Chỉ hai công thức bóng được
- *      phép, và chỉ cho modal / ô nhập đang gõ.
- *   3. Đất nung #b05a36 chỉ cho ba việc: nút chính, nhãn mắt, trạng thái đang
- *      chọn. Không tô lên mảng lớn, không tô chữ trên 24px.
+ *   1. Không dùng trắng tinh đục làm nền. Mặt phẳng là kính: trắng ấm trong
+ *      suốt (`--color-surface`) trên nền ambient, viền sáng `--glass-edge`.
+ *   2. Độ nổi đến từ độ trong + viền sáng + một bóng rộng rất mềm. Không bóng
+ *      nhỏ sắc nét. Thứ gì nổi lên TRÊN nội dung (modal, menu thả, tooltip,
+ *      cột dính) thì dùng kính gần đục `--glass-solid` để chữ bên dưới không
+ *      xuyên qua.
+ *   3. Đất nung #b05a36 chỉ cho: nút chính, nhãn mắt, điểm nhấn dữ liệu. Tab
+ *      và mục điều hướng ĐANG CHỌN là một viên kính trắng đục với chữ mực —
+ *      kiểu visionOS — không tô đất nung nữa.
  *   4. Serif chỉ cho tiêu đề biên tập. Thân bài, nhãn, nút — tất cả là sans.
  *   5. Hình khối: thẻ 24px, nút 40px, ô nhập và thẻ tag bo tròn hẳn, mục điều
  *      hướng 12px. Góc vuông phá hỏng bản sắc của hệ.
@@ -93,17 +101,40 @@
   --ink:        #2a2b2f;
   --terracotta: #b05a36;
 
-  --color-bg: var(--parchment);
-  --color-surface: var(--aged-paper);
-  --color-surface-2: #ede4d3;
-  --color-surface-3: #e2d7c2;
+  /* Nền "phòng" phía sau lớp kính: vài quầng màu đất rất rộng trên nền đá ấm.
+     Vẽ ở `body::before` (position: fixed) chứ không ở <html> với
+     background-attachment: fixed — iOS Safari bỏ qua thuộc tính đó và kéo dãn
+     gradient theo cả chiều dài trang. */
+  --ambient-base: #c9bfb2;
+  --ambient:
+    radial-gradient(50% 42% at 6% 4%, rgba(196, 112, 74, .62), transparent 70%),
+    radial-gradient(42% 40% at 98% 10%, rgba(118, 142, 162, .62), transparent 72%),
+    radial-gradient(48% 44% at 86% 98%, rgba(132, 146, 110, .55), transparent 72%),
+    radial-gradient(55% 50% at 30% 60%, rgba(240, 228, 210, .75), transparent 70%),
+    linear-gradient(165deg, #ddd4c8 0%, #b9ae9f 100%);
+
+  /* Kính. Mọi bậc mặt phẳng đều TRONG SUỐT — 400 chỗ trong JSX viết
+     bg-[var(--color-surface*)] nên đổi ở đây là cả app đổi vật liệu. */
+  --color-bg: rgba(255, 253, 249, .55);
+  --color-surface: rgba(255, 253, 249, .4);
+  --color-surface-2: rgba(255, 255, 255, .42);
+  --color-surface-3: rgba(255, 255, 255, .62);
+  --glass-edge: rgba(255, 255, 255, .72);
+  --glass-solid: rgba(251, 248, 243, .92);
+  --glass-blur: blur(28px) saturate(1.5);
+  --glass-pill: rgba(255, 255, 255, .92);
+  --glass-pill-ink: var(--ink);
+  /* Thanh điều hướng: có nội dung thật cuộn qua phía sau nên cần đục hơn thẻ. */
+  --glass-nav: rgba(255, 253, 249, .5);
 
   --color-text: var(--ink);
-  --color-text-muted: #4d4a45;
-  --color-text-faint: #7d766c;
+  --color-text-muted: #46423c;
+  --color-text-faint: #6b655c;
 
-  --color-border: var(--warm-taupe);
-  --color-border-strong: #b9b0a3;
+  /* Đường kẻ TRONG thẻ (giữa các dòng) — viền của chính tấm kính là
+     `--glass-edge`, không phải biến này. */
+  --color-border: rgba(60, 46, 32, .11);
+  --color-border-strong: rgba(60, 46, 32, .2);
 
   --color-primary: var(--terracotta);
   --color-primary-hover: #9c4d2c;
@@ -135,21 +166,11 @@
      rộng, rất nhạt và ám ấm, cùng họ với hai công thức trên. Thêm một đường
      sáng 1px ở mép trên để thẻ đọc ra "tờ giấy đặt trên tờ giấy" chứ không
      phải một ô màu. */
-  --card-edge: inset 0 1px 0 rgba(255, 255, 255, .75);
-  --card-sheen: linear-gradient(180deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 45%);
-  --shadow-card:
-    0 1px 2px rgba(42, 43, 47, .04),
-    0 10px 24px -14px rgba(42, 43, 47, .18),
-    0 28px 56px -32px rgba(42, 43, 47, .16);
-  --shadow-card-hover:
-    0 2px 4px rgba(42, 43, 47, .05),
-    0 16px 32px -14px rgba(42, 43, 47, .22),
-    0 40px 72px -36px rgba(42, 43, 47, .2);
-  --shadow-nav: 0 1px 0 var(--color-border), 0 14px 28px -22px rgba(42, 43, 47, .28);
-
-  /* Vân giấy: một lớp nhiễu rất nhạt phủ toàn trang. Không có trong tài liệu
-     — thêm vào để nền kem đọc ra "giấy" chứ không phải một mảng màu phẳng. */
-  --grain-opacity: .045;
+  --card-edge: inset 0 1px 0 rgba(255, 255, 255, .9);
+  --card-sheen: linear-gradient(140deg, rgba(255, 255, 255, .38), rgba(255, 255, 255, 0) 55%);
+  --shadow-card: 0 1px 2px rgba(40, 30, 20, .05), 0 22px 44px -26px rgba(40, 30, 20, .38);
+  --shadow-card-hover: 0 2px 4px rgba(40, 30, 20, .06), 0 30px 56px -28px rgba(40, 30, 20, .45);
+  --shadow-nav: var(--card-edge), 0 18px 40px -24px rgba(40, 30, 20, .4);
 
   /* Dữ liệu: đất nung dẫn đầu, phần còn lại là thang đất. */
   --chart-1: #b05a36;
@@ -166,35 +187,48 @@
      #211d17 — đạt cả năm phép kiểm cho cặp liền kề. Thứ tự cố định, không xoay. */
   --viz-accent: #b05a36;
   --viz-muted: #b5a994;
-  --viz-ghost: #ddd3c3;
+  --viz-ghost: rgba(120, 104, 84, .2);
   --viz-other: #c9bfaf;
   --viz-ink: #2a2b2f;
-  --viz-grid: #e3d9ca;
+  --viz-grid: rgba(60, 46, 32, .1);
   --viz-cat-1: #b05a36;
   --viz-cat-2: #0e7aa0;
   --viz-cat-3: #a87812;
   --viz-cat-4: #8c3f8e;
 
   --heat-rgb: 176, 90, 54;
-  --heat-empty: #efe7d8;
+  --heat-empty: rgba(255, 255, 255, .4);
   --heat-fg-strong: #fef9ef;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Cùng dải giấy đó, hạ xuống đêm — không đổi sang xanh lạnh. */
-  --color-bg: #17140f;
-  --color-surface: #211d17;
-  --color-surface-2: #2b261e;
-  --color-surface-3: #383125;
+  /* Kính khói trên một căn phòng tối ấm — cùng các quầng màu đó, hạ xuống đêm. */
+  --ambient-base: #14110e;
+  --ambient:
+    radial-gradient(50% 42% at 6% 4%, rgba(176, 90, 54, .42), transparent 70%),
+    radial-gradient(42% 40% at 98% 12%, rgba(64, 88, 110, .5), transparent 72%),
+    radial-gradient(48% 44% at 84% 98%, rgba(86, 96, 62, .42), transparent 72%),
+    radial-gradient(55% 50% at 30% 62%, rgba(70, 58, 46, .55), transparent 70%),
+    linear-gradient(165deg, #231e19 0%, #0f0d0b 100%);
+
+  --color-bg: rgba(12, 10, 8, .32);
+  --color-surface: rgba(255, 244, 228, .07);
+  --color-surface-2: rgba(255, 244, 228, .07);
+  --color-surface-3: rgba(255, 244, 228, .14);
+  --glass-edge: rgba(255, 255, 255, .13);
+  --glass-solid: rgba(34, 29, 24, .94);
+  --glass-pill: rgba(255, 255, 255, .88);
+  --glass-pill-ink: #1d1915;
+  --glass-nav: rgba(30, 26, 22, .55);
 
   --color-text: #f3ead9;
   --color-text-muted: #c2b7a4;
   --color-text-faint: #8d8474;
 
-  --color-border: #3a332a;
-  --color-border-strong: #544a3c;
+  --color-border: rgba(255, 240, 220, .09);
+  --color-border-strong: rgba(255, 240, 220, .17);
 
   --color-primary: #c56a42;
   --color-primary-hover: #d47a52;
@@ -220,19 +254,11 @@
   --focus-ring: 0 0 0 3px rgba(197, 106, 66, .28);
 
   /* Trên nền đêm, đường sáng mép trên là thứ tạo ra độ sâu; bóng rơi chỉ phụ. */
-  --card-edge: inset 0 1px 0 rgba(243, 234, 217, .07);
-  --card-sheen: linear-gradient(180deg, rgba(243, 234, 217, .035), rgba(243, 234, 217, 0) 45%);
-  --shadow-card:
-    0 1px 2px rgba(0, 0, 0, .3),
-    0 14px 30px -16px rgba(0, 0, 0, .55),
-    0 34px 64px -34px rgba(0, 0, 0, .5);
-  --shadow-card-hover:
-    0 2px 4px rgba(0, 0, 0, .35),
-    0 20px 40px -16px rgba(0, 0, 0, .62),
-    0 48px 84px -40px rgba(0, 0, 0, .55);
-  --shadow-nav: 0 1px 0 var(--color-border), 0 16px 30px -24px rgba(0, 0, 0, .7);
-
-  --grain-opacity: .05;
+  --card-edge: inset 0 1px 0 rgba(255, 255, 255, .1);
+  --card-sheen: linear-gradient(140deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, 0) 55%);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 24px 48px -26px rgba(0, 0, 0, .7);
+  --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, .35), 0 32px 60px -28px rgba(0, 0, 0, .8);
+  --shadow-nav: var(--card-edge), 0 18px 40px -24px rgba(0, 0, 0, .7);
 
   --chart-1: #d4794f;
   --chart-2: #f3ead9;
@@ -243,17 +269,17 @@
 
   --viz-accent: #c96c43;
   --viz-muted: #6f6555;
-  --viz-ghost: #3d362c;
+  --viz-ghost: rgba(255, 240, 220, .12);
   --viz-other: #5a5246;
   --viz-ink: #f3ead9;
-  --viz-grid: #322c24;
+  --viz-grid: rgba(255, 240, 220, .08);
   --viz-cat-1: #c96c43;
   --viz-cat-2: #2f93bd;
   --viz-cat-3: #b98a1e;
   --viz-cat-4: #a865a5;
 
   --heat-rgb: 212, 121, 79;
-  --heat-empty: #241f18;
+  --heat-empty: rgba(255, 255, 255, .05);
   --heat-fg-strong: #17140f;
 }
 
@@ -317,13 +343,20 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Vân giấy.
+ * Nền ambient phía sau lớp kính.
  *
- * Màu nền đặt trên <html>, <body> trong suốt: lớp vân vẽ bằng `body::before`
- * với `z-index: -1`. Nếu <body> tự có nền thì nền đó được vẽ SAU lớp z-index
- * âm và che mất vân.
+ * Màu nền đặt trên <html>, <body> trong suốt: các quầng màu vẽ bằng
+ * `body::before` với `z-index: -1`. Nếu <body> tự có nền thì nền đó được vẽ
+ * SAU lớp z-index âm và che mất nền ambient.
+ *
+ * Thẻ KHÔNG dùng backdrop-filter: phía sau thẻ chỉ có nền ambient vốn đã mờ,
+ * làm mờ thêm không đổi gì mà tốn GPU cho hàng chục thẻ. Quan trọng hơn,
+ * backdrop-filter (giống transform) biến phần tử thành KHỐI CHỨA của
+ * `position: fixed` — modal render bên trong thẻ sẽ co vào thẻ. Chỉ thanh
+ * điều hướng, menu thả và tooltip — những thứ có nội dung thật trôi phía
+ * sau — mới làm mờ.
  * ------------------------------------------------------------------------ */
-html { background: var(--color-bg); }
+html { background: var(--ambient-base); }
 
 body::before {
   content: "";
@@ -331,9 +364,7 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  opacity: var(--grain-opacity);
-  /* Nhiễu SVG nội tuyến — không tải thêm file nào. */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  background: var(--ambient);
 }
 
 /* Mặc định cho thẻ HTML — BẮT BUỘC nằm trong @layer base.
@@ -527,7 +558,7 @@ body::before {
 /* Cards — giấy cũ trên giấy mới, một bậc màu, không bóng. */
 .c-card {
   background-color: var(--color-surface); background-image: var(--card-sheen);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--glass-edge);
   border-radius: var(--radius-2xl); padding: var(--card-pad);
   box-shadow: var(--card-edge), var(--shadow-card);
   transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
@@ -559,7 +590,7 @@ body::before {
 .c-tab[aria-selected="true"], .c-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
 .c-seg { display: inline-flex; gap: 4px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); padding: 4px; }
 .c-seg-opt { font: 600 14px/1 var(--font-body); letter-spacing: var(--tracking-ui); color: var(--color-text-muted); padding: 9px 18px; border-radius: var(--radius-full); border: none; background: none; cursor: pointer; transition: background var(--dur) var(--ease), color var(--dur) var(--ease); }
-.c-seg-opt.active { background: var(--color-primary); color: var(--color-on-primary); }
+.c-seg-opt.active { background: var(--glass-pill); color: var(--glass-pill-ink); box-shadow: 0 6px 14px -8px rgba(40, 30, 20, .4); }
 
 /* Alerts */
 .c-alert {
@@ -600,14 +631,18 @@ body::before {
 /* ---------------------------------------------------------------------------
  * Vỏ giao diện: một thanh trên dính đỉnh, không sidebar, không mega-menu.
  * ------------------------------------------------------------------------ */
+/* Thanh trên là một tấm kính nổi (viên thuốc lơ lửng, cách mép 12px) chứ
+   không phải một dải dính sát đỉnh — nội dung cuộn qua phía sau và bị làm mờ. */
 .c-topnav {
-  position: sticky; top: 0; z-index: 40;
+  position: sticky; top: 12px; z-index: 40;
   display: flex; align-items: center; gap: 4px;
-  min-height: 68px;
-  padding: 12px var(--shell-pad-x);
-  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border-bottom: none;
+  min-height: 60px;
+  margin: 12px var(--shell-pad-x) 0;
+  padding: 8px 14px;
+  border-radius: 22px;
+  background: var(--glass-nav);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
   box-shadow: var(--shadow-nav);
   /* Năm mục điều hướng + ba nút điều khiển trên một hàng: ở 1024px thì mục
      cuối bị cắt ở mép phải. Cho cuộn ngang thay vì cắt. */
@@ -621,10 +656,13 @@ body::before {
   color: var(--color-text); cursor: pointer; border: none; background: none; text-decoration: none;
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
-.c-topnav-item:hover { background: var(--color-surface); color: var(--color-text); text-decoration: none; }
-/* Trạng thái đang chọn là một trong ba việc mà đất nung được phép làm. */
+.c-topnav-item:hover { background: var(--color-surface-2); color: var(--color-text); text-decoration: none; }
+/* Đang chọn: viên kính trắng đục, chữ mực — kiểu visionOS. */
 .c-topnav-item.active,
-.c-topnav-item.active:hover { background: var(--color-surface); color: var(--color-primary); font-weight: 600; }
+.c-topnav-item.active:hover {
+  background: var(--glass-pill); color: var(--glass-pill-ink); font-weight: 600;
+  box-shadow: 0 6px 14px -8px rgba(40, 30, 20, .35);
+}
 
 /* Logo: con dấu đất nung + chữ hiệu bằng serif. */
 .c-logo-mark {
@@ -638,9 +676,9 @@ body::before {
 /* Bottom nav (mobile) */
 .c-bottomnav {
   display: flex; justify-content: space-around; align-items: center;
-  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid var(--color-border);
+  background: var(--glass-nav);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--glass-edge);
   padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
 }
 .c-bottomnav-item {
@@ -688,15 +726,14 @@ body::before {
 .c-main .rounded-2xl.p-5,
 .c-main .rounded-2xl.p-4 { padding: var(--card-pad); }
 
-/* Thẻ trên trang -> giấy cũ. JSX viết `rounded-2xl border shadow-sm`; ở đây
-   bỏ bóng, giữ đúng một bậc màu và một đường viền taupe mảnh.
-   Không áp cho modal (`.fixed.inset-0`) — modal là chỗ DUY NHẤT được dùng
-   bóng, xem khối ngay dưới. */
+/* Thẻ trên trang -> tấm kính. JSX viết `rounded-2xl border shadow-sm`; ở đây
+   thay bằng kính trong + viền sáng + một bóng rộng rất mềm.
+   Không áp cho modal (`.fixed.inset-0`) — xem khối modal ngay dưới. */
 .c-main .rounded-2xl[class*="border"]:not(.fixed *),
 .c-main .rounded-xl[class*="bg-[var(--color-surface)]"][class*="border"]:not(.fixed *) {
   background-color: var(--color-surface);
   background-image: var(--card-sheen);
-  border-color: var(--color-border);
+  border-color: var(--glass-edge);
   box-shadow: var(--card-edge), var(--shadow-card);
   transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
@@ -705,12 +742,12 @@ body::before {
   box-shadow: var(--card-edge), var(--shadow-card-hover);
   transform: translateY(-2px);
 }
-/* Thẻ lồng trong thẻ: lùi thêm một bậc để vẫn tách khỏi thẻ mẹ. */
+/* Thẻ lồng trong thẻ: một lớp kính mỏng nữa, sáng hơn thẻ mẹ một chút. */
 .c-main .rounded-2xl .rounded-2xl[class*="border"]:not(.fixed *),
 .c-main .rounded-2xl .rounded-xl[class*="border"]:not(.fixed *) {
-  background-color: var(--color-bg);
+  background-color: var(--color-surface-2);
   background-image: none;
-  border-color: var(--color-border);
+  border-color: color-mix(in srgb, var(--glass-edge) 70%, transparent);
   box-shadow: none;
   transform: none;
 }
@@ -723,19 +760,41 @@ body::before {
    có thể gán margin cho nó bằng utility khác; chặn một lần cho dứt điểm. */
 .c-main .fixed.inset-0 { margin: 0; }
 
-/* Modal: một trong hai chỗ được phép có bóng. */
+/* Modal: kính gần đục. Lớp phủ phía sau đã tối và mờ, kính trong suốt ở đây
+   sẽ làm chữ trong form chìm vào lớp phủ. KHÔNG thêm backdrop-filter lên tấm
+   modal: nó thành khối chứa của mọi con `fixed` bên trong (lịch chọn ngày…). */
 .fixed.inset-0 > [class*="rounded"] {
+  background-color: var(--glass-solid);
   box-shadow: var(--shadow-float);
-  border-color: var(--color-border);
+  border-color: var(--glass-edge);
+}
+
+/* Những thứ nổi ĐÈ lên nội dung khác — menu thả của ô gợi ý, lớp phủ kín một
+   thẻ, cột dính khi cuộn ngang bảng — nếu trong suốt thì chữ bên dưới xuyên
+   qua đọc lẫn vào nhau. Cho chúng kính gần đục. */
+.absolute[class*="bg-[var(--color-surface"],
+.absolute[class*="bg-[var(--color-bg)]"],
+.sticky[class*="bg-[var(--color-surface"] {
+  background-color: var(--glass-solid);
+}
+.absolute.z-30[class*="bg-[var(--color-surface"],
+.absolute.z-40[class*="bg-[var(--color-surface"],
+.absolute.z-50[class*="bg-[var(--color-surface"] {
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
 }
 
 /* Dải tab dạng viên thuốc (Sổ chi tiêu, Knowledge, Cài đặt viết giống nhau:
-   `rounded-full p-1 border shadow-sm`). Tab đang chọn tô đất nung — đúng một
-   trong ba việc mà màu này được phép làm. */
+   `rounded-full p-1 border shadow-sm`). Rãnh là kính mỏng; tab đang chọn —
+   JSX tô `bg-[var(--color-primary)]` — thành viên kính trắng đục chữ mực. */
 .c-main .rounded-full.p-1[class*="border"] {
   background: var(--color-surface);
-  border-color: var(--color-border);
-  box-shadow: none;
+  border-color: var(--glass-edge);
+  box-shadow: var(--card-edge);
+}
+.c-main .rounded-full.p-1[class*="border"] > [class*="bg-[var(--color-primary)]"] {
+  background: var(--glass-pill);
+  color: var(--glass-pill-ink);
+  box-shadow: 0 6px 14px -8px rgba(40, 30, 20, .4);
 }
 
 /* Khung icon nhỏ trong thẻ -> hình tròn. */
@@ -778,8 +837,9 @@ body::before {
 .recharts-cartesian-axis-tick-line { stroke: var(--viz-grid); }
 .recharts-text { fill: var(--color-text-faint); font-family: var(--font-body); font-size: 12px; }
 .recharts-legend-item-text { color: var(--color-text-muted) !important; }
+.recharts-tooltip-wrapper > div { background-color: var(--glass-solid) !important; }
 .recharts-default-tooltip {
-  background: var(--color-bg) !important;
+  background: var(--glass-solid) !important;
   border: 1px solid var(--color-border) !important;
   border-radius: var(--radius-lg);
   font-family: var(--font-body);

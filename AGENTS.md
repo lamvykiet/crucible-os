@@ -67,17 +67,25 @@ tải lại trang.
 
 **Trước khi đổi giao diện** → đọc `docs/huong-thiet-ke-2026.md`. Đó là bản đối
 chiếu giữa xu hướng thiết kế hiện hành và những gì dự án cố ý làm khác, kèm lý
-do. Hai điều hay bị hiểu nhầm: bảng màu ấm và thang chữ `clamp()` của dự án
-đang ĐÚNG hướng thịnh hành, không phải lạc hậu; còn việc cấm bóng đổ là lựa
-chọn có chủ đích theo ẩn dụ giấy, đừng "hiện đại hoá" bằng cách thêm bóng.
+do. Bảng màu ấm và thang chữ `clamp()` đang ĐÚNG hướng thịnh hành, đừng đổi.
+Ngày 08/10/2026 người dùng chủ động chọn **lớp kính** (kiểu visionOS) thay cho
+ẩn dụ giấy đục — đừng "trả lại giấy" khi chưa hỏi.
 
-**Design system là "Function"** → giấy kem `#fef9ef`, thẻ giấy cũ `#f5eee1`,
-viền taupe `#d1c9bf`, chữ mực `#2a2b2f`, và **một** màu đất nung `#b05a36`.
-Năm luật: không dùng trắng tinh làm nền; độ nổi đến từ bậc màu chứ không từ
-bóng (chỉ modal và ô nhập đang gõ được phép có bóng); đất nung chỉ cho ba việc
-— nút chính, nhãn mắt, trạng thái đang chọn; serif chỉ cho tiêu đề biên tập,
-còn thân bài/nhãn/nút đều là sans bó chữ `-0.023em`; hình khối là thẻ 24px,
-nút 40px, ô nhập và tag bo tròn hẳn, mục điều hướng 12px.
+**Design system là "Function · Kính"** → kính mờ trắng ấm trong suốt
+(`--color-surface*` là rgba) đặt trên nền "phòng" `--ambient` (quầng đất nung,
+xanh tro, rêu trên đá ấm, vẽ ở `body::before`), viền sáng `--glass-edge`, chữ
+mực `#2a2b2f`, và **một** màu đất nung `#b05a36`. Luật: độ nổi đến từ độ trong
++ viền sáng + một bóng rộng rất mềm, không bóng nhỏ sắc nét; thứ gì đè lên nội
+dung khác (modal, menu thả, tooltip, cột dính) dùng `--glass-solid` gần đục;
+đất nung chỉ cho nút chính, nhãn mắt, điểm nhấn dữ liệu; tab/mục điều hướng
+ĐANG CHỌN là viên kính trắng đục `--glass-pill` chữ mực; serif chỉ cho tiêu đề
+biên tập, còn thân bài/nhãn/nút là sans bó chữ `-0.023em`; thẻ 24px, nút 40px,
+ô nhập và tag bo tròn hẳn.
+
+**Đừng gắn `backdrop-filter` lên thẻ hay tấm modal.** Giống `transform`, nó
+biến phần tử thành KHỐI CHỨA của `position: fixed` — modal render bên trong sẽ
+co vào thẻ. Phía sau thẻ chỉ có nền ambient vốn đã mờ nên làm mờ thêm không
+được gì. Chỉ thanh điều hướng, menu thả và tooltip mới làm mờ.
 
 Chữ nghiêng serif (`.c-italic`) là nước cờ đặc trưng nhất của hệ — roman xen
 nghiêng trong cùng một dòng tiêu đề. Chỉ cho serif từ 34px trở lên, không bao

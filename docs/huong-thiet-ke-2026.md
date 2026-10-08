@@ -20,10 +20,10 @@ kiểu chữ.
 | Hyper-clarity (thời của "không mập mờ") | Còn chỗ hở | **Sửa dần.** Xem mục dưới. |
 | Motion-driven interfaces | Chỉ có 2 keyframe, đổi trạng thái không có phản hồi | **Bổ sung.** Đây là khoảng trống thật. |
 | Micro-personalization | Chưa có "tiếp tục chỗ đang dở" | **Bổ sung.** |
-| Spatial UI / lớp chiều sâu bằng bóng đổ | Cố ý cấm bóng | **Không theo.** Xem lý do dưới. |
+| Spatial UI / lớp chiều sâu bằng bóng đổ | Cố ý cấm bóng | ~~Không theo.~~ **Đã đổi 08/10/2026** — xem mục "Lớp kính" cuối file. |
 | Neumorphism / Soft UI 2.0 | Xung đột với luật trên | **Không theo.** |
 
-## Vì sao không theo bóng đổ và neumorphism
+## Vì sao không theo bóng đổ và neumorphism (quyết định cũ, đã thay 08/10/2026)
 
 `AGENTS.md` quy định: *"độ nổi đến từ bậc màu chứ không từ bóng"*. Đây là một
 lựa chọn có chủ đích, không phải thiếu sót. Hệ thiết kế của dự án dựng trên ẩn dụ
@@ -111,3 +111,32 @@ nhận thật, không phải một hộp thoại gạt một cái là xong.
       thao tác thành công ở cuối trang thì người dùng không thấy gì.
 - [ ] Dựng skeleton thay vòng xoay ở những chỗ biết trước hình dạng nội dung.
 - [ ] Soát cả dự án: còn chỗ nào đặt nút xoá cạnh hành động dùng hằng ngày.
+
+## Lớp kính — đổi hướng 08/10/2026
+
+Người dùng gửi một loạt pin Pinterest kiểu visionOS / spatial UI (bảng điều
+khiển kính mờ nổi trên ảnh nội thất mờ) và yêu cầu chỉnh độ trong suốt giống
+vậy. Đây là quyết định của chủ dự án, thay cho mục "không theo" ở trên.
+
+Cách làm — giữ bản sắc, chỉ đổi vật liệu:
+
+- **Nền "phòng"** `--ambient`: vài quầng màu rất rộng — đất nung góc trên
+  trái, xanh tro góc trên phải, rêu góc dưới — trên nền đá ấm. Thay cho ảnh
+  nội thất mờ của bản tham chiếu: không tải ảnh, không vướng bản quyền, và
+  vẫn cùng họ màu đất của hệ. Bảng tối là cùng các quầng đó hạ xuống đêm.
+- **Kính**: mọi bậc mặt phẳng là trắng ấm trong suốt; viền là đường sáng
+  `--glass-edge` chứ không còn viền taupe; một ánh sáng chéo nhạt
+  (`--card-sheen`) và một bóng rộng mềm.
+- **Đang chọn**: viên kính trắng đục, chữ mực — đúng cách của bản tham chiếu.
+  Đất nung rút về nút chính, nhãn mắt, điểm nhấn dữ liệu.
+- **Giữ nguyên**: serif biên tập, thang chữ, màu ngữ nghĩa họ đất, quy tắc
+  biểu đồ (`docs/bieu-do.md`).
+
+Hai ràng buộc kỹ thuật:
+
+1. **Không `backdrop-filter` trên thẻ hay tấm modal** — nó thành khối chứa của
+   `position: fixed` (cùng cái bẫy với `transform`, xem `AGENTS.md`). Phía sau
+   thẻ chỉ có nền ambient vốn đã mờ, nên không mất gì.
+2. **Thứ đè lên nội dung khác thì gần đục** (`--glass-solid`): modal, menu thả,
+   tooltip biểu đồ, cột dính của bảng. Kính trong suốt ở đó làm chữ hai lớp
+   đọc lẫn vào nhau.
