@@ -15,16 +15,18 @@ import HabitDetailSheet from "@/components/habits/HabitDetailSheet";
 import TodoSection from "@/components/habits/TodoSection";
 import type { HabitRow, TodayResponse } from "@/components/habits/types";
 
-/** Vòng tròn phần trăm của ngày. */
+/** Vòng tròn phần trăm của ngày. Rãnh nhạt + phần đã xong màu nhấn, như mọi
+ *  thanh tiến độ khác (docs/bieu-do.md §4): tiến độ là dữ liệu, không phải
+ *  trạng thái tốt/xấu, nên không dùng --color-success. */
 function Ring({ percent }: { percent: number }) {
   const r = 26;
   const c = 2 * Math.PI * r;
   return (
     <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-      <circle cx="32" cy="32" r={r} fill="none" stroke="var(--color-surface-2)" strokeWidth="6" />
+      <circle cx="32" cy="32" r={r} fill="none" stroke="var(--viz-ghost)" strokeWidth="6" />
       <circle
         cx="32" cy="32" r={r} fill="none"
-        stroke="var(--color-success)" strokeWidth="6" strokeLinecap="round"
+        stroke="var(--viz-accent)" strokeWidth="6" strokeLinecap="round"
         strokeDasharray={`${(c * percent) / 100} ${c}`}
         transform="rotate(-90 32 32)"
         style={{ transition: "stroke-dasharray .35s" }}

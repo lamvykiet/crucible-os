@@ -72,8 +72,9 @@ export default function ProgressBoard() {
 
   // --- Câu kết luận, tính từ dữ liệu (docs/bieu-do.md §1) -------------------
   // Tuần này chưa hết, nên câu nói "tới nay" — so một tuần dở với một tuần trọn.
+  const empty = data.totalXp === 0 || recent.every((r) => r.xp === 0);
   const headline =
-    data.totalXp === 0 || recent.every((r) => r.xp === 0)
+    empty
       ? t("No points in the last 12 weeks yet", "12 tuần gần nhất chưa có điểm nào")
       : isBest
         ? t(
@@ -152,7 +153,9 @@ export default function ProgressBoard() {
         </div>
 
         {/* 12 cột: xám, tuần này màu nhấn và là cột DUY NHẤT ghi số. Không trục Y,
-            không lưới — một đường gốc là đủ. */}
+            không lưới — một đường gốc là đủ. Mười hai tuần trống thì không vẽ:
+            một khung rỗng với chữ "0" chỉ là rác — tiêu đề đã nói đủ. */}
+        {!empty && (
         <div role="img" aria-label={headline} className="pt-5">
           <div className="flex items-end gap-1.5 h-28 border-b border-[var(--viz-grid)]">
             {recent.map((r, i) => {
@@ -194,6 +197,7 @@ export default function ProgressBoard() {
             <span className="font-bold text-[var(--color-text)]">{t("This week", "Tuần này")}</span>
           </div>
         </div>
+        )}
       </ChartCard>
     </div>
   );
