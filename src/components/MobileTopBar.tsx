@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Languages, Moon, Settings, Sun } from "lucide-react";
+import { HeartPulse, Languages, Moon, Settings, Sun } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
 
@@ -15,6 +15,9 @@ import { useTheme } from "@/lib/ThemeContext";
  *
  * Cài đặt cũng nằm ở đây từ khi module Thói quen chiếm chỗ thứ năm của thanh
  * dưới — đây là đường duy nhất vào /settings trên điện thoại, đừng bỏ đi.
+ *
+ * Sức khoẻ cũng vậy: thanh dưới chỉ chứa năm mục, nên lối vào /health trên
+ * điện thoại là nút trái tim ở đây. Gỡ nó là module không còn đường vào.
  */
 export default function MobileTopBar() {
   const { language, setLanguage, t } = useLanguage();
@@ -36,6 +39,14 @@ export default function MobileTopBar() {
         >
           {theme === "dark" ? <Moon size={20} strokeWidth={2} /> : <Sun size={20} strokeWidth={2} />}
         </button>
+
+        <Link
+          href="/health"
+          aria-label={t("Health", "Sức khoẻ")}
+          className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+        >
+          <HeartPulse size={20} strokeWidth={2} />
+        </Link>
 
         <Link
           href="/settings"

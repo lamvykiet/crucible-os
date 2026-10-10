@@ -46,6 +46,7 @@ là thứ duy nhất cả năm phiên cùng đọc. Trước khi sửa bất c�
 | Learning | `src/app/learning/`, `src/components/learning/`, `api/learning/`, `src/lib/fsrs.ts` |
 | Video | `api/video/{fetch,queue,resolve}` (trình duyệt) và `api/video/{upload,pending}` (Shortcut iOS) |
 | Thói quen | `src/app/habits/`, `src/components/habits/`, `api/habits/`, `src/lib/habits.ts` |
+| Sức khoẻ | `src/app/health/`, `src/components/health/`, `api/health/`, `src/lib/{health,healthServer,healthImport,exercises}.ts` |
 | Vỏ giao diện | `MainLayoutWrapper`, `TopNav`, `MobileNav`, `MobileTopBar`, `src/app/globals.css` |
 
 ## Đổi cái này thì kéo theo cái kia
@@ -240,6 +241,22 @@ mà không có gì báo.
 Ba quy tắc cố ý và đã có test: ngày ngoài lịch bị bỏ qua, ngày đánh dấu nghỉ
 không phá chuỗi, kỳ hiện tại chưa đủ chỉ tiêu thì chưa tính là đứt. Đừng tính
 lại ở component — hai công thức là hai con số khác nhau trên cùng màn hình.
+
+**Sức khoẻ: một tài khoản, nhiều người.** Chồng và vợ là hai `HealthProfile`
+dưới CÙNG một `User` — số đo và buổi tập gắn vào `profileId`, không phải
+`userId`. Route nào nhận `profileId` phải hỏi `ownProfile()` trước
+(`src/lib/healthServer.ts`). Nhập phiếu đo / ảnh Hevy qua `api/health/import`
+CHỈ đọc, không ghi — form điền sẵn để người dùng soát rồi mới lưu, như luồng OCR.
+
+**Tính kỷ lục, 1RM, số hiệp mỗi nhóm cơ, ngưỡng chỉ số** → chỉ ở
+`src/lib/health.ts`. 1RM là Epley (khớp Hevy). Kỷ lục gom theo **tên bài tiếng
+Anh nguyên văn** (`WorkoutExercise.name`) — đừng dịch tên bài, kể cả trong
+`<datalist>` của `src/lib/exercises.ts`: dịch là một bài thành hai bộ kỷ lục.
+Chênh lệch giữa hai lần đo nhỏ hơn `METRICS[k].noise` là sai số máy — giao diện
+ghi "trong sai số", không tô xanh/đỏ.
+
+**Lối vào /health trên điện thoại là nút trái tim ở `MobileTopBar`** (thanh dưới
+đã đủ năm mục). Đừng gỡ.
 
 **Không bao giờ dùng dữ liệu giả.** Màn hình trống thì để trống, đừng bịa số.
 

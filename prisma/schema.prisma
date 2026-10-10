@@ -60,6 +60,9 @@ model User {
   HabitJournal       HabitJournal[]
   HabitTodo          HabitTodo[]
   FocusSession       FocusSession[]
+  HealthProfile      HealthProfile[]
+  BodyMeasurement    BodyMeasurement[]
+  Workout            Workout[]
 }
 
 // -----------------------------------------
@@ -1665,4 +1668,187 @@ model BookGrammarNote {
   @@unique([userId, bookId, step, title])
   @@index([userId, langCode])
   @@index([userId, syllabusPointId])
+}
+
+// -----------------------------------------
+// MODULE: SỨC KHOẺ
+// -----------------------------------------
+
+/// Một người được theo dõi sức khoẻ.
+///
+/// Tách khỏi `User`: cả nhà dùng chung MỘT tài khoản đăng nhập, nhưng số đo của
+/// chồng và vợ là hai chuỗi riêng — trộn vào nhau thì mọi xu hướng đều vô nghĩa.
+model HealthProfile {
+  id             String @id @default(uuid())
+  name           String
+  /// male | female — quyết định ngưỡng tham chiếu (mỡ %, eo/hông, cơ) khi máy
+  /// đo không in sẵn ngưỡng cá nhân.
+  sex            String @default("male")
+  birthYear      Int?
+  heightCm       Float?
+  /// Cân nặng mục tiêu do người dùng tự đặt. Rỗng thì dùng mục tiêu máy đo gợi
+  /// ý trong lần đo gần nhất (`BodyMeasurement.targetWeightKg`).
+  targetWeightKg Float?
+
+  sortOrder  Int       @default(0)
+  archivedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  measurements BodyMeasurement[]
+  workouts     Workout[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, archivedAt, sortOrder])
+}
+
+/// Một lần đo thành phần cơ thể (máy InBody, trạm đo CiviPay/GoTrust, cân thông
+/// minh, hoặc nhập tay).
+///
+/// Mọi chỉ số đều cho phép rỗng: cân thường chỉ có cân nặng và mỡ %, trạm đo có
+/// đủ 20 chỉ số. Rỗng nghĩa là "lần đó không đo", không phải 0.
+model BodyMeasurement {
+  id         String        @id @default(uuid())
+  profileId  String
+  profile    HealthProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  measuredAt DateTime
+
+  /// manual | import
+  source   String  @default("manual")
+  /// Tên thiết bị / trạm đo, ví dụ "CiviPay · GoTrust v1.6.3".
+  device   String?
+  /// Tên tệp đã nhập — để nhận ra một báo cáo đã nhập rồi.
+  fileName String?
+
+  age       Int?
+  heightCm  Float?
+  weightKg  Float?
+  /// Điểm hình thể 0–100 do máy đo chấm.
+  bodyScore Int?
+
+  systolic  Int?
+  diastolic Int?
+  heartRate Int?
+
+  bmi         Float?
+  /// Tỷ lệ mỡ (PBF), %.
+  pbf         Float?
+  fatMassKg   Float?
+  /// Khối lượng cơ xương (SMM).
+  smmKg       Float?
+  /// Khối lượng cơ nạc (lean body mass).
+  leanMassKg  Float?
+  musclePct   Float?
+  /// Chỉ số cơ xương, kg/m².
+  smi         Float?
+  proteinPct  Float?
+  proteinKg   Float?
+  mineralKg   Float?
+  waterPct    Float?
+  waterL      Float?
+  visceralFat Int?
+  /// Chỉ số eo/hông.
+  whr         Float?
+  bmr         Int?
+  /// Khoảng BMR khuyến nghị máy đo in kèm.
+  bmrLow      Int?
+  bmrHigh     Int?
+  /// "Tỷ lệ béo phì" máy đo in (cân nặng so với cân chuẩn), %.
+  obesityPct  Int?
+  /// Phân loại hình thể, ví dụ "Cân đối loại I".
+  bodyType    String?
+
+  /// Khuyến nghị của máy đo cho lần đo này.
+  targetWeightKg  Float?
+  weightControlKg Float?
+  muscleControlKg Float?
+  fatControlKg    Float?
+  maintenanceKcal Int?
+
+  /// Nạc theo vùng: { leftArm, rightArm, trunk, leftLeg, rightLeg } (kg).
+  segmentalLean Json?
+  /// Mỡ theo vùng, cùng khoá.
+  segmentalFat  Json?
+  /// Ngưỡng "bình thường" cá nhân máy đo in kèm: { fatMassKg: [7.5, 15], ... }.
+  /// Ngưỡng này đổi theo cân nặng và chiều cao của chính lần đo, nên phải lưu
+  /// theo từng lần chứ không suy lại được.
+  ranges        Json?
+
+  note String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([profileId, measuredAt])
+  @@index([userId, measuredAt])
+}
+
+/// Một buổi tập.
+model Workout {
+  id        String        @id @default(uuid())
+  profileId String
+  profile   HealthProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  title       String
+  startedAt   DateTime
+  durationSec Int?
+  calories    Int?
+  note        String?
+  /// manual | import
+  source      String   @default("manual")
+
+  exercises WorkoutExercise[]
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([profileId, startedAt])
+  @@index([userId, startedAt])
+}
+
+/// Một bài tập trong buổi tập.
+model WorkoutExercise {
+  id        String  @id @default(uuid())
+  workoutId String
+  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  order     Int     @default(0)
+
+  /// Tên chuẩn tiếng Anh như Hevy/Strong ("Bent Over Row") — KHÔNG dịch: kỷ lục
+  /// cá nhân gom theo đúng chuỗi này, dịch là tách một bài thành hai.
+  name        String
+  /// Nhóm cơ chính — xem MUSCLES trong src/lib/health.ts.
+  muscleGroup String?
+  /// weight | bodyweight | duration
+  kind        String  @default("weight")
+  note        String?
+
+  sets WorkoutSet[]
+
+  @@index([workoutId, order])
+  @@index([name])
+}
+
+model WorkoutSet {
+  id         String          @id @default(uuid())
+  exerciseId String
+  exercise   WorkoutExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  order      Int             @default(0)
+
+  weightKg    Float?
+  reps        Int?
+  durationSec Int?
+  /// Hiệp khởi động không tính vào khối lượng, kỷ lục hay số hiệp/nhóm cơ.
+  warmup      Boolean @default(false)
+  rpe         Float?
+
+  @@index([exerciseId, order])
 }

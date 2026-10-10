@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Settings, FileText, Database, GraduationCap, LayoutDashboard,
-  Languages, Moon, Sun, Repeat,
+  Languages, Moon, Sun, Repeat, HeartPulse,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
@@ -18,7 +18,7 @@ import { useTheme } from "@/lib/ThemeContext";
  *
  * Điện thoại vẫn dùng `MobileTopBar` + `MobileNav` — thanh này ẩn dưới 768px.
  *
- * Thanh cuộn ngang được (`.c-topnav` đặt `overflow-x: auto`): năm mục điều
+ * Thanh cuộn ngang được (`.c-topnav` đặt `overflow-x: auto`): sáu mục điều
  * hướng cộng ba nút điều khiển vừa khít ở 1280px, nhưng ở 1024px thì mục cuối
  * sẽ bị cắt nếu không cho cuộn.
  */
@@ -33,6 +33,7 @@ export default function TopNav() {
     { name: t("Finance OS", "Sổ chi tiêu"), href: "/finance", icon: FileText },
     { name: t("Learning Hub", "Learning Hub"), href: "/learning", icon: GraduationCap },
     { name: t("Habits", "Thói quen"), href: "/habits", icon: Repeat },
+    { name: t("Health", "Sức khoẻ"), href: "/health", icon: HeartPulse },
   ];
 
   const isActive = (href: string) =>
