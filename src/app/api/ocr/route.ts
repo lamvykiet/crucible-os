@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GEMINI_VISION_MODEL, modelsWithFallback } from "@/lib/gemini";
+import { GEMINI_VISION_MODEL, GEMINI_VISION_CHAIN, modelsWithFallback } from "@/lib/gemini";
 import { generateWithRetry, aiErrorMessage } from "@/lib/aiRetry";
 import { requireUser } from "@/lib/auth";
 import {
@@ -15,9 +15,23 @@ import { classify, RULE_ORDER } from "@/lib/classify";
 import { logOcr } from "@/lib/ocrLog";
 
 export const runtime = "nodejs";
-// Quét tối đa 3 ảnh và có thể phải nhảy qua vài model khi model đầu quá tải,
-// nên lượt gọi dài hơn hẳn các route khác.
-export const maxDuration = 60;
+// Quét tối đa 3 ảnh và có thể phải nhảy qua vài model khi model đầu quá tải
+// hay chậm, nên lượt gọi dài hơn hẳn các route khác. Phải lớn hơn
+// `OCR_BUDGET_MS` + phần Drive/Prisma hai đầu, nếu không Vercel giết hàm
+// giữa chừng và ảnh kẹt lại ở Incoming mà không vào Error_Invoices.
+export const maxDuration = 120;
+
+/**
+ * Thời gian cho MỘT lượt gọi Gemini, và cho cả chuỗi thử lại.
+ *
+ * Bản cũ là 20 s / 45 s — ngắn hơn thời gian đọc bình thường: nhật ký OCR ghi
+ * lượt thành công mất 11–30 s, và đo 10/10 thì hai model dự phòng mất 23 s cho
+ * một hoá đơn 13 món. Mọi lượt hỏng 07/10 và 10/10 đều dừng ở đúng ~20 s.
+ * 40 s đủ cho model chậm nhất đọc xong, mà lượt hỏng vẫn còn chỗ nhảy sang
+ * model nhanh (2.5-flash-lite, ~9 s).
+ */
+const OCR_ATTEMPT_MS = 40_000;
+const OCR_BUDGET_MS = 95_000;
 
 // Hoá đơn chụp bằng điện thoại hiếm khi vượt 10MB. Chặn sớm để không nạp cả
 // file khổng lồ vào RAM rồi mới base64 hoá.
@@ -60,33 +74,36 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const buffers = await Promise.all(
+      files.map(async (file) => ({ file, buffer: Buffer.from(await file.arrayBuffer()) }))
+    );
+    for (const { file } of buffers) fileNames.push(file.name);
+    const imageParts = buffers.map(({ file, buffer }) => ({
+      inlineData: { data: buffer.toString("base64"), mimeType: file.type },
+    }));
+
+    // Ảnh vào Incoming_Invoices và Ở NGUYÊN đó cho tới khi người dùng bấm
+    // "Duyệt hoá đơn" — đúng luồng đã chốt: quét → Incoming → chờ duyệt.
+    //
+    // Chạy SONG SONG với Gemini: OCR chỉ cần bytes ảnh, không cần ảnh đã lên
+    // Drive. Bản cũ upload xong mới gọi AI, nên vài giây upload bị cộng thẳng
+    // vào thời gian người dùng ngồi chờ.
     const drive = getDriveClient();
-    const folderIds = await getOrCreateFolderIds(drive, INVOICE_ROOT_FOLDER_ID);
-    errorFolderId = folderIds.ERROR;
-
-    const imageParts = [];
-
-    for (const file of files) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-
-      // Ảnh vào Incoming_Invoices và Ở NGUYÊN đó cho tới khi người dùng bấm
-      // "Duyệt hoá đơn" — đúng luồng đã chốt: quét → Incoming → chờ duyệt.
-      const driveFileId = await uploadToDrive(drive, buffer, file.type, file.name, folderIds.INCOMING);
-      if (driveFileId) driveFileIds.push(driveFileId);
-      fileNames.push(file.name);
-
-      imageParts.push({
-        inlineData: { data: buffer.toString("base64"), mimeType: file.type },
-      });
-    }
+    const uploads = (async () => {
+      const folderIds = await getOrCreateFolderIds(drive, INVOICE_ROOT_FOLDER_ID);
+      errorFolderId = folderIds.ERROR;
+      for (const { file, buffer } of buffers) {
+        const driveFileId = await uploadToDrive(drive, buffer, file.type, file.name, folderIds.INCOMING);
+        if (driveFileId) driveFileIds.push(driveFileId);
+      }
+    })();
 
     // Đi qua CHUỖI model chứ không gọi thẳng một model.
     //
     // Lỗi gặp thật ngày 03/10: `gemini-3.6-flash` trả 503 "high demand" và cả
     // lượt quét hỏng, ảnh bị đẩy sang Error_Invoices — trong khi quá tải là
-    // chuyện của riêng từng model, model khác lúc đó vẫn chạy. Chính file
-    // `lib/gemini.ts` đã ghi "gemini-3.6-flash 3/3 lượt trả 503", vậy mà đường
-    // OCR lại là đường duy nhất không dùng cơ chế nhảy model.
+    // chuyện của riêng từng model, model khác lúc đó vẫn chạy. Chuỗi dự phòng
+    // của OCR xếp model NHANH lên trước — xem `GEMINI_VISION_CHAIN`.
     const models = modelsWithFallback(
       {
         generationConfig: {
@@ -94,13 +111,21 @@ export async function POST(req: NextRequest) {
           responseSchema: OCR_SCHEMA,
         },
       },
-      GEMINI_VISION_MODEL
+      GEMINI_VISION_MODEL,
+      GEMINI_VISION_CHAIN
     );
-
-    const result = await generateWithRetry(models, [OCR_PROMPT, ...imageParts], {
-      timeoutMs: 20_000,
-      totalBudgetMs: 45_000,
+    const ocr = generateWithRetry(models, [OCR_PROMPT, ...imageParts], {
+      timeoutMs: OCR_ATTEMPT_MS,
+      totalBudgetMs: OCR_BUDGET_MS,
     });
+
+    // allSettled chứ không all: nếu AI hỏng trước khi upload xong thì `all`
+    // nhảy ngay vào catch, ảnh upload SAU lúc đó không được chuyển sang
+    // Error_Invoices và kẹt vô hình ở Incoming.
+    const [uploaded, scanned] = await Promise.allSettled([uploads, ocr]);
+    if (scanned.status === "rejected") throw scanned.reason;
+    if (uploaded.status === "rejected") throw uploaded.reason;
+    const result = scanned.value;
     const data = JSON.parse(result.response.text());
 
     // Quy tắc trước, Gemini sau: nếu người dùng đã dạy hệ thống nhà cung cấp này
@@ -114,7 +139,7 @@ export async function POST(req: NextRequest) {
     await logOcr({
       userId: user.id,
       status: "OK",
-      message: `Quét ${driveFileIds.length} ảnh: ${data.supplier ?? "không đọc được tên"} — ${
+      message: `Quét ${driveFileIds.length} ảnh (${result.usedModel}): ${data.supplier ?? "không đọc được tên"} — ${
         data.totalAmount ?? "không đọc được tổng"
       }`,
       fileId: driveFileIds.join(","),

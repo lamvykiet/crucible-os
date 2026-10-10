@@ -109,6 +109,29 @@ export const GEMINI_GRADING_MODEL =
 export const GEMINI_VISION_MODEL =
   process.env.GEMINI_VISION_MODEL || "gemini-3.6-flash";
 
+/**
+ * Chuỗi dự phòng RIÊNG cho OCR, xếp theo TỐC ĐỘ chứ không theo năng lực.
+ *
+ * Đo ngày 10/10/2026 trên chính hoá đơn quét hỏng (ảnh chụp màn hình
+ * 1290×2796, 13 món), cả bốn model đều đọc đúng tên, tổng và số món:
+ *
+ *   gemini-3.6-flash         14,9 s
+ *   gemini-2.5-flash-lite     9,4 s
+ *   gemini-3-flash-preview   23,1 s
+ *   gemini-2.5-flash         23,2 s
+ *
+ * Chuỗi chung đặt `gemini-3-flash-preview` và `gemini-2.5-flash` ngay sau
+ * model chính — tức là khi model chính đã chậm, lượt dự phòng lại rơi đúng vào
+ * hai model chậm nhất. Với OCR, model kế tiếp phải là model NHANH.
+ */
+export const GEMINI_VISION_CHAIN = (
+  process.env.GEMINI_VISION_CHAIN ||
+  "gemini-2.5-flash-lite,gemini-2.5-flash,gemini-3-flash-preview"
+)
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean);
+
 export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 /**
@@ -120,7 +143,13 @@ export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 export function modelsWithFallback(
   config: Omit<Parameters<typeof genAI.getGenerativeModel>[0], "model">,
   /** Model chính, nếu muốn khác mặc định — ví dụ model chấm bài. */
-  primary: string = GEMINI_MODEL
+  primary: string = GEMINI_MODEL,
+  /**
+   * Thay HẲN phần dự phòng sau model chính (bỏ cả GEMINI_MODEL và
+   * GEMINI_FALLBACK_MODEL) — cho việc cần thứ tự riêng, như OCR cần model
+   * nhanh đứng ngay sau. Bỏ trống thì dùng chuỗi chung.
+   */
+  fallbacks?: string[]
 ) {
   // Pro đứng trước, rồi mới tới các model flash.
   //
@@ -131,9 +160,7 @@ export function modelsWithFallback(
   const names = [
     ...GEMINI_PREFERRED_MODELS,
     primary,
-    GEMINI_MODEL,
-    GEMINI_FALLBACK_MODEL,
-    ...GEMINI_MODEL_CHAIN,
+    ...(fallbacks ?? [GEMINI_MODEL, GEMINI_FALLBACK_MODEL, ...GEMINI_MODEL_CHAIN]),
   ].filter((name, i, all) => name && all.indexOf(name) === i);
   return names.map((model) => genAI.getGenerativeModel({ ...config, model }));
 }

@@ -12,8 +12,19 @@ import type { GenerativeModel, Part } from "@google/generative-ai";
  * lâu gấp ba.
  */
 
+/**
+ * Lượt gọi bị chính mình cắt vì quá `timeoutMs`.
+ *
+ * Thư viện của Google KHÔNG báo "timeout" mà báo "Request aborted when
+ * fetching … This operation was aborted". Thiếu mẫu này thì lượt chậm bị coi
+ * là lỗi vĩnh viễn: không nhảy sang model khác, và câu tiếng Anh nguyên văn
+ * hiện thẳng ra màn hình. Đó chính là lỗi quét hoá đơn 07/10 và 10/10 — xem
+ * `api/ocr/route.ts`.
+ */
+const TIMED_OUT = /aborted|AbortError|timeout|timed out|deadline|ETIMEDOUT/i;
+
 /** Những lỗi đáng thử lại: quá tải, quá nhịp, quá giờ, lỗi cổng. */
-const TRANSIENT = /\b(429|500|502|503|504)\b|high demand|unavailable|timeout|deadline|overloaded|ECONNRESET|ETIMEDOUT/i;
+const TRANSIENT = /\b(429|500|502|503|504)\b|high demand|unavailable|overloaded|ECONNRESET/i;
 
 /**
  * Hết hạn mức THEO NGÀY — không phải lỗi thoáng qua.
@@ -34,8 +45,11 @@ export const isDailyQuotaError = (error: unknown) =>
 export const isTransientAiError = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
   if (DAILY_QUOTA.test(message)) return false;
-  return TRANSIENT.test(message);
+  return TRANSIENT.test(message) || TIMED_OUT.test(message);
 };
+
+export const isTimeoutAiError = (error: unknown) =>
+  TIMED_OUT.test(error instanceof Error ? error.message : String(error));
 
 /**
  * Câu báo lỗi cho người dùng, thay cho nguyên văn thông báo của Google.
@@ -47,6 +61,9 @@ export const isTransientAiError = (error: unknown) => {
 export function aiErrorMessage(error: unknown): string {
   if (isDailyQuotaError(error)) {
     return "Đã hết hạn mức AI miễn phí trong ngày trên MỌI model dự phòng. Bật thanh toán cho khoá ở Google AI Studio, hoặc chờ sang ngày mới.";
+  }
+  if (isTimeoutAiError(error)) {
+    return "AI phản hồi quá chậm nên đã bị ngắt giữa chừng, thử lại sau một lát.";
   }
   if (isTransientAiError(error)) {
     return "AI đang quá tải, thử lại sau một lát.";
@@ -166,10 +183,13 @@ export async function generateWithRetry(
     try {
       // Lượt này chỉ được dùng nốt phần ngân sách còn lại.
       const remaining = totalBudgetMs - (Date.now() - startedAt - skippedMs);
-      return await model.generateContent(
+      const result = await model.generateContent(
         request as Parameters<GenerativeModel["generateContent"]>[0],
         { timeout: Math.min(timeoutMs, remaining) }
       );
+      // Thư viện không cho biết model nào đã trả lời; ghi lại để nhật ký còn
+      // biết lượt nào phải nhảy sang model dự phòng.
+      return Object.assign(result, { usedModel: modelName(model) });
     } catch (error) {
       lastError = error;
 

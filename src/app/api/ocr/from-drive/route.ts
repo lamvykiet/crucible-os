@@ -7,14 +7,15 @@ import {
   listFilesInFolder,
   moveFileTo,
 } from "@/lib/drive";
-import { GEMINI_VISION_MODEL, modelsWithFallback } from "@/lib/gemini";
+import { GEMINI_VISION_MODEL, GEMINI_VISION_CHAIN, modelsWithFallback } from "@/lib/gemini";
 import { generateWithRetry, aiErrorMessage } from "@/lib/aiRetry";
 import { OCR_SCHEMA, OCR_PROMPT, toVnd } from "@/lib/invoice";
 import { classify, RULE_ORDER } from "@/lib/classify";
 import { logOcr } from "@/lib/ocrLog";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Cùng nhịp với `api/ocr` — xem chú thích OCR_ATTEMPT_MS ở đó.
+export const maxDuration = 120;
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
@@ -71,7 +72,8 @@ export async function POST(req: NextRequest) {
       {
         generationConfig: { responseMimeType: "application/json", responseSchema: OCR_SCHEMA },
       },
-      GEMINI_VISION_MODEL
+      GEMINI_VISION_MODEL,
+      GEMINI_VISION_CHAIN
     );
 
     const result = await generateWithRetry(
@@ -80,7 +82,7 @@ export async function POST(req: NextRequest) {
         OCR_PROMPT,
         { inlineData: { data: buffer.toString("base64"), mimeType: file.mimeType } },
       ],
-      { timeoutMs: 20_000, totalBudgetMs: 45_000 }
+      { timeoutMs: 40_000, totalBudgetMs: 95_000 }
     );
     const data = JSON.parse(result.response.text());
 
@@ -131,7 +133,7 @@ export async function POST(req: NextRequest) {
     await logOcr({
       userId: user.id,
       status: "OK",
-      message: `Quét lại thành công: ${data.supplier ?? "không đọc được tên"}`,
+      message: `Quét lại thành công (${result.usedModel}): ${data.supplier ?? "không đọc được tên"}`,
       fileId,
       fileName: file.name,
       durationMs: Date.now() - startedAt,

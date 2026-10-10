@@ -219,7 +219,12 @@ ghi nữa — chỉ còn vì bản build cũ trên Vercel SELECT chúng.
 Đừng gọi thẳng `genAI.getGenerativeModel({ model: GEMINI_MODEL })`: Gemini hay
 trả 503 "high demand" cho riêng một model, và gói miễn phí tính hạn mức theo
 từng model. Đã có tiền lệ: OCR rồi tới nút tạo dàn ý ý tưởng chết hẳn, hộp thoại
-hiện nguyên câu lỗi tiếng Anh của Google, trong khi model dự phòng vẫn chạy.
+hiện nguyên câu lỗi tiếng Anh của Google, trong khi model dự phòng vẫn chạy. `timeoutMs` phải LỚN HƠN thời gian
+model thật sự cần — đo trước, đừng đoán: OCR hoá đơn từng đặt 20 s trong khi
+hai model dự phòng mất 23 s, nên lượt nào chậm là hỏng (07/10, 10/10). Lượt bị
+cắt vì quá giờ báo "Request aborted", `aiRetry.ts` coi đó là lỗi thoáng qua và
+nhảy model; OCR có chuỗi dự phòng riêng xếp model NHANH lên trước
+(`GEMINI_VISION_CHAIN`).
 
 **Thêm route API** → mặc định là phải đăng nhập (`requireUser()`). Chỉ
 `api/video/upload` và `api/video/pending` là công khai, xác thực bằng
