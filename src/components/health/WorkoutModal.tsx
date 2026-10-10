@@ -243,7 +243,7 @@ export default function WorkoutModal({
                     value={ex.muscleGroup ?? ""}
                     onChange={(e) => setExercise(i, { muscleGroup: e.target.value || null })}
                   >
-                    <option value="">{t("Muscle group…", "Nhóm cơ…")}</option>
+                    <option value="">{t("Muscle…", "Nhóm cơ…")}</option>
                     {MUSCLES.map((m) => (
                       <option key={m.value} value={m.value}>
                         {t(m.en, m.vi)}

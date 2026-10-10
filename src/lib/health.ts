@@ -281,10 +281,11 @@ export const MUSCLES = [
   { value: "cardio", en: "Cardio", vi: "Cardio" },
 ] as const;
 
+// Nhãn ngắn: ô chọn chỉ rộng nửa hộp thoại 375px, nhãn dài bị cắt cụt.
 export const EXERCISE_KINDS = [
-  { value: "weight", en: "Weight × reps", vi: "Tạ × lần" },
-  { value: "bodyweight", en: "Bodyweight reps", vi: "Thể trọng × lần" },
-  { value: "duration", en: "Duration", vi: "Thời lượng" },
+  { value: "weight", en: "kg × reps", vi: "Tạ × lần" },
+  { value: "bodyweight", en: "Bodyweight", vi: "Thể trọng" },
+  { value: "duration", en: "Time", vi: "Thời gian" },
 ] as const;
 
 export type ExerciseKind = (typeof EXERCISE_KINDS)[number]["value"];
