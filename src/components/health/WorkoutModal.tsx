@@ -213,8 +213,10 @@ export default function WorkoutModal({
             const vol = exerciseVolume(ex);
             return (
               <section key={i} className="rounded-2xl border border-[var(--color-border)] p-3 flex flex-col gap-3">
-                <div className="flex items-start gap-2">
-                  <div className="flex-1 min-w-0 flex flex-col gap-2">
+                {/* Tên bài và nút đổi thứ tự một hàng; hai ô chọn một hàng riêng đủ rộng —
+                    chung hàng với nút thì ở 375px chữ bị cắt còn "Muscle g". */}
+                <div className="flex items-center gap-1">
+                  <div className="flex-1 min-w-0">
                     <input
                       className="c-input font-semibold"
                       list="exercise-catalog"
@@ -223,35 +225,8 @@ export default function WorkoutModal({
                       aria-label={t("Exercise", "Tên bài tập")}
                       onChange={(e) => onName(i, e.target.value)}
                     />
-                    <div className="grid grid-cols-2 gap-2">
-                      <select
-                        className="c-input"
-                        aria-label={t("Muscle group", "Nhóm cơ")}
-                        value={ex.muscleGroup ?? ""}
-                        onChange={(e) => setExercise(i, { muscleGroup: e.target.value || null })}
-                      >
-                        <option value="">{t("Muscle group…", "Nhóm cơ…")}</option>
-                        {MUSCLES.map((m) => (
-                          <option key={m.value} value={m.value}>
-                            {t(m.en, m.vi)}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        className="c-input"
-                        aria-label={t("Type", "Kiểu bài")}
-                        value={ex.kind}
-                        onChange={(e) => setExercise(i, { kind: e.target.value })}
-                      >
-                        {EXERCISE_KINDS.map((k) => (
-                          <option key={k.value} value={k.value}>
-                            {t(k.en, k.vi)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-none">
                     <button type="button" onClick={() => move(i, -1)} aria-label={t("Move up", "Lên")} className="c-btn c-btn-tertiary c-btn-icon">
                       <ArrowUp size={14} />
                     </button>
@@ -259,6 +234,34 @@ export default function WorkoutModal({
                       <ArrowDown size={14} />
                     </button>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    className="c-input"
+                    aria-label={t("Muscle group", "Nhóm cơ")}
+                    value={ex.muscleGroup ?? ""}
+                    onChange={(e) => setExercise(i, { muscleGroup: e.target.value || null })}
+                  >
+                    <option value="">{t("Muscle group…", "Nhóm cơ…")}</option>
+                    {MUSCLES.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {t(m.en, m.vi)}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="c-input"
+                    aria-label={t("Type", "Kiểu bài")}
+                    value={ex.kind}
+                    onChange={(e) => setExercise(i, { kind: e.target.value })}
+                  >
+                    {EXERCISE_KINDS.map((k) => (
+                      <option key={k.value} value={k.value}>
+                        {t(k.en, k.vi)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {last && (

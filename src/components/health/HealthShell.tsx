@@ -43,7 +43,7 @@ export default function HealthShell({
           <h1 className="c-h2">{title}</h1>
           <p className="c-card-body">{lede}</p>
         </div>
-        {profile && actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+        {profile && actions && <div className="flex flex-wrap gap-2 [&>.c-btn]:flex-1 sm:[&>.c-btn]:flex-none w-full sm:w-auto">{actions}</div>}
       </header>
 
       <nav className="flex gap-2 overflow-x-auto hide-scrollbar -mx-1 px-1 pb-1">

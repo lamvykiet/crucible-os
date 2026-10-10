@@ -266,7 +266,7 @@ function AttentionCard({ latest, sex }: { latest: Measurement; sex: "male" | "fe
   if (latest.bmi != null) {
     const c = bmiClass(latest.bmi);
     if (c.tone !== "good") {
-      flags.push({ key: "bmi", en: "BMI", vi: "BMI", value: fmt(latest.bmi, 1, language), range: "18,5–22,9", tone: c.tone, label: c });
+      flags.push({ key: "bmi", en: "BMI", vi: "BMI", value: fmt(latest.bmi, 1, language), range: `${fmt(18.5, 1, language)}–${fmt(22.9, 1, language)}`, tone: c.tone, label: c });
     }
   }
   for (const k of WATCH) {
@@ -458,7 +458,7 @@ function GoalCard({
         {latest.maintenanceKcal != null && (
           <StatTile
             label={t("Maintenance calories", "Calo duy trì")}
-            value={`${latest.maintenanceKcal.toLocaleString("vi-VN")} kcal`}
+            value={`${fmt(latest.maintenanceKcal, 0, language)} kcal`}
             note={t("device estimate", "máy đo ước tính")}
           />
         )}
@@ -495,6 +495,8 @@ function TrendCard({ k, list, target }: { k: MetricKey; list: Measurement[]; tar
   const lo = Math.min(...values);
   const hi = Math.max(...values);
   const pad = Math.max((hi - lo) * 0.25, def.digits ? 0.5 : 1);
+  // Khoảng trục từ 4 đơn vị trở lên thì mốc là số nguyên — "66.0" thừa chữ số.
+  const tickDigits = def.digits && hi - lo + 2 * pad < 4 ? 1 : 0;
 
   return (
     <ChartCard title={title} subtitle={`${t(def.en, def.vi)}${def.unit ? `, ${def.unit}` : ""} · ${data.length} ${t("measurements", "lần đo")}`}>
@@ -514,7 +516,7 @@ function TrendCard({ k, list, target }: { k: MetricKey; list: Measurement[]; tar
               tick={{ fontSize: 11, fill: "var(--color-text-faint)" }}
               padding={{ left: 12, right: 12 }}
             />
-            <YAxis {...yAxis((v) => fmt(v, def.digits ? 1 : 0, language), 40)} domain={[Math.floor(lo - pad), Math.ceil(hi + pad)]} />
+            <YAxis {...yAxis((v) => fmt(v, tickDigits, language), 40)} domain={[Math.floor(lo - pad), Math.ceil(hi + pad)]} />
             <Tooltip
               {...TOOLTIP_LINE}
               labelFormatter={(l) => shortDate(Number(l))}

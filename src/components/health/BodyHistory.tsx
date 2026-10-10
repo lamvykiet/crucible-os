@@ -234,7 +234,7 @@ function MeasurementCard({
                   { en: "Target weight", vi: "Cân nặng mục tiêu", v: m.targetWeightKg != null ? `${fmt(m.targetWeightKg, 1, language)} kg` : null },
                   { en: "Fat control", vi: "Điều chỉnh mỡ", v: m.fatControlKg != null ? `${fmtSigned(m.fatControlKg, 1, language)} kg` : null },
                   { en: "Muscle control", vi: "Điều chỉnh cơ", v: m.muscleControlKg != null ? `${fmtSigned(m.muscleControlKg, 1, language)} kg` : null },
-                  { en: "Maintenance", vi: "Calo duy trì", v: m.maintenanceKcal != null ? `${m.maintenanceKcal.toLocaleString("vi-VN")} kcal` : null },
+                  { en: "Maintenance", vi: "Calo duy trì", v: m.maintenanceKcal != null ? `${fmt(m.maintenanceKcal, 0, language)} kcal` : null },
                   { en: "Body type", vi: "Hình thể", v: m.bodyType },
                   { en: "BMR range", vi: "BMR khuyến nghị", v: m.bmrLow && m.bmrHigh ? `${m.bmrLow}–${m.bmrHigh}` : null },
                 ]

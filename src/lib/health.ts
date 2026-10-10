@@ -60,8 +60,16 @@ export const METRICS: Record<MetricKey, MetricDef> = {
     key: "smi", en: "Skeletal muscle index", vi: "Chỉ số cơ xương", unit: "kg/m²", digits: 1,
     highIsGood: true, highLabel: { en: "Athletic", vi: "Vận động viên" },
   },
-  proteinPct: { key: "proteinPct", en: "Protein %", vi: "Tỷ lệ đạm", unit: "%", digits: 1 },
-  proteinKg: { key: "proteinKg", en: "Protein", vi: "Khối lượng đạm", unit: "kg", digits: 1 },
+  // Đạm vượt ngưỡng trên là có nhiều cơ hơn, không phải chuyện xấu — dù máy đo
+  // CiviPay tô đỏ nó.
+  proteinPct: {
+    key: "proteinPct", en: "Protein %", vi: "Tỷ lệ đạm", unit: "%", digits: 1,
+    highIsGood: true, highLabel: { en: "Good", vi: "Tốt" },
+  },
+  proteinKg: {
+    key: "proteinKg", en: "Protein", vi: "Khối lượng đạm", unit: "kg", digits: 1,
+    highIsGood: true, highLabel: { en: "Good", vi: "Tốt" },
+  },
   mineralKg: {
     key: "mineralKg", en: "Minerals", vi: "Khoáng chất", unit: "kg", digits: 2,
     highIsGood: true, highLabel: { en: "Good", vi: "Tốt" },
