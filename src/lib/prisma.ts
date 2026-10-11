@@ -17,6 +17,13 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     datasourceUrl: process.env.DATABASE_URL?.replace("db.xqysclaarffkeyhicbtx.supabase.co:5432", "aws-0-ap-southeast-1.pooler.supabase.com:6543").replace("?pgbouncer=true", "") + "?pgbouncer=true",
+    // Giới hạn của transaction tương tác. Mặc định Prisma là 5 s chạy + 2 s chờ
+    // kết nối — quá giờ là transaction bị đóng giữa chừng và lệnh kế tiếp báo
+    // "Transaction not found". Đã gặp thật 11/10: duyệt hoá đơn chạy ~15–20
+    // truy vấn nối tiếp, mà hàm Vercel khi đó nằm ở Mỹ (iad1) còn DB ở
+    // Singapore, mỗi truy vấn ~230 ms. Gốc rễ đã sửa bằng `vercel.json`
+    // (regions: sin1); con số này là lưới an toàn khi mạng chậm bất thường.
+    transactionOptions: { maxWait: 10_000, timeout: 20_000 },
     log:
       process.env.NODE_ENV === "development"
         ? ["warn", "error"]

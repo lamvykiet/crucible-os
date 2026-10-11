@@ -226,6 +226,13 @@ cắt vì quá giờ báo "Request aborted", `aiRetry.ts` coi đó là lỗi tho
 nhảy model; OCR có chuỗi dự phòng riêng xếp model NHANH lên trước
 (`GEMINI_VISION_CHAIN`).
 
+**Hàm Vercel phải ở CÙNG vùng với DB.** DB là Supabase Singapore
+(`ap-southeast-1`), nên `vercel.json` ghim `regions: ["sin1"]`. Đừng gỡ: trước
+11/10 hàm chạy ở Mỹ (`iad1`), mỗi truy vấn ~230 ms, mở danh sách nháp mất
+2,6–4,6 s và duyệt hoá đơn (~15–20 truy vấn trong một `$transaction`) vượt
+giới hạn 5 s của Prisma, báo "Transaction not found". Kiểm vùng đang chạy:
+header `x-vercel-id` của một API đã đăng nhập, dạng `hkg1::sin1::…`.
+
 **Thêm route API** → mặc định là phải đăng nhập (`requireUser()`). Chỉ
 `api/video/upload` và `api/video/pending` là công khai, xác thực bằng
 `VIDEO_UPLOAD_TOKEN` cho Shortcut iOS — danh sách trong `src/proxy.ts`.
