@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { X, Upload, FileText, Loader2, AlertCircle, Plus, Check } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
+import SubGroupSelect from "./SubGroupSelect";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 import { type SupplierSuggestion } from "@/lib/useSuppliers";
 import SupplierInput from "./SupplierInput";
@@ -508,19 +509,13 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={labelClass}>{t("Nhóm phụ", "Sub-group")}</label>
-                      <input
-                        type="text"
-                        name="subGroup"
-                        list="scan-subgroups"
+                      <SubGroupSelect
                         value={formData.subGroup}
-                        onChange={handleFormChange}
+                        options={subGroupsOf(formData.categoryGroup)}
+                        label={label}
+                        onChange={(subGroup) => setFormData((prev) => ({ ...prev, subGroup }))}
                         className={inputClass}
                       />
-                      <datalist id="scan-subgroups">
-                        {subGroupsOf(formData.categoryGroup).map((s) => (
-                          <option key={s} value={s} />
-                        ))}
-                      </datalist>
                     </div>
                     <div>
                       <label className={labelClass}>{t("Thanh toán", "Payment")}</label>

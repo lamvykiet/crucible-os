@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { X, ChevronDown, Loader2, Receipt } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
+import SubGroupSelect from "./SubGroupSelect";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 import { invalidateSuppliers, type SupplierSuggestion } from "@/lib/useSuppliers";
 import SupplierInput from "./SupplierInput";
@@ -340,12 +341,13 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Danh mục con", "Danh mục con")}</label>
               <div className="relative">
-                <select name="subGroup" value={formData.subGroup} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none">
-                  <option value="">— Không chọn —</option>
-                  {subGroupsOf(formData.categoryGroup).map(sub => (
-                    <option key={sub} value={sub}>{label(sub)}</option>
-                  ))}
-                </select>
+                <SubGroupSelect
+                  value={formData.subGroup}
+                  options={subGroupsOf(formData.categoryGroup)}
+                  label={label}
+                  onChange={(subGroup) => setFormData((prev) => ({ ...prev, subGroup }))}
+                  className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none"
+                />
                 <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
               </div>
             </div>

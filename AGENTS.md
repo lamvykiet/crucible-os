@@ -187,7 +187,7 @@ nữa — nó nằm giữa quét và duyệt, quên nó thì giá trị người
 bốc hơi ở bước duyệt. Đã có tiền lệ: thêm `Account` xong chỉ gắn ô chọn vào
 `TransactionModal`, nên mọi hoá đơn quét đều vào sổ với `accountId = null` và
 dư nợ thẻ đứng im. Ô chọn tài khoản nay dùng chung `AccountSelect` +
-`useAccounts()`, đừng viết lại cái thứ tư. Ô phân bổ dự án cũng vậy:
+`useAccounts()`, đừng viết lại cái thứ tư. Ô nhóm phụ cũng vậy: `SubGroupSelect` (một `<select>` thật — Safari iPhone KHÔNG hiện gợi ý của `<datalist>`, ở bước duyệt hoá đơn người dùng chỉ thấy ô trống). Ô phân bổ dự án cũng vậy:
 `ProjectSplitEditor` + `useProjects()`, đi qua `DraftReceipt.projectSplits`.
 
 **Form sửa giao dịch phải nhận đủ khoá ngoại** (`accountId`, `toAccountId`,

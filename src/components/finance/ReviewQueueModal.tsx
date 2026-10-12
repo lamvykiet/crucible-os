@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, Loader2, FileText, Check, AlertCircle, Plus, ArrowLeft, RefreshCw } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
+import SubGroupSelect from "./SubGroupSelect";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 import { type SupplierSuggestion } from "@/lib/useSuppliers";
 import SupplierInput from "./SupplierInput";
@@ -562,19 +563,13 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={labelClass}>{t("Nhóm phụ", "Sub-group")}</label>
-                      <input
-                        type="text"
-                        name="subGroup"
-                        list="review-subgroups"
+                      <SubGroupSelect
                         value={formData.subGroup || ""}
-                        onChange={handleFormChange}
+                        options={subGroupsOf(formData.categoryGroup || "")}
+                        label={label}
+                        onChange={(subGroup) => setFormData((prev: typeof formData) => ({ ...prev, subGroup }))}
                         className={inputClass}
                       />
-                      <datalist id="review-subgroups">
-                        {subGroupsOf(formData.categoryGroup || "").map((s) => (
-                          <option key={s} value={s} />
-                        ))}
-                      </datalist>
                     </div>
                     <div>
                       <label className={labelClass}>{t("Thanh toán", "Payment")}</label>
