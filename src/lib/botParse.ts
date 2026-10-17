@@ -47,11 +47,15 @@ export async function loadBotContext(userId: string): Promise<BotContext> {
   ]);
   const tree = (kind: string) => {
     const map: BotContext["expense"] = new Map();
-    const parents = cats.filter((c) => c.kind === kind && !c.parentId);
+    // Xếp theo nhãn Việt: bàn phím chọn nhóm hiện nhãn Việt, xếp theo tên Anh
+    // thì trông như lộn xộn. Thứ tự này cũng là chỉ số trên nút (`groupAt`).
+    const byLabel = (a: (typeof cats)[number], b: (typeof cats)[number]) =>
+      (a.nameVi || a.name).localeCompare(b.nameVi || b.name, "vi");
+    const parents = cats.filter((c) => c.kind === kind && !c.parentId).sort(byLabel);
     for (const p of parents) {
       map.set(p.name, {
         vi: p.nameVi,
-        subs: new Map(cats.filter((c) => c.parentId === p.id).map((c) => [c.name, c.nameVi])),
+        subs: new Map(cats.filter((c) => c.parentId === p.id).sort(byLabel).map((c) => [c.name, c.nameVi])),
       });
     }
     return map;
@@ -107,8 +111,13 @@ const SCHEMA: Schema = {
       nullable: true,
       description: "Only when the message records NO money movement: a short Vietnamese reply",
     },
+    heard: {
+      type: SchemaType.STRING,
+      nullable: true,
+      description: "Only for audio input: a short Vietnamese transcript of what the user said",
+    },
   },
-  required: ["transactions", "reply"],
+  required: ["transactions", "reply", "heard"],
 };
 
 const FIELDS = [
@@ -135,8 +144,13 @@ const PATCH_SCHEMA: Schema = {
       nullable: true,
       description: "Only when the message is not a correction: a short Vietnamese reply",
     },
+    heard: {
+      type: SchemaType.STRING,
+      nullable: true,
+      description: "Only for audio input: a short Vietnamese transcript of what the user said",
+    },
   },
-  required: ["changed", "patch", "reply"],
+  required: ["changed", "patch", "reply", "heard"],
 };
 
 /** Ngày hôm nay theo giờ Việt Nam, YYYY-MM-DD. Máy chủ Vercel chạy giờ UTC. */
@@ -210,7 +224,7 @@ async function callGemini<T>(prompt: string, input: BotInput, schema: Schema = S
 export async function parseMessage(
   ctx: BotContext,
   input: BotInput
-): Promise<{ transactions: ParsedTx[]; reply: string | null }> {
+): Promise<{ transactions: ParsedTx[]; reply: string | null; heard: string | null }> {
   const today = todayVn();
   const prompt = `You turn a Vietnamese user's message about spending or income into transactions for their personal finance ledger.
 
@@ -219,15 +233,28 @@ TODAY is ${today} (${weekdayVi(today)}), Vietnam time.
 ${describeContext(ctx)}
 
 ${RULES}`;
-  const raw = await callGemini<{ transactions: unknown[]; reply: string | null }>(prompt, input);
+  const raw = await callGemini<{ transactions: unknown[]; reply: string | null; heard?: string | null }>(prompt, input);
   return {
     transactions: (raw.transactions ?? []).map((t) => sanitize(t, ctx, today, input.audio ? undefined : input.text)),
     reply: raw.reply || null,
+    heard: input.audio ? raw.heard || null : null,
   };
 }
 
 /** Người dùng trả lời một bản nháp để sửa: chỉ đổi đúng những trường họ nói. */
-export async function applyCorrection(ctx: BotContext, current: CurrentDraft, input: BotInput): Promise<ParsedTx> {
+export interface Correction {
+  tx: ParsedTx;
+  /** Tên tiếng Việt các trường đã đổi — để bot báo lại, người dùng khỏi đoán. */
+  changed: string[];
+  heard: string | null;
+}
+
+const FIELD_VI: Record<string, string> = {
+  type: "loại", date: "ngày", supplier: "nơi mua", totalAmount: "số tiền", categoryGroup: "nhóm",
+  subGroup: "nhóm phụ", paymentMethod: "cách trả", accountId: "thẻ", notes: "ghi chú", items: "các món",
+};
+
+export async function applyCorrection(ctx: BotContext, current: CurrentDraft, input: BotInput): Promise<Correction> {
   const today = todayVn();
   const prompt = `The user is correcting a draft transaction in their personal finance ledger. Work out which fields they want to change and return ONLY those: list their names in "changed" and their new values in "patch". Fields they did not mention must not appear in "changed". Changing the category group means also changing subGroup to the best match inside the new group (list both in "changed"); moving something to Travel also sets notes as the rules say.
 
@@ -241,7 +268,7 @@ ${JSON.stringify(current, null, 2)}
 ${describeContext(ctx)}
 
 ${RULES}`;
-  const raw = await callGemini<{ changed?: string[]; patch?: Record<string, unknown>; reply?: string | null }>(
+  const raw = await callGemini<{ changed?: string[]; patch?: Record<string, unknown>; reply?: string | null; heard?: string | null }>(
     prompt,
     input,
     PATCH_SCHEMA
@@ -257,7 +284,11 @@ ${RULES}`;
   if (changed.includes("accountId")) merged.accountMention = raw.patch?.accountMention ?? null;
   else merged.accountMention = KEEP_ACCOUNT;
   // Đổi nhóm mà không nói nhóm phụ: nhóm phụ cũ thuộc nhóm cũ, sanitize sẽ bỏ.
-  return sanitize(merged, ctx, current.date ?? today, input.audio ? undefined : input.text);
+  const tx = sanitize(merged, ctx, current.date ?? today, input.audio ? undefined : input.text);
+  // Báo đúng những gì THỰC SỰ đổi sau khi kiểm — Gemini đề xuất nhóm không có
+  // trong danh mục thì sanitize bỏ, và bot không được nói là đã đổi.
+  const real = FIELDS.filter((f) => JSON.stringify(tx[f]) !== JSON.stringify(current[f as keyof CurrentDraft]));
+  return { tx, changed: real.map((f) => FIELD_VI[f]), heard: input.audio ? raw.heard || null : null };
 }
 
 /** Đánh dấu "thẻ giữ nguyên từ bản nháp" — khỏi kiểm lại chữ người dùng nói. */

@@ -22,7 +22,9 @@ import {
   draftAsCurrent,
   fillDraftFromImages,
   findDraftByCode,
+  groupAt,
   rejectDraft,
+  subAt,
   renderDraft,
   saveReceiptImages,
   shortId,
@@ -58,7 +60,7 @@ export async function handleUpdate(update: TgUpdate, appUrl: string) {
   if (update.callback_query) {
     const cq = update.callback_query;
     if (!owner || cq.from.id !== owner || !userId) return answerCallback(cq.id, "Không có quyền");
-    return handleCallback(cq, userId);
+    return handleCallback(cq, userId, appUrl);
   }
 
   const msg = update.message;
@@ -132,9 +134,10 @@ async function handleMessage(msg: TgMessage, chat: number, userId: string, appUr
   }
 
   // Một tin có thể ghi nhiều khoản — mỗi khoản một bản nháp, một bộ nút.
+  const heardNote = parsed.heard ? `🎙 Nghe được: “${esc(parsed.heard)}”` : undefined;
   for (const [i, tx] of parsed.transactions.entries()) {
     const draft = await createDraftFromParsed(userId, tx);
-    const view = renderDraft(draft, ctx, appUrl);
+    const view = renderDraft(draft, ctx, appUrl, i === 0 ? heardNote : undefined);
     if (i === 0) await editMessage(chat, working.message_id, view.html, view.keyboard);
     else await sendMessage(chat, view.html, view.keyboard);
   }
@@ -183,7 +186,7 @@ async function handleImage(
   const caption = msg.caption?.trim();
   if (!filled.error && caption) {
     try {
-      draft = await updateDraftFromParsed(draft, await applyCorrection(ctx, draftAsCurrent(draft), { text: caption }));
+      draft = await updateDraftFromParsed(draft, (await applyCorrection(ctx, draftAsCurrent(draft), { text: caption })).tx);
     } catch (error) {
       console.error("Bot: không áp được chú thích ảnh:", error);
     }
@@ -207,8 +210,15 @@ async function correctDraft(
   const working = await sendMessage(chat, "✏️ Đang sửa…", undefined, msg.message_id);
   try {
     const corrected = await applyCorrection(ctx, draftAsCurrent(draft), input);
-    const updated = await updateDraftFromParsed(draft, corrected);
-    const view = renderDraft(updated, ctx, appUrl, "✏️ Đã sửa bản nháp:");
+    const updated = await updateDraftFromParsed(draft, corrected.tx);
+    const lines = [];
+    if (corrected.heard) lines.push(`🎙 Nghe được: “${esc(corrected.heard)}”`);
+    lines.push(
+      corrected.changed.length
+        ? `✏️ Đã đổi: <b>${corrected.changed.join(", ")}</b>`
+        : "✏️ Không có gì thay đổi — có thể tên nhóm/thẻ bạn nói không có trong danh mục. Bấm 🏷 để chọn nhóm."
+    );
+    const view = renderDraft(updated, ctx, appUrl, lines.join("\n"));
     return editMessage(chat, working.message_id, view.html, view.keyboard);
   } catch (error) {
     return editMessage(chat, working.message_id, `⚠️ Chưa sửa được: ${esc(aiErrorMessage(error))}`);
@@ -234,11 +244,44 @@ async function listPending(chat: number, userId: string, appUrl: string) {
   }
 }
 
-async function handleCallback(cq: TgCallbackQuery, userId: string) {
-  const [action, draftId] = (cq.data ?? "").split(":");
+async function handleCallback(cq: TgCallbackQuery, userId: string, appUrl: string) {
+  const [action, draftId, index] = (cq.data ?? "").split(":");
   const msg = cq.message;
   if (!draftId || !msg) return answerCallback(cq.id);
   const chat = msg.chat.id;
+
+  // Chọn nhóm / nhóm phụ bằng nút: sửa thẳng bản nháp rồi vẽ lại tin nhắn.
+  if (["g", "gs", "ss", "back"].includes(action)) {
+    const draft = await prisma.draftReceipt.findUnique({ where: { id: draftId }, include: { items: true } });
+    if (!draft || draft.userId !== userId || draft.status !== "Pending") {
+      return answerCallback(cq.id, "Bản nháp đã được xử lý rồi");
+    }
+    const ctx = await loadBotContext(userId);
+    let current: DraftWithItems = draft;
+    let picker: Parameters<typeof renderDraft>[4];
+
+    if (action === "g") picker = { kind: "group" };
+    if (action === "gs") {
+      const group = groupAt(ctx, draft.type, Number(index));
+      if (!group) return answerCallback(cq.id, "Danh mục vừa đổi — bấm 🏷 lần nữa");
+      current = await prisma.draftReceipt.update({
+        where: { id: draftId },
+        data: { categoryGroup: group, subGroup: null },
+        include: { items: true },
+      });
+      const tree = draft.type === "Income" ? ctx.income : ctx.expense;
+      if (tree.get(group)?.subs.size) picker = { kind: "sub", group };
+    }
+    if (action === "ss" && draft.categoryGroup) {
+      const sub = subAt(ctx, draft.type, draft.categoryGroup, Number(index));
+      if (!sub) return answerCallback(cq.id, "Danh mục vừa đổi — bấm 🏷 lần nữa");
+      current = await prisma.draftReceipt.update({ where: { id: draftId }, data: { subGroup: sub }, include: { items: true } });
+    }
+
+    await answerCallback(cq.id);
+    const view = renderDraft(current, ctx, appUrl, undefined, picker);
+    return editMessage(chat, msg.message_id, view.html, view.keyboard);
+  }
 
   if (action === "edit") {
     await answerCallback(cq.id);

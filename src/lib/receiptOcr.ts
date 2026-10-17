@@ -1,3 +1,4 @@
+import { SchemaType, type Schema } from "@google/generative-ai";
 import { GEMINI_VISION_MODEL, GEMINI_VISION_CHAIN, modelsWithFallback } from "@/lib/gemini";
 import { generateWithRetry } from "@/lib/aiRetry";
 import { OCR_SCHEMA, OCR_PROMPT } from "@/lib/invoice";
@@ -50,6 +51,33 @@ export interface OcrData {
   items: OcrItem[];
 }
 
+/**
+ * Cây danh mục chi tiêu của người dùng, để Gemini đề xuất nhóm cho CẢ hoá đơn.
+ *
+ * Trước 18/10 chỉ có gợi ý nhóm cho từng dòng hàng, mà model nhanh hay bỏ trống
+ * hoặc trả tên không có trong danh mục ("Food" thay cho "Food & Dining") — hoá
+ * đơn AEON đầu tiên qua bot vì thế ra "chưa có nhóm".
+ */
+async function expenseTree(userId: string) {
+  const cats = await prisma.category.findMany({
+    where: { userId, active: true, kind: "expense_group" },
+    select: { id: true, name: true, nameVi: true, parentId: true },
+    orderBy: { name: "asc" },
+  });
+  const tree = new Map<string, Set<string>>();
+  for (const g of cats.filter((c) => !c.parentId)) {
+    tree.set(g.name, new Set(cats.filter((c) => c.parentId === g.id).map((c) => c.name)));
+  }
+  const text = cats
+    .filter((c) => !c.parentId)
+    .map((g) => {
+      const subs = cats.filter((c) => c.parentId === g.id).map((c) => (c.nameVi ? `${c.name} (${c.nameVi})` : c.name));
+      return `- ${g.name}${g.nameVi ? ` (${g.nameVi})` : ""}${subs.length ? `: ${subs.join(", ")}` : ""}`;
+    })
+    .join("\n");
+  return { tree, text };
+}
+
 export async function readReceipt(
   userId: string,
   images: ReceiptImage[]
@@ -57,19 +85,32 @@ export async function readReceipt(
   // Đi qua CHUỖI model chứ không gọi thẳng một model: quá tải là chuyện của
   // riêng từng model (03/10: `gemini-3.6-flash` trả 503 trong khi model khác
   // vẫn chạy). Chuỗi của OCR xếp model NHANH lên trước — `GEMINI_VISION_CHAIN`.
+  const { tree, text: treeText } = await expenseTree(userId);
+  const schema: Schema = {
+    ...OCR_SCHEMA,
+    properties: {
+      ...(OCR_SCHEMA as { properties: Record<string, Schema> }).properties,
+      categoryGroup: { type: SchemaType.STRING, nullable: true, description: "Expense group for the WHOLE receipt, from the list" },
+      subGroup: { type: SchemaType.STRING, nullable: true, description: "Sub-group inside that group, from the list" },
+    },
+  } as Schema;
+  const prompt = treeText
+    ? `${OCR_PROMPT}\n- Also choose categoryGroup and subGroup for the whole receipt from the user's categories below, using the English names exactly; null when nothing fits. A resort or hotel restaurant away from home is "Travel".\n\nCategories (group: sub-groups):\n${treeText}`
+    : OCR_PROMPT;
   const models = modelsWithFallback(
-    { generationConfig: { responseMimeType: "application/json", responseSchema: OCR_SCHEMA } },
+    { generationConfig: { responseMimeType: "application/json", responseSchema: schema } },
     GEMINI_VISION_MODEL,
     GEMINI_VISION_CHAIN
   );
   const parts = images.map((img) => ({
     inlineData: { data: img.data.toString("base64"), mimeType: img.mimeType },
   }));
-  const result = await generateWithRetry(models, [OCR_PROMPT, ...parts], {
+  const result = await generateWithRetry(models, [prompt, ...parts], {
     timeoutMs: OCR_ATTEMPT_MS,
     totalBudgetMs: OCR_BUDGET_MS,
   });
-  const data = JSON.parse(result.response.text()) as OcrData;
+  const raw = JSON.parse(result.response.text()) as OcrData & { categoryGroup?: string | null; subGroup?: string | null };
+  const { categoryGroup: aiGroup, subGroup: aiSub, ...data } = raw;
   data.items = Array.isArray(data.items) ? data.items : [];
 
   // Quy tắc trước, Gemini sau: nếu người dùng đã dạy hệ thống nhà cung cấp này
@@ -78,5 +119,12 @@ export async function readReceipt(
     where: { userId, active: true },
     orderBy: RULE_ORDER,
   });
-  return { data, suggestion: classify(rules, data), usedModel: result.usedModel };
+  const ruled = classify(rules, data);
+  if (ruled.categoryGroup) return { data, suggestion: ruled, usedModel: result.usedModel };
+
+  // Không quy tắc nào khớp: dùng đề xuất của Gemini, nhưng chỉ khi nó trỏ tới
+  // danh mục có thật.
+  const group = aiGroup && tree.has(aiGroup) ? aiGroup : undefined;
+  const sub = group && aiSub && tree.get(group)!.has(aiSub) ? aiSub : undefined;
+  return { data, suggestion: { ...ruled, categoryGroup: group, subGroup: sub }, usedModel: result.usedModel };
 }

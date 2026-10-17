@@ -103,7 +103,7 @@ export async function POST(req: Request) {
         // Câu nói kèm theo ảnh ("thẻ VIB", "du lịch Đà Lạt") áp như chú thích.
         let final = filled.draft;
         if (!filled.error && text) {
-          final = await updateDraftFromParsed(final, await applyCorrection(ctx, draftAsCurrent(final), { text }));
+          final = await updateDraftFromParsed(final, (await applyCorrection(ctx, draftAsCurrent(final), { text })).tx);
         }
         await notifyDraft(
           userId,

@@ -250,11 +250,42 @@ export function missingFields(d: DraftReceipt): string[] {
   return miss;
 }
 
+/**
+ * Bàn phím chọn nhóm: bấm một lần thay vì phải nói đúng tên nhóm. Dữ liệu nút
+ * mang CHỈ SỐ trong danh mục chứ không mang tên — Telegram giới hạn 64 byte,
+ * mà "Entertainment & Subscriptions" cộng id bản nháp đã vượt.
+ */
+export type Picker = { kind: "group" } | { kind: "sub"; group: string };
+
+function pickerRows(d: DraftReceipt, ctx: BotContext, picker: Picker): InlineButton[][] {
+  const tree = d.type === "Income" ? ctx.income : ctx.expense;
+  const pairs = (buttons: InlineButton[]) =>
+    buttons.reduce<InlineButton[][]>((rows, b, i) => (i % 2 ? rows[rows.length - 1].push(b) : rows.push([b]), rows), []);
+  if (picker.kind === "group") {
+    const groups = [...tree.entries()].map(([name, g], i) => ({ text: g.vi || name, callback_data: `gs:${d.id}:${i}` }));
+    return [...pairs(groups), [{ text: "↩︎ Quay lại", callback_data: `back:${d.id}` }]];
+  }
+  const subs = [...(tree.get(picker.group)?.subs ?? new Map())].map(([name, vi], i) => ({
+    text: vi || name,
+    callback_data: `ss:${d.id}:${i}`,
+  }));
+  return [...pairs(subs), [{ text: "Không chọn nhóm phụ", callback_data: `back:${d.id}` }]];
+}
+
+/** Nhóm/nhóm phụ theo chỉ số trên nút — cùng thứ tự với `pickerRows`. */
+export function groupAt(ctx: BotContext, type: string, i: number): string | null {
+  return [...(type === "Income" ? ctx.income : ctx.expense).keys()][i] ?? null;
+}
+export function subAt(ctx: BotContext, type: string, group: string, i: number): string | null {
+  return [...((type === "Income" ? ctx.income : ctx.expense).get(group)?.subs.keys() ?? [])][i] ?? null;
+}
+
 export function renderDraft(
   d: DraftWithItems,
   ctx: BotContext,
   appUrl: string | null,
-  note?: string
+  note?: string,
+  picker?: Picker
 ): { html: string; keyboard: { inline_keyboard: InlineButton[][] } } {
   const tree = d.type === "Income" ? ctx.income : ctx.expense;
   const group = d.categoryGroup ? tree.get(d.categoryGroup) : undefined;
@@ -284,14 +315,31 @@ export function renderDraft(
   if (d.driveFileIds) lines.push("📎 Ảnh đã lưu trên Drive");
 
   const miss = missingFields(d);
-  if (miss.length) lines.push(`\n⚠️ Thiếu <b>${miss.join(", ")}</b> — trả lời (reply) tin này để bổ sung.`);
+  if (miss.length) {
+    const rest = miss.filter((m) => m !== "nhóm");
+    lines.push(
+      `\n⚠️ Thiếu <b>${miss.join(", ")}</b>${rest.length ? " — trả lời (reply) tin này để bổ sung" : ""}.`
+    );
+  }
   lines.push(`\n<code>Mã nháp: ${shortId(d.id)}</code>`);
+
+  if (picker) {
+    lines.push(picker.kind === "group" ? "\n👇 Chọn nhóm:" : "\n👇 Chọn nhóm phụ:");
+    return { html: lines.filter(Boolean).join("\n"), keyboard: { inline_keyboard: pickerRows(d, ctx, picker) } };
+  }
+  // Thiếu nhóm: bày luôn bàn phím chọn nhóm, khỏi bắt người dùng bấm thêm một nút.
+  if (!d.categoryGroup) {
+    lines.push("👇 Chọn nhóm:");
+    const rows = pickerRows(d, ctx, { kind: "group" }).slice(0, -1);
+    rows.push([{ text: "✏️ Sửa", callback_data: `edit:${d.id}` }, { text: "❌ Huỷ", callback_data: `no:${d.id}` }]);
+    return { html: lines.filter(Boolean).join("\n"), keyboard: { inline_keyboard: rows } };
+  }
 
   const row1: InlineButton[] = [];
   if (!miss.length) row1.push({ text: "✅ Ghi sổ", callback_data: `ok:${d.id}` });
   row1.push({ text: "✏️ Sửa", callback_data: `edit:${d.id}` }, { text: "❌ Huỷ", callback_data: `no:${d.id}` });
-  const keyboard: InlineButton[][] = [row1];
-  if (appUrl) keyboard.push([{ text: "Mở hàng chờ duyệt trong app", url: `${appUrl}/finance` }]);
+  const keyboard: InlineButton[][] = [row1, [{ text: "🏷 Đổi nhóm", callback_data: `g:${d.id}` }]];
+  if (appUrl) keyboard[1].push({ text: "Mở app", url: `${appUrl}/finance` });
 
   return { html: lines.filter(Boolean).join("\n"), keyboard: { inline_keyboard: keyboard } };
 }
