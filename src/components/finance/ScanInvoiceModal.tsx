@@ -6,6 +6,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import SubGroupSelect from "./SubGroupSelect";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
+import { pickSuggestedGroup } from "@/lib/classify";
 import { type SupplierSuggestion } from "@/lib/useSuppliers";
 import SupplierInput from "./SupplierInput";
 import { todayLocalIso } from "@/lib/localDate";
@@ -653,22 +654,4 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
       </div>
     </div>
   );
-}
-
-/** Nhóm được Gemini gợi ý nhiều nhất, nếu nó thật sự nằm trong danh mục của người dùng. */
-function pickSuggestedGroup(items: LineItem[], validGroups: string[]): string {
-  const tally = new Map<string, number>();
-  for (const item of items) {
-    const g = item.suggestedCategoryGroup;
-    if (g && validGroups.includes(g)) tally.set(g, (tally.get(g) ?? 0) + 1);
-  }
-  let best = "";
-  let bestCount = 0;
-  for (const [group, count] of tally) {
-    if (count > bestCount) {
-      best = group;
-      bestCount = count;
-    }
-  }
-  return best;
 }

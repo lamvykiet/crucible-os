@@ -88,3 +88,28 @@ export function classify(rules: RuleLike[], receipt: ReceiptLike): Classificatio
 
 /** Thứ tự xét quy tắc: priority tăng dần, rồi mới tới quy tắc tạo gần đây nhất. */
 export const RULE_ORDER = [{ priority: "asc" as const }, { createdAt: "desc" as const }];
+
+/**
+ * Nhóm được Gemini gợi ý nhiều nhất trên các dòng hàng, nếu nó thật sự nằm trong
+ * danh mục của người dùng. Dùng khi không quy tắc nào khớp — ở hộp thoại quét
+ * lẫn ở bot Telegram.
+ */
+export function pickSuggestedGroup(
+  items: Array<{ suggestedCategoryGroup?: string | null }>,
+  validGroups: string[]
+): string {
+  const tally = new Map<string, number>();
+  for (const item of items) {
+    const g = item.suggestedCategoryGroup;
+    if (g && validGroups.includes(g)) tally.set(g, (tally.get(g) ?? 0) + 1);
+  }
+  let best = "";
+  let bestCount = 0;
+  for (const [group, count] of tally) {
+    if (count > bestCount) {
+      best = group;
+      bestCount = count;
+    }
+  }
+  return best;
+}

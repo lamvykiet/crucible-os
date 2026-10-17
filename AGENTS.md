@@ -236,10 +236,29 @@ nhảy model; OCR có chuỗi dự phòng riêng xếp model NHANH lên trước
 giới hạn 5 s của Prisma, báo "Transaction not found". Kiểm vùng đang chạy:
 header `x-vercel-id` của một API đã đăng nhập, dạng `hkg1::sin1::…`.
 
-**Thêm route API** → mặc định là phải đăng nhập (`requireUser()`). Chỉ
-`api/video/upload` và `api/video/pending` là công khai, xác thực bằng
-`VIDEO_UPLOAD_TOKEN` cho Shortcut iOS — danh sách trong `src/proxy.ts`.
+**Thêm route API** → mặc định là phải đăng nhập (`requireUser()`). Công khai
+chỉ có (danh sách trong `src/proxy.ts`), mỗi route TỰ kiểm khoá của nó:
+`api/video/{upload,pending}` (`VIDEO_UPLOAD_TOKEN`, Shortcut iOS),
+`api/receipt/upload` (`RECEIPT_UPLOAD_TOKEN`, Shortcut hoá đơn),
+`api/bot/telegram` (header bí mật suy từ `TELEGRAM_BOT_TOKEN` + chỉ nhận
+`TELEGRAM_CHAT_ID`), `api/bot/remind` (`CRON_SECRET`). `api/bot/setup` thì
+KHÔNG được công khai — ai gọi được nó là trỏ được webhook đi nơi khác; vì
+`isPublic` so tiền tố, đừng đặt nó dưới `api/bot/telegram/`.
 Đừng nới `PUBLIC_PATHS` để tiện kiểm thử rồi quên hoàn nguyên.
+
+**Bot ghi chi tiêu (Telegram + Shortcut)** → `docs/bot-ghi-chi-tieu.md`. Bot
+KHÔNG ghi thẳng `Transaction`: mọi tin nhắn/ảnh thành `DraftReceipt` trước,
+bấm ✅ mới ghi, qua `approveDraft()` (`src/lib/approveDraft.ts`) — CÙNG hàm
+với route `process-ocr` của hộp thoại duyệt. Sửa luật ghi sổ (kiểm trùng,
+`applyProjectSplits`, dời ảnh Drive, học quy tắc) là sửa ở đó, đừng viết
+đường thứ hai. Ảnh phải lên Drive và có bản nháp TRƯỚC khi gọi OCR
+(`saveReceiptImages`), báo "đã lưu" chỉ sau bước đó — người dùng vứt hoá đơn
+giấy khi thấy chữ ấy. Đọc ảnh qua `readReceipt()` (`src/lib/receiptOcr.ts`),
+chung với nút Quét trong app. Gemini đề xuất gì cũng phải qua `sanitize()`
+(`src/lib/botParse.ts`): thẻ chỉ được gán khi người dùng GỌI TÊN nó — 18/10
+Gemini từng tự gán thẻ Timo cho câu "quẹt thẻ" trơn. Lần sửa nháp chỉ lấy các
+trường Gemini kê trong `changed`; bắt nó chép lại cả bản nháp là nó làm rơi
+nhà cung cấp, nhóm, thẻ.
 
 **Thêm mục vào thanh dưới (`MobileNav`)** → thanh này **chỉ chứa năm mục**.
 Ở khổ 375px mục thứ sáu làm nhãn bị bóp và vùng chạm tụt dưới 44px. Khi module

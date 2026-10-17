@@ -10,7 +10,13 @@ import { NextResponse, type NextRequest } from 'next/server'
 // chứ không bằng phiên Supabase: Shortcut trên iPhone không đăng nhập được.
 // Nếu để middleware chặn thì Shortcut luôn nhận 401 và không bao giờ chạm tới
 // handler. Cả hai handler đều tự kiểm tra token, nên đây không phải mở toang.
-const PUBLIC_PATHS = ['/login', '/auth', '/api/video/upload', '/api/video/pending']
+// Bot ghi chi tiêu cũng vậy: webhook Telegram xác thực bằng mã bí mật suy từ
+// token, Shortcut hoá đơn bằng RECEIPT_UPLOAD_TOKEN, cron nhắc nhở bằng
+// CRON_SECRET. `/api/bot/setup` thì KHÔNG công khai — nó trỏ được webhook đi.
+const PUBLIC_PATHS = [
+  '/login', '/auth', '/api/video/upload', '/api/video/pending',
+  '/api/bot/telegram', '/api/bot/remind', '/api/receipt/upload',
+]
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some(
