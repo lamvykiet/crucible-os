@@ -31,6 +31,20 @@ export function invalidateCategories() {
   cache = null;
 }
 
+// Các hook đang mở. `invalidateCategories` chỉ có tác dụng với modal mở SAU đó;
+// tạo nhóm phụ ngay trong modal thì chính modal đó (và ô chọn nằm trong nó)
+// phải được báo để vẽ lại.
+const listeners = new Set<(d: CategoryData) => void>();
+
+/** Xoá cache, tải lại, và báo cho mọi hook đang mở. */
+export async function reloadCategories() {
+  cache = null;
+  const d = await load();
+  // Tải hỏng thì `load` trả EMPTY — đừng xoá trắng danh sách đang hiện.
+  if (d !== EMPTY) listeners.forEach((l) => l(d));
+  return d;
+}
+
 async function load(): Promise<CategoryData> {
   if (cache) return cache;
   if (!inFlight) {
@@ -71,8 +85,10 @@ export function useCategories(type?: string) {
       setData(d);
       setIsLoading(false);
     });
+    listeners.add(setData);
     return () => {
       alive = false;
+      listeners.delete(setData);
     };
   }, []);
 
@@ -94,6 +110,8 @@ export function useCategories(type?: string) {
     isLoading,
     groups,
     label,
+    /** Nhóm cha theo tên chuẩn — cần `id` để tạo danh mục con. */
+    groupOf: (groupName: string) => groups.find((g) => g.name === groupName),
     groupNames: groups.map((g) => g.name),
     subGroupsOf: (groupName: string) =>
       groups.find((g) => g.name === groupName)?.children.map((c) => c.name) ?? [],

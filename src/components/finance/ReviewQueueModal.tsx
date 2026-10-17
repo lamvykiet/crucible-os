@@ -62,7 +62,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
   const [duplicate, setDuplicate] = useState<any>(null);
   const [resolving, setResolving] = useState<"delete" | "trash" | "force" | null>(null);
 
-  const { groupNames, subGroupsOf, label } = useCategories(formData.type);
+  const { groupNames, label } = useCategories(formData.type);
 
   const fetchQueue = async () => {
     setIsLoading(true);
@@ -565,8 +565,8 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                       <label className={labelClass}>{t("Nhóm phụ", "Sub-group")}</label>
                       <SubGroupSelect
                         value={formData.subGroup || ""}
-                        options={subGroupsOf(formData.categoryGroup || "")}
-                        label={label}
+                        group={formData.categoryGroup || ""}
+                        type={formData.type}
                         onChange={(subGroup) => setFormData((prev: typeof formData) => ({ ...prev, subGroup }))}
                         className={inputClass}
                       />

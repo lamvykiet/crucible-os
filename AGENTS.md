@@ -65,6 +65,9 @@ gì**. Phải dời trong cùng một `$transaction` — xem
 **Thêm/sửa/xoá danh mục** → gọi `invalidateCategories()` (`src/lib/useCategories.ts`).
 Hook cache ở cấp module, không xoá thì mọi modal vẫn hiện danh sách cũ tới khi
 tải lại trang.
+Tạo danh mục NGAY TRONG một modal đang mở (như "+ Tạo nhóm phụ mới…" của
+`SubGroupSelect`) thì phải `await reloadCategories()` — nó tải lại và báo cho
+mọi hook đang mở; `invalidateCategories()` chỉ có tác dụng với modal mở sau.
 
 **Trước khi đổi giao diện** → đọc `docs/huong-thiet-ke-2026.md`. Đó là bản đối
 chiếu giữa xu hướng thiết kế hiện hành và những gì dự án cố ý làm khác, kèm lý

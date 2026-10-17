@@ -76,7 +76,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
   const [items, setItems] = useState<LineItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { groupNames, subGroupsOf, label } = useCategories(formData.type);
+  const { groupNames, label } = useCategories(formData.type);
 
   const resetState = () => {
     setStep("upload");
@@ -511,8 +511,8 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                       <label className={labelClass}>{t("Nhóm phụ", "Sub-group")}</label>
                       <SubGroupSelect
                         value={formData.subGroup}
-                        options={subGroupsOf(formData.categoryGroup)}
-                        label={label}
+                        group={formData.categoryGroup}
+                        type={formData.type}
                         onChange={(subGroup) => setFormData((prev) => ({ ...prev, subGroup }))}
                         className={inputClass}
                       />

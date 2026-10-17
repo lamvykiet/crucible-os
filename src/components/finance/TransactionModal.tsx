@@ -42,7 +42,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
 
   // Danh mục lấy từ bảng Category, thay cho ba mảng viết cứng trước đây.
   const [typeForCategories, setTypeForCategories] = useState<string>(initialData?.type || defaultType);
-  const { groupNames, subGroupsOf, label } = useCategories(typeForCategories);
+  const { groupNames, label } = useCategories(typeForCategories);
 
   const [formData, setFormData] = useState({
     date: initialData?.date || todayLocalIso(),
@@ -340,16 +340,14 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
             {/* Subcategory */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Danh mục con", "Danh mục con")}</label>
-              <div className="relative">
-                <SubGroupSelect
-                  value={formData.subGroup}
-                  options={subGroupsOf(formData.categoryGroup)}
-                  label={label}
-                  onChange={(subGroup) => setFormData((prev) => ({ ...prev, subGroup }))}
-                  className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none"
-                />
-                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
-              </div>
+              <SubGroupSelect
+                value={formData.subGroup}
+                group={formData.categoryGroup}
+                type={typeForCategories}
+                onChange={(subGroup) => setFormData((prev) => ({ ...prev, subGroup }))}
+                className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none"
+                trailing={<ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />}
+              />
             </div>
 
             {/* Amount */}
