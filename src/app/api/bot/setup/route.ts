@@ -62,7 +62,7 @@ export async function GET(req: Request) {
           : process.env.VIDEO_UPLOAD_TOKEN
             ? "chưa đặt — Shortcut dùng tạm VIDEO_UPLOAD_TOKEN"
             : "CHƯA — Shortcut chụp hoá đơn chưa chạy được",
-        CRON_SECRET: process.env.CRON_SECRET ? "đã đặt" : "CHƯA — nhắc nhở 21:00 chưa chạy",
+        CRON_SECRET: process.env.CRON_SECRET ? "đã đặt" : "CHƯA — nhắc nhở 12h/17h/22h chưa chạy",
       },
     });
   } catch (error) {

@@ -37,7 +37,7 @@ Vào Vercel → project **crucible-os** → Settings → Environment Variables. 
 | `TELEGRAM_BOT_TOKEN` | token ở bước 1 |
 | `BOT_USER_ID` | `f92c8bbc-418a-4b48-9a13-8e8118c92f78` (tài khoản Crucible của bạn) |
 | `RECEIPT_UPLOAD_TOKEN` | một chuỗi ngẫu nhiên dài, tự đặt. Shortcut sẽ gửi kèm chuỗi này |
-| `CRON_SECRET` | một chuỗi ngẫu nhiên khác. Vercel dùng nó để gọi lịch nhắc 21:00 |
+| `CRON_SECRET` | một chuỗi ngẫu nhiên khác. Vercel dùng nó để gọi lịch nhắc 12h, 17h, 22h |
 | `TELEGRAM_CHAT_ID` | để trống lúc này, lấy ở bước 4 |
 
 Để tạo chuỗi ngẫu nhiên, chạy `openssl rand -hex 24` trong Terminal.
@@ -67,7 +67,10 @@ Mở lại `/api/bot/setup` để kiểm. Mọi dòng trong `checklist` phải g
 - **Ảnh**: chụp thẳng trong Telegram. Có thể thêm chú thích như *"thẻ UOB"* hay *"du lịch Đà Lạt"*.
 - **Sửa một bản nháp**: *trả lời (reply)* vào bản nháp đó, ví dụ *"số tiền 450k, nhóm ăn uống"*, hoặc bấm ✏️.
 - **Xem bản nháp đang chờ**: gõ `/cho`.
-- **21:00 mỗi tối**: nếu hôm đó chưa ghi khoản nào, hoặc còn bản nháp chờ duyệt, bot nhắn nhắc.
+- **Nhắc lúc 12h, 17h và 22h**:
+  - Chưa có giao dịch nào trong ngày: bot nhắc nhập.
+  - Đã có giao dịch: bot báo hôm nay đã chi bao nhiêu và hỏi còn khoản nào không.
+  - Gói Vercel Hobby có thể gửi trễ tới 59 phút, ví dụ mốc 12h đến trong khoảng 12:00–12:59.
 
 Bot chỉ gán **thẻ** khi bạn nói rõ tên thẻ, tên ngân hàng hoặc 4 số cuối. Nói "quẹt thẻ" thôi thì bản nháp ghi "Thẻ · chưa chọn thẻ nào". Lúc đó trả lời *"thẻ Timo"* để chọn.
 
