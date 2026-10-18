@@ -6,12 +6,13 @@ import { todayVn } from "@/lib/botParse";
 export const runtime = "nodejs";
 
 /**
- * Nhắc ghi chi tiêu 3 lần mỗi ngày — 12h, 17h, 22h giờ Việt Nam. Vercel Cron
- * gọi (`vercel.json`: 05:00, 10:00, 15:00 UTC).
+ * Nhắc ghi chi tiêu 3 lần mỗi ngày, TRƯỚC các mốc 12h, 17h, 22h giờ Việt Nam.
  *
- * Gói Hobby: mỗi lịch cron chạy tối đa MỘT lần/ngày và có thể lệch tới 59 phút
- * (gọi lúc 12:00–12:59), nên ba mốc là ba lịch riêng, và buổi nào được suy từ
- * giờ thật lúc chạy chứ không tin vào phút chính xác.
+ * Gói Hobby: mỗi lịch cron chạy tối đa MỘT lần/ngày và chỉ giữ đúng GIỜ —
+ * phút bị bỏ, lịch chạy lúc nào đó trong giờ ấy. Người dùng chốt 18/10: đặt
+ * sớm một giờ (`vercel.json`: 04:01, 09:01, 14:01 UTC = 11:01, 16:01, 21:01
+ * giờ VN) để lời nhắc luôn đến trước mốc, chậm nhất là 11:59 / 16:59 / 21:59.
+ * Buổi nào được suy từ giờ thật lúc chạy.
  *
  * Hai trường hợp, theo người dùng chốt 18/10:
  *   - Hôm nay chưa có giao dịch nào → nhắc nhập.

@@ -6,15 +6,15 @@
   "crons": [
     {
       "path": "/api/bot/remind",
-      "schedule": "0 5 * * *"
+      "schedule": "1 4 * * *"
     },
     {
       "path": "/api/bot/remind",
-      "schedule": "0 10 * * *"
+      "schedule": "1 9 * * *"
     },
     {
       "path": "/api/bot/remind",
-      "schedule": "0 15 * * *"
+      "schedule": "1 14 * * *"
     }
   ]
 }

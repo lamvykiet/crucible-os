@@ -70,7 +70,7 @@ Mở lại `/api/bot/setup` để kiểm. Mọi dòng trong `checklist` phải g
 - **Nhắc lúc 12h, 17h và 22h**:
   - Chưa có giao dịch nào trong ngày: bot nhắc nhập.
   - Đã có giao dịch: bot báo hôm nay đã chi bao nhiêu và hỏi còn khoản nào không.
-  - Gói Vercel Hobby có thể gửi trễ tới 59 phút, ví dụ mốc 12h đến trong khoảng 12:00–12:59.
+  - Gói Vercel Hobby chỉ giữ đúng giờ, không giữ phút. Vì vậy lịch được đặt sớm một giờ (11:01, 16:01, 21:01) để lời nhắc luôn đến trước mốc. Ví dụ mốc 12h sẽ đến trong khoảng 11:00–11:59.
 
 Bot chỉ gán **thẻ** khi bạn nói rõ tên thẻ, tên ngân hàng hoặc 4 số cuối. Nói "quẹt thẻ" thôi thì bản nháp ghi "Thẻ · chưa chọn thẻ nào". Lúc đó trả lời *"thẻ Timo"* để chọn.
 
