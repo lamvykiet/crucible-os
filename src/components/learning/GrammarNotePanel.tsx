@@ -37,12 +37,20 @@ export default function GrammarNotePanel({ note }: { note: GrammarNote }) {
       {head && rows.length > 0 && (
         // Khổ 375px: bảng ba bốn cột chữ không vừa, nên cho cuộn ngang trong
         // khung riêng thay vì đẩy cả trang tràn ra.
+        //
+        // Không dùng `.c-table`: nó nằm ngoài mọi @layer nên thắng utility,
+        // đệm 14px và chữ 16px của nó quá rộng cho bảng tra trong bài học.
         <div className="overflow-x-auto -mx-1 px-1">
-          <table className="c-table text-sm [&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3 [&_th]:py-2 [&_td]:align-top">
+          <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
                 {head.map((cell, i) => (
-                  <th key={i}>{cell}</th>
+                  <th
+                    key={i}
+                    className="text-left px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-faint)] border-b border-[var(--color-border-strong)]"
+                  >
+                    {cell}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -50,7 +58,10 @@ export default function GrammarNotePanel({ note }: { note: GrammarNote }) {
               {rows.map((row, i) => (
                 <tr key={i}>
                   {row.map((cell, j) => (
-                    <td key={j} className={j === 0 ? "font-semibold" : undefined}>
+                    <td
+                      key={j}
+                      className={`px-3 py-2.5 align-top border-b border-[var(--color-border)] ${j === 0 ? "font-semibold" : ""}`}
+                    >
                       {cell}
                     </td>
                   ))}
