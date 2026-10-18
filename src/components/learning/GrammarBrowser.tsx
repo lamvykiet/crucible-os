@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import type { GrammarFamily } from "@/lib/grammarSyllabus";
+import { grammarNote } from "@/lib/grammar/notes";
+import GrammarNotePanel from "./GrammarNotePanel";
 
 interface Progress {
   viewed: boolean;
@@ -287,6 +289,8 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
     });
 
   const viewedCount = Object.values(progress).filter((p) => p.viewed).length;
+  // Ghi chú soạn tay nằm trong code, có ngay — không phụ thuộc lượt gọi AI.
+  const note = pointId ? grammarNote(langCode, pointId) : null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,320px)_1fr] gap-6 items-start">
@@ -503,11 +507,16 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
 
             {tab === "knowledge" ? (
               loadingLesson ? (
-                <div className="flex items-center gap-3 py-16 justify-center text-[var(--color-text-muted)]">
-                  <Loader2 size={20} className="animate-spin" />
-                  <span className="text-sm font-bold">
-                    {t("Writing this lesson...", "Đang soạn bài này...")}
-                  </span>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3 py-16 justify-center text-[var(--color-text-muted)]">
+                    <Loader2 size={20} className="animate-spin" />
+                    <span className="text-sm font-bold">
+                      {t("Writing this lesson...", "Đang soạn bài này...")}
+                    </span>
+                  </div>
+                  {/* Trong lúc chờ AI (có lượt mất cả chục giây), phần soạn tay
+                      đã đọc được rồi. */}
+                  {note && <GrammarNotePanel note={note} />}
                 </div>
               ) : lesson ? (
                 <div className="space-y-6">
@@ -555,6 +564,8 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
                     </div>
                   )}
 
+                  {note && <GrammarNotePanel note={note} />}
+
                   {supplements.length > 0 && (
                     <div className="space-y-3">
                       <p className="c-card-kicker flex items-center gap-2">
@@ -600,6 +611,10 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
                     {t("Practice this", "Luyện điểm này")}
                   </button>
                 </div>
+              ) : note ? (
+                // AI không soạn được bài (lỗi hiện phía trên) — ghi chú soạn
+                // tay vẫn đứng được một mình.
+                <GrammarNotePanel note={note} />
               ) : null
             ) : loadingPractice ? (
               <div className="flex items-center gap-3 py-16 justify-center text-[var(--color-text-muted)]">

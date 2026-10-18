@@ -48,6 +48,63 @@ const FAMILIES: GrammarFamily[] = [
         ["compound", "Hoà hợp với chủ ngữ ghép", "B1"],
         ["collective", "Hoà hợp với danh từ tập hợp và lượng từ", "B2"],
       ]),
+      group("agreement-tricky", "Hoà hợp: những chỗ dễ sai", [
+        ["uncountable", "Danh từ không đếm được đi với động từ số ít", "A2"],
+        ["intervening", "Cụm chen giữa chủ ngữ và động từ", "B1"],
+        ["indefinite", "Each, every, everyone và động từ số ít", "B1"],
+        ["one-of", "One of + danh từ số nhiều", "B1"],
+        ["either-neither", "Either ... or, neither ... nor", "B2"],
+        ["number-of", "The number of và a number of", "B2"],
+        ["fractions", "Phân số và phần trăm + of", "B2"],
+        ["titles-amounts", "Tên riêng, môn -ics, news, lượng tiền và thời gian", "B2"],
+      ]),
+    ],
+  },
+
+  {
+    id: "word-class",
+    title: "Từ loại và cấu tạo từ",
+    groups: [
+      group("parts", "Từ loại", [
+        ["eight", "Tám từ loại và chức năng của chúng", "A1"],
+        ["position", "Đoán từ loại qua vị trí trong câu", "A2"],
+        ["adj-adv", "Tính từ hay trạng từ", "A2"],
+        ["ly-traps", "Tính từ đuôi -ly và trạng từ không đuôi -ly", "B1"],
+      ]),
+      group("formation", "Cấu tạo từ", [
+        ["negative-prefixes", "Tiền tố phủ định un-, in-, im-, ir-, il-, dis-", "B1"],
+        ["meaning-prefixes", "Tiền tố re-, mis-, over-, under-", "B1"],
+        ["noun-suffixes", "Hậu tố tạo danh từ", "B1"],
+        ["adj-suffixes", "Hậu tố tạo tính từ", "B1"],
+        ["verb-adv-suffixes", "Hậu tố tạo động từ và trạng từ", "B2"],
+        ["word-family", "Chọn đúng dạng từ trong một họ từ", "B2"],
+      ]),
+    ],
+  },
+
+  {
+    id: "sentences",
+    title: "Kiểu câu và dấu câu",
+    groups: [
+      group("types", "Bốn kiểu câu", [
+        ["clauses", "Mệnh đề độc lập và mệnh đề phụ thuộc", "A2"],
+        ["simple", "Câu đơn, chủ ngữ ghép và vị ngữ ghép", "A2"],
+        ["compound", "Câu ghép với FANBOYS", "B1"],
+        ["complex", "Câu phức với liên từ phụ thuộc", "B1"],
+        ["compound-complex", "Câu ghép phức", "B2"],
+        ["variety", "Phối kiểu câu để tăng độ đa dạng", "B2"],
+      ]),
+      group("punctuation", "Dấu câu", [
+        ["end-marks", "Dấu chấm, chấm hỏi, chấm than", "A1"],
+        ["comma-rules", "Khi nào đặt dấu phẩy", "B1"],
+        ["comma-splice", "Lỗi nối hai mệnh đề bằng dấu phẩy", "B1"],
+        ["fragment", "Câu cụt thiếu mệnh đề chính", "B1"],
+        ["semicolon", "Dấu chấm phẩy và trạng từ nối", "B2"],
+        ["oxford-comma", "Dấu phẩy Oxford", "B2"],
+      ]),
+      group("editing", "Tự soát lỗi", [
+        ["checklist", "Soát lỗi ngữ pháp trước khi nộp bài", "B1"],
+      ]),
     ],
   },
 
@@ -106,6 +163,7 @@ const FAMILIES: GrammarFamily[] = [
         ["subject", "Đại từ làm chủ ngữ", "A1"],
         ["object", "Đại từ làm tân ngữ", "A1"],
         ["possessive", "Đại từ sở hữu", "A2"],
+        ["its", "Its và it's", "A2"],
       ]),
       group("reflexive", "Đại từ phản thân và tương hỗ", [
         ["self", "Myself, yourself, themselves", "A2"],
@@ -139,6 +197,18 @@ const FAMILIES: GrammarFamily[] = [
         ["superlative", "So sánh nhất", "A2"],
         ["as-as", "So sánh bằng với as ... as", "A2"],
         ["gradable", "Mức độ tăng dần và tính từ tuyệt đối", "B2"],
+      ]),
+    ],
+  },
+
+  {
+    id: "tense-system",
+    title: "Hệ thống thì",
+    groups: [
+      group("overview", "Nhìn toàn cảnh", [
+        ["signals", "Từ chỉ thời gian báo hiệu thì", "A2"],
+        ["map", "Mười hai thì: ba mốc thời gian, bốn thể", "B1"],
+        ["ielts-writing", "Chọn thì cho IELTS Writing", "B2"],
       ]),
     ],
   },
@@ -205,6 +275,7 @@ const FAMILIES: GrammarFamily[] = [
       group("advanced-future", "Những cách nâng cao", [
         ["future-continuous", "Tương lai tiếp diễn", "B1"],
         ["future-perfect", "Tương lai hoàn thành", "B2"],
+        ["future-perfect-continuous", "Tương lai hoàn thành tiếp diễn", "B2"],
         ["about-to", "Be about to và be due to", "B2"],
         ["future-in-past", "Tương lai nhìn từ quá khứ", "C1"],
       ]),
@@ -229,6 +300,7 @@ const FAMILIES: GrammarFamily[] = [
       group("deduction", "Suy đoán", [
         ["present-deduction", "Must, might, can't cho hiện tại", "B1"],
         ["past-deduction", "Must have, might have, can't have", "B2"],
+        ["regret", "Should have, could have: tiếc nuối và trách móc", "B2"],
       ]),
       group("hedging", "Nói giảm và giữ khoảng cách", [
         ["softening", "Dùng khuyết thiếu để nói bớt chắc chắn", "B2"],
@@ -268,12 +340,14 @@ const FAMILIES: GrammarFamily[] = [
         ["present-past", "Bị động hiện tại và quá khứ đơn", "B1"],
         ["by-agent", "Nêu tác nhân bằng by", "B1"],
         ["why-passive", "Khi nào nên dùng bị động", "B1"],
+        ["intransitive", "Động từ không có dạng bị động", "B1"],
       ]),
       group("advanced-passive", "Bị động nâng cao", [
         ["perfect-modal", "Bị động với thì hoàn thành và khuyết thiếu", "B2"],
         ["reporting-passive", "Bị động trong mẫu tường thuật", "C1"],
         ["get-passive", "Bị động với get", "B2"],
         ["causative", "Have và get something done", "B2"],
+        ["process", "Bị động khi tả quy trình", "B2"],
       ]),
     ],
   },
@@ -324,6 +398,7 @@ const FAMILIES: GrammarFamily[] = [
       group("conditionals", "Các loại điều kiện", [
         ["zero", "Điều kiện loại không", "A2"],
         ["first", "Điều kiện loại một", "A2"],
+        ["unless", "Unless thay cho if ... not", "B1"],
         ["second", "Điều kiện loại hai", "B1"],
         ["third", "Điều kiện loại ba", "B2"],
         ["mixed", "Điều kiện hỗn hợp", "C1"],
@@ -336,6 +411,26 @@ const FAMILIES: GrammarFamily[] = [
       group("subjunctive", "Lối cầu khẩn và đảo ngữ điều kiện", [
         ["mandative", "Lối cầu khẩn sau động từ đề nghị", "C1"],
         ["inverted-conditionals", "Were, had, should đảo lên đầu", "C1"],
+      ]),
+    ],
+  },
+
+  {
+    id: "subordinate",
+    title: "Mệnh đề danh từ và trạng ngữ",
+    groups: [
+      group("noun-clauses", "Mệnh đề danh từ", [
+        ["that-object", "Mệnh đề that làm tân ngữ", "B1"],
+        ["wh-order", "Mệnh đề wh- giữ trật tự câu kể", "B1"],
+        ["whether-if", "Whether và if cho câu hỏi có/không lồng vào", "B1"],
+        ["as-subject", "Mệnh đề danh từ làm chủ ngữ", "B2"],
+        ["as-complement", "Mệnh đề danh từ làm bổ ngữ sau be", "B2"],
+      ]),
+      group("adverbial", "Mệnh đề trạng ngữ", [
+        ["time-future", "Mệnh đề thời gian nói về tương lai", "B1"],
+        ["reason", "Because, since, as", "B1"],
+        ["so-such-that", "So ... that và such ... that", "B1"],
+        ["as-if", "As if và as though", "B2"],
       ]),
     ],
   },
@@ -418,5 +513,6 @@ export const EN_SYLLABUS: GrammarSyllabus = {
     "English Grammar in Use (Murphy) — thứ tự giới thiệu thì và động từ khiếm khuyết",
     "Practical English Usage (Swan) — cách chia các chỗ hay dùng sai",
     "A Comprehensive Grammar of the English Language (Quirk et al.) — khung mô tả",
+    "Tổng quát ngữ pháp tiếng Anh (The Forum Center) — bổ sung từ loại, kiểu câu và dấu câu, mệnh đề danh từ và trạng ngữ, các ca hoà hợp khó, và chỗ người học hay sai",
   ],
 };

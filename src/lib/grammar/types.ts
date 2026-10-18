@@ -62,3 +62,31 @@ export const group = (id: string, title: string, points: P[]): GrammarGroup => (
   title,
   points: points.map(([pid, ptitle, level]) => ({ id: `${id}.${pid}`, title: ptitle, level })),
 });
+
+/**
+ * Ghi chú soạn tay cho một điểm ngữ pháp: thứ AI không nên tự bịa lại mỗi lần.
+ *
+ * Bài học (giải thích, ví dụ, bài tập) vẫn sinh bằng AI. Ghi chú là phần ổn
+ * định đi kèm — quy tắc then chốt, lỗi người Việt hay mắc dạng Sai → Đúng, và
+ * mẹo dùng trong IELTS. Nó nằm trong code nên hiện ra ngay cả khi Gemini hết
+ * hạn mức, và được đưa vào lời nhắc để bài sinh ra không nói ngược với nó.
+ *
+ * Câu chữ và câu ví dụ là của dự án. Tài liệu tham khảo chỉ dùng để biết nên
+ * dạy quy tắc nào và người học hay sai ở đâu.
+ */
+export interface GrammarMistake {
+  wrong: string;
+  right: string;
+  /** Một câu nói vì sao, viết bằng tiếng Việt. */
+  why: string;
+}
+
+export interface GrammarNote {
+  /** Những điều phải nhớ, mỗi dòng một ý. */
+  rules?: string[];
+  /** Bảng tra nhanh: dòng đầu là tiêu đề cột. */
+  table?: string[][];
+  mistakes?: GrammarMistake[];
+  /** Mẹo dùng điểm này trong IELTS Writing/Speaking. */
+  ielts?: string;
+}

@@ -7,6 +7,7 @@ import { generateWithRetry, isTransientAiError, aiErrorMessage } from "@/lib/aiR
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { resolvePoint, loadBookNotes } from "@/lib/bookGrammar";
 import { presetByCode } from "@/lib/languagePresets";
+import { grammarNote, noteForPrompt } from "@/lib/grammar/notes";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -147,6 +148,9 @@ export async function POST(req: Request) {
     });
     const explainIn = promptLanguageName(pref?.translationLanguage);
     const targetLanguage = presetByCode(String(langCode))?.nativeName ?? "English";
+    // Ghi chú soạn tay (quy tắc, lỗi hay gặp) hiện ngay dưới bài. Bài AI viết
+    // mà nói ngược với nó thì người học đọc hai câu mâu thuẫn trên cùng màn hình.
+    const pinned = noteForPrompt(grammarNote(String(langCode), found.point.id));
 
     const model = modelsWithFallback({
       generationConfig: { responseMimeType: "application/json", responseSchema: LESSON_SCHEMA },
@@ -159,7 +163,7 @@ Quy tắc:
 - Đúng tầm ${found.point.level}: câu ví dụ chỉ dùng từ vựng và cấu trúc mà người
   học ở mức đó đã biết. Một bài A1 không được ví dụ bằng câu C1.
 - Ví dụ phải là câu người ta nói thật, không phải câu bịa cho đủ công thức.
-- Ngắn gọn. Người học đang muốn hiểu nhanh rồi đi luyện, không đọc khảo cứu.`,
+- Ngắn gọn. Người học đang muốn hiểu nhanh rồi đi luyện, không đọc khảo cứu.${pinned ? `\n\n${pinned}\n\nCác câu Sai/Đúng trên đã hiện thành phần riêng dưới bài — đừng chép lại chúng làm ví dụ.` : ""}`,
     });
 
     const result = await generateWithRetry(

@@ -7,6 +7,7 @@ import { generateWithRetry, isTransientAiError, aiErrorMessage } from "@/lib/aiR
 import { promptLanguageName } from "@/lib/translationLanguages";
 import { resolvePoint } from "@/lib/bookGrammar";
 import { presetByCode } from "@/lib/languagePresets";
+import { grammarNote, noteForPrompt } from "@/lib/grammar/notes";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -97,6 +98,9 @@ export async function POST(req: Request) {
     });
     const explainIn = promptLanguageName(pref?.translationLanguage);
     const targetLanguage = presetByCode(String(langCode))?.nativeName ?? "English";
+    // Lỗi hay gặp soạn tay là nguồn phương án nhiễu tốt nhất: đó là lỗi người
+    // học mắc thật, không phải lỗi AI đoán ra.
+    const pinned = noteForPrompt(grammarNote(String(langCode), found.point.id));
 
     const model = modelsWithFallback({
       generationConfig: { responseMimeType: "application/json", responseSchema: PRACTICE_SCHEMA },
@@ -110,7 +114,9 @@ Quy tắc:
   ngẩn khiến đoán mò cũng trúng.
 - Từ vựng giữ trong tầm ${found.point.level}: đang kiểm tra ngữ pháp, không phải
   kiểm tra từ vựng.
-- Viết mới hoàn toàn, không lấy câu từ sách hay trang web nào.`,
+- Viết mới hoàn toàn, không lấy câu từ sách hay trang web nào.
+- Trộn dạng câu: điền vào chỗ trống, và "câu nào đúng ngữ pháp / câu nào sai" —
+  dạng sau giúp người học tự soát lỗi trong bài viết của mình.${pinned ? `\n\n${pinned}\n\nĐưa những lỗi trên vào làm phương án nhiễu, nhưng viết câu MỚI — không dùng lại nguyên câu ví dụ.` : ""}`,
     });
 
     const result = await generateWithRetry(
