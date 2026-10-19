@@ -1100,7 +1100,8 @@ html { background: var(--sheet); }
 
 .c-stack { display: flex; flex-direction: column; gap: 10px; }
 .c-w-row { padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 118px; flex: 1; }
-.c-w-row .c-pill { margin-top: 8px; }
+.c-w-row .c-pill, .c-w-main .c-pill { margin-top: 8px; }
+.c-hero-solo { grid-template-columns: minmax(0, 760px); }
 .c-w-v { font: 400 clamp(40px, 4.4vw, 58px)/1 var(--font-body); letter-spacing: -.02em; font-variant-numeric: lining-nums; white-space: nowrap; }
 .c-w-v sup { font-size: .36em; top: .25em; margin-left: 3px; }
 

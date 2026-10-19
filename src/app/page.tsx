@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { BookOpen, Wallet, Brain, Receipt, Lightbulb, Loader2, ArrowRight, Repeat, Flame } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import SceneSummary, { moneyBig } from "@/components/SceneSummary";
 
 /**
  * Trang chủ — số liệu thật của cả ba module.
@@ -36,7 +37,8 @@ const EMPTY: Summary = {
 const formatVnd = (n: number) => `${n > 0 ? "+" : ""}${n.toLocaleString("vi-VN")} ₫`;
 
 export default function Home() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const vi = language === "vi";
   const [data, setData] = useState<Summary>(EMPTY);
   const [loading, setLoading] = useState(true);
 
@@ -153,19 +155,55 @@ export default function Home() {
     },
   ];
 
+  // Tiêu đề trên phông cảnh: việc gấp nhất còn lại hôm nay, theo thứ tự thói
+  // quen → hoá đơn chờ duyệt → thẻ ôn. Không còn gì thì nói thẳng là xong.
+  const habitsLeft = data.habitsDue - data.habitsDone;
+  let title = t("Overview", "Tổng quan");
+  if (!loading) {
+    if (habitsLeft > 0) title = t(`${habitsLeft} habits left today`, `Còn ${habitsLeft} thói quen hôm nay`);
+    else if (data.pendingInvoices > 0) title = t(`${data.pendingInvoices} receipts to review`, `${data.pendingInvoices} hoá đơn chờ duyệt`);
+    else if (data.dueCards > 0) title = t(`${data.dueCards} cards to review`, `${data.dueCards} thẻ cần ôn`);
+    else title = t("Nothing left for today", "Hôm nay không còn việc gì");
+  }
+  const dash = (v: number) => (loading ? "—" : String(v));
+
   return (
     <div className="max-w-6xl mx-auto pb-20">
-      <h1 className="c-h1 c-page-title">
-        Crucible OS
-      </h1>
-      <p className="c-card-body mt-2">
-        {t(
-          "Your personal OS — Knowledge, Learning, Finance and Habits in one place.",
-          "Hệ điều hành cá nhân — Kiến thức, Học tập, Tài chính và Thói quen trong một chỗ."
-        )}
-      </p>
+      <SceneSummary
+        title={title}
+        main={{
+          title: t("Today", "Hôm nay"),
+          subtitle: loading
+            ? undefined
+            : data.habitsDue === 0
+              ? t("No habits scheduled today", "Hôm nay không có thói quen tới lịch")
+              : t(
+                  `Habits ${data.habitsDone}/${data.habitsDue}` + (data.bestStreak > 0 ? ` · best streak ${data.bestStreak} days` : ""),
+                  `Thói quen ${data.habitsDone}/${data.habitsDue}` + (data.bestStreak > 0 ? ` · chuỗi dài nhất ${data.bestStreak} ngày` : "")
+                ),
+          minis: [
+            { label: t("Receipts to review", "Hoá đơn chờ duyệt"), value: dash(data.pendingInvoices), icon: Receipt },
+            { label: t("Cards due", "Thẻ tới hạn"), value: dash(data.dueCards), icon: Brain },
+            { label: t("Documents", "Tài liệu"), value: dash(data.documents), icon: BookOpen },
+            { label: t("Ideas", "Ý tưởng"), value: dash(data.ideas), icon: Lightbulb },
+          ],
+          big: loading || data.habitsDue === 0 ? null : { value: String(data.habitPercent), unit: "%" },
+        }}
+        rows={[
+          {
+            title: t("Cash flow", "Dòng tiền"),
+            subtitle: t("This month · income minus spending", "Tháng này · thu trừ chi"),
+            big: loading ? null : moneyBig(data.netCashFlow, vi),
+          },
+          {
+            title: t("Forgotten documents", "Tài liệu bỏ quên"),
+            subtitle: t("Untouched for 30+ days", "Trên 30 ngày chưa mở"),
+            big: loading ? null : { value: String(data.staleDocuments) },
+          },
+        ]}
+      />
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {cards.map((card) => {
           const Icon = card.icon;
           const Badge = card.badge?.icon;

@@ -14,6 +14,7 @@ import {
   type MetricKey, type Tone,
 } from "@/lib/health";
 import { useHealth } from "@/components/health/HealthContext";
+import HealthScene from "@/components/health/HealthScene";
 import HealthShell from "@/components/health/HealthShell";
 import MeasurementModal from "@/components/health/MeasurementModal";
 import WorkoutModal, { newWorkoutDraft } from "@/components/health/WorkoutModal";
@@ -77,6 +78,14 @@ export default function HealthDashboard() {
         </>
       }
     >
+      <HealthScene
+        name={profile?.name ?? null}
+        latest={latest}
+        prev={prev}
+        workouts={workouts ?? []}
+        now={now}
+        loading={loading}
+      />
       {loading ? (
         <div className="c-card h-40 grid place-content-center text-[var(--color-text-muted)]">
           <Loader2 size={20} className="animate-spin" />

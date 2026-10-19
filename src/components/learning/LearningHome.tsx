@@ -5,7 +5,9 @@ import Link from "next/link";
 import {
   FolderOpen, Loader2, AlertCircle, CheckCircle2, ArrowRight,
   CalendarDays, Timer, Palette, Boxes, BarChart3,
+  Layers, Sparkles, BookA,
 } from "lucide-react";
+import SceneSummary from "@/components/SceneSummary";
 import { useLanguage } from "@/lib/LanguageContext";
 import SubjectGrid from "@/components/learning/SubjectGrid";
 import DailyTasks from "@/components/learning/DailyTasks";
@@ -176,9 +178,53 @@ export default function LearningHome() {
     { href: "/knowledge", icon: FolderOpen, label: t("All documents", "Toàn bộ tài liệu") },
   ];
 
+  // Tóm tắt trên phông cảnh: việc học cần làm hôm nay, tính từ /overview.
+  const tot = data?.totals;
+  const lastExam = data?.attempts?.[0];
+  let sceneTitle = "Learning Hub";
+  if (tot) {
+    if (tot.dueCount > 0) sceneTitle = t(`${tot.dueCount} cards due today`, `${tot.dueCount} thẻ cần ôn hôm nay`);
+    else if (tot.reviewedToday > 0) sceneTitle = t(`${tot.reviewedToday} cards reviewed today`, `Đã ôn ${tot.reviewedToday} thẻ hôm nay`);
+    else if (tot.cardCount === 0) sceneTitle = t("No flashcards yet", "Chưa có thẻ ôn nào");
+    else sceneTitle = t("Nothing due today", "Hôm nay không có thẻ tới hạn");
+  }
+  const v = (n: number | undefined) => (n === undefined ? "—" : String(n));
+
   return (
     <StudySpace>
     <div className="max-w-7xl mx-auto space-y-10 pb-24">
+      <SceneSummary
+        title={sceneTitle}
+        main={{
+          title: t("Review", "Ôn tập"),
+          subtitle: tot ? t(`${tot.reviewedToday} reviewed today`, `${tot.reviewedToday} thẻ đã ôn hôm nay`) : undefined,
+          minis: [
+            { label: t("All cards", "Tổng thẻ"), value: v(tot?.cardCount), icon: Layers },
+            { label: t("New cards", "Thẻ mới"), value: v(tot?.newCount), icon: Sparkles },
+            { label: t("Terms", "Thuật ngữ"), value: v(tot?.termCount), icon: BookA },
+            { label: t("Fields", "Lĩnh vực"), value: v(data?.domains.length), icon: Boxes },
+          ],
+          big: tot ? { value: String(tot.dueCount), unit: t("due", "thẻ") } : null,
+        }}
+        rows={[
+          {
+            title: t("Study streak", "Chuỗi ngày học"),
+            subtitle: t("Days in a row with a review", "Số ngày liền có ôn thẻ"),
+            big: tot ? { value: String(tot.streak), unit: t("days", "ngày") } : null,
+          },
+          {
+            title: t("Latest mock exam", "Bài thi gần nhất"),
+            subtitle: lastExam
+              ? `${lastExam.sourceName} · ${lastExam.correctCount}/${lastExam.questionCount}`
+              : t("No mock exam yet", "Chưa làm bài thi thử nào"),
+            big:
+              lastExam && lastExam.questionCount > 0
+                ? { value: String(Math.round((lastExam.correctCount / lastExam.questionCount) * 100)), unit: "%" }
+                : null,
+          },
+        ]}
+      />
+
       {/* Lời chào — tên người đang mở, không phải tên màn hình */}
       <header className="pt-2">
         <div className="flex items-center gap-2.5 min-h-[22px]">
@@ -188,13 +234,6 @@ export default function LearningHome() {
             <NotificationBell />
           </div>
         </div>
-        <h1 className="c-display mt-1">{data?.displayName?.trim() || "Learning Hub"}</h1>
-        <p className="c-card-body mt-2 max-w-xl">
-          {t(
-            "Every subject in one place — terms, cards and mock exams, tracked per field.",
-            "Mọi lĩnh vực trong một chỗ — thuật ngữ, thẻ ghi nhớ và đề thi thử, theo dõi riêng từng mảng."
-          )}
-        </p>
       </header>
 
       {error && (

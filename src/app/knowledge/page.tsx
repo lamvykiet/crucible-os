@@ -6,6 +6,7 @@ import DocumentsTab from "@/components/knowledge/DocumentsTab";
 import DashboardTab from "@/components/knowledge/DashboardTab";
 import IdeaTrackerTab from "@/components/knowledge/IdeaTrackerTab";
 import VideoDownloaderTab from "@/components/knowledge/VideoDownloaderTab";
+import KnowledgeScene from "@/components/knowledge/KnowledgeScene";
 
 export default function KnowledgeHubPage() {
   const { t } = useLanguage();
@@ -23,21 +24,19 @@ export default function KnowledgeHubPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20">
+      <KnowledgeScene />
+
       {/* Top Header with Tabs */}
-      <div className="flex flex-col items-center">
-        <h1 className="c-h1 mb-6">
-          Knowledge Hub
-        </h1>
-        
+      <div className="flex flex-col">
         {/* Tabs Navigation */}
-        <div className="flex bg-[var(--color-surface)] rounded-full p-1 border border-[var(--color-border)] mb-8 shadow-sm overflow-x-auto max-w-full hide-scrollbar">
+        <div className="flex w-fit bg-[var(--color-surface)] rounded-full p-1 border border-[var(--color-border)] shadow-sm overflow-x-auto max-w-full hide-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-5 md:px-8 py-2.5 rounded-full text-sm font-bold transition-all uppercase tracking-wider whitespace-nowrap ${
+              className={`px-4 py-[9px] rounded-full text-[15px] font-medium transition-colors whitespace-nowrap ${
                 activeTab === tab.id
-                  ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md"
+                  ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
                   : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
               }`}
             >

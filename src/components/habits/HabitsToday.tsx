@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle, ChevronLeft, ChevronRight, Flame, Loader2, Plus, RotateCcw, Check, Zap,
+  CircleDashed,
 } from "lucide-react";
+import SceneSummary from "@/components/SceneSummary";
 import { useLanguage } from "@/lib/LanguageContext";
 import {
   GROUPS, UNITS, WEEKDAY_LABELS, addDays, colorVar, dayKey, elapsedParts, tintVar, weekDays,
@@ -169,7 +171,7 @@ function Row({ habit, editable, onLog, onOpen, busy }: RowProps) {
  * chính mình.
  */
 export default function HabitsToday() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [date, setDate] = useState(() => dayKey());
   const [data, setData] = useState<TodayResponse | null>(null);
@@ -233,15 +235,70 @@ export default function HabitsToday() {
 
   const strip = weekDays(date);
 
+  // Tóm tắt trên phông cảnh — tính từ đúng dữ liệu của ngày đang xem, nên
+  // chấm một thói quen là số trên phông đổi theo ngay.
+  const isToday = date === today;
+  const done = data?.doneCount ?? 0;
+  const due = data?.dueCount ?? 0;
+  const best = build.reduce<HabitRow | null>((m, h) => (h.streak > (m?.streak ?? 0) ? h : m), null);
+  const longestQuit = quit
+    .filter((h) => h.quitSince)
+    .reduce<HabitRow | null>((m, h) => (!m || h.quitSince! < m.quitSince! ? h : m), null);
+  const quitDays = longestQuit?.quitSince
+    ? Math.max(0, Math.floor((new Date(today).getTime() - new Date(longestQuit.quitSince.slice(0, 10)).getTime()) / 86_400_000))
+    : null;
+  const [yy, mm, dd] = date.split("-");
+
+  let sceneTitle = t("Habits", "Thói quen");
+  if (!loading) {
+    if (habits.length === 0) sceneTitle = t("No habits yet", "Chưa có thói quen nào");
+    else if (due === 0) sceneTitle = t("A rest day", "Hôm nay được nghỉ");
+    else if (done >= due) sceneTitle = t(`All ${due} habits done`, `Xong cả ${due} thói quen`);
+    else if (isToday) sceneTitle = t(`${due - done} habits left today`, `Còn ${due - done} thói quen hôm nay`);
+    else sceneTitle = t(`${done} of ${due} done that day`, `Ngày này xong ${done}/${due}`);
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-5 pb-28">
-      <header className="pt-2 flex items-start justify-between gap-3">
-        <div>
-          <h1 className="c-h2">{t("Habits", "Thói quen")}</h1>
-          <p className="c-card-body">
-            {t("What today still needs from you.", "Hôm nay còn gì chưa làm.")}
-          </p>
-        </div>
+      <SceneSummary
+        title={sceneTitle}
+        kicker={`${dd} · ${mm} · ${yy}`}
+        main={{
+          title: isToday ? t("Today", "Hôm nay") : t("That day", "Ngày đang xem"),
+          subtitle: loading ? undefined : t(`${done} of ${due} scheduled habits done`, `Xong ${done}/${due} thói quen tới lịch`),
+          minis: [
+            { label: t("Done", "Đã xong"), value: loading ? "—" : String(done), icon: Check },
+            { label: t("Left", "Còn lại"), value: loading ? "—" : String(Math.max(0, due - done)), icon: CircleDashed },
+            {
+              label: t("Best streak", "Chuỗi dài nhất"),
+              value: loading ? "—" : t(`${best?.streak ?? 0} days`, `${best?.streak ?? 0} ngày`),
+              icon: Flame,
+            },
+            { label: t("Streaks at risk", "Chuỗi sắp đứt"), value: loading ? "—" : String(atRisk.length), icon: Zap },
+          ],
+          big: loading || due === 0 ? null : { value: String(data?.percent ?? 0), unit: "%" },
+        }}
+        rows={[
+          {
+            title: t("Longest streak", "Chuỗi dài nhất"),
+            subtitle: best ? best.name : t("No streak yet", "Chưa có chuỗi nào"),
+            big: loading ? null : { value: String(best?.streak ?? 0), unit: t("days", "ngày") },
+          },
+          longestQuit
+            ? {
+                title: t("Quitting", "Đang cai"),
+                subtitle: longestQuit.name,
+                big: quitDays === null ? null : { value: String(quitDays), unit: t("days", "ngày") },
+              }
+            : {
+                title: t("Tracking", "Đang theo dõi"),
+                subtitle: language === "vi" ? "Thói quen đang xây" : "Habits being built",
+                big: loading ? null : { value: String(build.length) },
+              },
+        ]}
+      />
+
+      <header className="flex items-start justify-end gap-3">
         <button onClick={() => setFormFor(null)} className="c-btn c-btn-primary c-btn-sm flex-none">
           <Plus size={16} />
           <span className="hidden sm:inline">{t("New habit", "Thói quen mới")}</span>
