@@ -69,6 +69,12 @@ export function num(n: number, vi: boolean, digits = 0): string {
   return n.toLocaleString(vi ? "vi-VN" : "en-US", { maximumFractionDigits: digits, minimumFractionDigits: digits });
 }
 
+/** "18/10" — tự ghép, vì `toLocaleDateString` của Chrome cho "18-10" ở vi-VN. */
+export function ddmm(iso: string | Date): string {
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export function todayKicker(): string {
   const d = new Date();
   return `${String(d.getDate()).padStart(2, "0")} · ${String(d.getMonth() + 1).padStart(2, "0")} · ${d.getFullYear()}`;

@@ -3,7 +3,7 @@
 import { Activity, Beef, Droplets, Gauge } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { REMEASURE_DAYS, change, daysBetween } from "@/lib/health";
-import SceneSummary, { num } from "@/components/SceneSummary";
+import SceneSummary, { ddmm, num } from "@/components/SceneSummary";
 import type { Measurement, Workout } from "@/components/health/types";
 
 /**
@@ -24,7 +24,6 @@ export default function HealthScene({
 }) {
   const { t, language } = useLanguage();
   const vi = language === "vi";
-  const ddmm = (iso: string) => new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
   const signed = (n: number, d: number) => `${n > 0 ? "+" : n < 0 ? "−" : "±"}${num(Math.abs(n), vi, d)}`;
 
   const weight = change("weightKg", prev, latest);

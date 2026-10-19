@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Clock, FileText, Lightbulb, Moon } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
-import SceneSummary from "@/components/SceneSummary";
+import SceneSummary, { ddmm } from "@/components/SceneSummary";
 
 /**
  * Tóm tắt Knowledge trên phông cảnh, từ `/api/knowledge/summary` — cùng
@@ -35,11 +35,11 @@ export default function KnowledgeScene() {
 
   const days = data?.staleDays ?? 30;
   const newest = data?.recent?.[0];
-  const ddmm = (iso: string) => new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
 
   let title = "Knowledge Hub";
   if (data) {
     if (data.driveError) title = t("Drive could not be read", "Chưa đọc được Drive");
+    else if (data.totalDocuments === 0) title = t("No documents yet", "Chưa có tài liệu nào");
     else if (data.staleDocuments > 0) title = t(`${data.staleDocuments} documents forgotten`, `${data.staleDocuments} tài liệu bỏ quên`);
     else if (data.staleIdeas > 0) title = t(`${data.staleIdeas} ideas gone quiet`, `${data.staleIdeas} ý tưởng chưa động tới`);
     else title = t("Library is up to date", "Kho kiến thức còn mới");
