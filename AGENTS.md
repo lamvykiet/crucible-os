@@ -47,7 +47,7 @@ là thứ duy nhất cả năm phiên cùng đọc. Trước khi sửa bất c�
 | Video | `api/video/{fetch,queue,resolve}` (trình duyệt) và `api/video/{upload,pending}` (Shortcut iOS) |
 | Thói quen | `src/app/habits/`, `src/components/habits/`, `api/habits/`, `src/lib/habits.ts` |
 | Sức khoẻ | `src/app/health/`, `src/components/health/`, `api/health/`, `src/lib/{health,healthServer,healthImport,exercises}.ts` |
-| Vỏ giao diện | `MainLayoutWrapper`, `TopNav`, `MobileNav`, `MobileTopBar`, `src/app/globals.css` |
+| Vỏ giao diện | `MainLayoutWrapper`, `Scene` (`SceneHero`), `TopNav`, `MobileNav`, `MobileTopBar`, `src/app/globals.css` |
 
 ## Đổi cái này thì kéo theo cái kia
 
@@ -69,40 +69,51 @@ Tạo danh mục NGAY TRONG một modal đang mở (như "+ Tạo nhóm phụ m�
 `SubGroupSelect`) thì phải `await reloadCategories()` — nó tải lại và báo cho
 mọi hook đang mở; `invalidateCategories()` chỉ có tác dụng với modal mở sau.
 
-**Trước khi đổi giao diện** → đọc `docs/huong-thiet-ke-2026.md`. Đó là bản đối
-chiếu giữa xu hướng thiết kế hiện hành và những gì dự án cố ý làm khác, kèm lý
-do. Bảng màu ấm và thang chữ `clamp()` đang ĐÚNG hướng thịnh hành, đừng đổi.
-Ngày 08/10/2026 người dùng chủ động chọn **lớp kính** (kiểu visionOS) thay cho
-ẩn dụ giấy đục — đừng "trả lại giấy" khi chưa hỏi.
+**Trước khi đổi giao diện** → đọc skill `1991-new-design/SKILL.md` (kèm demo
+`demo/index.html` và `crucible-v3.css`; demo và skill lệch nhau thì DEMO đúng)
+rồi `docs/huong-thiet-ke-2026.md`. Ngày 19/10/2026 chủ dự án chốt hướng **v3
+"Mật ong & Bạch đàn"** sau 3 vòng demo, thay HẲN hướng "Function · Kính" (kính
+trong 17% trên nền ambient, serif nghiêng, một màu đất nung) — đừng trả lại
+hướng cũ khi chưa hỏi. Đổi gì về giao diện: làm demo cho chủ dự án duyệt TRƯỚC.
 
-**Design system là "Function · Kính"** → kính mờ trắng ấm trong suốt
-(`--color-surface*` là rgba) đặt trên nền "phòng" `--ambient` (quầng đất nung,
-xanh tro, rêu trên đá ấm, vẽ ở `body::before`), viền sáng `--glass-edge`, chữ
-mực `#2a2b2f`, và **một** màu đất nung `#b05a36`. Luật: độ nổi đến từ độ trong
-+ viền sáng + một bóng rộng rất mềm, không bóng nhỏ sắc nét; thứ gì đè lên nội
-dung khác (modal, lịch chọn ngày, menu thả, tooltip, cột dính) dùng
-`--glass-solid` ĐẶC hẳn — globals.css tự bắt chúng theo class vị trí
-(`fixed/absolute/md:absolute/sticky` hoặc `shadow-xl`) + nền `--color-surface*`;
-lớp nổi viết kiểu khác thì phải tự đặt `bg-[var(--glass-solid)]`, nếu không chữ
-hai lớp đọc chồng lên nhau (09/10: lịch chọn ngày đè form thêm giao dịch);
-đất nung chỉ cho nút chính, nhãn mắt, điểm nhấn dữ liệu; tab/mục điều hướng
-ĐANG CHỌN là viên kính trắng đục `--glass-pill` chữ mực; serif chỉ cho tiêu đề
-biên tập, còn thân bài/nhãn/nút là sans bó chữ `-0.023em`; thẻ 24px, nút 40px,
-ô nhập và tag bo tròn hẳn.
+**Design system v3 có hai tầng.** Đầu trang là PHÔNG CẢNH hoàng hôn
+(`.c-scene`, `--sky`) với widget KÍNH chữ trắng; trang đặt tiêu đề + widget lên
+phông bằng `<SceneHero>` (`src/components/Scene.tsx` — portal vào khe của
+`MainLayoutWrapper`). Phần dưới là TẤM NỀN kem `.c-main` (`--sheet`) bo 36px
+trườn lên 80px che phông. Trên tấm nền là **soft UI**: thẻ cùng màu nền, nổi
+bằng bóng kép `--neu-raised`, không viền, không gradient; ô nhập, rãnh tab, rãnh
+cột biểu đồ LÕM (`--neu-inset`); thẻ lồng trong thẻ chỉ là dải tint phẳng. Ô
+pastel `.c-tile-{fin,health,learn,habit}`, mỗi hàng đúng MỘT ô tối
+(`.c-tile.dark`). Màu hành động duy nhất là nâu mật ong `--action` `#542a08`
+(đảo thành `#ecc494` ở theme tối): nút chính, tab đang chọn, switch, cột nhấn.
+Kính CHỈ trên phông cảnh, thanh điều hướng, dock, tooltip/menu nổi — không bao
+giờ trên tấm nền kem. Thứ gì đè lên nội dung khác (modal, lịch chọn ngày, menu
+thả, tooltip, cột dính) dùng `--glass-solid` ĐẶC hẳn — globals.css tự bắt chúng
+theo class vị trí (`fixed/absolute/md:absolute/sticky` hoặc `shadow-xl`) + nền
+`--color-surface*`; lớp nổi viết kiểu khác thì phải tự đặt
+`bg-[var(--glass-solid)]`, nếu không chữ hai lớp đọc chồng lên nhau.
 
-**Đừng gắn `backdrop-filter` lên thẻ hay tấm modal.** Giống `transform`, nó
-biến phần tử thành KHỐI CHỨA của `position: fixed` — modal render bên trong sẽ
-co vào thẻ. Phía sau thẻ chỉ có nền ambient vốn đã mờ nên làm mờ thêm không
-được gì. Chỉ thanh điều hướng, menu thả và tooltip mới làm mờ.
+**Kính đặt lớp mờ ở `::before`, không trên chính phần tử** (`.c-glass`,
+`.c-topnav`, `.c-mtopbar`, `.c-bottomnav`). Giống `transform`,
+`backdrop-filter` biến phần tử thành KHỐI CHỨA của `position: fixed` — modal
+render bên trong sẽ co vào nó. Đừng gắn `backdrop-filter` thẳng lên thẻ hay tấm
+modal.
 
-Chữ nghiêng serif (`.c-italic`) là nước cờ đặc trưng nhất của hệ — roman xen
-nghiêng trong cùng một dòng tiêu đề. Chỉ cho serif từ 34px trở lên, không bao
-giờ cho nhãn hay thân bài.
+**`.c-main` KHÔNG được có `z-index`.** Nó là tấm nền phủ lên phông nhờ
+`position: relative` + đứng sau phông trong DOM. Thêm z-index là tạo stacking
+context, mọi modal `z-50` bên trong rơi xuống DƯỚI thanh điều hướng `z-40`.
 
-Màu ngữ nghĩa (`--color-success/warning/error/info`) là chỗ **cố ý lệch** khỏi
-bản tham chiếu; cả bốn đều trong họ đất (rêu, thổ hoàng, đất nung, tro). Chỉ
-được xuất hiện trên **con số, icon và nền tint** — không bao giờ trên nền thẻ,
-nút hay thanh điều hướng.
+**Chữ hai giọng, không chữ nghiêng.** Tiêu đề lớn (`.c-display`,
+`.c-page-title`, tên trang trên thanh điện thoại, logo) là Bricolage Grotesque
+800 hẹp 85% VIẾT HOA bằng CSS; mọi chữ và SỐ còn lại là Playfair (`next/font`,
+có trục opsz). `.c-italic` còn đó để JSX cũ không vỡ nhưng không nghiêng nữa.
+Chữ phụ không nhỏ hơn 13px.
+
+**Màu số liệu: tốt = xanh lá `--good`, xấu = đỏ `--bad`, luôn kèm ▲/▼ hoặc
++/−.** Thu, tiết kiệm, streak tăng → xanh ▲; chi, nợ, vượt ngân sách tăng → đỏ
+▲; chi GIẢM → xanh ▼. Chênh lệch trong sai số → xám "trong sai số". Viên delta
+là `.c-delta.good/.bad` trên tấm nền, `.c-pill.good/.bad` trên kính. Không màu
+nào khác mang nghĩa tốt/xấu, và hai màu này không bao giờ tô nền thẻ hay nút.
 
 **Animation có `transform` biến phần tử thành KHỐI CHỨA của `position: fixed`.**
 `animate-in` nằm trên chính div bọc nội dung tab, mà modal render bên trong div
@@ -124,21 +135,24 @@ luôn có `:not(.fixed)`, và có thêm `.c-main .fixed.inset-0 { margin: 0 }` c
 lần cuối. Đừng bỏ hai thứ đó.
 
 **Sáng là mặc định, không theo hệ điều hành.** Bảng sáng nằm thẳng trên
-`:root`; bảng tối chỉ áp khi người dùng bấm nút (`[data-theme="dark"]`). Bản cũ phải
-viết bảng tối hai lần và bắt hai khối giống hệt nhau — cái bẫy đó không còn.
+`:root`; bảng tối chỉ áp khi người dùng bấm nút (`[data-theme="dark"]`).
 
-**Không có sidebar.** Toàn bộ điều hướng nằm trên `TopNav` (thanh ngang dính
-đỉnh, từ 768px). Điện thoại dùng `MobileTopBar` + `MobileNav`.
+**Không có sidebar.** Từ 768px: `TopNav` là tấm kính dính đỉnh, đứng TRƯỚC
+phông cảnh với `margin-bottom` âm (nên vừa nằm trên phông lúc đầu trang, vừa
+dính được khi cuộn); qua khỏi phông thì `data-scrolled` đậm kính lên để chữ
+trắng không chìm trên nền kem. Điện thoại: `MobileTopBar` (kính, tên trang) +
+dock kính `MobileNav` ở đáy.
 
 **Bán kính `--radius-sm/md/lg/xl/2xl` TRÙNG TÊN với thang của Tailwind v4** ⇒
-đổi chúng là đổi luôn mọi `rounded-*` trong JSX. Giữ thang này ở cỡ "thẻ"; bán
-kính viên thuốc đặt riêng trong `.c-btn` / `.c-input`. Đã có tiền lệ: đặt
+đổi chúng là đổi luôn mọi `rounded-*` trong JSX. Bo của hệ v3 đặt TÊN RIÊNG:
+`--radius-card` 28px, `--radius-tile` 26px, `--radius-sheet` 36px,
+`--radius-btn` 16px, `--radius-field` 18px. Đã có tiền lệ: đặt
 `--radius-md: 16px` cho ô nhập làm mọi ô `rounded-md` 31px của bản đồ nhiệt
 biến thành hình tròn.
 
 **Nhịp trang do `.c-main` quy định**, không phải từng trang tự đặt: khung
-1200px, 96px giữa các khối lớn, 24px đệm thẻ. Đừng chồng `max-w-*` hay
-`py-*` lên `<main>`.
+1180px, 22px giữa các khối, 24px đệm thẻ (18px điện thoại). Đừng chồng
+`max-w-*` hay `py-*` lên `<main>`.
 
 **Vẽ hay sửa biểu đồ** → đọc `docs/bieu-do.md` trước (rút từ *Storytelling
 with Data*). Tóm tắt: tiêu đề là câu kết luận tính từ dữ liệu; XÁM là mặc
@@ -260,10 +274,10 @@ Gemini từng tự gán thẻ Timo cho câu "quẹt thẻ" trơn. Lần sửa nh
 trường Gemini kê trong `changed`; bắt nó chép lại cả bản nháp là nó làm rơi
 nhà cung cấp, nhóm, thẻ.
 
-**Thêm mục vào thanh dưới (`MobileNav`)** → thanh này **chỉ chứa năm mục**.
-Ở khổ 375px mục thứ sáu làm nhãn bị bóp và vùng chạm tụt dưới 44px. Khi module
-Thói quen vào, Cài đặt đã dời lên `MobileTopBar` — đó là đường duy nhất vào
-`/settings` trên điện thoại, đừng gỡ.
+**Thêm mục vào dock dưới (`MobileNav`)** → dock **chỉ chứa năm mục**: Tổng
+quan, Tài chính, Học tập, Thói quen, Sức khoẻ. Ở khổ 375px mục thứ sáu làm nhãn
+bị bóp và vùng chạm tụt dưới 44px. Knowledge (từ 19/10/2026) và Cài đặt nằm ở
+`MobileTopBar` — đó là đường duy nhất vào hai trang này trên điện thoại, đừng gỡ.
 
 **Đụng `ReviewLog`, `FocusSession` hay `Transaction`** → thói quen có
 `autoSource` đọc thẳng ba bảng này để tự đếm tiến độ (`review`, `focus`,
@@ -289,8 +303,8 @@ Anh nguyên văn** (`WorkoutExercise.name`) — đừng dịch tên bài, kể c
 Chênh lệch giữa hai lần đo nhỏ hơn `METRICS[k].noise` là sai số máy — giao diện
 ghi "trong sai số", không tô xanh/đỏ.
 
-**Lối vào /health trên điện thoại là nút trái tim ở `MobileTopBar`** (thanh dưới
-đã đủ năm mục). Đừng gỡ.
+**Lối vào /health trên điện thoại là mục thứ năm của dock `MobileNav`** (từ
+19/10/2026; trước đó là nút trái tim ở `MobileTopBar`). Đừng gỡ.
 
 **Không bao giờ dùng dữ liệu giả.** Màn hình trống thì để trống, đừng bịa số.
 

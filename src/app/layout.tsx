@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Newsreader, Inter, JetBrains_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Playfair, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import { ThemeProvider } from "@/lib/ThemeContext";
@@ -10,25 +10,24 @@ import MainLayoutWrapper from "@/components/MainLayoutWrapper";
 // mới vẽ. next/font tự host file font và nội tuyến @font-face, bỏ được một
 // round-trip sang domain khác.
 
-// Ba giọng chữ của hệ Function. Cả ba đều có bộ ký tự tiếng Việt.
+// Hai giọng chữ của hệ v3 "Mật ong & Bạch đàn" (chốt 19/10/2026 — xem
+// 1991-new-design/SKILL.md). Cả hai có bộ chữ tiếng Việt.
 //
-// Tiêu đề — Financier Display → Newsreader. Tài liệu gợi ý GT Super / Domaine
-// / Tiempos, cả ba đều là font thương mại; Newsreader là serif biên tập
-// tương phản cao gần nhất trên Google Fonts, và quan trọng là CÓ CHỮ NGHIÊNG —
-// không có nghiêng thì mất luôn nước cờ đặc trưng nhất của hệ (roman xen
-// nghiêng trong cùng một dòng tiêu đề). Chỉ nạp 300/400: serif không bao giờ
-// đậm hơn trong hệ này.
-const newsreader = Newsreader({
+// Tiêu đề lớn — Bricolage Grotesque cực đậm, hẹp 85%, VIẾT HOA. Chỉ cho
+// tiêu đề trang, tên trang trên thanh điện thoại và logo.
+// `axes` chỉ dùng được với font biến thiên, nên không khai báo `weight`.
+const display = Bricolage_Grotesque({
   subsets: ["latin", "vietnamese"],
-  weight: ["300", "400"],
-  style: ["normal", "italic"],
+  axes: ["wdth"],
   variable: "--font-display-src",
   display: "swap",
 });
 
-// Thân bài và giao diện — Ftbase → Inter.
-const inter = Inter({
+// Mọi chữ và SỐ còn lại — Playfair (bản 2.0, có trục optical size): chữ nhỏ
+// tự dày nét lên, số lớn trên widget tự thanh lại.
+const text = Playfair({
   subsets: ["latin", "vietnamese"],
+  axes: ["opsz"],
   variable: "--font-body-src",
   display: "swap",
 });
@@ -54,8 +53,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fef9ef" },
-    { media: "(prefers-color-scheme: dark)", color: "#fef9ef" },
+    { media: "(prefers-color-scheme: light)", color: "#cfc9d6" },
+    { media: "(prefers-color-scheme: dark)", color: "#cfc9d6" },
   ],
 };
 
@@ -65,12 +64,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // Giấy kem là mặc định của hệ, và nó do `:root` trong globals.css áp ngay
+    // Theme sáng là mặc định của hệ, và nó do `:root` trong globals.css áp ngay
     // lúc trình duyệt phân tích CSS — không nháy màu, không cần script khởi
     // tạo. ThemeProvider chỉ đặt data-theme khi người dùng chọn tay.
     <html
       lang="vi"
-      className={`${newsreader.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${display.variable} ${text.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <body suppressHydrationWarning>

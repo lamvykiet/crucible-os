@@ -1,5 +1,22 @@
 # Hướng thiết kế — rà soát 26/09/2026
 
+> **Đã thay bằng v3 "Mật ong & Bạch đàn" — quyết định của chủ dự án ngày
+> 19/10/2026**, sau 3 vòng demo. Nguồn sự thật: skill `1991-new-design/SKILL.md`
+> (demo `1991-new-design/demo/index.html`, công thức `crucible-v3.css`).
+>
+> Những gì v3 đảo ngược so với bản rà soát dưới đây:
+>
+> | Trước | v3 |
+> |---|---|
+> | Kính trong 17% trên nền ambient (08/10) | Hai tầng: phông cảnh hoàng hôn + widget kính ở đầu trang; tấm nền kem soft UI bên dưới |
+> | Neumorphism / Soft UI 2.0 — "Không theo" | **Theo**, nhẹ tay: thẻ cùng màu nền, bóng kép; ô nhập và rãnh tab lõm |
+> | Một màu đất nung `#b05a36` | Mật ong (`#542a08` hành động) + Bạch đàn (ô pastel theo mảng) |
+> | Serif Newsreader + chữ nghiêng, sans Inter | Bricolage Grotesque 800 viết hoa cho tiêu đề lớn, Playfair cho mọi chữ và số; không nghiêng |
+> | Màu ngữ nghĩa họ đất (rêu, đất nung) | Tốt = xanh lá, xấu = đỏ, luôn kèm ▲/▼ |
+>
+> Phần còn lại của file giữ để biết vì sao từng chọn khác — các mục
+> "Hyper-clarity", chuyển động, micro-personalization vẫn đúng.
+
 Tra Pinterest ngày 26/09/2026 với các truy vấn "ui design trends 2026",
 "warm minimal app ui 2026 soft ui". Đây là bản đối chiếu giữa những gì đang
 thịnh hành và những gì Crucible đang làm — kèm quyết định giữ, sửa, hay cố ý

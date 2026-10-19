@@ -1,69 +1,67 @@
 "use client";
 
 import Link from "next/link";
-import { HeartPulse, Languages, Moon, Settings, Sun } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Database, Languages, Moon, Settings, Sun } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
+import { useSheetUnderNav } from "@/components/Scene";
 
 /**
- * Thanh trên cùng cho màn hình nhỏ.
+ * Thanh trên cùng cho màn hình nhỏ: tấm kính dính đỉnh trên phông cảnh —
+ * logo + TÊN TRANG (grotesk viết hoa) + các nút.
  *
- * Nút đổi giao diện sáng/tối và đổi ngôn ngữ nằm ở chân sidebar, mà sidebar thì
- * ẩn trên điện thoại — không có thanh này thì hai chức năng đó không còn đường
- * nào chạm tới. Thanh dưới đã kín 5 mục điều hướng theo đúng design system nên
- * không nhét thêm được.
- *
- * Cài đặt cũng nằm ở đây từ khi module Thói quen chiếm chỗ thứ năm của thanh
- * dưới — đây là đường duy nhất vào /settings trên điện thoại, đừng bỏ đi.
- *
- * Sức khoẻ cũng vậy: thanh dưới chỉ chứa năm mục, nên lối vào /health trên
- * điện thoại là nút trái tim ở đây. Gỡ nó là module không còn đường vào.
+ * Dock dưới (`MobileNav`) chỉ chứa năm mục, nên ba lối vào sau nằm ở đây và
+ * là đường DUY NHẤT tới chúng trên điện thoại — đừng gỡ:
+ *   - Knowledge (từ 19/10/2026 nhường chỗ ở dock cho Sức khoẻ),
+ *   - Cài đặt (/settings),
+ *   - đổi ngôn ngữ và sáng/tối.
  */
 export default function MobileTopBar() {
+  const pathname = usePathname();
   const { language, setLanguage, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const scrolled = useSheetUnderNav();
+
+  const titles: [string, string][] = [
+    ["/finance", t("Finance", "Tài chính")],
+    ["/learning", t("Learning", "Học tập")],
+    ["/habits", t("Habits", "Thói quen")],
+    ["/health", t("Health", "Sức khoẻ")],
+    ["/knowledge", "Knowledge"],
+    ["/settings", t("Settings", "Cài đặt")],
+  ];
+  const title = titles.find(([href]) => pathname.startsWith(href))?.[1] ?? t("Home", "Tổng quan");
 
   return (
-    <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-[color-mix(in_srgb,var(--color-bg)_70%,transparent)] backdrop-blur-xl border-b border-[var(--color-border)]">
-      <div className="flex items-center gap-2.5">
-        <span className="c-logo-mark w-7 h-7"><span>C</span></span>
-        <span className="c-logo-word">Crucible</span>
+    <header className="c-mtopbar md:hidden" data-scrolled={scrolled}>
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="c-logo-mark w-9 h-9">C</span>
+        <span className="c-logo-word truncate">{title}</span>
       </div>
 
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={toggleTheme}
-          aria-label={t("Toggle theme", "Đổi giao diện sáng/tối")}
-          className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
-        >
-          {theme === "dark" ? <Moon size={20} strokeWidth={2} /> : <Sun size={20} strokeWidth={2} />}
-        </button>
-
-        <Link
-          href="/health"
-          aria-label={t("Health", "Sức khoẻ")}
-          className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
-        >
-          <HeartPulse size={20} strokeWidth={2} />
+      <div className="flex items-center flex-none">
+        <Link href="/knowledge" aria-label="Knowledge" className="c-mtopbar-btn">
+          <Database size={20} strokeWidth={1.8} />
         </Link>
-
-        <Link
-          href="/settings"
-          aria-label={t("Settings", "Cài đặt")}
-          className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
-        >
-          <Settings size={20} strokeWidth={2} />
+        <Link href="/settings" aria-label={t("Settings", "Cài đặt")} className="c-mtopbar-btn">
+          <Settings size={20} strokeWidth={1.8} />
         </Link>
-
         <button
           type="button"
           onClick={() => setLanguage(language === "en" ? "vi" : "en")}
           aria-label={t("Toggle language", "Đổi ngôn ngữ")}
-          className="h-11 min-w-11 px-2 flex items-center justify-center gap-1.5 rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+          className="c-mtopbar-btn"
         >
-          <Languages size={20} strokeWidth={2} />
-          <span className="font-bold text-xs uppercase">{language}</span>
+          <Languages size={20} strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={t("Toggle theme", "Đổi giao diện sáng/tối")}
+          className="c-mtopbar-btn"
+        >
+          {theme === "dark" ? <Sun size={20} strokeWidth={1.8} /> : <Moon size={20} strokeWidth={1.8} />}
         </button>
       </div>
     </header>
