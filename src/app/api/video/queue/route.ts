@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import {
-  detectPlatform, isValidHttpUrl, driveClient, videoRootId, listTopics,
-  normalizeSubTopic,
-} from "@/lib/videoLibrary";
+import { isValidHttpUrl, driveClient, videoRootId, listTopics } from "@/lib/videoLibrary";
+import { canonicalSubTopic, enqueueVideo, subTopicsByTopic } from "@/lib/videoQueue";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,52 +52,6 @@ export async function GET() {
   }
 }
 
-/**
- * Các nhãn con đã từng dùng, gom theo đề tài.
- *
- * Đọc toàn bộ lịch sử chứ không chỉ 200 mục hiện ra ở danh sách: nhãn gõ từ
- * nửa năm trước vẫn phải gợi ý lại được, nếu không mỗi lần gõ lại đẻ một biến
- * thể mới và bộ lọc vỡ vụn.
- */
-async function subTopicsByTopic(userId: string): Promise<Record<string, string[]>> {
-  const rows = await prisma.videoItem.findMany({
-    where: { userId, NOT: { subTopic: null } },
-    select: { topic: true, subTopic: true },
-    distinct: ["topic", "subTopic"],
-    orderBy: { subTopic: "asc" },
-  });
-
-  const grouped: Record<string, string[]> = {};
-  for (const row of rows) {
-    if (!row.subTopic) continue;
-    (grouped[row.topic] ??= []).push(row.subTopic);
-  }
-  return grouped;
-}
-
-/**
- * Gộp nhãn chỉ khác nhau hoa thường hoặc dấu cách về đúng một biến thể đã có.
- *
- * Không có bước này thì "Mẫu in", "mẫu in" và "Mẫu  in" thành ba nhãn riêng,
- * và bộ lọc theo nhãn con — thứ duy nhất khiến tính năng này có ích — chia đôi
- * cùng một đống video.
- */
-async function canonicalSubTopic(
-  userId: string,
-  topic: string,
-  raw: unknown
-): Promise<string | null> {
-  const value = normalizeSubTopic(raw);
-  if (!value) return null;
-
-  const seen = await prisma.videoItem.findFirst({
-    where: { userId, topic, subTopic: { equals: value, mode: "insensitive" } },
-    select: { subTopic: true },
-    orderBy: { createdAt: "asc" },
-  });
-  return seen?.subTopic ?? value;
-}
-
 export async function POST(req: Request) {
   const { user, response } = await requireUser();
   if (!user) return response;
@@ -116,39 +68,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Chưa chọn đề tài" }, { status: 400 });
     }
 
-    // Dán lại đúng link đã có thì cập nhật đề tài thay vì đẻ thêm bản ghi —
-    // chuyện này xảy ra suốt khi lướt lại một video đã lưu.
-    const existing = await prisma.videoItem.findFirst({
-      where: { userId: user.id, sourceUrl },
+    // Dán lại đúng link đã có thì cập nhật thay vì đẻ thêm bản ghi — xem
+    // `enqueueVideo`, cùng hàm với Shortcut chia sẻ.
+    const { item, duplicate } = await enqueueVideo(user.id, {
+      sourceUrl, topic, subTopic: body.subTopic, title: body.title, note: body.note,
     });
-    const subTopic = await canonicalSubTopic(user.id, topic, body.subTopic);
-
-    if (existing) {
-      const updated = await prisma.videoItem.update({
-        where: { id: existing.id },
-        data: {
-          topic,
-          // Dán lại mà bỏ trống nhãn con thì giữ nhãn cũ, đừng xoá nó đi.
-          subTopic: subTopic ?? existing.subTopic,
-          title: body.title?.trim() || existing.title,
-          note: body.note?.trim() || existing.note,
-        },
-      });
-      return NextResponse.json({ success: true, item: updated, duplicate: true });
-    }
-
-    const item = await prisma.videoItem.create({
-      data: {
-        sourceUrl,
-        platform: detectPlatform(sourceUrl),
-        topic,
-        subTopic,
-        title: body.title?.trim() || null,
-        note: body.note?.trim() || null,
-        status: "pending",
-        userId: user.id,
-      },
-    });
+    if (duplicate) return NextResponse.json({ success: true, item, duplicate: true });
 
     return NextResponse.json({ success: true, item });
   } catch (error) {

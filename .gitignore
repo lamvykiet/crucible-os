@@ -51,3 +51,6 @@ next-env.d.ts
 # token đã dán vào terminal. Trước đây thư mục này untracked nhưng
 # cũng không được ignore — một lệnh `git add -A` là lộ.
 Brain/
+
+# Shortcut dựng bằng scripts/build-*-shortcut.py có nhúng token — không bao giờ commit.
+*.shortcut
