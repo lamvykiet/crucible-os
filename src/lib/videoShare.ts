@@ -1,20 +1,11 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
+
 /**
  * Phần thuần của luồng "Chia sẻ → Crucible" (Shortcut trên iPhone).
  *
- * Không import gì — để chạy thử được bằng `node` trơn mà không cần dựng cả
- * Prisma lẫn Google Drive.
+ * Chỉ dựa vào `node:crypto` — để chạy thử được bằng `node` trơn mà không cần
+ * dựng cả Prisma lẫn Google Drive.
  */
-
-/**
- * Hai lựa chọn giả trong danh sách nhãn con mà Shortcut hiện ra.
- *
- * "Choose from List" của Shortcuts chỉ chọn được thứ có sẵn trong danh sách, nên
- * "không gắn nhãn" và "gõ nhãn mới" phải là hai dòng trong chính danh sách đó.
- * Server nhận lại đúng chuỗi này và đổi về `null` — đừng dịch, đừng sửa chữ mà
- * không sửa cả `/api/video/share`.
- */
-export const NO_LABEL = "— Không gắn nhãn —";
-export const NEW_LABEL = "＋ Nhãn mới…";
 
 /** Tiêu đề fdown.vn tự đặt khi video không có mô tả — không phải tiêu đề thật. */
 const PLACEHOLDER_TITLES = new Set(["tiktok video", "facebook video"]);
@@ -97,4 +88,49 @@ export function videoTokenProblem(req: Request): { status: number; error: string
     req.headers.get("x-upload-token") ||
     (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
   return token === expected ? null : { status: 401, error: "Token không đúng" };
+}
+
+/**
+ * Vé mở trang `/video-share` — form lưu video hiện ngay trên TikTok.
+ *
+ * Vì sao không dùng phiên đăng nhập: Shortcut mở trang bằng "Show Web Page"
+ * (SFSafariViewController), mà từ iOS 11 nó KHÔNG dùng chung cookie với Safari
+ * — người dùng sẽ thấy trang đăng nhập mỗi lần chia sẻ. Còn đưa
+ * `VIDEO_UPLOAD_TOKEN` vào URL thì token nằm trong lịch sử trình duyệt.
+ *
+ * Nên Shortcut đổi token lấy một vé: HMAC bằng chính token đó, gắn chặt với
+ * MỘT link và hết hạn sau một giờ. Lộ vé thì người khác chỉ lưu được đúng video
+ * đó vào thư viện, trong một giờ.
+ */
+const TICKET_TTL_MS = 60 * 60 * 1000;
+
+function ticketSignature(secret: string, payload: string): Buffer {
+  return createHmac("sha256", secret).update(`video-share:${payload}`).digest();
+}
+
+export function signShareTicket(sourceUrl: string, now = Date.now()): string | null {
+  const secret = process.env.VIDEO_UPLOAD_TOKEN;
+  if (!secret) return null;
+  const payload = Buffer.from(JSON.stringify({ u: sourceUrl, e: now + TICKET_TTL_MS })).toString("base64url");
+  return `${payload}.${ticketSignature(secret, payload).toString("base64url")}`;
+}
+
+/** Link mà vé cho phép lưu, hoặc `null` nếu vé sai chữ ký / hết hạn / hỏng. */
+export function readShareTicket(ticket: unknown, now = Date.now()): string | null {
+  const secret = process.env.VIDEO_UPLOAD_TOKEN;
+  if (!secret || typeof ticket !== "string") return null;
+  const [payload, sig] = ticket.split(".");
+  if (!payload || !sig) return null;
+
+  const expected = ticketSignature(secret, payload);
+  const given = Buffer.from(sig, "base64url");
+  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
+
+  try {
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (typeof data?.u !== "string" || typeof data?.e !== "number" || data.e < now) return null;
+    return data.u;
+  } catch {
+    return null;
+  }
 }

@@ -6,10 +6,12 @@ import { NextResponse, type NextRequest } from 'next/server'
 // "middleware to proxy"). Runtime là nodejs và không cấu hình được.
 
 // Đường dẫn công khai, không cần đăng nhập.
-// `/api/video/upload`, `/api/video/pending` và `/api/video/share` (cả hai route
-// con `prepare`, `labels` — Shortcut "Gửi vào Crucible" ở nút Chia sẻ) xác thực
-// bằng VIDEO_UPLOAD_TOKEN chứ không bằng phiên Supabase: Shortcut trên iPhone
-// không đăng nhập được.
+// `/api/video/upload`, `/api/video/pending` và `/api/video/share` (cùng các route
+// con — Shortcut "Gửi vào Crucible" ở nút Chia sẻ) xác thực bằng
+// VIDEO_UPLOAD_TOKEN hoặc vé ký từ nó, chứ không bằng phiên Supabase: Shortcut
+// trên iPhone không đăng nhập được. Trang `/video-share` cũng vậy — nó mở trong
+// khung web của Shortcut, không chung cookie với Safari; mọi dữ liệu nó đọc/ghi
+// đều đi qua route cần vé.
 // Nếu để middleware chặn thì Shortcut luôn nhận 401 và không bao giờ chạm tới
 // handler. Mọi handler đó đều tự kiểm tra token, nên đây không phải mở toang.
 // Bot ghi chi tiêu cũng vậy: webhook Telegram xác thực bằng mã bí mật suy từ
@@ -17,6 +19,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 // CRON_SECRET. `/api/bot/setup` thì KHÔNG công khai — nó trỏ được webhook đi.
 const PUBLIC_PATHS = [
   '/login', '/auth', '/api/video/upload', '/api/video/pending', '/api/video/share',
+  '/video-share',
   '/api/bot/telegram', '/api/bot/remind', '/api/receipt/upload',
 ]
 

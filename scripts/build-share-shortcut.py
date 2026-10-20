@@ -3,9 +3,17 @@
 
     python3 scripts/build-share-shortcut.py "https://domain" "TOKEN" "Gui vao Crucible.shortcut"
 
-Luồng: Share Sheet -> /api/video/share/prepare (tiêu đề + đề tài)
-       -> popup chọn đề tài -> /api/video/share/labels -> popup chọn nhãn con
-       -> popup sửa tiêu đề -> /api/video/share (ghi + server tự tải về Drive).
+Luồng: Share Sheet -> /api/video/share/prepare (đổi token lấy `formUrl` có vé)
+       -> Show Web Page: trang /video-share nổi ngay trên TikTok, chọn đề tài,
+          nhãn con, tiêu đề tự điền -> Lưu (server tự tải về Drive).
+
+Cố tình không có khối "If" và không có popup gốc nào: bản đầu dùng ba popup
+"Choose from List" + "If", và một action sai mã định danh là iOS từ chối chạy
+CẢ shortcut ("Tác vụ không xác định"). Ít action là ít chỗ hỏng.
+
+Mã định danh action đã đối chiếu với Cherri (github.com/electrikmilk/cherri,
+actions/web.cherri, basic.cherri) ngày 20/10/2026 — đừng đoán: Show
+Notification là `notification`, KHÔNG phải `shownotification`.
 
 File sinh ra chứa token — đừng commit, đừng gửi ai. iOS 15 trở đi chỉ nhập
 được file ĐÃ KÝ; trên macOS script tự gọi `shortcuts sign`.
@@ -20,9 +28,6 @@ import uuid
 DOMAIN = (sys.argv[1] if len(sys.argv) > 1 else "https://DOI-THANH-DOMAIN-CUA-BAN").rstrip("/")
 TOKEN = sys.argv[2] if len(sys.argv) > 2 else "DAN-VIDEO_UPLOAD_TOKEN-VAO-DAY"
 OUT = sys.argv[3] if len(sys.argv) > 3 else "Gui vao Crucible.shortcut"
-
-# Phải trùng từng ký tự với NEW_LABEL trong src/lib/videoShare.ts.
-NEW_LABEL = "＋ Nhãn mới…"
 
 OBJ = "￼"  # OBJECT REPLACEMENT CHARACTER — chỗ cắm biến trong chuỗi
 
@@ -96,92 +101,20 @@ def set_var(name):
     return act("is.workflow.actions.setvariable", {"WFVariableName": name})
 
 
-def if_block(var, condition, body, string=None):
-    """condition: 100 = có giá trị, 4 = bằng chuỗi `string`."""
-    gid = str(uuid.uuid4()).upper()
-    params = {
-        "GroupingIdentifier": gid,
-        "WFControlFlowMode": 0,
-        "WFCondition": condition,
-        "WFInput": {"Type": "Variable", "Variable": attach_var(var)},
-    }
-    if string is not None:
-        params["WFConditionalActionString"] = string
-    return [
-        act("is.workflow.actions.conditional", params),
-        *body,
-        act("is.workflow.actions.conditional", {"GroupingIdentifier": gid, "WFControlFlowMode": 2}),
-    ]
-
-
 actions = [
     # 1. Link từ nút Chia sẻ. Có app đưa cả đoạn chữ — server tự tách lại lần nữa.
     act("is.workflow.actions.detect.link", {"WFInput": SHORTCUT_INPUT}),
     set_var("Link"),
 
-    # 2. Hỏi server: tiêu đề (đã bỏ #) và danh sách đề tài. Chưa ghi gì cả.
+    # 2. Đổi token lấy trang form. Lỗi (sai token, không thấy link) cũng trả
+    #    `formUrl` — trỏ tới trang báo lỗi — nên không cần khối If.
     post_json("/api/video/share/prepare", [("url", tok_var_string("Link"))]),
     set_var("Info"),
+    get_key("Info", "formUrl"),
+    set_var("FormURL"),
 
-    # 3. Lỗi (sai token, không thấy link…) thì báo rồi dừng — đừng bắt người
-    #    dùng đi qua ba popup để rồi mới biết.
-    get_key("Info", "error"),
-    set_var("Err"),
-    *if_block("Err", 100, [
-        act("is.workflow.actions.alert", {
-            "WFAlertActionTitle": "Crucible",
-            "WFAlertActionMessage": tok_var_string("Err"),
-            "WFAlertActionCancelButtonShown": False,
-        }),
-        act("is.workflow.actions.exit"),
-    ]),
-
-    # 4. Popup 1 — đề tài (thư mục trên Drive).
-    get_key("Info", "topics"),
-    act("is.workflow.actions.choosefromlist", {"WFChooseFromListActionPrompt": "Đề tài"}),
-    set_var("Topic"),
-
-    # 5. Popup 2 — nhãn con đã dùng trong đề tài đó, cộng "không nhãn" / "nhãn mới".
-    post_json("/api/video/share/labels", [("topic", tok_var_string("Topic"))]),
-    set_var("Labels"),
-    get_key("Labels", "choices"),
-    act("is.workflow.actions.choosefromlist", {"WFChooseFromListActionPrompt": "Nhãn con"}),
-    set_var("Sub"),
-    *if_block("Sub", 4, [
-        act("is.workflow.actions.ask", {
-            "WFAskActionPrompt": "Tên nhãn mới",
-            "WFInputType": "Text",
-        }),
-        set_var("Sub"),
-    ], string=NEW_LABEL),
-
-    # 6. Popup 3 — tiêu đề, điền sẵn tiêu đề video đã bỏ hashtag.
-    get_key("Info", "title"),
-    set_var("AutoTitle"),
-    act("is.workflow.actions.ask", {
-        "WFAskActionPrompt": "Tiêu đề",
-        "WFInputType": "Text",
-        "WFAskActionDefaultAnswer": tok_var_string("AutoTitle"),
-    }),
-    set_var("Title"),
-
-    # 7. Ghi vào hàng đợi; server trả lời ngay rồi tự tải video về Drive.
-    get_key("Info", "sourceUrl"),
-    set_var("Source"),
-    post_json("/api/video/share", [
-        ("sourceUrl", tok_var_string("Source")),
-        ("topic", tok_var_string("Topic")),
-        ("subTopic", tok_var_string("Sub")),
-        ("title", tok_var_string("Title")),
-    ]),
-    set_var("Result"),
-    get_key("Result", "message"),
-    set_var("Message"),
-    act("is.workflow.actions.shownotification", {
-        "WFNotificationActionTitle": "Crucible",
-        "WFNotificationActionBody": tok_var_string("Message"),
-        "WFNotificationActionSound": True,
-    }),
+    # 3. Mở form ngay trên TikTok. Bấm "Xong" là quay lại video.
+    act("is.workflow.actions.showwebpage", {"WFURL": tok_var_string("FormURL")}),
 ]
 
 workflow = {

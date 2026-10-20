@@ -27,7 +27,10 @@ export default function MainLayoutWrapper({ children }: { children: React.ReactN
   const pathname = usePathname();
   const [slot, setSlot] = useState<HTMLDivElement | null>(null);
 
-  if (pathname === "/login") {
+  // `/video-share` là form mở từ nút Chia sẻ của TikTok, hiện trong khung web
+  // nhỏ của Shortcut — không có chỗ, cũng không có phiên đăng nhập, cho thanh
+  // điều hướng.
+  if (pathname === "/login" || pathname === "/video-share") {
     return <main className="min-h-screen w-full bg-[var(--color-bg)]">{children}</main>;
   }
 

@@ -44,7 +44,7 @@ là thứ duy nhất cả năm phiên cùng đọc. Trước khi sửa bất c�
 | Danh mục | `api/finance/categories/route.ts`, `src/lib/useCategories.ts`, `settings/FinanceSettings.tsx` |
 | Knowledge / Document | `src/app/knowledge/`, `src/components/knowledge/`, `src/components/workspace/`, `api/knowledge/` |
 | Learning | `src/app/learning/`, `src/components/learning/`, `api/learning/`, `src/lib/fsrs.ts` |
-| Video | `api/video/{fetch,queue,resolve}` (trình duyệt), `api/video/{upload,pending}` (Shortcut iOS) và `api/video/share/*` (Shortcut ở nút Chia sẻ); logic chung ở `src/lib/{videoQueue,videoShare}.ts` |
+| Video | `api/video/{fetch,queue,resolve}` (trình duyệt), `api/video/{upload,pending}` (Shortcut iOS) và `api/video/share/*` + trang `src/app/video-share/` (Shortcut ở nút Chia sẻ); logic chung ở `src/lib/{videoQueue,videoShare}.ts` |
 | Thói quen | `src/app/habits/`, `src/components/habits/`, `api/habits/`, `src/lib/habits.ts` |
 | Sức khoẻ | `src/app/health/`, `src/components/health/`, `api/health/`, `src/lib/{health,healthServer,healthImport,exercises}.ts` |
 | Vỏ giao diện | `MainLayoutWrapper`, `Scene` (`SceneHero`), `TopNav`, `MobileNav`, `MobileTopBar`, `src/app/globals.css` |
@@ -252,7 +252,7 @@ header `x-vercel-id` của một API đã đăng nhập, dạng `hkg1::sin1::…
 
 **Thêm route API** → mặc định là phải đăng nhập (`requireUser()`). Công khai
 chỉ có (danh sách trong `src/proxy.ts`), mỗi route TỰ kiểm khoá của nó:
-`api/video/{upload,pending,share}` (`VIDEO_UPLOAD_TOKEN`, Shortcut iOS),
+`api/video/{upload,pending,share}` (`VIDEO_UPLOAD_TOKEN` hoặc vé ký từ nó, Shortcut iOS) và trang `/video-share` mà Shortcut mở (chỉ đọc/ghi qua route cần vé),
 `api/receipt/upload` (`RECEIPT_UPLOAD_TOKEN`, Shortcut hoá đơn),
 `api/bot/telegram` (header bí mật suy từ `TELEGRAM_BOT_TOKEN` + chỉ nhận
 `TELEGRAM_CHAT_ID`), `api/bot/remind` (`CRON_SECRET`). `api/bot/setup` thì

@@ -122,7 +122,7 @@ actions = [
     }),
 
     # 5. Báo xong
-    act("is.workflow.actions.shownotification", {
+    act("is.workflow.actions.notification", {
         "WFNotificationActionTitle": "Crucible",
         "WFNotificationActionBody": "Đã xử lý xong hàng đợi video.",
         "WFNotificationActionSound": True,

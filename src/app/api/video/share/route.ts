@@ -2,7 +2,7 @@ import { NextResponse, after } from "next/server";
 import { isValidHttpUrl, detectPlatform, videoRootId } from "@/lib/videoLibrary";
 import { isResolvable } from "@/lib/videoResolver";
 import { enqueueVideo, saveVideoToDrive, videoOwnerId } from "@/lib/videoQueue";
-import { NEW_LABEL, NO_LABEL, extractShareUrl, videoTokenProblem } from "@/lib/videoShare";
+import { extractShareUrl, readShareTicket, videoTokenProblem } from "@/lib/videoShare";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,10 +10,10 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * POST /api/video/share  { sourceUrl, topic, subTopic, title }
+ * POST /api/video/share  { ticket, topic, subTopic, title }
  *
- * Bước cuối của Shortcut "Gửi vào Crucible" (nút Chia sẻ trong TikTok /
- * Facebook): ghi link vào hàng đợi — CÙNG `enqueueVideo` với ô dán link trên
+ * Nút Lưu của trang `/video-share` — form mở từ Shortcut "Gửi vào Crucible"
+ * (nút Chia sẻ trong TikTok / Facebook). Ghi link vào hàng đợi — CÙNG `enqueueVideo` với ô dán link trên
  * web, nên chia sẻ lại một video đã có thì cập nhật đề tài chứ không nhân bản.
  *
  * Trả lời ngay, rồi tải video về Drive ở nền bằng `saveVideoToDrive` — cùng
@@ -21,18 +21,27 @@ export const maxDuration = 60;
  * giây) thì bản ghi vẫn nằm ở trạng thái chờ, bấm tải lại trên web hoặc chạy
  * Shortcut "Crucible" đều được. Link không bao giờ mất vì bước tải.
  *
- * Luôn có `message`: Shortcut hiện nguyên chuỗi đó làm thông báo, kể cả khi lỗi.
+ * Xác thực bằng MỘT trong hai: vé của trang (`ticket` — link lấy từ vé, bỏ qua
+ * `sourceUrl` trong body), hoặc `VIDEO_UPLOAD_TOKEN` trong header cho script và
+ * Shortcut tự dựng muốn ghi thẳng `{ sourceUrl, topic, … }`.
+ *
+ * Luôn có `message` — câu trang hiện ra sau khi lưu, kể cả khi lỗi.
  */
 export async function POST(req: Request) {
-  const problem = videoTokenProblem(req);
-  if (problem) return reply(false, problem.error, problem.status);
-
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-  const sourceUrl = extractShareUrl(body?.sourceUrl);
+
+  let sourceUrl: string | null;
+  if (body?.ticket !== undefined) {
+    sourceUrl = readShareTicket(body.ticket);
+    if (!sourceUrl) return reply(false, "Phiên chia sẻ đã hết hạn — bấm Chia sẻ lại từ TikTok/Facebook.", 401);
+  } else {
+    const problem = videoTokenProblem(req);
+    if (problem) return reply(false, problem.error, problem.status);
+    sourceUrl = extractShareUrl(body?.sourceUrl);
+  }
+
   const topic = String(body?.topic ?? "").trim();
-  const rawSub = String(body?.subTopic ?? "").trim();
-  // Hai dòng giả trong popup nhãn con — xem `NO_LABEL` / `NEW_LABEL`.
-  const subTopic = rawSub === NO_LABEL || rawSub === NEW_LABEL ? null : rawSub;
+  const subTopic = String(body?.subTopic ?? "").trim() || null;
   const title = String(body?.title ?? "").trim() || null;
 
   if (!sourceUrl || !isValidHttpUrl(sourceUrl)) return reply(false, "Link không hợp lệ.", 400);

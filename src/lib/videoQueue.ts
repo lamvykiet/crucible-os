@@ -53,27 +53,11 @@ export async function subTopicsByTopic(userId: string): Promise<Record<string, s
 }
 
 /**
- * Nhãn con của một đề tài, nhãn dùng gần nhất lên đầu.
- *
- * Trên điện thoại danh sách là một popup cuộn bằng ngón tay: lưu video thường
- * đi thành cụm cùng một nhãn, nên nhãn vừa dùng nằm đầu là đỡ cuộn nhất.
- */
-export async function recentSubTopics(userId: string, topic: string): Promise<string[]> {
-  const rows = await prisma.videoItem.findMany({
-    where: { userId, topic, NOT: { subTopic: null } },
-    select: { subTopic: true },
-    orderBy: { createdAt: "desc" },
-    take: 500,
-  });
-  return [...new Set(rows.map((r) => r.subTopic!))];
-}
-
-/**
  * Tên đề tài để chọn — đọc từ thư mục Drive, như ô chọn trên web.
  *
  * Drive lỗi hoặc chưa cấu hình thì lùi về đề tài đã dùng trong DB, rồi tới
- * "Khác": "Choose from List" của Shortcuts gặp danh sách rỗng là báo lỗi và
- * dừng hẳn, người dùng mất luôn link vừa chia sẻ.
+ * "Khác": ô chọn rỗng thì trang chia sẻ không lưu được gì, người dùng mất luôn
+ * link vừa chia sẻ.
  */
 export async function topicNames(userId: string): Promise<string[]> {
   const root = videoRootId();

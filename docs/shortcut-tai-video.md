@@ -4,7 +4,7 @@ Có **hai** shortcut, làm hai việc khác nhau:
 
 | Shortcut | Chạy ở đâu | Làm gì |
 | --- | --- | --- |
-| **Gửi vào Crucible** | Nút **Chia sẻ** trong TikTok / Facebook | Hỏi đề tài, nhãn con, tiêu đề → ghi link vào hàng đợi → server tự tải về Drive |
+| **Gửi vào Crucible** | Nút **Chia sẻ** trong TikTok / Facebook | Mở form "Lưu một video" ngay trên TikTok → ghi link vào hàng đợi → server tự tải về Drive |
 | **Crucible** | Mở tay | Tải những video server không tự tải được (quá 150MB, quá 60 giây) |
 
 Hằng ngày chỉ cần cái thứ nhất.
@@ -13,22 +13,35 @@ Hằng ngày chỉ cần cái thứ nhất.
 
 ```
 Lướt TikTok/Facebook → Chia sẻ → Khác/Thêm → "Gửi vào Crucible"
-   ├─> POST /api/video/share/prepare  tiêu đề (đã bỏ #) + danh sách đề tài; KHÔNG ghi gì
-   ├─  popup 1: chọn đề tài
-   ├─> POST /api/video/share/labels   nhãn con của đề tài đó, dùng gần nhất lên đầu
-   ├─  popup 2: chọn nhãn con  (đầu: "— Không gắn nhãn —", cuối: "＋ Nhãn mới…" → ô gõ)
-   ├─  popup 3: tiêu đề, điền sẵn
-   └─> POST /api/video/share          ghi hàng đợi, trả lời ngay, rồi tải về Drive ở nền
+   ├─> POST /api/video/share/prepare  đổi VIDEO_UPLOAD_TOKEN lấy formUrl (kèm vé); KHÔNG ghi gì
+   └─  Show Web Page: trang /video-share nổi ngay trên TikTok
+          ├─> GET  /api/video/share/form   đề tài (thư mục Drive) + nhãn con theo từng đề tài
+          ├─> GET  /api/video/share/title  mô tả video đã bỏ #hashtag (3–5 giây, không chặn form)
+          └─> POST /api/video/share        nút "Thêm vào thư viện": ghi hàng đợi, tải về Drive ở nền
 ```
 
-Bấm Huỷ ở popup nào thì không có gì được ghi. Chia sẻ lại một video đã có thì
-cập nhật đề tài/nhãn chứ không nhân bản — cùng hàm `enqueueVideo` với ô dán
-link trên web. Tham số theo dõi (`_t`, `mibextid`, `utm_*`…) bị cắt khỏi link
-trước khi so, vì TikTok/Facebook đổi chúng sau mỗi lần bấm chia sẻ.
+Form giống hệt ô "Lưu một video" trên web: chọn đề tài, nhãn con hiện thành chip
+theo đề tài vừa chọn (hoặc gõ nhãn mới), tiêu đề tự điền từ phần mô tả dưới
+video — `We don't know if we wake up tomorrow #LearnOnTikTok #learnenglish` thành
+`We don't know if we wake up tomorrow`. Đề tài mặc định là đề tài của lần lưu
+gần nhất. Lưu xong bấm **Xong** ở góc trên là quay lại video.
 
-Tiêu đề lấy từ fdown.vn (TikTok oEmbed không còn trả `title`), chờ tối đa 8
-giây; không kịp thì ô tiêu đề để trống cho bạn gõ. Mọi `#hashtag` bị bỏ, emoji
-và `@tên` giữ nguyên — `cleanVideoTitle` trong `src/lib/videoShare.ts`.
+Đóng trang mà chưa bấm lưu thì không có gì được ghi. Chia sẻ lại một video đã có
+thì cập nhật đề tài/nhãn chứ không nhân bản — cùng hàm `enqueueVideo` với web.
+Tham số theo dõi (`_t`, `mibextid`, `utm_*`…) bị cắt khỏi link trước khi so, vì
+TikTok/Facebook đổi chúng sau mỗi lần bấm chia sẻ.
+
+**Vì sao là trang web có vé, không phải đăng nhập:** "Show Web Page" mở
+SFSafariViewController, thứ không dùng chung cookie với Safari — đăng nhập kiểu
+thường thì lần chia sẻ nào cũng gặp trang đăng nhập. Vé (`signShareTicket` trong
+`src/lib/videoShare.ts`) ký bằng `VIDEO_UPLOAD_TOKEN`, chỉ lưu được đúng một
+link, hết hạn sau một giờ.
+
+**Vì sao không dùng popup gốc của Shortcuts:** bản đầu (20/10/2026) dùng ba popup
+"Choose from List" + khối "If". Không có chip gợi ý nhãn con như web, và một
+action sai mã định danh là iOS từ chối chạy CẢ shortcut ("Tác vụ không xác
+định"). Bản này không có khối "If" nào: lỗi cũng trả `formUrl`, trỏ tới trang
+báo lỗi.
 
 Tải nền hỏng (video riêng tư, quá cỡ, fdown.vn trục trặc) thì video vẫn nằm ở
 mục chờ trên web: bấm tải lại ở đó, hoặc chạy shortcut "Crucible" bên dưới.
@@ -41,7 +54,7 @@ python3 scripts/build-share-shortcut.py "https://crucible-os-zeta.vercel.app" "$
 
 Script tự ký bằng `shortcuts sign` (chỉ có trên macOS) — iOS 15 trở đi KHÔNG
 nhập được file chưa ký. File chứa token: AirDrop sang iPhone rồi xoá, đừng
-commit.
+commit (`*.shortcut` đã nằm trong `.gitignore`).
 
 Lần đầu dùng: trong TikTok bấm **Chia sẻ → Khác** (Facebook: **Chia sẻ → Thêm
 tuỳ chọn**), kéo xuống cuối bảng → **Sửa thao tác** → bật và kéo "Gửi vào
@@ -50,32 +63,14 @@ Crucible" lên mục Yêu thích để nó nằm ở hàng đầu.
 ### Dựng tay (khi script không ký được)
 
 Tạo shortcut tên "Gửi vào Crucible", trong phần ⓘ bật **Hiện trong bảng Chia
-sẻ**, kiểu nhận: **URL** và **Văn bản**. Mọi lệnh "Lấy nội dung URL" đều:
-Method **POST**, Header `Authorization` = `Bearer <TOKEN>`, Request Body **JSON**.
+sẻ**, kiểu nhận: **URL** và **Văn bản**.
 
 | # | Action | Cấu hình |
 | --- | --- | --- |
 | 1 | Get URLs from Input | input = **Shortcut Input** → Set Variable `Link` |
-| 2 | Get Contents of URL | `…/api/video/share/prepare`, JSON: `url` = `Link` → Set Variable `Info` |
-| 3 | Get Dictionary Value | `error` từ `Info` → Set Variable `Err` |
-| 4 | If `Err` **has any value** | Show Alert `Err` → Stop This Shortcut → End If |
-| 5 | Get Dictionary Value | `topics` từ `Info` → **Choose from List** (prompt "Đề tài") → Set Variable `Topic` |
-| 6 | Get Contents of URL | `…/api/video/share/labels`, JSON: `topic` = `Topic` → Set Variable `Labels` |
-| 7 | Get Dictionary Value | `choices` từ `Labels` → **Choose from List** (prompt "Nhãn con") → Set Variable `Sub` |
-| 8 | If `Sub` **is** `＋ Nhãn mới…` | Ask for Input (Text, "Tên nhãn mới") → Set Variable `Sub` → End If |
-| 9 | Get Dictionary Value | `title` từ `Info` → **Ask for Input** (Text, "Tiêu đề", Default Answer = giá trị đó) → Set Variable `Title` |
-| 10 | Get Dictionary Value | `sourceUrl` từ `Info` → Set Variable `Source` |
-| 11 | Get Contents of URL | `…/api/video/share`, JSON: `sourceUrl` = `Source`, `topic` = `Topic`, `subTopic` = `Sub`, `title` = `Title` |
-| 12 | Get Dictionary Value | `message` → **Show Notification** |
-
-Chuỗi `＋ Nhãn mới…` ở bước 8 phải trùng từng ký tự với `NEW_LABEL` trong
-`src/lib/videoShare.ts` (dấu ＋ toàn khổ, dấu … một ký tự) — chép từ JSON trả về
-cho chắc.
-
-Vì sao nhãn con là một lượt gọi riêng: "Get Dictionary Value" coi dấu chấm
-trong khoá là đường dẫn lồng nhau, nên tra bảng `{đề tài: [nhãn]}` bằng tên đề
-tài có dấu chấm sẽ ra rỗng, và "Choose from List" gặp danh sách rỗng là dừng
-cả shortcut.
+| 2 | Get Contents of URL | `https://<domain>/api/video/share/prepare`, Method **POST**, Header `Authorization` = `Bearer <TOKEN>`, Request Body **JSON**: `url` = `Link` |
+| 3 | Get Dictionary Value | Get **Value** for `formUrl` |
+| 4 | Show Web Page | URL = kết quả bước 3 |
 
 ## Crucible — tải phần còn lại
 
