@@ -1,62 +1,66 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  Settings, Wallet, Database, GraduationCap, LayoutDashboard,
-  Languages, Moon, Sun, Repeat, HeartPulse,
-} from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { ChevronDown, Languages, Moon, Settings, Sun } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { useSheetUnderNav } from "@/components/Scene";
+import { MODULES, isTabActive, moduleFor } from "@/lib/modules";
 
 /**
- * Thanh điều hướng trên cùng (từ 768px trở lên): tấm kính nổi trên phông cảnh
- * hoàng hôn, bo 22px — logo vuông trắng · các mục icon 16px + chữ · nút điều
- * khiển. Mục đang chọn là viên trắng 92% chữ nâu.
+ * Thanh điều hướng trên cùng (từ 768px trở lên): tấm kính nổi trên phông cảnh.
+ *
+ *   [logo ▾]  [tab con của function đang mở …]            [ngôn ngữ · cài đặt · sáng/tối]
+ *
+ * Các function gom vào logo: rê chuột (hoặc Tab tới) logo là xổ danh sách
+ * icon + tên. Chỗ trống giữa thanh dành cho TAB CON của function đang mở —
+ * đổi theo function, lấy từ `src/lib/modules.tsx`. Trang Tổng quan và Cài
+ * đặt không có tab con.
  *
  * Không có sidebar. Điện thoại dùng `MobileTopBar` + dock `MobileNav` — thanh
  * này ẩn dưới 768px.
  *
- * Thanh cuộn ngang được (`.c-topnav` đặt `overflow-x: auto`): ở 1024px mục
- * cuối sẽ bị cắt nếu không cho cuộn.
+ * Thanh KHÔNG có `overflow` (menu xổ sẽ bị cắt); dải tab mới cuộn ngang.
  */
 export default function TopNav() {
   const pathname = usePathname();
   const { language, setLanguage, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const scrolled = useSheetUnderNav();
-
-  const navItems = [
-    { name: t("Home", "Tổng quan"), href: "/", icon: LayoutDashboard },
-    { name: t("Finance", "Tài chính"), href: "/finance", icon: Wallet },
-    { name: t("Learning", "Học tập"), href: "/learning", icon: GraduationCap },
-    { name: t("Habits", "Thói quen"), href: "/habits", icon: Repeat },
-    { name: t("Health", "Sức khoẻ"), href: "/health", icon: HeartPulse },
-    { name: t("Knowledge", "Knowledge"), href: "/knowledge", icon: Database },
-  ];
-
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
+  const current = moduleFor(pathname);
 
   return (
     <header className="c-topnav hidden md:flex" data-scrolled={scrolled}>
-      <Link href="/" aria-label="Crucible" className="flex-none mr-2.5 no-underline hover:no-underline">
-        <span className="c-logo-mark w-9 h-9">C</span>
-      </Link>
+      <div className="c-fnmenu">
+        <button
+          type="button"
+          className="c-fnmenu-trigger"
+          aria-haspopup="menu"
+          aria-label={t("Choose a function", "Chọn function")}
+        >
+          <span className="c-logo-mark w-9 h-9">C</span>
+          <ChevronDown size={14} strokeWidth={2} className="opacity-80" />
+        </button>
+        <nav className="c-fnmenu-panel" aria-label={t("Functions", "Function")}>
+          {MODULES.map(({ key, href, icon: Icon, en, vi }) => (
+            <Link
+              key={key}
+              href={href}
+              onClick={(e) => e.currentTarget.blur()}
+              className={`c-fnmenu-item ${current?.key === key ? "active" : ""}`}
+            >
+              <Icon size={18} strokeWidth={1.8} />
+              <span>{t(en, vi)}</span>
+            </Link>
+          ))}
+        </nav>
+      </div>
 
-      <nav className="flex items-center gap-0.5 flex-1">
-        {navItems.map(({ name, href, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className={`c-topnav-item ${isActive(href) ? "active" : ""}`}
-          >
-            <Icon size={16} strokeWidth={1.8} />
-            <span>{name}</span>
-          </Link>
-        ))}
-      </nav>
+      <Suspense fallback={<div className="flex-1" />}>
+        <ModuleTabs />
+      </Suspense>
 
       <div className="flex items-center gap-0.5 flex-none pl-4">
         <button
@@ -72,7 +76,7 @@ export default function TopNav() {
         <Link
           href="/settings"
           aria-label={t("Settings", "Cài đặt")}
-          className={`c-topnav-item ${isActive("/settings") ? "active" : ""}`}
+          className={`c-topnav-item ${pathname.startsWith("/settings") ? "active" : ""}`}
         >
           <Settings size={16} strokeWidth={1.8} />
         </Link>
@@ -87,5 +91,35 @@ export default function TopNav() {
         </button>
       </div>
     </header>
+  );
+}
+
+/** Dải tab con của function đang mở. Tách riêng vì `useSearchParams` cần
+ *  ranh giới Suspense — thiếu nó, mọi trang tĩnh đều thành render phía client. */
+function ModuleTabs() {
+  const pathname = usePathname();
+  const tabParam = useSearchParams().get("tab");
+  const { t } = useLanguage();
+  const current = moduleFor(pathname);
+
+  return (
+    <nav className="c-topnav-tabs" aria-label={current ? t(current.en, current.vi) : undefined}>
+      {current?.tabs.map((tab, i) => {
+        const Icon = tab.icon;
+        const active = isTabActive(tab, pathname, tabParam, i === 0);
+        return (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            scroll={false}
+            aria-current={active ? "page" : undefined}
+            className={`c-topnav-item ${active ? "active" : ""}`}
+          >
+            <Icon size={16} strokeWidth={1.8} />
+            <span>{t(tab.en, tab.vi)}</span>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wallet, GraduationCap, LayoutDashboard, Repeat, HeartPulse } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { MODULES } from "@/lib/modules";
 
 /**
  * Dock kính đáy màn hình cho điện thoại (hệ v3): cách mép 12px, bo 26px,
@@ -20,13 +20,8 @@ export default function MobileNav() {
   const pathname = usePathname();
   const { t } = useLanguage();
 
-  const items = [
-    { href: "/", icon: LayoutDashboard, label: t("Home", "Tổng quan") },
-    { href: "/finance", icon: Wallet, label: t("Finance", "Tài chính") },
-    { href: "/learning", icon: GraduationCap, label: t("Learning", "Học tập") },
-    { href: "/habits", icon: Repeat, label: t("Habits", "Thói quen") },
-    { href: "/health", icon: HeartPulse, label: t("Health", "Sức khoẻ") },
-  ];
+  // Năm mục có `dock: true` trong src/lib/modules.tsx.
+  const items = MODULES.filter((m) => m.dock).map((m) => ({ href: m.href, icon: m.icon, label: t(m.en, m.vi) }));
 
   return (
     <nav className="c-bottomnav md:hidden fixed z-50">

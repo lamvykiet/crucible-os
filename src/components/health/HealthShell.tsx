@@ -3,8 +3,9 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AlertCircle, Dumbbell, LayoutDashboard, Loader2, Pencil, Scale, UserPlus } from "lucide-react";
+import { AlertCircle, Loader2, Pencil, UserPlus } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { MODULES } from "@/lib/modules";
 import { useHealth } from "@/components/health/HealthContext";
 import ProfileModal from "@/components/health/ProfileModal";
 import type { HealthProfile } from "@/components/health/types";
@@ -30,11 +31,11 @@ export default function HealthShell({
   const { profiles, profile, selectProfile, error, reloadProfiles } = useHealth();
   const [editing, setEditing] = useState<HealthProfile | null | "new">(null);
 
-  const tabs = [
-    { href: "/health", icon: LayoutDashboard, label: t("Overview", "Tổng quan") },
-    { href: "/health/body", icon: Scale, label: t("Body", "Cơ thể") },
-    { href: "/health/workouts", icon: Dumbbell, label: t("Workouts", "Buổi tập") },
-  ];
+  // Từ 768px các tab này nằm trên thanh trên (`TopNav`); ở đây chỉ còn cho
+  // điện thoại. Danh sách lấy từ `src/lib/modules.tsx`.
+  const tabs = (MODULES.find((m) => m.key === "health")?.tabs ?? []).map((tab) => ({
+    href: tab.href, icon: tab.icon, label: t(tab.en, tab.vi),
+  }));
 
   return (
     <div className="max-w-5xl mx-auto space-y-5 pb-28">
@@ -46,7 +47,7 @@ export default function HealthShell({
         {profile && actions && <div className="flex flex-wrap gap-2 [&>.c-btn]:flex-1 sm:[&>.c-btn]:flex-none w-full sm:w-auto">{actions}</div>}
       </header>
 
-      <nav className="flex gap-2 overflow-x-auto hide-scrollbar -mx-1 px-1 pb-1">
+      <nav className="flex md:hidden gap-2 overflow-x-auto hide-scrollbar -mx-1 px-1 pb-1">
         {tabs.map(({ href, icon: Icon, label }) => {
           const active = href === "/health" ? pathname === "/health" : pathname.startsWith(href);
           return (

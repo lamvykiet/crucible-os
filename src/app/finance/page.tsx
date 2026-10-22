@@ -1,81 +1,12 @@
-"use client";
+import { Suspense } from "react";
+import FinancePage from "@/components/finance/FinancePage";
 
-import { useState } from "react";
-import { useLanguage } from "@/lib/LanguageContext";
-import {
-  LayoutDashboard, TrendingUp, CreditCard, Landmark, Package, Wallet,
-  History as HistoryIcon, Briefcase,
-} from "lucide-react";
-import DashboardTab from "@/components/finance/DashboardTab";
-import IncomeTab from "@/components/finance/IncomeTab";
-import ExpenseTab from "@/components/finance/ExpenseTab";
-import DebtsTab from "@/components/finance/DebtsTab";
-import HistoryTab from "@/components/finance/HistoryTab";
-import AssetsTab from "@/components/finance/AssetsTab";
-import AccountsTab from "@/components/finance/AccountsTab";
-import ProjectsTab from "@/components/finance/ProjectsTab";
-import FinanceScene from "@/components/finance/FinanceScene";
-
-export default function FinancePage() {
-  const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState("dashboard");
-
+// `FinancePage` đọc `?tab=` bằng useSearchParams — cần ranh giới Suspense,
+// thiếu nó Next bắt cả trang render phía client khi build.
+export default function Page() {
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-20">
-      <FinanceScene />
-
-      {/* Top Header with Tabs */}
-      <div className="flex flex-col">
-        {/* Tabs Navigation (Centered) */}
-        <div className="flex">
-          <div className="flex bg-[var(--color-surface)] rounded-full p-1 border border-[var(--color-border)] shadow-sm overflow-x-auto max-w-full hide-scrollbar">
-            {[
-              { id: "dashboard", label: t("Overview", "Tổng quan"), Icon: LayoutDashboard },
-              { id: "income", label: t("Income", "Thu nhập"), Icon: TrendingUp },
-              { id: "expense", label: t("Expense", "Chi tiêu"), Icon: CreditCard },
-              { id: "debts", label: t("Debts", "Nợ"), Icon: Landmark },
-              { id: "assets", label: t("Assets", "Tài sản"), Icon: Package },
-              { id: "accounts", label: t("Accounts", "Tài khoản"), Icon: Wallet },
-              { id: "projects", label: t("Projects", "Dự án"), Icon: Briefcase },
-              { id: "history", label: t("History", "Lịch sử"), Icon: HistoryIcon }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                aria-label={tab.label}
-                title={tab.label}
-                className={`w-10 h-11 md:w-auto md:h-auto flex items-center justify-center gap-[7px] md:px-4 md:py-[9px] rounded-full text-[15px] font-medium transition-colors whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
-                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
-                }`}
-              >
-                {/* Dưới 768px tám tab chữ tràn ngang phải cuộn mới thấy tab cuối;
-                    icon thì vừa đủ một hàng. Chữ vẫn nằm trong DOM cho trình
-                    đọc màn hình qua aria-label. Tám ô 44px (362px) không vừa
-                    khung 343px của màn 375px, nên ô hẹp lại còn 40px — vẫn
-                    cao 44px để chạm. Thêm tab thứ chín là phải nghĩ cách khác. */}
-                <tab.Icon size={18} className="md:w-4 md:h-4" />
-                <span className="hidden md:inline">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Unified Header with Month Picker and Modal (Removed) */}
-      </div>
-
-      {/* Tab Content */}
-      <div className="animate-in fade-in duration-300">
-        {activeTab === "dashboard" && <DashboardTab onNavigate={setActiveTab} />}
-        {activeTab === "income" && <IncomeTab />}
-        {activeTab === "expense" && <ExpenseTab />}
-        {activeTab === "debts" && <DebtsTab />}
-        {activeTab === "assets" && <AssetsTab />}
-        {activeTab === "accounts" && <AccountsTab />}
-        {activeTab === "projects" && <ProjectsTab />}
-        {activeTab === "history" && <HistoryTab />}
-      </div>
-    </div>
+    <Suspense>
+      <FinancePage />
+    </Suspense>
   );
 }

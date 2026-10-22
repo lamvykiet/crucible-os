@@ -1,12 +1,16 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { SceneHero } from "@/components/Scene";
+import { useLanguage } from "@/lib/LanguageContext";
+import { moduleFor } from "@/lib/modules";
 
 /**
  * Phần tóm tắt đầu trang trên phông cảnh (hệ v3), dùng chung cho mọi
- * function: nhãn ngày, tiêu đề là CÂU KẾT LUẬN tính từ số liệu, một widget
- * kính chính (4 chỉ số nhỏ + số lớn) và tối đa hai widget phụ.
+ * function: TÊN FUNCTION cỡ lớn, rồi nhãn ngày và CÂU KẾT LUẬN tính từ số
+ * liệu (nửa cỡ tên), một widget kính chính (4 chỉ số nhỏ + số lớn) và tối đa
+ * hai widget phụ. Tên function lấy từ `src/lib/modules.tsx` theo đường dẫn.
  *
  * Component này chỉ VẼ — số do trang tự tính từ nguồn dữ liệu của nó. Số nào
  * chưa có thì truyền `null`, widget hiện "—"; không bao giờ bịa số.
@@ -96,12 +100,15 @@ function Pill({ pill }: { pill?: ScenePill | null }) {
 }
 
 export default function SceneSummary({ title, kicker, main, rows = [] }: SceneSummaryProps) {
+  const { t } = useLanguage();
+  const mod = moduleFor(usePathname());
   return (
     <SceneHero>
       <div className={`c-hero ${rows.length === 0 ? "c-hero-solo" : ""}`}>
         <div className="c-hello">
+          {mod && <h1 className="c-display">{t(mod.en, mod.vi)}</h1>}
           <p className="c-kicker">{kicker ?? todayKicker()}</p>
-          <h1 className="c-display">{title}</h1>
+          <h2 className="c-hello-title">{title}</h2>
         </div>
 
         <section className="c-glass c-w-main" aria-label={main.title}>

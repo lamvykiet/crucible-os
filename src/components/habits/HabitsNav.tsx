@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, CalendarRange, CheckSquare, NotebookPen, Timer } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { MODULES } from "@/lib/modules";
 
 /**
  * Thanh chuyển màn trong module Thói quen.
@@ -14,21 +14,20 @@ import { useLanguage } from "@/lib/LanguageContext";
  *
  * Trên khổ 375px dải này cuộn ngang; `.hide-scrollbar` bỏ thanh cuộn vì nó ăn
  * mất chiều cao và đẩy nội dung xuống.
+ *
+ * Chỉ hiện ở điện thoại: từ 768px các tab này nằm trên thanh trên (`TopNav`).
+ * Danh sách lấy từ `src/lib/modules.tsx` — sửa ở đó.
  */
 export default function HabitsNav() {
   const pathname = usePathname();
   const { t } = useLanguage();
 
-  const tabs = [
-    { href: "/habits", icon: CheckSquare, label: t("Today", "Hôm nay") },
-    { href: "/habits/reports", icon: BarChart3, label: t("Reports", "Báo cáo") },
-    { href: "/habits/schedule", icon: CalendarRange, label: t("Schedule", "Lịch tuần") },
-    { href: "/habits/journal", icon: NotebookPen, label: t("Journal", "Nhật ký") },
-    { href: "/habits/timer", icon: Timer, label: t("Timer", "Bấm giờ") },
-  ];
+  const tabs = (MODULES.find((m) => m.key === "habits")?.tabs ?? []).map((tab) => ({
+    href: tab.href, icon: tab.icon, label: t(tab.en, tab.vi),
+  }));
 
   return (
-    <nav className="flex gap-2 overflow-x-auto hide-scrollbar -mx-1 px-1 pb-1">
+    <nav className="flex md:hidden gap-2 overflow-x-auto hide-scrollbar -mx-1 px-1 pb-1">
       {tabs.map(({ href, icon: Icon, label }) => {
         const active = href === "/habits" ? pathname === "/habits" : pathname.startsWith(href);
         return (

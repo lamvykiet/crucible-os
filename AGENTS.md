@@ -140,8 +140,19 @@ lần cuối. Đừng bỏ hai thứ đó.
 **Không có sidebar.** Từ 768px: `TopNav` là tấm kính dính đỉnh, đứng TRƯỚC
 phông cảnh với `margin-bottom` âm (nên vừa nằm trên phông lúc đầu trang, vừa
 dính được khi cuộn); qua khỏi phông thì `data-scrolled` đậm kính lên để chữ
-trắng không chìm trên nền kem. Điện thoại: `MobileTopBar` (kính, tên trang) +
-dock kính `MobileNav` ở đáy.
+trắng không chìm trên nền kem. Các function gom vào LOGO (rê chuột hoặc focus
+là xổ danh sách icon + tên); giữa thanh là TAB CON của function đang mở. Điện
+thoại: `MobileTopBar` (kính, tên trang) + dock kính `MobileNav` ở đáy, tab con
+nằm trong trang (`md:hidden`).
+
+**Danh sách function và tab con chỉ nằm ở `src/lib/modules.tsx`** — menu logo,
+dải tab trên `TopNav`, dock điện thoại, tên trang trên `MobileTopBar` và tên
+function to trên phông cảnh đều đọc từ đó. Tab trong cùng một trang (Tài chính,
+Knowledge) đi bằng `?tab=` trên URL, không bằng state: trang đọc
+`useSearchParams()`, nên `page.tsx` của nó phải bọc `<Suspense>` (thiếu là Next
+bắt cả trang render phía client), và `TopNav` cũng bọc phần tab trong Suspense.
+`.c-topnav` KHÔNG được có `overflow` — menu xổ ở logo sẽ bị cắt; chỉ
+`.c-topnav-tabs` cuộn ngang.
 
 **Bán kính `--radius-sm/md/lg/xl/2xl` TRÙNG TÊN với thang của Tailwind v4** ⇒
 đổi chúng là đổi luôn mọi `rounded-*` trong JSX. Bo của hệ v3 đặt TÊN RIÊNG:

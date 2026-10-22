@@ -6,6 +6,7 @@ import { Database, Languages, Moon, Settings, Sun } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { useSheetUnderNav } from "@/components/Scene";
+import { moduleFor } from "@/lib/modules";
 
 /**
  * Thanh trên cùng cho màn hình nhỏ: tấm kính dính đỉnh trên phông cảnh —
@@ -23,15 +24,8 @@ export default function MobileTopBar() {
   const { theme, toggleTheme } = useTheme();
   const scrolled = useSheetUnderNav();
 
-  const titles: [string, string][] = [
-    ["/finance", t("Finance", "Tài chính")],
-    ["/learning", t("Learning", "Học tập")],
-    ["/habits", t("Habits", "Thói quen")],
-    ["/health", t("Health", "Sức khoẻ")],
-    ["/knowledge", "Knowledge"],
-    ["/settings", t("Settings", "Cài đặt")],
-  ];
-  const title = titles.find(([href]) => pathname.startsWith(href))?.[1] ?? t("Home", "Tổng quan");
+  const mod = moduleFor(pathname);
+  const title = mod ? t(mod.en, mod.vi) : pathname.startsWith("/settings") ? t("Settings", "Cài đặt") : "Crucible";
 
   return (
     <header className="c-mtopbar md:hidden" data-scrolled={scrolled}>
