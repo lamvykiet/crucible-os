@@ -54,7 +54,32 @@ def attach_var(name):
     }
 
 
-SHORTCUT_INPUT = {"Value": {"Type": "ExtensionInput"}, "WFSerializationType": "WFTextTokenAttachment"}
+# Đầu vào từ Share Sheet PHẢI viết dạng chuỗi có chèn biến. Dạng attachment
+# `{"Value": {"Type": "ExtensionInput"}}` — dạng Cherri/shortcuts-js dùng — Phím
+# tắt bản hiện hành nhập vào thành ô "Đầu vào" RỖNG: Shortcut không bao giờ nhận được link,
+# server trả "Không thấy link video" và form không hiện (đo 22/10/2026 bằng
+# cách nhập thử cả hai dạng vào Phím tắt trên Mac).
+SHORTCUT_INPUT = {
+    "Value": {"string": OBJ, "attachmentsByRange": {"{0, 1}": {"Type": "ExtensionInput"}}},
+    "WFSerializationType": "WFTextTokenString",
+}
+
+
+def output_of(action, name):
+    """Tham chiếu tường minh tới kết quả của một action (magic variable).
+
+    Đừng dựa vào việc action trước tự chuyền kết quả sang action sau: bản đầu
+    để "Đặt biến" không có WFInput, iOS nhập vào thành "Đặt biến Link thành
+    Đầu vào" rỗng. `name` chỉ là nhãn hiển thị; UUID mới là thứ được nối.
+    """
+    return {
+        "Value": {
+            "Type": "ActionOutput",
+            "OutputUUID": action["WFWorkflowActionParameters"]["UUID"],
+            "OutputName": name,
+        },
+        "WFSerializationType": "WFTextTokenAttachment",
+    }
 
 
 def dict_field(pairs):
@@ -97,21 +122,27 @@ def get_key(var, key):
     })
 
 
-def set_var(name):
-    return act("is.workflow.actions.setvariable", {"WFVariableName": name})
+def set_var(name, source, output_name):
+    return act("is.workflow.actions.setvariable", {
+        "WFVariableName": name,
+        "WFInput": output_of(source, output_name),
+    })
 
+
+# 1. Link từ nút Chia sẻ. Có app đưa cả đoạn chữ — server tự tách lại lần nữa.
+get_urls = act("is.workflow.actions.detect.link", {"WFInput": SHORTCUT_INPUT})
+# 2. Đổi token lấy trang form. Lỗi (sai token, không thấy link) cũng trả
+#    `formUrl` — trỏ tới trang báo lỗi — nên không cần khối If.
+prepare = post_json("/api/video/share/prepare", [("url", tok_var_string("Link"))])
+form_url = get_key("Info", "formUrl")
 
 actions = [
-    # 1. Link từ nút Chia sẻ. Có app đưa cả đoạn chữ — server tự tách lại lần nữa.
-    act("is.workflow.actions.detect.link", {"WFInput": SHORTCUT_INPUT}),
-    set_var("Link"),
-
-    # 2. Đổi token lấy trang form. Lỗi (sai token, không thấy link) cũng trả
-    #    `formUrl` — trỏ tới trang báo lỗi — nên không cần khối If.
-    post_json("/api/video/share/prepare", [("url", tok_var_string("Link"))]),
-    set_var("Info"),
-    get_key("Info", "formUrl"),
-    set_var("FormURL"),
+    get_urls,
+    set_var("Link", get_urls, "URLs"),
+    prepare,
+    set_var("Info", prepare, "Contents of URL"),
+    form_url,
+    set_var("FormURL", form_url, "Dictionary Value"),
 
     # 3. Mở form ngay trên TikTok. Bấm "Xong" là quay lại video.
     act("is.workflow.actions.showwebpage", {"WFURL": tok_var_string("FormURL")}),
