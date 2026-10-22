@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { LANGUAGE_PRESETS, presetByCode } from "@/lib/languagePresets";
+import { DAY_MS, computeStreak, dayKey } from "@/lib/learningDay";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,9 @@ export async function GET() {
     });
     const byLanguage = new Map(progress.map((row) => [row.languageId, row]));
 
+    const activity = await activityByLanguage(user.id);
+    const now = new Date();
+
     const taken = new Set(languages.map((l) => l.code));
 
     return NextResponse.json({
@@ -56,6 +60,8 @@ export async function GET() {
         xp: byLanguage.get(l.id)?._sum.xp ?? 0,
         skillsTouched: byLanguage.get(l.id)?._count.skill ?? 0,
         lastPracticedAt: byLanguage.get(l.id)?._max.lastPracticedAt ?? null,
+        nameEn: presetByCode(l.code)?.nameEn ?? null,
+        ...streakOf(activity.get(l.id), byLanguage.get(l.id)?._max.lastPracticedAt ?? null, now),
       })),
       // Những tiếng còn thêm được
       presets: LANGUAGE_PRESETS.filter((p) => !taken.has(p.code)),
@@ -65,6 +71,64 @@ export async function GET() {
     console.error("List languages error:", error);
     return NextResponse.json({ success: false, error: message, languages: [], presets: [] }, { status: 500 });
   }
+}
+
+/**
+ * Những thời điểm người dùng THẬT SỰ học một thứ tiếng, gom theo `languageId`.
+ *
+ * Không có bảng "ngày học" riêng, nên gom từ mọi bảng hoạt động có
+ * `languageId`: lượt ôn thẻ, bài viết, bài nói, thi thử, luyện tập, chép chính
+ * tả, collocation. `PracticeItem.createdAt` KHÔNG tính — đó là lúc máy sinh
+ * câu hỏi, không phải lúc người dùng làm. Chỉ đọc 400 ngày gần nhất: chuỗi dài
+ * hơn thế thì đã đủ để hiện "400+".
+ */
+async function activityByLanguage(userId: string): Promise<Map<string, Date[]>> {
+  const since = new Date(Date.now() - 400 * DAY_MS);
+  const notNull = { not: null };
+  const [reviews, writing, speaking, exams, practice, dictation, collocation] = await Promise.all([
+    prisma.reviewLog.findMany({ where: { userId, languageId: notNull, reviewedAt: { gte: since } }, select: { languageId: true, reviewedAt: true } }),
+    prisma.writingSubmission.findMany({ where: { userId, languageId: notNull, createdAt: { gte: since } }, select: { languageId: true, createdAt: true } }),
+    prisma.speakingAttempt.findMany({ where: { userId, languageId: notNull, createdAt: { gte: since } }, select: { languageId: true, createdAt: true } }),
+    prisma.mockExam.findMany({ where: { userId, languageId: notNull, startedAt: { gte: since } }, select: { languageId: true, startedAt: true } }),
+    prisma.practiceItem.findMany({ where: { userId, languageId: notNull, lastDoneAt: { gte: since } }, select: { languageId: true, lastDoneAt: true } }),
+    prisma.dictationLog.findMany({ where: { userId, languageId: notNull, lastDoneAt: { gte: since } }, select: { languageId: true, lastDoneAt: true } }),
+    prisma.collocationLog.findMany({ where: { userId, languageId: notNull, lastDoneAt: { gte: since } }, select: { languageId: true, lastDoneAt: true } }),
+  ]);
+
+  const map = new Map<string, Date[]>();
+  const add = (id: string | null, at: Date | null) => {
+    if (!id || !at) return;
+    const list = map.get(id) ?? [];
+    list.push(at);
+    map.set(id, list);
+  };
+  reviews.forEach((r) => add(r.languageId, r.reviewedAt));
+  writing.forEach((r) => add(r.languageId, r.createdAt));
+  speaking.forEach((r) => add(r.languageId, r.createdAt));
+  exams.forEach((r) => add(r.languageId, r.startedAt));
+  practice.forEach((r) => add(r.languageId, r.lastDoneAt));
+  dictation.forEach((r) => add(r.languageId, r.lastDoneAt));
+  collocation.forEach((r) => add(r.languageId, r.lastDoneAt));
+  return map;
+}
+
+/**
+ * Chuỗi ngày học của một thứ tiếng, theo đúng quy ước của cả Learning Hub
+ * (`computeStreak`, giờ Việt Nam: chưa học hôm nay thì chuỗi chưa đứt).
+ * Chuỗi đã đứt thì trả `lostStreak` — độ dài chuỗi tính tới lần học cuối —
+ * để thẻ nói được "mất chuỗi 5 ngày" thay vì chỉ một số 0.
+ */
+function streakOf(times: Date[] | undefined, lastPracticedAt: Date | null, now: Date) {
+  const all = [...(times ?? []), ...(lastPracticedAt ? [lastPracticedAt] : [])];
+  if (all.length === 0) return { streak: 0, lostStreak: 0, lastActiveAt: null };
+  const last = all.reduce((a, b) => (b > a ? b : a));
+  const days = new Set(all.map((d) => dayKey(d)));
+  const streak = computeStreak(days, now);
+  return {
+    streak,
+    lostStreak: streak === 0 ? computeStreak(days, last) : 0,
+    lastActiveAt: last.toISOString(),
+  };
 }
 
 /** Thêm một thứ tiếng, từ mẫu có sẵn hoặc tự khai báo. */

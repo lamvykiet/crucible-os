@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Plus, Loader2, AlertCircle, Trash2, Languages as LanguagesIcon,
-  ArrowUpRight, Music2, Sparkles, Pencil, Check,
+  ArrowUpRight, Pencil, Check, Flame, Clock,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import type { LanguagePreset } from "@/lib/languagePresets";
@@ -28,10 +28,15 @@ interface LanguageRow {
   /** Đã động tới bao nhiêu kỹ năng. */
   skillsTouched: number;
   lastPracticedAt: string | null;
+  /** Tên tiếng Anh của mẫu có sẵn; tiếng tự khai báo thì null. */
+  nameEn: string | null;
+  /** Số ngày học liên tiếp tới hôm nay (giờ VN). */
+  streak: number;
+  /** Chuỗi đã đứt thì đây là độ dài chuỗi tính tới lần học cuối. */
+  lostStreak: number;
+  /** Lần cuối có hoạt động học thứ tiếng này, trên mọi kỹ năng. */
+  lastActiveAt: string | null;
 }
-
-/** Tổng số kỹ năng một thứ tiếng có, để tính phần trăm đã chạm tới. */
-const SKILL_COUNT = 9;
 
 /**
  * "hôm nay" / "3 ngày trước" — ngắn hơn và dễ đọc hơn một ngày tháng đầy đủ.
@@ -45,7 +50,9 @@ function lastSeen(iso: string | null, t: (en: string, vi: string) => string) {
   if (days <= 0) return t("today", "hôm nay");
   if (days === 1) return t("yesterday", "hôm qua");
   if (days <= 14) return t(`${days} days ago`, `${days} ngày trước`);
-  return new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+  // Tự ghép dd/mm — `toLocaleDateString("vi-VN")` của Chrome cho "26-09".
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 /**
@@ -57,7 +64,7 @@ function lastSeen(iso: string | null, t: (en: string, vi: string) => string) {
  * luyện nào — chứ không phải viết cứng theo tiếng Anh.
  */
 export default function LanguagesManager() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   /**
    * Chế độ sửa danh sách.
@@ -183,11 +190,11 @@ export default function LanguagesManager() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {languages.map((row) => (
                   <article
                     key={row.id}
-                    className="c-card c-elev-md p-6 relative group transition-colors hover:border-[var(--color-primary)]"
+                    className="c-card p-6 relative group"
                   >
                     {/* Cả thẻ là lối vào. Trước đây thẻ có thêm nút "Mở bộ thẻ"
                         ở dưới — thừa, vì thẻ chỉ có đúng một hành động chính, và
@@ -205,12 +212,15 @@ export default function LanguagesManager() {
                       />
                     )}
 
-                    <div className="relative pointer-events-none flex flex-col gap-4">
+                    {/* Thẻ chỉ trả lời hai câu: chuỗi ngày học còn hay đã đứt,
+                        và lần cuối học là khi nào. Thang cấp, số thanh điệu,
+                        tên bản ngữ, thanh tiến độ kỹ năng đã gỡ (22/10/2026) —
+                        đọc một lần là đủ, chúng nằm trong bảng kỹ năng. */}
+                    <div className="relative pointer-events-none flex flex-col gap-5">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h3 className="c-card-title truncate">{row.name}</h3>
-                          {row.nativeName && <p className="c-stat-label">{row.nativeName}</p>}
-                        </div>
+                        <h3 className="c-card-title truncate mb-0">
+                          {language === "vi" ? row.name : row.nameEn ?? row.name}
+                        </h3>
                         {!editing && (
                           <ArrowUpRight
                             size={18}
@@ -219,47 +229,27 @@ export default function LanguagesManager() {
                         )}
                       </div>
 
-                      {/* Chỉ giữ chip nào THẬT SỰ khác biệt giữa các thứ tiếng.
-                          Bản cũ hiện bốn chip cho mọi thẻ (hệ phiên âm, thanh
-                          điệu, luyện viết, thang cấp) — ba trong số đó là thứ
-                          đọc một lần rồi thôi, nhưng chiếm chỗ ở mọi lần nhìn. */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="c-chip c-chip-outline">{row.levelScale}</span>
-                        {row.hasTones && (
-                          <span className="c-chip c-chip-outline inline-flex items-center gap-1">
-                            <Music2 size={11} />
-                            {row.toneCount} {t("tones", "thanh")}
+                      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                        {row.streak > 0 ? (
+                          <span className="c-delta good">
+                            <Flame size={13} />
+                            {t(`${row.streak}-day streak`, `Chuỗi ${row.streak} ngày`)}
+                          </span>
+                        ) : row.lostStreak > 0 ? (
+                          <span className="c-delta bad">
+                            <Flame size={13} />
+                            {t(`Lost a ${row.lostStreak}-day streak`, `Mất chuỗi ${row.lostStreak} ngày`)}
+                          </span>
+                        ) : (
+                          <span className="c-delta flat">{t("Not started", "Chưa học")}</span>
+                        )}
+                        {lastSeen(row.lastActiveAt, t) && (
+                          <span className="inline-flex items-center gap-1.5 c-stat-label">
+                            <Clock size={13} />
+                            {t("Last studied", "Học lần cuối")} {lastSeen(row.lastActiveAt, t)}
                           </span>
                         )}
                       </div>
-
-                      {/* Tiến độ thật, thay cho "0 bộ thẻ, 0 từ" */}
-                      {row.skillsTouched === 0 ? (
-                        <div className="flex items-center gap-2 c-stat-label">
-                          <Sparkles size={13} className="text-[var(--color-primary)]" />
-                          {t("Not started — tap to begin", "Chưa bắt đầu — bấm vào để mở")}
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="c-progress">
-                            <span
-                              style={{ width: `${Math.round((row.skillsTouched / SKILL_COUNT) * 100)}%` }}
-                            />
-                          </div>
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 c-stat-label tabular-nums">
-                            <span>
-                              {t(
-                                `${row.skillsTouched} of ${SKILL_COUNT} skills started`,
-                                `đã chạm ${row.skillsTouched}/${SKILL_COUNT} kỹ năng`
-                              )}
-                            </span>
-                            <span>{t(`${row.xp} XP`, `${row.xp} điểm`)}</span>
-                            {lastSeen(row.lastPracticedAt, t) && (
-                              <span>{t("last", "gần nhất")} {lastSeen(row.lastPracticedAt, t)}</span>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     {/* Chỉ có trong chế độ sửa. Bình thường thẻ không mang nút
