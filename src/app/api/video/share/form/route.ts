@@ -29,13 +29,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Chưa có tài khoản nào trong hệ thống." }, { status: 503 });
     }
 
-    const [topics, subTopics, existing, last] = await Promise.all([
+    // Không trả đề tài "mặc định": trang bắt người dùng tự chọn mỗi lần — bản
+    // đầu chọn sẵn đề tài lần lưu gần nhất và video không liên quan bị lưu nhầm
+    // vào đó.
+    const [topics, subTopics, existing] = await Promise.all([
       topicNames(userId),
       subTopicsByTopic(userId),
       prisma.videoItem.findFirst({ where: { userId, sourceUrl } }),
-      // Đề tài lần lưu gần nhất làm mặc định: lướt video thường đi thành cụm
-      // cùng một chủ đề, đỡ phải chọn lại mỗi lần.
-      prisma.videoItem.findFirst({ where: { userId }, orderBy: { createdAt: "desc" }, select: { topic: true } }),
     ]);
 
     const platform = detectPlatform(sourceUrl);
@@ -46,7 +46,6 @@ export async function GET(req: Request) {
       platformLabel: PLATFORM_LABELS[platform] ?? platform,
       topics,
       subTopics,
-      defaultTopic: existing?.topic ?? (last && topics.includes(last.topic) ? last.topic : topics[0]),
       existing: existing
         ? { topic: existing.topic, subTopic: existing.subTopic, title: existing.title, status: existing.status }
         : null,

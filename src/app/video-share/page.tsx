@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, CheckCircle2, Loader2, Plus } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronLeft, Loader2, Plus } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 interface FormData {
@@ -9,7 +9,6 @@ interface FormData {
   platformLabel: string;
   topics: string[];
   subTopics: Record<string, string[]>;
-  defaultTopic: string;
   existing: { topic: string; subTopic: string | null; title: string | null; status: string } | null;
 }
 
@@ -22,6 +21,11 @@ interface FormData {
  * cái form trên web: chọn đề tài, nhãn con hiện theo đề tài, tiêu đề tự điền.
  * Bản đầu dựng bằng ba popup "Choose from List" + "If" — không có gợi ý nhãn
  * con, và khối "If" dựng sai một chút là cả Shortcut hỏng.
+ *
+ * Hai bước, mỗi bước chiếm cả khung như một popup: chọn ĐỀ TÀI trước, rồi mới
+ * tới nhãn con + tiêu đề. Không chọn sẵn đề tài nào (trừ video đã lưu trước
+ * đó): bản đầu chọn sẵn đề tài lần lưu gần nhất trong một ô `<select>`, người
+ * dùng tưởng "3D Design" là cố định và lưu nhầm cả video không liên quan.
  *
  * Ô nhập giữ nguyên kiểu với `VideoDownloaderTab` để hai nơi trông là một.
  * Khổ chính là 375px — cái khung web của Shortcut còn hẹp hơn Safari.
@@ -67,7 +71,8 @@ export default function VideoSharePage() {
         if (!json?.success) throw new Error(json?.error || "Không tải được dữ liệu");
         const form = json as FormData;
         setData(form);
-        setTopic(form.defaultTopic);
+        // Chỉ điền sẵn khi video đã từng lưu — còn lại người dùng phải tự chọn.
+        setTopic(form.existing?.topic ?? "");
         setSubTopic(form.existing?.subTopic ?? "");
         if (form.existing?.title) {
           setTitle(form.existing.title);
@@ -165,38 +170,52 @@ export default function VideoSharePage() {
             </div>
           )}
 
-          <select
-            className="c-input w-full"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            aria-label={t("Topic", "Đề tài")}
-          >
-            {data.topics.map((name) => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-          </select>
+          {!topic ? (
+            // Bước 1 — chọn đề tài. Nút cao 44px: vùng chạm tối thiểu trên iPhone.
+            <div className="space-y-3">
+              <p className="c-overline">{t("Pick a topic", "Chọn đề tài")}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {data.topics.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => {
+                      setTopic(name);
+                      setSubTopic("");
+                    }}
+                    className="c-chip c-chip-outline justify-center min-h-[44px] text-center leading-tight"
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+          <>
+            {/* Bước 2 — đề tài đã chọn, bấm để quay lại danh sách. */}
+            <button
+              type="button"
+              onClick={() => setTopic("")}
+              className="c-input w-full flex items-center gap-2 text-left"
+              aria-label={t("Change topic", "Đổi đề tài")}
+            >
+              <ChevronLeft size={16} className="flex-none text-[var(--color-text-faint)]" />
+              <span className="flex-1 truncate font-bold">{topic}</span>
+              <span className="text-sm text-[var(--color-text-muted)] flex-none">{t("Change", "Đổi")}</span>
+            </button>
 
-          <input
-            className="c-input w-full"
-            value={subTopic}
-            onChange={(e) => setSubTopic(e.target.value)}
-            list="share-subtopic-options"
-            autoComplete="off"
-            aria-label={t("Sub-topic", "Nhãn con")}
-            placeholder={t("Sub-topic — e.g. Print guide", "Nhãn con — vd Hướng dẫn in")}
-          />
-          {/* Giá trị trong datalist là nhãn người dùng tự gõ — không dịch,
-              vì chuỗi này được lưu thẳng xuống DB. */}
-          <datalist id="share-subtopic-options">
-            {suggestions.map((sub) => (
-              <option key={sub} value={sub} />
-            ))}
-          </datalist>
+            <p className="c-overline pt-1">{t("Sub-topic", "Nhãn con")}</p>
 
-          {/* Safari trên iPhone không dựng danh sách của <datalist> — nhãn đã
-              dùng phải hiện thành thẻ bấm được, như trên trang thư viện. */}
-          {suggestions.length > 0 && (
+            {/* Safari trên iPhone không dựng danh sách của <datalist> — nhãn đã
+                dùng của ĐÚNG đề tài vừa chọn phải hiện thành thẻ bấm được. */}
             <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setSubTopic("")}
+                className={!subTopic.trim() ? "c-chip c-chip-solid" : "c-chip c-chip-outline"}
+              >
+                {t("No sub-topic", "Không gắn nhãn")}
+              </button>
               {suggestions.map((sub) => (
                 <button
                   key={sub}
@@ -208,39 +227,59 @@ export default function VideoSharePage() {
                 </button>
               ))}
             </div>
-          )}
 
-          <div className="relative">
             <input
-              className="c-input w-full pr-10"
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                setTitleTouched(true);
-              }}
-              aria-label={t("Title", "Tiêu đề")}
-              placeholder={
-                titleLoading && !titleTouched
-                  ? t("Fetching the video title…", "Đang lấy tiêu đề video…")
-                  : t("Title (optional)", "Tiêu đề (không bắt buộc)")
-              }
+              className="c-input w-full"
+              value={subTopic}
+              onChange={(e) => setSubTopic(e.target.value)}
+              list="share-subtopic-options"
+              autoComplete="off"
+              aria-label={t("New sub-topic", "Nhãn con mới")}
+              placeholder={t("…or type a new sub-topic", "…hoặc gõ nhãn mới")}
             />
-            {titleLoading && !titleTouched && (
-              <Loader2
-                size={16}
-                className="animate-spin absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]"
-              />
-            )}
-          </div>
+            {/* Giá trị trong datalist là nhãn người dùng tự gõ — không dịch,
+                vì chuỗi này được lưu thẳng xuống DB. */}
+            <datalist id="share-subtopic-options">
+              {suggestions.map((sub) => (
+                <option key={sub} value={sub} />
+              ))}
+            </datalist>
 
-          <button
-            type="submit"
-            disabled={!topic || saving}
-            className="c-btn c-btn-primary w-full flex items-center justify-center gap-2"
-          >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-            {t("Add to library", "Thêm vào thư viện")}
-          </button>
+            <p className="c-overline pt-1">{t("Title", "Tiêu đề")}</p>
+
+            <div className="relative">
+              <input
+                className="c-input w-full pr-10"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setTitleTouched(true);
+                }}
+                aria-label={t("Title", "Tiêu đề")}
+                placeholder={
+                  titleLoading && !titleTouched
+                    ? t("Fetching the video title…", "Đang lấy tiêu đề video…")
+                    : t("Title (optional)", "Tiêu đề (không bắt buộc)")
+                }
+              />
+              {titleLoading && !titleTouched && (
+                <Loader2
+                  size={16}
+                  className="animate-spin absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]"
+                />
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={!topic || saving}
+              className="c-btn c-btn-primary w-full flex items-center justify-center gap-2"
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+              {t("Add to library", "Thêm vào thư viện")}
+            </button>
+          </>
+          )}
         </form>
       )}
     </div>
