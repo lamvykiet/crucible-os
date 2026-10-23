@@ -12,6 +12,7 @@
 const BCP47: Record<string, string> = {
   en: "en-US",
   fr: "fr-FR",
+  de: "de-DE",
   cmn: "zh-CN",
   yue: "zh-HK",
   ko: "ko-KR",

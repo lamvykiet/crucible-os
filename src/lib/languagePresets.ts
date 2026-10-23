@@ -6,7 +6,9 @@
  * viết chữ hay không. Người dùng vẫn phải tự bấm thêm thứ tiếng mình học —
  * không có dòng nào tự chui vào cơ sở dữ liệu.
  *
- * Thêm tiếng thứ sáu chỉ là thêm một phần tử vào mảng này.
+ * Thêm một thứ tiếng là thêm một phần tử vào mảng này — rồi ghi khung ngữ
+ * pháp (`grammarSyllabus.ts`), bộ chép chính tả (`dictationSets.ts`), bài
+ * hướng dẫn (`skillGuides.ts`) và mã giọng đọc (`speech.ts`) nếu có.
  */
 
 export type Script = "latin" | "hanzi" | "hangul";
@@ -52,10 +54,24 @@ export const LANGUAGE_PRESETS: LanguagePreset[] = [
     levels: ["A1", "A2", "B1", "B2", "C1", "C2"],
   },
   {
+    // Thêm 22/10/2026. Chữ Latin + IPA như tiếng Pháp; thang Goethe/telc cũng
+    // theo CEFR nên dùng chung thang đó.
+    code: "de",
+    name: "Tiếng Đức",
+    nameEn: "German",
+    nativeName: "Deutsch",
+    script: "latin",
+    phoneticSystem: "ipa",
+    hasTones: false,
+    toneCount: 0,
+    levelScale: "CEFR",
+    levels: ["A1", "A2", "B1", "B2", "C1", "C2"],
+  },
+  {
     // Quan Thoại: 4 thanh, cộng thanh nhẹ là 5 giá trị người học phải phân biệt.
     code: "cmn",
     name: "Tiếng Trung (Quan Thoại)",
-    nameEn: "Mandarin Chinese",
+    nameEn: "Chinese",
     nativeName: "普通话",
     script: "hanzi",
     phoneticSystem: "pinyin",

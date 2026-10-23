@@ -1,6 +1,7 @@
 import { CMN_DICTATION } from "./dictation/cmn";
 import { EN_DICTATION } from "./dictation/en";
 import { FR_DICTATION } from "./dictation/fr";
+import { DE_DICTATION } from "./dictation/de";
 import { YUE_DICTATION } from "./dictation/yue";
 import { KO_DICTATION } from "./dictation/ko";
 import type { DictationPack } from "./dictation/types";
@@ -20,6 +21,7 @@ const PACKS: Record<string, DictationPack> = {
   cmn: CMN_DICTATION,
   en: EN_DICTATION,
   fr: FR_DICTATION,
+  de: DE_DICTATION,
   yue: YUE_DICTATION,
   ko: KO_DICTATION,
 };

@@ -1,6 +1,6 @@
 import { EN_GUIDES } from "./skillGuides/en";
 import { CMN_GUIDES } from "./skillGuides/cmn";
-import { FR_GUIDES, YUE_GUIDES, KO_GUIDES } from "./skillGuides/others";
+import { FR_GUIDES, DE_GUIDES, YUE_GUIDES, KO_GUIDES } from "./skillGuides/others";
 import type { SkillGuide } from "./skillGuides/types";
 import type { SkillId } from "./languageSkills";
 
@@ -15,7 +15,7 @@ export type { GuideBlock, GuideSection, SkillGuide } from "./skillGuides/types";
  * Chưa phải kỹ năng nào của thứ tiếng nào cũng có bài. Thiếu thì giao diện nói
  * thẳng là chưa có và cho vào thẳng phần luyện, chứ không hiện một bài rỗng.
  */
-const ALL: SkillGuide[] = [...EN_GUIDES, ...CMN_GUIDES, ...FR_GUIDES, ...YUE_GUIDES, ...KO_GUIDES];
+const ALL: SkillGuide[] = [...EN_GUIDES, ...CMN_GUIDES, ...FR_GUIDES, ...DE_GUIDES, ...YUE_GUIDES, ...KO_GUIDES];
 
 export const guideFor = (code: string, skill: SkillId): SkillGuide | null =>
   ALL.find((g) => g.code === code && g.skill === skill) ?? null;

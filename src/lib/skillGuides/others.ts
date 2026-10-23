@@ -351,3 +351,144 @@ export const KO_GUIDES: SkillGuide[] = [
     ],
   },
 ];
+
+/** Hướng dẫn kỹ năng tiếng Đức. */
+export const DE_GUIDES: SkillGuide[] = [
+  {
+    code: "de",
+    skill: "dictation",
+    title: "Chép chính tả tiếng Đức — viết gần như đúng như đọc, trừ năm chỗ",
+    intro:
+      "Tiếng Đức ít chữ câm, nên nghe đúng âm là chép đúng phần lớn. Điểm mất gần như luôn rơi vào năm chỗ tai không tự phân biệt được.",
+    minutes: 8,
+    sections: [
+      {
+        id: "traps",
+        title: "Năm chỗ nghe giống mà viết khác",
+        blocks: [
+          {
+            kind: "table",
+            head: ["Nghe giống hệt nhau", "Phải suy từ đâu"],
+            rows: [
+              ["Rad / Rat (đều đọc -t)", "Đổi sang số nhiều: Räder có d, Räte có t"],
+              ["Staat / Stadt", "Nguyên âm dài thì không gấp đôi phụ âm, ngắn thì gấp đôi"],
+              ["ihn / in", "Nguyên âm dài thường có h hoặc ie đi kèm"],
+              ["Straße / Masse", "Sau nguyên âm dài hoặc nguyên âm đôi viết ß, sau nguyên âm ngắn viết ss"],
+              ["Lied / Leid", "ie đọc /iː/, ei đọc /aɪ̯/ — đọc chữ cái thứ HAI"],
+            ],
+          },
+          {
+            kind: "warn",
+            items: [
+              "Viết hoa MỌI danh từ, kể cả động từ hay tính từ đã thành danh từ: das Essen, etwas Gutes.",
+              "Sie viết hoa là ngài, sie viết thường là cô ấy hoặc họ — chỉ ngữ cảnh mới phân biệt được.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "order",
+        title: "Nghe hết câu rồi mới chép động từ",
+        blocks: [
+          {
+            kind: "text",
+            body:
+              "Động từ tách được bị chẻ đôi: Ich rufe dich morgen an — phần an rơi tận cuối. Trong mệnh đề phụ, động từ chia xuống cuối: weil er heute nicht kommt. Chép theo từng chữ ngay khi nghe sẽ thiếu nửa sau của động từ; nghe trọn câu rồi mới viết.",
+          },
+        ],
+      },
+      {
+        id: "how",
+        title: "Cách làm",
+        blocks: [
+          {
+            kind: "steps",
+            items: [
+              "Nghe trọn câu, chép âm trước, chưa lo chính tả.",
+              "Gạch chân các danh từ và viết hoa chúng.",
+              "Với mỗi phụ âm cuối nghe ra -t, -k, -p: thử đổi sang số nhiều để biết là d, g hay b.",
+              "Kiểm lại umlaut: hatte và hätte, war và wäre khác hẳn nghĩa.",
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    code: "de",
+    skill: "writing",
+    title: "Viết tiếng Đức — cách, đuôi tính từ và vị trí động từ",
+    intro: "Ba thứ quyết định bài viết tiếng Đức: chia đúng cách, đặt đúng động từ, và nối ý bằng từ nối hợp văn phong.",
+    minutes: 9,
+    sections: [
+      {
+        id: "check-order",
+        title: "Kiểm từng câu theo thứ tự",
+        blocks: [
+          {
+            kind: "steps",
+            items: [
+              "Động từ chia đã ở vị trí thứ hai chưa (hoặc ở cuối nếu là mệnh đề phụ)?",
+              "Danh từ đóng vai gì — chủ ngữ, tân ngữ trực tiếp, gián tiếp? Mạo từ đã theo đúng cách chưa?",
+              "Giới từ đòi cách nào? Giới từ hai cách thì hỏi Wo? hay Wohin?",
+              "Tính từ đứng trước danh từ đã có đuôi đúng theo mạo từ đi trước chưa?",
+              "Danh từ đã viết hoa hết chưa?",
+            ],
+          },
+        ],
+      },
+      {
+        id: "connectors",
+        title: "Từ nối — mỗi loại đặt động từ một kiểu",
+        blocks: [
+          {
+            kind: "phrases",
+            note: "Đây là chỗ hay sai nhất: cùng nghĩa nhưng mỗi nhóm kéo động từ về một vị trí khác.",
+            items: [
+              "Không đổi trật tự: und, aber, oder, denn, sondern",
+              "Đẩy động từ lên ngay sau: deshalb, trotzdem, außerdem, dann",
+              "Đẩy động từ xuống cuối: weil, obwohl, dass, wenn, nachdem",
+              "Văn viết trang trọng: zudem, folglich, hingegen, demnach",
+            ],
+          },
+          {
+            kind: "text",
+            title: "Bố cục kiểu Đức",
+            body:
+              "Bài nghị luận tiếng Đức (Erörterung) thường đi theo lối cân nhắc hai phía: nêu luận điểm ủng hộ, rồi phản bác, cuối cùng mới rút ra ý kiến riêng có lý do. Mỗi luận điểm một đoạn, câu đầu đoạn nói thẳng ý chính.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    code: "de",
+    skill: "pronunciation",
+    title: "Phát âm tiếng Đức — ba chỗ lộ rõ nhất",
+    intro: "Sửa ba thứ này thì giọng đỡ lộ hơn hẳn, nhiều hơn là sửa từng chữ một.",
+    minutes: 6,
+    sections: [
+      {
+        id: "three",
+        title: "Ba chỗ nên sửa trước",
+        blocks: [
+          {
+            kind: "steps",
+            items: [
+              "Umlaut: ü là môi tròn như u nhưng lưỡi đặt như i; ö là môi tròn như o, lưỡi như e. Đọc ü thành u là đổi nghĩa: Mütter khác Mutter.",
+              "Độ dài nguyên âm: Staat kéo dài, Stadt cắt ngắn. Tiếng Việt không phân biệt dài ngắn nên phải cố ý luyện.",
+              "Âm ch: sau a, o, u đọc khàn trong cổ họng (Buch); sau i, e, ä, ü và phụ âm đọc như tiếng xì nhẹ (ich). Đừng đọc cả hai thành k.",
+            ],
+          },
+          {
+            kind: "warn",
+            items: [
+              "Đuôi -er ở cuối từ không đọc r rõ mà thành một âm a nhẹ: Lehrer gần như Lehra.",
+              "Phụ âm cuối luôn vô thanh: Hund đọc như Hunt, dù viết d.",
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];

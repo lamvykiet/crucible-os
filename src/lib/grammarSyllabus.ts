@@ -1,5 +1,6 @@
 import { EN_SYLLABUS } from "./grammar/en";
 import { FR_SYLLABUS } from "./grammar/fr";
+import { DE_SYLLABUS } from "./grammar/de";
 import { CMN_SYLLABUS } from "./grammar/cmn";
 import { YUE_SYLLABUS } from "./grammar/yue";
 import { KO_SYLLABUS } from "./grammar/ko";
@@ -22,6 +23,7 @@ export type { GrammarPoint, GrammarGroup, GrammarFamily, GrammarSyllabus } from 
 const SYLLABUSES: Record<string, GrammarSyllabus> = {
   en: EN_SYLLABUS,
   fr: FR_SYLLABUS,
+  de: DE_SYLLABUS,
   cmn: CMN_SYLLABUS,
   yue: YUE_SYLLABUS,
   ko: KO_SYLLABUS,
