@@ -1,11 +1,6 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useLanguage } from "@/lib/LanguageContext";
-import {
-  LayoutDashboard, TrendingUp, CreditCard, Landmark, Package, Wallet,
-  History as HistoryIcon, Briefcase,
-} from "lucide-react";
 import DashboardTab from "@/components/finance/DashboardTab";
 import IncomeTab from "@/components/finance/IncomeTab";
 import ExpenseTab from "@/components/finance/ExpenseTab";
@@ -23,10 +18,9 @@ const TAB_IDS = ["dashboard", "income", "expense", "debts", "assets", "accounts"
  * trong state: thanh trên (`TopNav`) vẽ dải tab này từ `src/lib/modules.tsx`
  * và chỉ đổi được URL. Nhờ vậy nút Back cũng đi đúng từng tab.
  *
- * Dải tab trong trang chỉ còn ở điện thoại — từ 768px nó nằm trên thanh trên.
+ * Dải tab nằm trên thanh trên ở cả web lẫn điện thoại (`ModuleTabs`).
  */
 export default function FinancePage() {
-  const { t } = useLanguage();
   const router = useRouter();
   const param = useSearchParams().get("tab");
   const activeTab = param && TAB_IDS.includes(param) ? param : "dashboard";
@@ -35,47 +29,6 @@ export default function FinancePage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20">
       <FinanceScene />
-
-      {/* Top Header with Tabs */}
-      <div className="flex flex-col">
-        {/* Tabs Navigation (Centered) */}
-        <div className="flex md:hidden">
-          <div className="flex bg-[var(--color-surface)] rounded-full p-1 border border-[var(--color-border)] shadow-sm overflow-x-auto max-w-full hide-scrollbar">
-            {[
-              { id: "dashboard", label: t("Overview", "Tổng quan"), Icon: LayoutDashboard },
-              { id: "income", label: t("Income", "Thu nhập"), Icon: TrendingUp },
-              { id: "expense", label: t("Expense", "Chi tiêu"), Icon: CreditCard },
-              { id: "debts", label: t("Debts", "Nợ"), Icon: Landmark },
-              { id: "assets", label: t("Assets", "Tài sản"), Icon: Package },
-              { id: "accounts", label: t("Accounts", "Tài khoản"), Icon: Wallet },
-              { id: "projects", label: t("Projects", "Dự án"), Icon: Briefcase },
-              { id: "history", label: t("History", "Lịch sử"), Icon: HistoryIcon }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                aria-label={tab.label}
-                title={tab.label}
-                className={`w-10 h-11 md:w-auto md:h-auto flex items-center justify-center gap-[7px] md:px-4 md:py-[9px] rounded-full text-[15px] font-medium transition-colors whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
-                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
-                }`}
-              >
-                {/* Dưới 768px tám tab chữ tràn ngang phải cuộn mới thấy tab cuối;
-                    icon thì vừa đủ một hàng. Chữ vẫn nằm trong DOM cho trình
-                    đọc màn hình qua aria-label. Tám ô 44px (362px) không vừa
-                    khung 343px của màn 375px, nên ô hẹp lại còn 40px — vẫn
-                    cao 44px để chạm. Thêm tab thứ chín là phải nghĩ cách khác. */}
-                <tab.Icon size={18} className="md:w-4 md:h-4" />
-                <span className="hidden md:inline">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Unified Header with Month Picker and Modal (Removed) */}
-      </div>
 
       {/* Tab Content */}
       <div className="animate-in fade-in duration-300">

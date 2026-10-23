@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Bell, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { WEEKDAY_LABELS, addDays, colorVar, dayKey, isScheduled, weekDays, weekdayOf } from "@/lib/habits";
-import HabitsNav from "@/components/habits/HabitsNav";
 import type { HabitRow, TodayResponse } from "@/components/habits/types";
 
 const HOUR_PX = 56;
@@ -65,7 +64,6 @@ export default function HabitSchedule() {
         </p>
       </header>
 
-      <HabitsNav />
 
       <div className="flex items-center justify-between gap-2">
         <button

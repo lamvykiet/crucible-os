@@ -735,10 +735,29 @@ html { background: var(--sheet); }
 /* Thanh trên của điện thoại: kính, dính đỉnh, cùng mẹo margin âm như TopNav. */
 .c-mtopbar {
   position: sticky; top: 12px; z-index: 40;
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  display: flex; flex-direction: column; gap: 4px;
   margin: 12px 12px -64px; padding: 6px 6px 6px 8px; min-height: 52px;
   border-radius: 20px; color: var(--on-glass); isolation: isolate;
 }
+.c-mtopbar-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; }
+/* Có hàng tab thì thanh cao thêm ~48px: kéo phông lên đúng chừng đó. */
+.c-mtopbar.has-tabs { margin-bottom: -112px; padding-bottom: 6px; }
+@media (max-width: 767px) { .c-shell:has(.c-mtopbar.has-tabs) .c-scene { padding-top: 140px; } }
+.c-mtopbar .c-fnmenu-panel.open { display: flex; left: -6px; top: calc(100% + 4px); padding-top: 8px; margin-top: 0; }
+.c-mtopbar .c-fnmenu-panel.open::before { inset: 0; }
+
+/* Hàng tab con trên điện thoại: chỉ icon, tab đang chọn là viên trắng có chữ. */
+.c-mtabs { display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: none; margin: 0 -2px; }
+.c-mtabs::-webkit-scrollbar { display: none; }
+.c-mtab {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-width: 44px; height: 40px; padding: 0 10px; border-radius: 14px;
+  color: var(--on-glass-2); text-decoration: none; font: 500 14px/1 var(--font-body); white-space: nowrap;
+}
+.c-mtab span { display: none; }
+.c-mtab:hover { color: var(--on-glass); text-decoration: none; }
+.c-mtab.active, .c-mtab.active:hover { background: rgba(255, 255, 255, .92); color: #2b1f14; padding: 0 14px; }
+.c-mtab.active span { display: inline; }
 .c-mtopbar::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
   background: var(--glass);
@@ -1150,4 +1169,14 @@ html { background: var(--sheet); }
   .c-w-main .c-minis { grid-column: 1 / -1; grid-row: 3; gap: 12px 20px; }
   .c-coin { width: 48px; height: 48px; }
   .c-w-row { padding: 16px 20px; min-height: 100px; }
+  /* Điện thoại: hai widget phụ đứng cạnh nhau, số nhỏ lại — ba widget xếp
+     dọc thì phông cảnh chiếm trọn màn hình và nội dung bị đẩy khỏi tầm mắt. */
+  .c-hero .c-stack { flex-direction: row; gap: 10px; }
+  .c-hero .c-w-row { flex: 1 1 0; min-width: 0; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 14px 16px; min-height: 0; }
+  .c-hero .c-w-row .c-w-t { font-size: 16px; }
+  .c-hero .c-w-row .c-w-s { font-size: 13px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .c-hero .c-w-row .c-w-v { font-size: 34px; }
+  .c-w-main { gap: 14px 16px; }
+  .c-w-main .c-big { font-size: 56px; }
+  .c-hello .c-display { margin-bottom: 14px; }
 }

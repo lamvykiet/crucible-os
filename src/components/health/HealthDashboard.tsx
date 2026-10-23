@@ -65,8 +65,6 @@ export default function HealthDashboard() {
 
   return (
     <HealthShell
-      title={t("Health", "Sức khoẻ")}
-      lede={t("Body composition and training, one person at a time.", "Thành phần cơ thể và luyện tập, theo từng người.")}
       actions={
         <>
           <button type="button" onClick={() => setWorkoutDraft(newWorkoutDraft())} className="c-btn c-btn-secondary">

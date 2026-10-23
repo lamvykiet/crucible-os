@@ -90,8 +90,6 @@ export default function WorkoutsView() {
 
   return (
     <HealthShell
-      title={t("Workouts", "Buổi tập")}
-      lede={t("Sets, volume and personal records.", "Hiệp, khối lượng và kỷ lục cá nhân.")}
       actions={
         <>
           <button type="button" disabled={reading} onClick={() => fileRef.current?.click()} className="c-btn c-btn-secondary">

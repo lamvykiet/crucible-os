@@ -2,12 +2,13 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { ChevronDown, Languages, Moon, Settings, Sun } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { useSheetUnderNav } from "@/components/Scene";
-import { MODULES, isTabActive, moduleFor } from "@/lib/modules";
+import { MODULES, moduleFor } from "@/lib/modules";
+import ModuleTabs from "@/components/ModuleTabs";
 
 /**
  * Thanh điều hướng trên cùng (từ 768px trở lên): tấm kính nổi trên phông cảnh.
@@ -59,7 +60,7 @@ export default function TopNav() {
       </div>
 
       <Suspense fallback={<div className="flex-1" />}>
-        <ModuleTabs />
+        <ModuleTabs variant="bar" />
       </Suspense>
 
       <div className="flex items-center gap-0.5 flex-none pl-4">
@@ -91,35 +92,5 @@ export default function TopNav() {
         </button>
       </div>
     </header>
-  );
-}
-
-/** Dải tab con của function đang mở. Tách riêng vì `useSearchParams` cần
- *  ranh giới Suspense — thiếu nó, mọi trang tĩnh đều thành render phía client. */
-function ModuleTabs() {
-  const pathname = usePathname();
-  const tabParam = useSearchParams().get("tab");
-  const { t } = useLanguage();
-  const current = moduleFor(pathname);
-
-  return (
-    <nav className="c-topnav-tabs" aria-label={current ? t(current.en, current.vi) : undefined}>
-      {current?.tabs.map((tab, i) => {
-        const Icon = tab.icon;
-        const active = isTabActive(tab, pathname, tabParam, i === 0);
-        return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            scroll={false}
-            aria-current={active ? "page" : undefined}
-            className={`c-topnav-item ${active ? "active" : ""}`}
-          >
-            <Icon size={16} strokeWidth={1.8} />
-            <span>{t(tab.en, tab.vi)}</span>
-          </Link>
-        );
-      })}
-    </nav>
   );
 }

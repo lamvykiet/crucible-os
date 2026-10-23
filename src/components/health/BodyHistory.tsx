@@ -29,8 +29,6 @@ export default function BodyHistory() {
 
   return (
     <HealthShell
-      title={t("Body composition", "Thành phần cơ thể")}
-      lede={t("Every measurement, newest first.", "Mọi lần đo, mới nhất trước.")}
       actions={
         <>
           <button type="button" onClick={() => setModal({ m: null, importing: false })} className="c-btn c-btn-secondary">

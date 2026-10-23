@@ -142,8 +142,12 @@ phông cảnh với `margin-bottom` âm (nên vừa nằm trên phông lúc đ�
 dính được khi cuộn); qua khỏi phông thì `data-scrolled` đậm kính lên để chữ
 trắng không chìm trên nền kem. Các function gom vào LOGO (rê chuột hoặc focus
 là xổ danh sách icon + tên); giữa thanh là TAB CON của function đang mở. Điện
-thoại: `MobileTopBar` (kính, tên trang) + dock kính `MobileNav` ở đáy, tab con
-nằm trong trang (`md:hidden`).
+thoại có CÙNG cấu trúc: `MobileTopBar` là tấm kính hai hàng — hàng trên logo
+(chạm để xổ menu function, kể cả Knowledge) + tên function + cài đặt/ngôn
+ngữ/sáng-tối; hàng dưới là tab con (chỉ icon, tab chọn hiện chữ). Dock kính
+`MobileNav` ở đáy. Dải tab của cả hai khổ là MỘT component `ModuleTabs` —
+đừng viết lại dải tab trong từng trang (từng có bốn kiểu khác nhau trước
+23/10/2026).
 
 **Danh sách function và tab con chỉ nằm ở `src/lib/modules.tsx`** — menu logo,
 dải tab trên `TopNav`, dock điện thoại, tên trang trên `MobileTopBar` và tên
@@ -287,8 +291,9 @@ nhà cung cấp, nhóm, thẻ.
 
 **Thêm mục vào dock dưới (`MobileNav`)** → dock **chỉ chứa năm mục**: Tổng
 quan, Tài chính, Học tập, Thói quen, Sức khoẻ. Ở khổ 375px mục thứ sáu làm nhãn
-bị bóp và vùng chạm tụt dưới 44px. Knowledge (từ 19/10/2026) và Cài đặt nằm ở
-`MobileTopBar` — đó là đường duy nhất vào hai trang này trên điện thoại, đừng gỡ.
+bị bóp và vùng chạm tụt dưới 44px. Knowledge vào từ menu logo, Cài đặt từ nút
+bánh răng của `MobileTopBar` — đó là đường duy nhất vào hai trang này trên điện
+thoại, đừng gỡ.
 
 **Đụng `ReviewLog`, `FocusSession` hay `Transaction`** → thói quen có
 `autoSource` đọc thẳng ba bảng này để tự đếm tiến độ (`review`, `focus`,

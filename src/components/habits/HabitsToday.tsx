@@ -11,7 +11,6 @@ import {
   GROUPS, UNITS, WEEKDAY_LABELS, addDays, colorVar, dayKey, elapsedParts, tintVar, weekDays,
 } from "@/lib/habits";
 import { HabitGlyph } from "@/components/habits/icons";
-import HabitsNav from "@/components/habits/HabitsNav";
 import HabitFormModal from "@/components/habits/HabitFormModal";
 import HabitDetailSheet from "@/components/habits/HabitDetailSheet";
 import TodoSection from "@/components/habits/TodoSection";
@@ -305,7 +304,6 @@ export default function HabitsToday() {
         </button>
       </header>
 
-      <HabitsNav />
 
       {/* Dải bảy ngày */}
       <div className="flex items-center gap-1">

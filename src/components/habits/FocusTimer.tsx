@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Pause, Play, Square } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { colorVar } from "@/lib/habits";
-import HabitsNav from "@/components/habits/HabitsNav";
 import type { HabitRow, SessionItem, TodayResponse } from "@/components/habits/types";
 
 const PRESETS = [15, 25, 30, 45, 60];
@@ -163,7 +162,6 @@ export default function FocusTimer() {
         </p>
       </header>
 
-      <HabitsNav />
 
       <section className="c-card space-y-5">
         <div className="c-seg w-full">

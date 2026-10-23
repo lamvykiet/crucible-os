@@ -8,7 +8,6 @@ import ChartCard, { StatTile } from "@/components/charts/ChartCard";
 import {
   PERIODS, UNITS, WEEKDAY_LABELS, addDays, colorVar, dayKey, monthDays, tintVar, weekStart,
 } from "@/lib/habits";
-import HabitsNav from "@/components/habits/HabitsNav";
 import type { ReportHabit } from "@/components/habits/types";
 
 interface Insights {
@@ -203,7 +202,6 @@ export default function HabitReports() {
         </p>
       </header>
 
-      <HabitsNav />
 
       <div className="flex items-center gap-2">
         <div className="c-seg flex-1">

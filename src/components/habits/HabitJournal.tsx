@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2, Search, Send, Trash2 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { colorVar, dayKey } from "@/lib/habits";
-import HabitsNav from "@/components/habits/HabitsNav";
 import type { HabitRow, JournalItem, TodayResponse } from "@/components/habits/types";
 
 /** Năm mức tâm trạng. Số lưu xuống DB là 1..5, chữ chỉ để hiển thị. */
@@ -90,7 +89,6 @@ export default function HabitJournalView() {
         </p>
       </header>
 
-      <HabitsNav />
 
       {/* Ô viết */}
       <section className="c-card space-y-3">
