@@ -20,7 +20,7 @@ import ModuleTabs from "@/components/ModuleTabs";
  * đổi theo function, lấy từ `src/lib/modules.tsx`. Trang Tổng quan và Cài
  * đặt không có tab con.
  *
- * Không có sidebar. Điện thoại dùng `MobileTopBar` + dock `MobileNav` — thanh
+ * Không có sidebar. Điện thoại dùng `MobileTopBar` (cùng cấu trúc) — thanh
  * này ẩn dưới 768px.
  *
  * Thanh KHÔNG có `overflow` (menu xổ sẽ bị cắt); dải tab mới cuộn ngang.

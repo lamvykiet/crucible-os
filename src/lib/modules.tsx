@@ -9,7 +9,7 @@ import {
  * Danh sách function và tab con của từng function — MỘT chỗ duy nhất.
  *
  * Dùng bởi: menu xổ ở logo (`TopNav`), dải tab con trên thanh trên
- * (`TopNav`), dock điện thoại (`MobileNav`), tên trang trên `MobileTopBar`,
+ * (`TopNav`), menu logo và tab của `MobileTopBar`,
  * và tên function to trên phông cảnh (`SceneSummary`). Thêm một function hay
  * một tab là sửa ở đây, đừng chép danh sách sang chỗ khác.
  *
@@ -29,15 +29,13 @@ export interface ModuleDef {
   icon: LucideIcon;
   en: string;
   vi: string;
-  /** Có mặt trong dock điện thoại (đúng năm mục — xem AGENTS.md). */
-  dock: boolean;
   tabs: ModuleTab[];
 }
 
 export const MODULES: ModuleDef[] = [
-  { key: "home", href: "/", icon: LayoutDashboard, en: "Home", vi: "Tổng quan", dock: true, tabs: [] },
+  { key: "home", href: "/", icon: LayoutDashboard, en: "Home", vi: "Tổng quan", tabs: [] },
   {
-    key: "finance", href: "/finance", icon: Wallet, en: "Finance", vi: "Tài chính", dock: true,
+    key: "finance", href: "/finance", icon: Wallet, en: "Finance", vi: "Tài chính",
     tabs: [
       { href: "/finance?tab=dashboard", icon: LayoutDashboard, en: "Overview", vi: "Tổng quan" },
       { href: "/finance?tab=income", icon: TrendingUp, en: "Income", vi: "Thu nhập" },
@@ -50,7 +48,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    key: "learning", href: "/learning", icon: GraduationCap, en: "Learning", vi: "Học tập", dock: true,
+    key: "learning", href: "/learning", icon: GraduationCap, en: "Learning", vi: "Học tập",
     tabs: [
       { href: "/learning", icon: LayoutDashboard, en: "Overview", vi: "Tổng quan" },
       { href: "/learning/languages", icon: Languages, en: "Languages", vi: "Ngôn ngữ" },
@@ -62,7 +60,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    key: "habits", href: "/habits", icon: Repeat, en: "Habits", vi: "Thói quen", dock: true,
+    key: "habits", href: "/habits", icon: Repeat, en: "Habits", vi: "Thói quen",
     tabs: [
       { href: "/habits", icon: CheckSquare, en: "Today", vi: "Hôm nay" },
       { href: "/habits/reports", icon: BarChart3, en: "Reports", vi: "Báo cáo" },
@@ -72,7 +70,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    key: "health", href: "/health", icon: HeartPulse, en: "Health", vi: "Sức khoẻ", dock: true,
+    key: "health", href: "/health", icon: HeartPulse, en: "Health", vi: "Sức khoẻ",
     tabs: [
       { href: "/health", icon: LayoutDashboard, en: "Overview", vi: "Tổng quan" },
       { href: "/health/body", icon: Scale, en: "Body", vi: "Cơ thể" },
@@ -80,7 +78,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    key: "knowledge", href: "/knowledge", icon: Database, en: "Knowledge", vi: "Knowledge", dock: false,
+    key: "knowledge", href: "/knowledge", icon: Database, en: "Knowledge", vi: "Knowledge",
     tabs: [
       { href: "/knowledge?tab=dashboard", icon: LayoutDashboard, en: "Overview", vi: "Tổng quan" },
       { href: "/knowledge?tab=documents", icon: FileText, en: "Documents", vi: "Tài liệu" },

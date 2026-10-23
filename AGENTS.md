@@ -47,7 +47,7 @@ là thứ duy nhất cả năm phiên cùng đọc. Trước khi sửa bất c�
 | Video | `api/video/{fetch,queue,resolve}` (trình duyệt), `api/video/{upload,pending}` (Shortcut iOS) và `api/video/share/*` + trang `src/app/video-share/` (Shortcut ở nút Chia sẻ); logic chung ở `src/lib/{videoQueue,videoShare}.ts` |
 | Thói quen | `src/app/habits/`, `src/components/habits/`, `api/habits/`, `src/lib/habits.ts` |
 | Sức khoẻ | `src/app/health/`, `src/components/health/`, `api/health/`, `src/lib/{health,healthServer,healthImport,exercises}.ts` |
-| Vỏ giao diện | `MainLayoutWrapper`, `Scene` (`SceneHero`), `TopNav`, `MobileNav`, `MobileTopBar`, `src/app/globals.css` |
+| Vỏ giao diện | `MainLayoutWrapper`, `Scene` (`SceneHero`), `TopNav`, `MobileTopBar`, `ModuleTabs`, `src/app/globals.css` |
 
 ## Đổi cái này thì kéo theo cái kia
 
@@ -86,7 +86,7 @@ cột biểu đồ LÕM (`--neu-inset`); thẻ lồng trong thẻ chỉ là dả
 pastel `.c-tile-{fin,health,learn,habit}`, mỗi hàng đúng MỘT ô tối
 (`.c-tile.dark`). Màu hành động duy nhất là nâu mật ong `--action` `#542a08`
 (đảo thành `#ecc494` ở theme tối): nút chính, tab đang chọn, switch, cột nhấn.
-Kính CHỈ trên phông cảnh, thanh điều hướng, dock, tooltip/menu nổi — không bao
+Kính CHỈ trên phông cảnh, thanh điều hướng, tooltip/menu nổi — không bao
 giờ trên tấm nền kem. Thứ gì đè lên nội dung khác (modal, lịch chọn ngày, menu
 thả, tooltip, cột dính) dùng `--glass-solid` ĐẶC hẳn — globals.css tự bắt chúng
 theo class vị trí (`fixed/absolute/md:absolute/sticky` hoặc `shadow-xl`) + nền
@@ -143,14 +143,14 @@ dính được khi cuộn); qua khỏi phông thì `data-scrolled` đậm kính 
 trắng không chìm trên nền kem. Các function gom vào LOGO (rê chuột hoặc focus
 là xổ danh sách icon + tên); giữa thanh là TAB CON của function đang mở. Điện
 thoại có CÙNG cấu trúc: `MobileTopBar` là tấm kính hai hàng — hàng trên logo
-(chạm để xổ menu function, kể cả Knowledge) + tên function + cài đặt/ngôn
-ngữ/sáng-tối; hàng dưới là tab con (chỉ icon, tab chọn hiện chữ). Dock kính
-`MobileNav` ở đáy. Dải tab của cả hai khổ là MỘT component `ModuleTabs` —
+(chạm để xổ menu function) + tên function + cài đặt/ngôn ngữ/sáng-tối; hàng
+dưới là tab con (chỉ icon, tab chọn hiện chữ). KHÔNG có dock dưới: gỡ ngày
+23/10/2026 theo yêu cầu chủ dự án vì nó chỉ lặp menu logo — đừng thêm lại. Dải tab của cả hai khổ là MỘT component `ModuleTabs` —
 đừng viết lại dải tab trong từng trang (từng có bốn kiểu khác nhau trước
 23/10/2026).
 
 **Danh sách function và tab con chỉ nằm ở `src/lib/modules.tsx`** — menu logo,
-dải tab trên `TopNav`, dock điện thoại, tên trang trên `MobileTopBar` và tên
+dải tab trên `TopNav`, menu và tab của `MobileTopBar` và tên
 function to trên phông cảnh đều đọc từ đó. Tab trong cùng một trang (Tài chính,
 Knowledge) đi bằng `?tab=` trên URL, không bằng state: trang đọc
 `useSearchParams()`, nên `page.tsx` của nó phải bọc `<Suspense>` (thiếu là Next
@@ -289,11 +289,8 @@ Gemini từng tự gán thẻ Timo cho câu "quẹt thẻ" trơn. Lần sửa nh
 trường Gemini kê trong `changed`; bắt nó chép lại cả bản nháp là nó làm rơi
 nhà cung cấp, nhóm, thẻ.
 
-**Thêm mục vào dock dưới (`MobileNav`)** → dock **chỉ chứa năm mục**: Tổng
-quan, Tài chính, Học tập, Thói quen, Sức khoẻ. Ở khổ 375px mục thứ sáu làm nhãn
-bị bóp và vùng chạm tụt dưới 44px. Knowledge vào từ menu logo, Cài đặt từ nút
-bánh răng của `MobileTopBar` — đó là đường duy nhất vào hai trang này trên điện
-thoại, đừng gỡ.
+**Cài đặt trên điện thoại chỉ vào được từ nút bánh răng của `MobileTopBar`**, các
+function chỉ từ menu logo — đừng gỡ hai lối đó.
 
 **Đụng `ReviewLog`, `FocusSession` hay `Transaction`** → thói quen có
 `autoSource` đọc thẳng ba bảng này để tự đếm tiến độ (`review`, `focus`,
@@ -318,9 +315,6 @@ Anh nguyên văn** (`WorkoutExercise.name`) — đừng dịch tên bài, kể c
 `<datalist>` của `src/lib/exercises.ts`: dịch là một bài thành hai bộ kỷ lục.
 Chênh lệch giữa hai lần đo nhỏ hơn `METRICS[k].noise` là sai số máy — giao diện
 ghi "trong sai số", không tô xanh/đỏ.
-
-**Lối vào /health trên điện thoại là mục thứ năm của dock `MobileNav`** (từ
-19/10/2026; trước đó là nút trái tim ở `MobileTopBar`). Đừng gỡ.
 
 **Không bao giờ dùng dữ liệu giả.** Màn hình trống thì để trống, đừng bịa số.
 

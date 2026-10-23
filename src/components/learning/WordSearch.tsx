@@ -159,7 +159,7 @@ export default function WordSearch() {
         onClick={() => setOpen(true)}
         title={t("Look up a word (Ctrl+K)", "Tra từ (Ctrl+K)")}
         aria-label={t("Look up a word", "Tra từ")}
-        className="fixed right-5 bottom-24 md:bottom-8 z-40 w-12 h-12 rounded-full c-card c-elev-lg grid place-content-center hover:border-[var(--color-primary)] transition-colors"
+        className="fixed right-5 bottom-[calc(20px+env(safe-area-inset-bottom))] md:bottom-8 z-40 w-12 h-12 rounded-full c-card c-elev-lg grid place-content-center hover:border-[var(--color-primary)] transition-colors"
       >
         <Search size={20} />
       </button>

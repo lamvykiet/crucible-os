@@ -16,9 +16,9 @@ import ModuleTabs from "@/components/ModuleTabs";
  *   hàng 1: [logo ▾] TÊN FUNCTION                [cài đặt · ngôn ngữ · sáng/tối]
  *   hàng 2: tab con của function đang mở (chỉ icon, tab chọn hiện chữ)
  *
- * Chạm logo là xổ danh sách MỌI function (cả Knowledge — thứ không có chỗ
- * trong dock năm mục). Điện thoại không có hover nên menu mở bằng state, không
- * bằng `:hover` như web.
+ * Chạm logo là xổ danh sách MỌI function — đây là lối đổi function DUY NHẤT
+ * trên điện thoại (dock dưới đã gỡ 23/10/2026 vì chỉ lặp lại menu này).
+ * Điện thoại không có hover nên menu mở bằng state, không bằng `:hover`.
  *
  * Cài đặt nằm ở đây và là đường DUY NHẤT tới /settings trên điện thoại — đừng gỡ.
  */
@@ -45,7 +45,7 @@ export default function MobileTopBar() {
             aria-label={t("Choose a function", "Chọn function")}
             className="c-fnmenu-trigger"
           >
-            <span className="c-logo-mark w-9 h-9">C</span>
+            <span className="c-logo-mark">C</span>
             <ChevronDown size={14} strokeWidth={2} className={`opacity-80 transition-transform ${open ? "rotate-180" : ""}`} />
           </button>
           <span className="c-logo-word truncate">{title}</span>

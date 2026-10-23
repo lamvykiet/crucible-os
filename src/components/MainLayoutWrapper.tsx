@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import TopNav from "@/components/TopNav";
-import MobileNav from "@/components/MobileNav";
 import MobileTopBar from "@/components/MobileTopBar";
 import { SceneSlotProvider } from "@/components/Scene";
 
@@ -18,7 +17,9 @@ import { SceneSlotProvider } from "@/components/Scene";
  *   3. Tấm nền kem `.c-main` trườn lên 80px che đáy phông; mọi nội dung chi
  *      tiết nằm ở đây.
  *
- * Không có sidebar. Điện thoại có dock kính `MobileNav` năm mục ở đáy.
+ * Không có sidebar và KHÔNG có dock dưới (gỡ 23/10/2026): menu function nằm ở
+ * logo của thanh trên, ở cả web lẫn điện thoại, và thanh đó dính đỉnh nên luôn
+ * chạm được — dock năm mục chỉ lặp lại nó và chiếm thêm một dải màn hình.
  *
  * Đệm, bề rộng khung và nhịp dọc của `<main>` do `.c-main` trong globals.css
  * quy định, không đặt bằng utility ở đây — để mọi trang có cùng một nhịp.
@@ -44,7 +45,6 @@ export default function MainLayoutWrapper({ children }: { children: React.ReactN
           <div className="c-scene-inner" ref={setSlot} />
         </div>
         <main className="c-main">{children}</main>
-        <MobileNav />
       </div>
     </SceneSlotProvider>
   );

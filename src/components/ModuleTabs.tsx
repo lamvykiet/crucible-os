@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -21,11 +22,23 @@ export default function ModuleTabs({ variant }: { variant: "bar" | "rail" }) {
   const { t } = useLanguage();
   const current = moduleFor(pathname);
   const tabs = current?.tabs ?? [];
+  const navRef = useRef<HTMLElement>(null);
+
+  // Hàng tab trên điện thoại cuộn ngang: tab đang chọn (vd. Lịch sử, tab thứ
+  // tám của Tài chính) có thể nằm ngoài khung — đưa nó vào giữa. Chỉnh
+  // `scrollLeft` thay vì scrollIntoView để không kéo cả trang theo chiều dọc.
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = nav?.querySelector<HTMLElement>("[aria-current=page]");
+    if (!nav || !active) return;
+    nav.scrollLeft = active.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2;
+  }, [pathname, tabParam]);
 
   if (variant === "rail" && tabs.length === 0) return null;
 
   return (
     <nav
+      ref={navRef}
       className={variant === "bar" ? "c-topnav-tabs" : "c-mtabs"}
       aria-label={current ? t(current.en, current.vi) : undefined}
     >
@@ -42,7 +55,7 @@ export default function ModuleTabs({ variant }: { variant: "bar" | "rail" }) {
             aria-label={label}
             className={`${variant === "bar" ? "c-topnav-item" : "c-mtab"} ${active ? "active" : ""}`}
           >
-            <Icon size={variant === "bar" ? 16 : 20} strokeWidth={1.8} />
+            <Icon size={variant === "bar" ? 16 : 18} strokeWidth={1.8} />
             <span>{label}</span>
           </Link>
         );

@@ -736,27 +736,32 @@ html { background: var(--sheet); }
 .c-mtopbar {
   position: sticky; top: 12px; z-index: 40;
   display: flex; flex-direction: column; gap: 4px;
-  margin: 12px 12px -64px; padding: 6px 6px 6px 8px; min-height: 52px;
-  border-radius: 20px; color: var(--on-glass); isolation: isolate;
+  margin: 10px 10px -56px; padding: 5px 5px 5px 6px; min-height: 46px;
+  border-radius: 18px; color: var(--on-glass); isolation: isolate;
 }
-.c-mtopbar-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; }
-/* Có hàng tab thì thanh cao thêm ~48px: kéo phông lên đúng chừng đó. */
-.c-mtopbar.has-tabs { margin-bottom: -112px; padding-bottom: 6px; }
-@media (max-width: 767px) { .c-shell:has(.c-mtopbar.has-tabs) .c-scene { padding-top: 140px; } }
+.c-mtopbar-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 36px; }
+.c-mtopbar .c-logo-mark { width: 32px; height: 32px; border-radius: 10px; font-size: 14px; }
+.c-mtopbar .c-logo-word { transition: opacity var(--dur) var(--ease); }
+/* Phông cảnh đã in tên function cỡ lớn thì tên trên thanh là lặp — chỉ hiện
+   khi đã cuộn qua phông. Trang không có phông tóm tắt thì luôn hiện. */
+.c-shell:has(.c-hello) .c-mtopbar:not([data-scrolled="true"]) .c-logo-word { opacity: 0; }
+/* Có hàng tab thì thanh cao thêm ~40px: kéo phông lên đúng chừng đó. */
+.c-mtopbar.has-tabs { margin-bottom: -96px; padding-bottom: 5px; }
+@media (max-width: 767px) { .c-shell:has(.c-mtopbar.has-tabs) .c-scene { padding-top: 124px; } }
 .c-mtopbar .c-fnmenu-panel.open { display: flex; left: -6px; top: calc(100% + 4px); padding-top: 8px; margin-top: 0; }
 .c-mtopbar .c-fnmenu-panel.open::before { inset: 0; }
 
 /* Hàng tab con trên điện thoại: chỉ icon, tab đang chọn là viên trắng có chữ. */
-.c-mtabs { display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: none; margin: 0 -2px; }
+.c-mtabs { position: relative; display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; }
 .c-mtabs::-webkit-scrollbar { display: none; }
 .c-mtab {
   flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  min-width: 44px; height: 40px; padding: 0 10px; border-radius: 14px;
-  color: var(--on-glass-2); text-decoration: none; font: 500 14px/1 var(--font-body); white-space: nowrap;
+  min-width: 40px; height: 34px; padding: 0 9px; border-radius: 12px;
+  color: var(--on-glass-2); text-decoration: none; font: 500 13px/1 var(--font-body); white-space: nowrap;
 }
 .c-mtab span { display: none; }
 .c-mtab:hover { color: var(--on-glass); text-decoration: none; }
-.c-mtab.active, .c-mtab.active:hover { background: rgba(255, 255, 255, .92); color: #2b1f14; padding: 0 14px; }
+.c-mtab.active, .c-mtab.active:hover { background: rgba(255, 255, 255, .92); color: #2b1f14; padding: 0 12px; }
 .c-mtab.active span { display: inline; }
 .c-mtopbar::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
@@ -765,30 +770,8 @@ html { background: var(--sheet); }
   box-shadow: var(--shadow-nav);
 }
 .c-mtopbar[data-scrolled="true"]::before { background: var(--glass-nav); }
-.c-mtopbar-btn { width: 40px; height: 40px; display: grid; place-content: center; border-radius: 12px; color: var(--on-glass); background: none; border: 0; cursor: pointer; }
+.c-mtopbar-btn { width: 36px; height: 36px; display: grid; place-content: center; border-radius: 12px; color: var(--on-glass); background: none; border: 0; cursor: pointer; }
 .c-mtopbar-btn:hover { background: rgba(255, 255, 255, .14); color: var(--on-glass); }
-
-/* Dock kính đáy màn hình (điện thoại): 5 mục icon 22px + chữ 11px. */
-.c-bottomnav {
-  display: flex; justify-content: space-around; align-items: center;
-  left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom));
-  padding: 8px 6px; border-radius: 26px; isolation: isolate;
-}
-.c-bottomnav::before {
-  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
-  background: rgba(58, 38, 26, .66);
-  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  box-shadow: inset 0 1px 0 var(--glass-edge), 0 20px 40px -20px rgba(40, 20, 10, .6);
-}
-[data-theme="dark"] .c-bottomnav::before { background: rgba(30, 22, 18, .66); }
-.c-bottomnav-item {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  font: 600 11px/1 var(--font-body); color: rgba(255, 255, 255, .75);
-  background: none; border: none; cursor: pointer; padding: 6px 4px; border-radius: 16px;
-  min-width: 56px; min-height: 48px; justify-content: center; text-decoration: none;
-}
-.c-bottomnav-item:hover { color: #fff; text-decoration: none; }
-.c-bottomnav-item.active { color: #fff; background: rgba(255, 255, 255, .18); }
 
 /* Badge */
 .c-badge { display: inline-grid; place-content: center; min-width: 20px; height: 20px; padding: 0 7px; border-radius: var(--radius-full); background: var(--color-primary); color: var(--color-on-primary); font: 600 11px/1 var(--font-body); }
@@ -823,7 +806,7 @@ html { background: var(--sheet); }
 /* Trang không đặt gì vào phông cảnh thì phông chỉ còn một dải mỏng sau thanh. */
 .c-scene:has(.c-scene-inner:empty) { padding-bottom: 96px; }
 @media (max-width: 767px) {
-  .c-scene { padding: 92px 12px 110px; }
+  .c-scene { padding: 80px 14px 110px; }
 }
 
 /* Tấm nền kem: trườn lên che đáy phông cảnh. */
@@ -840,8 +823,8 @@ html { background: var(--sheet); }
 }
 .c-main > *:not(.fixed) { max-width: var(--page-max); margin-left: auto; margin-right: auto; }
 @media (max-width: 767px) {
-  /* Chừa chỗ cho dock kính đáy màn hình. */
-  .c-main { padding-bottom: 110px; }
+  /* Không còn dock dưới — chỉ chừa vạch Home của iPhone. */
+  .c-main { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
 }
 .c-main > .max-w-7xl,
 .c-main > * > .max-w-7xl { max-width: var(--page-max); }
@@ -1006,7 +989,7 @@ html { background: var(--sheet); }
 /* ---------------------------------------------------------------------------
  * Khung shell theo bề ngang màn hình.
  *
- * `.c-topnav { display: flex }` và `.c-bottomnav { display: flex }` khai báo
+ * `.c-topnav { display: flex }` và `.c-mtopbar { display: flex }` khai báo
  * NGOÀI @layer nên luôn đè `hidden md:flex` / `md:hidden` của Tailwind. Thiếu
  * khối này thì thanh dưới của điện thoại hiện nguyên trên máy tính.
  * ------------------------------------------------------------------------ */
@@ -1014,7 +997,7 @@ html { background: var(--sheet); }
   .c-topnav { display: none; }
 }
 @media (min-width: 768px) {
-  .c-bottomnav, .c-mtopbar { display: none; }
+  .c-mtopbar { display: none; }
 }
 
 /* ---------------------------------------------------------------------------

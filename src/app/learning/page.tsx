@@ -9,7 +9,7 @@ import LearningHome from "@/components/learning/LearningHome";
  *
  * Giờ mỗi việc là một địa chỉ riêng — /learning/flashcards, /learning/dictionary,
  * /learning/exam — còn /learning là trang chủ chỉ đường. Thanh điều hướng vẫn
- * trỏ về /learning nên Sidebar và MobileNav không phải sửa.
+ * trỏ về /learning nên thanh điều hướng không phải sửa.
  */
 export default function LearningHubPage() {
   return <LearningHome />;
