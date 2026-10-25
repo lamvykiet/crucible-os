@@ -484,6 +484,11 @@ model VideoItem {
   // chỗ. Đây là nhãn thuần trong DB, dùng để lọc và gom nhóm ở giao diện, nên
   // đổi tên nhãn không đụng gì tới file đã nằm trên Drive.
   subTopic  String?
+  // Tầng thứ ba, dưới nhãn con: Tips, Grammar, Vocabulary... (thêm 25/10/2026).
+  // Cùng lý do với `subTopic`: nhãn thuần trong DB, không thêm thư mục Drive.
+  // Gợi ý gom theo ĐỀ TÀI chứ không theo nhãn con — "Grammar" dùng chung cho
+  // cả English lẫn Chinese.
+  flag      String?
   title     String?
   note      String?
 
