@@ -55,6 +55,18 @@ export function normalizeSubTopic(value: unknown): string | null {
   return text || null;
 }
 
+/** Flag (tầng thứ ba) chuẩn hoá y như nhãn con. */
+export const normalizeFlag = normalizeSubTopic;
+
+/**
+ * Flag gợi ý sẵn cho đề tài Language, kể cả khi chưa video nào dùng — để lần
+ * đầu gắn không phải tự nghĩ ra tên, và để mọi thứ tiếng dùng chung một bộ.
+ * Đề tài khác chỉ gợi ý flag đã từng gõ.
+ */
+export const DEFAULT_FLAGS: Record<string, string[]> = {
+  Language: ["Tips", "Grammar", "Vocabulary", "Pronunciation", "Listening", "Speaking"],
+};
+
 export function driveOAuthClient() {
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_DRIVE_CLIENT_ID,

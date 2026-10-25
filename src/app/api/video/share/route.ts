@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * POST /api/video/share  { ticket, topic, subTopic, title }
+ * POST /api/video/share  { ticket, topic, subTopic, flag, title }
  *
  * Nút Lưu của trang `/video-share` — form mở từ Shortcut "Gửi vào Crucible"
  * (nút Chia sẻ trong TikTok / Facebook). Ghi link vào hàng đợi — CÙNG `enqueueVideo` với ô dán link trên
@@ -42,6 +42,7 @@ export async function POST(req: Request) {
 
   const topic = String(body?.topic ?? "").trim();
   const subTopic = String(body?.subTopic ?? "").trim() || null;
+  const flag = String(body?.flag ?? "").trim() || null;
   const title = String(body?.title ?? "").trim() || null;
 
   if (!sourceUrl || !isValidHttpUrl(sourceUrl)) return reply(false, "Link không hợp lệ.", 400);
@@ -51,9 +52,9 @@ export async function POST(req: Request) {
     const userId = await videoOwnerId();
     if (!userId) return reply(false, "Chưa có tài khoản nào trong hệ thống.", 503);
 
-    const { item, duplicate } = await enqueueVideo(userId, { sourceUrl, topic, subTopic, title });
+    const { item, duplicate } = await enqueueVideo(userId, { sourceUrl, topic, subTopic, flag, title });
 
-    const where = subTopic ? `${topic} › ${subTopic}` : topic;
+    const where = [topic, item.subTopic, item.flag].filter(Boolean).join(" › ");
     if (item.status === "saved") {
       // File đã nằm trên Drive; đổi đề tài chỉ đổi nhãn trong app, không dời file.
       return reply(true, `Video này đã có trong thư viện — đã cập nhật vào «${where}».`, 200, item.id);

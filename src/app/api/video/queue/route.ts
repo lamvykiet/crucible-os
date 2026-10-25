@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { isValidHttpUrl, driveClient, videoRootId, listTopics } from "@/lib/videoLibrary";
-import { canonicalSubTopic, enqueueVideo, subTopicsByTopic } from "@/lib/videoQueue";
+import { canonicalFlag, canonicalSubTopic, enqueueVideo, flagsByTopic, subTopicsByTopic } from "@/lib/videoQueue";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +40,8 @@ export async function GET() {
       topics,
       // Nhãn con đã dùng, gom theo đề tài — nguồn cho ô gõ có gợi ý ở giao diện.
       subTopics: await subTopicsByTopic(user.id),
+      // Flag (tầng thứ ba) đã dùng + bộ gợi ý sẵn, gom theo đề tài.
+      flags: await flagsByTopic(user.id),
       pendingCount: items.filter((i) => i.status === "pending").length,
       configured: Boolean(root),
     });
@@ -71,7 +73,7 @@ export async function POST(req: Request) {
     // Dán lại đúng link đã có thì cập nhật thay vì đẻ thêm bản ghi — xem
     // `enqueueVideo`, cùng hàm với Shortcut chia sẻ.
     const { item, duplicate } = await enqueueVideo(user.id, {
-      sourceUrl, topic, subTopic: body.subTopic, title: body.title, note: body.note,
+      sourceUrl, topic, subTopic: body.subTopic, flag: body.flag, title: body.title, note: body.note,
     });
     if (duplicate) return NextResponse.json({ success: true, item, duplicate: true });
 
@@ -84,7 +86,10 @@ export async function POST(req: Request) {
 }
 
 /**
- * Gắn / đổi nhãn con cho một video đã lưu.
+ * Gắn / đổi nhãn con và flag cho một video đã lưu.
+ *
+ * Chỉ đụng trường nào body CÓ gửi: sửa nhãn con mà không gửi `flag` thì flag
+ * giữ nguyên, và ngược lại.
  *
  * Thư viện có sẵn hàng chục video lưu trước khi có nhãn con. Không có đường sửa
  * lại thì tính năng phân loại chỉ áp dụng cho video tương lai, còn đống cũ nằm
@@ -102,10 +107,11 @@ export async function PATCH(req: Request) {
     const item = await prisma.videoItem.findFirst({ where: { id, userId: user.id } });
     if (!item) return NextResponse.json({ success: false, error: "Không tìm thấy" }, { status: 404 });
 
-    const updated = await prisma.videoItem.update({
-      where: { id: item.id },
-      data: { subTopic: await canonicalSubTopic(user.id, item.topic, body.subTopic) },
-    });
+    const data: { subTopic?: string | null; flag?: string | null } = {};
+    if ("subTopic" in body) data.subTopic = await canonicalSubTopic(user.id, item.topic, body.subTopic);
+    if ("flag" in body) data.flag = await canonicalFlag(user.id, item.topic, body.flag);
+
+    const updated = await prisma.videoItem.update({ where: { id: item.id }, data });
     return NextResponse.json({ success: true, item: updated });
   } catch (error) {
     console.error("Update video error:", error);

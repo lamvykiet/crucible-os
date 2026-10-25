@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Video, Loader2, AlertCircle, ExternalLink, Smartphone, ChevronDown,
   RotateCcw, Link as LinkIcon, Plus, Trash2, Clock, CheckCircle2, Copy,
-  CloudDownload, Folder, FolderOpen, ArrowLeft, Play, X, Tag, Check,
+  CloudDownload, Folder, FolderOpen, ArrowLeft, Play, X, Tag, Check, Flag,
   ClipboardPaste,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -15,6 +15,7 @@ interface VideoItem {
   platform: string;
   topic: string;
   subTopic: string | null;
+  flag: string | null;
   title: string | null;
   status: string;
   driveFileId: string | null;
@@ -86,6 +87,7 @@ export default function VideoDownloaderTab() {
   const [items, setItems] = useState<VideoItem[]>([]);
   const [topics, setTopics] = useState<{ id: string; name: string }[]>([]);
   const [subTopics, setSubTopics] = useState<Record<string, string[]>>({});
+  const [flags, setFlags] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [configured, setConfigured] = useState(true);
@@ -95,6 +97,7 @@ export default function VideoDownloaderTab() {
   const [url, setUrl] = useState("");
   const [topic, setTopic] = useState("");
   const [subTopic, setSubTopic] = useState("");
+  const [flag, setFlag] = useState("");
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
   // Id đang được server tải; đủ để vô hiệu hoá đúng một dòng thay vì cả danh sách.
@@ -103,6 +106,7 @@ export default function VideoDownloaderTab() {
 
   const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [subFilter, setSubFilter] = useState<string | null>(null);
+  const [flagFilter, setFlagFilter] = useState<string | null>(null);
   const [playing, setPlaying] = useState<VideoItem | null>(null);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
@@ -118,6 +122,7 @@ export default function VideoDownloaderTab() {
         setItems(json.items);
         setTopics(json.topics);
         setSubTopics(json.subTopics ?? {});
+        setFlags(json.flags ?? {});
         setConfigured(json.configured);
         setTopic((cur) => cur || json.topics[0]?.name || "");
         setError(null);
@@ -142,7 +147,7 @@ export default function VideoDownloaderTab() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sourceUrl: url.trim(), topic, subTopic: subTopic.trim(), title: title.trim(),
+          sourceUrl: url.trim(), topic, subTopic: subTopic.trim(), flag: flag.trim(), title: title.trim(),
         }),
       });
       const json = await res.json();
@@ -164,17 +169,17 @@ export default function VideoDownloaderTab() {
     await fetch(`/api/video/queue?id=${id}`, { method: "DELETE" }).catch(() => {});
   };
 
-  /** Gắn hoặc đổi nhãn con cho một video đã lưu. */
-  const retag = async (id: string, value: string) => {
+  /** Gắn hoặc đổi nhãn con / flag cho một video đã lưu. */
+  const retag = async (id: string, value: string, field: "subTopic" | "flag" = "subTopic") => {
     const trimmed = value.trim();
     setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, subTopic: trimmed || null } : i))
+      prev.map((i) => (i.id === id ? { ...i, [field]: trimmed || null } : i))
     );
     try {
       const res = await fetch("/api/video/queue", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, subTopic: trimmed }),
+        body: JSON.stringify({ id, [field]: trimmed }),
       });
       const json = await res.json();
       if (!json?.success) throw new Error(json?.error || "Không lưu được nhãn");
@@ -182,11 +187,13 @@ export default function VideoDownloaderTab() {
       // phải gõ tay đúng chuỗi đó.
       setItems((prev) => prev.map((i) => (i.id === json.item.id ? { ...i, ...json.item } : i)));
       const saved = json.item as VideoItem;
-      if (saved.subTopic) {
-        setSubTopics((prev) => {
+      const value = saved[field];
+      if (value) {
+        const setter = field === "flag" ? setFlags : setSubTopics;
+        setter((prev) => {
           const list = prev[saved.topic] ?? [];
-          if (list.includes(saved.subTopic!)) return prev;
-          return { ...prev, [saved.topic]: [...list, saved.subTopic!].sort() };
+          if (list.includes(value)) return prev;
+          return { ...prev, [saved.topic]: [...list, value].sort() };
         });
       }
     } catch (err) {
@@ -246,15 +253,28 @@ export default function VideoDownloaderTab() {
   // đi dọn `openFolder` — và `subFilter` được đặt lại ở mỗi lần mở thư mục.
   const current = openFolder ? folders.find((f) => f.name === openFolder) ?? null : null;
 
-  const visible = useMemo(() => {
+  // Lọc hai tầng: nhãn con trước, rồi flag trong phạm vi nhãn con đã chọn.
+  const bySub = useMemo(() => {
     if (!current) return [];
     if (subFilter === null) return current.videos;
     if (subFilter === UNTAGGED) return current.videos.filter((v) => !v.subTopic);
     return current.videos.filter((v) => v.subTopic === subFilter);
   }, [current, subFilter]);
 
+  const flagTags = useMemo(
+    () => [...new Set(bySub.map((v) => v.flag).filter((f): f is string => Boolean(f)))].sort((a, b) => a.localeCompare(b, "vi")),
+    [bySub]
+  );
+
+  const visible = useMemo(() => {
+    if (flagFilter === null) return bySub;
+    if (flagFilter === UNTAGGED) return bySub.filter((v) => !v.flag);
+    return bySub.filter((v) => v.flag === flagFilter);
+  }, [bySub, flagFilter]);
+
   const urlOk = isValidHttpUrl(url.trim());
   const suggestions = subTopics[topic] ?? [];
+  const flagSuggestions = flags[topic] ?? [];
 
   const pasteLink = async () => {
     try {
@@ -428,6 +448,24 @@ export default function VideoDownloaderTab() {
             ))}
           </div>
         )}
+
+        {/* Tầng thứ ba: flag (Tips, Grammar, Vocabulary…). Chỉ hiện khi đề tài
+            có gợi ý — đề tài chưa phân nhánh thì không thêm ô thừa. */}
+        {flagSuggestions.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="c-stat-label mr-1">Flag</span>
+            {flagSuggestions.map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFlag((cur) => (cur === f ? "" : f))}
+                className={flag === f ? "c-chip c-chip-solid" : "c-chip c-chip-outline"}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        )}
       </form>
 
       {showGuide && (
@@ -501,7 +539,7 @@ export default function VideoDownloaderTab() {
                 <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
                   <div className="flex items-center gap-3 min-w-0">
                     <button
-                      onClick={() => { setOpenFolder(null); setSubFilter(null); }}
+                      onClick={() => { setOpenFolder(null); setSubFilter(null); setFlagFilter(null); }}
                       className="c-btn c-btn-secondary c-btn-icon flex-none"
                       aria-label={t("Back to folders", "Quay lại danh sách thư mục")}
                     >
@@ -516,7 +554,7 @@ export default function VideoDownloaderTab() {
                 {(current.tags.length > 0 || current.videos.some((v) => !v.subTopic)) && (
                   <div className="flex items-center gap-2 flex-wrap mb-4">
                     <button
-                      onClick={() => setSubFilter(null)}
+                      onClick={() => { setSubFilter(null); setFlagFilter(null); }}
                       className={subFilter === null ? "c-chip c-chip-solid" : "c-chip c-chip-outline"}
                     >
                       {t("All", "Tất cả")}
@@ -524,7 +562,7 @@ export default function VideoDownloaderTab() {
                     {current.tags.map((tag) => (
                       <button
                         key={tag}
-                        onClick={() => setSubFilter((cur) => (cur === tag ? null : tag))}
+                        onClick={() => { setSubFilter((cur) => (cur === tag ? null : tag)); setFlagFilter(null); }}
                         className={subFilter === tag ? "c-chip c-chip-solid" : "c-chip c-chip-outline"}
                       >
                         {tag}
@@ -532,10 +570,33 @@ export default function VideoDownloaderTab() {
                     ))}
                     {current.videos.some((v) => !v.subTopic) && (
                       <button
-                        onClick={() => setSubFilter((cur) => (cur === UNTAGGED ? null : UNTAGGED))}
+                        onClick={() => { setSubFilter((cur) => (cur === UNTAGGED ? null : UNTAGGED)); setFlagFilter(null); }}
                         className={subFilter === UNTAGGED ? "c-chip c-chip-solid" : "c-chip c-chip-outline"}
                       >
                         {t("Untagged", "Chưa gắn nhãn")}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {flagTags.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap -mt-1 mb-4">
+                    <span className="c-stat-label mr-1">Flag</span>
+                    {flagTags.map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setFlagFilter((cur) => (cur === f ? null : f))}
+                        className={flagFilter === f ? "c-chip c-chip-solid" : "c-chip c-chip-outline"}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                    {bySub.some((v) => !v.flag) && (
+                      <button
+                        onClick={() => setFlagFilter((cur) => (cur === UNTAGGED ? null : UNTAGGED))}
+                        className={flagFilter === UNTAGGED ? "c-chip c-chip-solid" : "c-chip c-chip-outline"}
+                      >
+                        {t("No flag", "Chưa gắn flag")}
                       </button>
                     )}
                   </div>
@@ -547,6 +608,7 @@ export default function VideoDownloaderTab() {
                       key={item.id}
                       item={item}
                       suggestions={subTopics[item.topic] ?? []}
+                      flagSuggestions={flags[item.topic] ?? []}
                       onPlay={setPlaying}
                       onDelete={remove}
                       onRetag={retag}
@@ -576,7 +638,7 @@ export default function VideoDownloaderTab() {
                     {folders.map((folder) => (
                       <button
                         key={folder.name}
-                        onClick={() => { setOpenFolder(folder.name); setSubFilter(null); }}
+                        onClick={() => { setOpenFolder(folder.name); setSubFilter(null); setFlagFilter(null); }}
                         className="c-card text-left flex flex-col gap-3 hover:shadow-md transition-shadow"
                       >
                         <div className="flex items-center gap-3">
@@ -640,7 +702,7 @@ function PendingRow({
             {item.title || item.driveFileName || t("Untitled", "Chưa đặt tên")}
           </p>
           <p className="text-xs text-[var(--color-text-faint)] mt-0.5">
-            {[PLATFORM_LABEL[item.platform] ?? item.platform, item.topic, item.subTopic]
+            {[PLATFORM_LABEL[item.platform] ?? item.platform, item.topic, item.subTopic, item.flag]
               .filter(Boolean)
               .join(" · ")}
           </p>
@@ -681,21 +743,28 @@ function PendingRow({
 
 /** Thẻ video đã lưu: bấm là phát ngay, và gắn được nhãn con tại chỗ. */
 function SavedCard({
-  item, suggestions, onPlay, onDelete, onRetag, t,
+  item, suggestions, flagSuggestions, onPlay, onDelete, onRetag, t,
 }: {
   item: VideoItem;
   suggestions: string[];
+  flagSuggestions: string[];
   onPlay: (item: VideoItem) => void;
   onDelete: (id: string) => void;
-  onRetag: (id: string, value: string) => void;
+  onRetag: (id: string, value: string, field?: "subTopic" | "flag") => void;
   t: (en: string, vi: string) => string;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(item.subTopic ?? "");
+  // Sửa một trong hai tầng nhãn tại chỗ: nhãn con hoặc flag.
+  const [editing, setEditing] = useState<null | "subTopic" | "flag">(null);
+  const [draft, setDraft] = useState("");
+  const options = editing === "flag" ? flagSuggestions : suggestions;
 
+  const open = (field: "subTopic" | "flag") => {
+    setDraft(item[field] ?? "");
+    setEditing(field);
+  };
   const commit = () => {
-    setEditing(false);
-    if (draft.trim() !== (item.subTopic ?? "")) onRetag(item.id, draft);
+    if (editing && draft.trim() !== (item[editing] ?? "")) onRetag(item.id, draft, editing);
+    setEditing(null);
   };
 
   return (
@@ -734,41 +803,63 @@ function SavedCard({
       </div>
 
       {editing ? (
-        <div className="flex items-center gap-2">
-          <input
-            className="c-input flex-1 min-w-0"
-            value={draft}
-            autoFocus
-            list={`subtopics-${item.id}`}
-            autoComplete="off"
-            placeholder={t("Sub-topic", "Nhãn con")}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); commit(); }
-              if (e.key === "Escape") { setDraft(item.subTopic ?? ""); setEditing(false); }
-            }}
-          />
-          <datalist id={`subtopics-${item.id}`}>
-            {suggestions.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
-          <button
-            onClick={commit}
-            aria-label={t("Save tag", "Lưu nhãn")}
-            className="c-btn c-btn-primary c-btn-icon flex-none"
-          >
-            <Check size={15} />
-          </button>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              className="c-input flex-1 min-w-0"
+              value={draft}
+              autoFocus
+              autoComplete="off"
+              placeholder={editing === "flag" ? "Flag" : t("Sub-topic", "Nhãn con")}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); commit(); }
+                if (e.key === "Escape") setEditing(null);
+              }}
+            />
+            <button
+              onClick={commit}
+              aria-label={t("Save tag", "Lưu nhãn")}
+              className="c-btn c-btn-primary c-btn-icon flex-none"
+            >
+              <Check size={15} />
+            </button>
+          </div>
+          {/* Thẻ bấm thay cho <datalist> — Safari iPhone không hiện datalist. */}
+          {options.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {options.map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => setDraft(o)}
+                  className={draft === o ? "c-chip c-chip-solid" : "c-chip c-chip-outline"}
+                >
+                  {o}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
-        <button
-          onClick={() => { setDraft(item.subTopic ?? ""); setEditing(true); }}
-          className={item.subTopic ? "c-chip self-start" : "c-chip c-chip-outline self-start"}
-        >
-          <Tag size={12} />
-          {item.subTopic || t("Add tag", "Gắn nhãn")}
-        </button>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            onClick={() => open("subTopic")}
+            className={item.subTopic ? "c-chip" : "c-chip c-chip-outline"}
+          >
+            <Tag size={12} />
+            {item.subTopic || t("Add tag", "Gắn nhãn")}
+          </button>
+          {(item.subTopic || flagSuggestions.length > 0) && (
+            <button
+              onClick={() => open("flag")}
+              className={item.flag ? "c-chip" : "c-chip c-chip-outline"}
+            >
+              <Flag size={12} />
+              {item.flag || t("Add flag", "Gắn flag")}
+            </button>
+          )}
+        </div>
       )}
 
       <div className="flex items-center gap-2 mt-auto">
@@ -836,7 +927,7 @@ function PlayerModal({
               {item.title || item.driveFileName || t("Untitled", "Chưa đặt tên")}
             </p>
             <p className="text-xs text-[var(--color-text-faint)] mt-0.5">
-              {[item.topic, item.subTopic, PLATFORM_LABEL[item.platform] ?? item.platform,
+              {[item.topic, item.subTopic, item.flag, PLATFORM_LABEL[item.platform] ?? item.platform,
                 formatSize(item.sizeBytes)].filter(Boolean).join(" · ")}
             </p>
           </div>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { detectPlatform, PLATFORM_LABELS } from "@/lib/videoLibrary";
-import { subTopicsByTopic, topicNames, videoOwnerId } from "@/lib/videoQueue";
+import { flagsByTopic, subTopicsByTopic, topicNames, videoOwnerId } from "@/lib/videoQueue";
 import { readShareTicket } from "@/lib/videoShare";
 
 export const runtime = "nodejs";
@@ -32,9 +32,10 @@ export async function GET(req: Request) {
     // Không trả đề tài "mặc định": trang bắt người dùng tự chọn mỗi lần — bản
     // đầu chọn sẵn đề tài lần lưu gần nhất và video không liên quan bị lưu nhầm
     // vào đó.
-    const [topics, subTopics, existing] = await Promise.all([
+    const [topics, subTopics, flags, existing] = await Promise.all([
       topicNames(userId),
       subTopicsByTopic(userId),
+      flagsByTopic(userId),
       prisma.videoItem.findFirst({ where: { userId, sourceUrl } }),
     ]);
 
@@ -46,8 +47,9 @@ export async function GET(req: Request) {
       platformLabel: PLATFORM_LABELS[platform] ?? platform,
       topics,
       subTopics,
+      flags,
       existing: existing
-        ? { topic: existing.topic, subTopic: existing.subTopic, title: existing.title, status: existing.status }
+        ? { topic: existing.topic, subTopic: existing.subTopic, flag: existing.flag, title: existing.title, status: existing.status }
         : null,
     });
   } catch (error) {

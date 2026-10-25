@@ -9,7 +9,8 @@ interface FormData {
   platformLabel: string;
   topics: string[];
   subTopics: Record<string, string[]>;
-  existing: { topic: string; subTopic: string | null; title: string | null; status: string } | null;
+  flags: Record<string, string[]>;
+  existing: { topic: string; subTopic: string | null; flag: string | null; title: string | null; status: string } | null;
 }
 
 /**
@@ -39,6 +40,7 @@ export default function VideoSharePage() {
 
   const [topic, setTopic] = useState("");
   const [subTopic, setSubTopic] = useState("");
+  const [flag, setFlag] = useState("");
   const [title, setTitle] = useState("");
   // Người dùng đã gõ vào ô tiêu đề thì tiêu đề tự lấy về muộn không được đè lên.
   const [titleTouched, setTitleTouched] = useState(false);
@@ -74,6 +76,7 @@ export default function VideoSharePage() {
         // Chỉ điền sẵn khi video đã từng lưu — còn lại người dùng phải tự chọn.
         setTopic(form.existing?.topic ?? "");
         setSubTopic(form.existing?.subTopic ?? "");
+        setFlag(form.existing?.flag ?? "");
         if (form.existing?.title) {
           setTitle(form.existing.title);
           setTitleTouched(true);
@@ -106,7 +109,7 @@ export default function VideoSharePage() {
       const res = await fetch("/api/video/share", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticket, topic, subTopic: subTopic.trim(), title: title.trim() }),
+        body: JSON.stringify({ ticket, topic, subTopic: subTopic.trim(), flag: flag.trim(), title: title.trim() }),
       });
       const json = await res.json().catch(() => null);
       if (!json?.success) throw new Error(json?.message || `Lỗi ${res.status}`);
@@ -119,6 +122,7 @@ export default function VideoSharePage() {
   };
 
   const suggestions = data?.subTopics[topic] ?? [];
+  const flagSuggestions = data?.flags?.[topic] ?? [];
 
   return (
     <div className="mx-auto w-full max-w-[480px] px-4 py-6 space-y-4">
@@ -182,6 +186,7 @@ export default function VideoSharePage() {
                     onClick={() => {
                       setTopic(name);
                       setSubTopic("");
+                      setFlag("");
                     }}
                     className="c-chip c-chip-outline justify-center min-h-[44px] text-center leading-tight"
                   >
@@ -244,6 +249,42 @@ export default function VideoSharePage() {
                 <option key={sub} value={sub} />
               ))}
             </datalist>
+
+            {/* Tầng thứ ba: Tips, Grammar, Vocabulary... Chỉ hiện khi đề tài có
+                flag gợi ý hoặc đã gắn nhãn con — đề tài chưa phân nhánh thì
+                thêm một ô nữa chỉ làm form dài ra. */}
+            {(flagSuggestions.length > 0 || subTopic.trim()) && (
+              <>
+                <p className="c-overline pt-1">{t("Flag", "Flag")}</p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setFlag("")}
+                    className={!flag.trim() ? "c-chip c-chip-solid" : "c-chip c-chip-outline"}
+                  >
+                    {t("No flag", "Không gắn flag")}
+                  </button>
+                  {flagSuggestions.map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setFlag((cur) => (cur === f ? "" : f))}
+                      className={flag === f ? "c-chip c-chip-solid" : "c-chip c-chip-outline"}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  className="c-input w-full"
+                  value={flag}
+                  onChange={(e) => setFlag(e.target.value)}
+                  autoComplete="off"
+                  aria-label={t("New flag", "Flag mới")}
+                  placeholder={t("…or type a new flag", "…hoặc gõ flag mới")}
+                />
+              </>
+            )}
 
             <p className="c-overline pt-1">{t("Title", "Tiêu đề")}</p>
 

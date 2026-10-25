@@ -3,7 +3,7 @@ import type { VideoItem } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   buildFileName, detectPlatform, driveClient, ensureTopicFolder, listTopics,
-  normalizeSubTopic, videoRootId,
+  normalizeFlag, normalizeSubTopic, videoRootId, DEFAULT_FLAGS,
 } from "@/lib/videoLibrary";
 import { isResolvable, resolveVideo } from "@/lib/videoResolver";
 import { cleanVideoTitle } from "@/lib/videoShare";
@@ -50,6 +50,44 @@ export async function subTopicsByTopic(userId: string): Promise<Record<string, s
     (grouped[row.topic] ??= []).push(row.subTopic);
   }
   return grouped;
+}
+
+/**
+ * Flag đã dùng, gom theo ĐỀ TÀI (không theo nhãn con: "Grammar" của English
+ * và của Chinese là cùng một flag), cộng bộ gợi ý sẵn ở `DEFAULT_FLAGS`.
+ */
+export async function flagsByTopic(userId: string): Promise<Record<string, string[]>> {
+  const rows = await prisma.videoItem.findMany({
+    where: { userId, NOT: { flag: null } },
+    select: { topic: true, flag: true },
+    distinct: ["topic", "flag"],
+  });
+
+  const grouped: Record<string, string[]> = {};
+  for (const [topic, list] of Object.entries(DEFAULT_FLAGS)) grouped[topic] = [...list];
+  for (const row of rows) {
+    if (!row.flag) continue;
+    const list = (grouped[row.topic] ??= []);
+    if (!list.some((f) => f.toLowerCase() === row.flag!.toLowerCase())) list.push(row.flag);
+  }
+  return grouped;
+}
+
+/**
+ * Gộp flag chỉ khác hoa thường về biến thể đã có — trong cùng đề tài, kể cả
+ * bộ gợi ý sẵn ("grammar" thành "Grammar").
+ */
+export async function canonicalFlag(userId: string, topic: string, raw: unknown): Promise<string | null> {
+  const value = normalizeFlag(raw);
+  if (!value) return null;
+  const preset = DEFAULT_FLAGS[topic]?.find((f) => f.toLowerCase() === value.toLowerCase());
+  if (preset) return preset;
+  const seen = await prisma.videoItem.findFirst({
+    where: { userId, topic, flag: { equals: value, mode: "insensitive" } },
+    select: { flag: true },
+    orderBy: { createdAt: "asc" },
+  });
+  return seen?.flag ?? value;
 }
 
 /**
@@ -105,6 +143,7 @@ export interface EnqueueInput {
   sourceUrl: string;
   topic: string;
   subTopic?: unknown;
+  flag?: unknown;
   title?: string | null;
   note?: string | null;
 }
@@ -125,6 +164,7 @@ export async function enqueueVideo(
 
   const existing = await prisma.videoItem.findFirst({ where: { userId, sourceUrl } });
   const subTopic = await canonicalSubTopic(userId, topic, input.subTopic);
+  const flag = await canonicalFlag(userId, topic, input.flag);
 
   if (existing) {
     const item = await prisma.videoItem.update({
@@ -133,6 +173,7 @@ export async function enqueueVideo(
         topic,
         // Dán lại mà bỏ trống nhãn con thì giữ nhãn cũ, đừng xoá nó đi.
         subTopic: subTopic ?? existing.subTopic,
+        flag: flag ?? existing.flag,
         title: title || existing.title,
         note: note || existing.note,
       },
@@ -146,6 +187,7 @@ export async function enqueueVideo(
       platform: detectPlatform(sourceUrl),
       topic,
       subTopic,
+      flag,
       title,
       note,
       status: "pending",
