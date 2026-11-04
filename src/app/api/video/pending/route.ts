@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { detectPlatform } from "@/lib/videoLibrary";
 import { ResolveError, isResolvable, resolveVideo } from "@/lib/videoResolver";
+import { cleanVideoTitle } from "@/lib/videoShare";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -95,7 +96,7 @@ export async function GET(req: Request) {
           id: row.id,
           sourceUrl: row.sourceUrl,
           topic: row.topic,
-          title: row.title || resolved.title,
+          title: row.title || cleanVideoTitle(resolved.title) || "",
           platform: resolved.platform,
           filename: resolved.filename,
           downloadUrl: resolved.best.url,

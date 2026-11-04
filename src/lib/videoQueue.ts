@@ -277,7 +277,9 @@ export async function saveVideoToDrive(item: VideoItem) {
 
   const created = await drive.files.create({
     requestBody: {
-      name: buildFileName(item.topic, title || resolved.title),
+      // Mô tả toàn hashtag thì `title` rỗng — tên file thành "… · video.mp4",
+      // không phải "… · #fyp #xuhuong.mp4".
+      name: buildFileName(item.topic, title),
       parents: [folderId],
       // Thư viện video đọc link gốc từ đây, nên mở file trong Drive vẫn biết
       // nó đến từ đâu mà không cần tra lại app.
@@ -295,7 +297,8 @@ export async function saveVideoToDrive(item: VideoItem) {
       driveFileName: created.data.name,
       sizeBytes: buffer.length,
       savedAt: new Date(),
-      title: title || resolved.title,
+      // Đừng lùi về `resolved.title`: đó là mô tả gốc còn nguyên hashtag.
+      title,
     },
   });
 

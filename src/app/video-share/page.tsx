@@ -86,7 +86,7 @@ export default function VideoSharePage() {
         if (err.name !== "AbortError") setError(err.message);
       });
 
-    // Chậm (3–5 giây, đi qua fdown.vn) nên gọi song song và không chặn form.
+    // Chậm hơn form (1–5 giây, đi qua bộ giải link) nên gọi song song và không chặn form.
     fetch(`/api/video/share/title?${q}`, { signal: controller.signal })
       .then((res) => res.json())
       .then((json) => {

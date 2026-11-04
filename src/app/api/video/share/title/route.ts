@@ -8,7 +8,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 /**
- * Chờ fdown.vn tối đa ngần này. Lượt giải link thường mất 3–5 giây; quá lâu
+ * Chờ bộ giải link tối đa ngần này. tikwm.com thường mất khoảng 1 giây,
+ * fdown.vn (Facebook, hoặc dự phòng cho TikTok) 3–5 giây; quá lâu
  * thì thà để trống ô tiêu đề cho người dùng gõ.
  */
 const TITLE_TIMEOUT_MS = 12000;
@@ -22,8 +23,9 @@ const TITLE_TIMEOUT_MS = 12000;
  * Tách khỏi `/form` vì nó chậm: trang hiện form ngay, ô tiêu đề tự điền khi
  * route này trả về.
  *
- * TikTok oEmbed từng trả `title` nhưng nay không còn (đo 20/10/2026), nên dùng
- * chính fdown.vn mà luồng tải đang dùng. Nền tảng khác thì để người dùng gõ.
+ * Nguồn là `resolveVideo` — cùng hàm luồng tải dùng: TikTok qua tikwm.com
+ * (fdown.vn bị Cloudflare chặn từ khoảng 01/11/2026), Facebook qua fdown.vn nên
+ * hiện thường rỗng. TikTok oEmbed không còn trả `title` (đo 20/10/2026).
  */
 export async function GET(req: Request) {
   const sourceUrl = readShareTicket(new URL(req.url).searchParams.get("t"));
@@ -38,7 +40,7 @@ export async function GET(req: Request) {
     const resolved = await Promise.race([resolveVideo(sourceUrl), timeout]);
     return NextResponse.json({ success: true, title: cleanVideoTitle(resolved?.title) ?? "" });
   } catch {
-    // Video riêng tư, đã gỡ, fdown.vn trục trặc — vẫn lưu link được, chỉ thiếu
+    // Video riêng tư, đã gỡ, bộ giải link trục trặc — vẫn lưu link được, chỉ thiếu
     // tiêu đề gợi ý.
     return NextResponse.json({ success: true, title: "" });
   } finally {

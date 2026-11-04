@@ -20,11 +20,17 @@ Lướt TikTok/Facebook → Chia sẻ → Khác/Thêm → "Gửi vào Crucible"
           └─> POST /api/video/share        nút "Thêm vào thư viện": ghi hàng đợi, tải về Drive ở nền
 ```
 
-Form giống hệt ô "Lưu một video" trên web: chọn đề tài, nhãn con hiện thành chip
-theo đề tài vừa chọn (hoặc gõ nhãn mới), tiêu đề tự điền từ phần mô tả dưới
-video — `We don't know if we wake up tomorrow #LearnOnTikTok #learnenglish` thành
-`We don't know if we wake up tomorrow`. Đề tài mặc định là đề tài của lần lưu
-gần nhất. Lưu xong bấm **Xong** ở góc trên là quay lại video.
+Form hai bước: chọn đề tài trong lưới (không chọn sẵn — trừ video đã lưu trước
+đó), rồi nhãn con của đúng đề tài đó hiện thành chip (hoặc gõ nhãn mới), tiêu đề
+tự điền từ phần mô tả dưới video — `We don't know if we wake up tomorrow
+#LearnOnTikTok #learnenglish` thành `We don't know if we wake up tomorrow`. Mô tả
+toàn hashtag thì ô tiêu đề để trống. Lưu xong bấm **Xong** ở góc trên là quay lại
+video.
+
+Tiêu đề lấy qua bộ giải link (`resolveVideo`): TikTok từ tikwm.com, Facebook từ
+fdown.vn. Từ khoảng 01/11/2026 fdown.vn bị Cloudflare chặn mọi lượt gọi tự động
+(403), nên video Facebook hiện không có tiêu đề tự điền và không tự tải về Drive
+được — lưu link vẫn được, file phải tải tay.
 
 Đóng trang mà chưa bấm lưu thì không có gì được ghi. Chia sẻ lại một video đã có
 thì cập nhật đề tài/nhãn chứ không nhân bản — cùng hàm `enqueueVideo` với web.
@@ -43,7 +49,7 @@ action sai mã định danh là iOS từ chối chạy CẢ shortcut ("Tác vụ
 định"). Bản này không có khối "If" nào: lỗi cũng trả `formUrl`, trỏ tới trang
 báo lỗi.
 
-Tải nền hỏng (video riêng tư, quá cỡ, fdown.vn trục trặc) thì video vẫn nằm ở
+Tải nền hỏng (video riêng tư, quá cỡ, bộ giải link trục trặc) thì video vẫn nằm ở
 mục chờ trên web: bấm tải lại ở đó, hoặc chạy shortcut "Crucible" bên dưới.
 
 ### Cài
@@ -86,7 +92,7 @@ Dán link trên web (thiết bị bất kỳ)
 
 Chạy Shortcut (thiết bị bất kỳ)
    ├─> GET  /api/video/pending    trả mảng items, mỗi item có downloadUrl
-   │                              (server giải link qua fdown.vn)
+   │                              (server giải link: TikTok qua tikwm.com, Facebook qua fdown.vn)
    ├─> tải file từ downloadUrl    máy bạn tải, không qua server
    └─> POST /api/video/upload     đẩy lên Drive, status: saved
 ```

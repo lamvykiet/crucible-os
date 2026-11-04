@@ -184,6 +184,16 @@ async function callFdown(platform: ResolvablePlatform, url: string): Promise<str
     );
   }
 
+  // Cloudflare trả trang HTML 403 thay cho JSON. Nói thẳng ra, đừng để rơi xuống
+  // câu "video riêng tư" — người dùng sẽ đi kiểm video thay vì biết là fdown.vn
+  // đang chặn.
+  if (apiRes.status === 403 && (apiRes.headers.get("content-type") || "").includes("text/html")) {
+    throw new ResolveError(
+      "fdown.vn đang chặn truy cập tự động (Cloudflare). Tạm thời phải tải video Facebook bằng tay.",
+      "UPSTREAM_UNAVAILABLE"
+    );
+  }
+
   const payload = (await apiRes.json().catch(() => null)) as {
     success?: boolean;
     html?: string;
@@ -259,6 +269,75 @@ function safeFilename(title: string, platform: ResolvablePlatform): string {
   return `${base}.mp4`;
 }
 
+/**
+ * TikTok qua tikwm.com — API JSON công khai, trả mô tả video và link .mp4 trực
+ * tiếp (không logo), không cần cookie hay CSRF.
+ *
+ * Vì sao có nhánh này: từ khoảng 01/11/2026 fdown.vn đặt Cloudflare chặn mọi
+ * lượt gọi API của nó (403 "Attention Required!"), kể cả từ IP nhà riêng. Cả
+ * tiêu đề tự điền lẫn việc tự tải về Drive chết cùng lúc. Facebook chưa có
+ * nguồn thay thế nên vẫn đi fdown.vn.
+ *
+ * Gói miễn phí giới hạn khoảng 1 lượt/giây — đủ cho một người chia sẻ tay.
+ */
+const TIKWM_API = "https://www.tikwm.com/api/";
+const TIKWM_TIMEOUT_MS = 10_000;
+
+async function resolveTikTokViaTikwm(url: string): Promise<ResolvedVideo> {
+  let res: Response;
+  try {
+    res = await fetch(`${TIKWM_API}?url=${encodeURIComponent(url)}&hd=1`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(TIKWM_TIMEOUT_MS),
+    });
+  } catch (err) {
+    throw new ResolveError(`Không kết nối được tikwm.com: ${(err as Error).message}`, "UPSTREAM_UNAVAILABLE");
+  }
+
+  const json = (await res.json().catch(() => null)) as {
+    code?: number;
+    msg?: string;
+    data?: {
+      title?: string;
+      play?: string;
+      hdplay?: string;
+      author?: { unique_id?: string; nickname?: string };
+    };
+  } | null;
+
+  if (!res.ok || json?.code !== 0 || !json.data) {
+    throw new ResolveError(
+      `tikwm.com từ chối: ${json?.msg || `HTTP ${res.status}`}`,
+      "UPSTREAM_REJECTED"
+    );
+  }
+
+  const d = json.data;
+  // Link đôi khi là đường dẫn tương đối trên chính tikwm.com.
+  const absolute = (u: string) => (u.startsWith("http") ? u : `https://www.tikwm.com${u}`);
+  const options: VideoOption[] = [];
+  if (d.hdplay) options.push({ label: "MP4 HD (không logo)", url: absolute(d.hdplay), hd: true, noWatermark: true });
+  if (d.play && d.play !== d.hdplay) {
+    options.push({ label: "MP4 (không logo)", url: absolute(d.play), hd: false, noWatermark: true });
+  }
+  // Bài dạng ảnh trượt không có video — để bên gọi báo rõ thay vì tải về rỗng.
+  if (options.length === 0) {
+    throw new ResolveError("Bài TikTok này không có video (có thể là bài ảnh).", "NO_OPTIONS");
+  }
+
+  const title = d.title?.trim() || "TikTok video";
+  return {
+    platform: "tiktok",
+    sourceUrl: url,
+    title,
+    author: d.author?.unique_id ?? d.author?.nickname ?? null,
+    options,
+    best: options[0],
+    filename: safeFilename(title, "tiktok"),
+  };
+}
+
 export async function resolveVideo(rawUrl: string): Promise<ResolvedVideo> {
   const url = rawUrl.trim();
   const platform = detectPlatform(url);
@@ -268,6 +347,17 @@ export async function resolveVideo(rawUrl: string): Promise<ResolvedVideo> {
       "Chỉ tải được link Facebook và TikTok. Các nền tảng khác phải lưu tay.",
       "UNSUPPORTED_URL"
     );
+  }
+
+  if (platform === "tiktok") {
+    try {
+      return await resolveTikTokViaTikwm(url);
+    } catch (err) {
+      // Bài ảnh thì fdown.vn cũng không cứu được; còn lại thử fdown.vn — nó có
+      // thể đã gỡ lớp chặn.
+      if (err instanceof ResolveError && err.code === "NO_OPTIONS") throw err;
+      console.warn("tikwm.com hỏng, lùi về fdown.vn:", (err as Error).message);
+    }
   }
 
   const html = await callFdown(platform, url);
