@@ -2,16 +2,16 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import TopNav from "@/components/TopNav";
+import Sidebar from "@/components/Sidebar";
 import MobileTopBar from "@/components/MobileTopBar";
 import { SceneSlotProvider } from "@/components/Scene";
 
 /**
  * Khung ngoài của ứng dụng — hai tầng của hệ v3:
  *
- *   1. Thanh kính (`TopNav` từ 768px, `MobileTopBar` dưới 768px) dính đỉnh.
- *      Nó đứng TRƯỚC phông cảnh với margin-bottom âm, nên phông nằm phía sau
- *      nó lúc đầu trang mà thanh vẫn dính được qua cả trang khi cuộn.
+ *   1. Điều hướng: từ 768px là `Sidebar` kính cố định bên trái (thu gọn thành
+ *      cột icon, rê chuột thì bung ra); dưới 768px là `MobileTopBar` dính
+ *      đỉnh, đứng TRƯỚC phông cảnh với margin-bottom âm.
  *   2. Phông cảnh `.c-scene` — trang đặt tiêu đề + widget kính vào bằng
  *      `<SceneHero>` (src/components/Scene.tsx).
  *   3. Tấm nền kem `.c-main` trườn lên 80px che đáy phông; mọi nội dung chi
@@ -38,7 +38,7 @@ export default function MainLayoutWrapper({ children }: { children: React.ReactN
   return (
     <SceneSlotProvider value={slot}>
       <div className="c-shell">
-        <TopNav />
+        <Sidebar />
         <MobileTopBar />
         <div className="c-scene">
           <span className="c-scene-sun" aria-hidden />

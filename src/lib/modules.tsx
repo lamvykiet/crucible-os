@@ -8,8 +8,8 @@ import {
 /**
  * Danh sách function và tab con của từng function — MỘT chỗ duy nhất.
  *
- * Dùng bởi: menu xổ ở logo (`TopNav`), dải tab con trên thanh trên
- * (`TopNav`), menu logo và tab của `MobileTopBar`,
+ * Dùng bởi: `Sidebar` (web: nhóm function + nhóm tab con), menu logo và hàng
+ * tab của `MobileTopBar` (điện thoại),
  * và tên function to trên phông cảnh (`SceneSummary`). Thêm một function hay
  * một tab là sửa ở đây, đừng chép danh sách sang chỗ khác.
  *

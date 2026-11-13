@@ -10,13 +10,14 @@ import { isTabActive, moduleFor } from "@/lib/modules";
  * Dải tab con của function đang mở, lấy từ `src/lib/modules.tsx`.
  *
  * Dùng ở HAI nơi với cùng một danh sách, để web và điện thoại không lệch nhau:
- *   - `bar`  — giữa thanh kính `TopNav` (từ 768px): icon + chữ.
+ *   - `side` — nhóm tab trong `Sidebar` (từ 768px): icon + chữ, chữ ẩn khi
+ *              sidebar thu gọn.
  *   - `rail` — hàng dưới của `MobileTopBar` (điện thoại): chỉ icon, tab đang
  *              chọn hiện thêm chữ (SKILL.md mục 5).
  *
  * Đọc `useSearchParams()` nên nơi dùng phải bọc `<Suspense>`.
  */
-export default function ModuleTabs({ variant }: { variant: "bar" | "rail" }) {
+export default function ModuleTabs({ variant }: { variant: "side" | "rail" }) {
   const pathname = usePathname();
   const tabParam = useSearchParams().get("tab");
   const { t } = useLanguage();
@@ -28,18 +29,19 @@ export default function ModuleTabs({ variant }: { variant: "bar" | "rail" }) {
   // tám của Tài chính) có thể nằm ngoài khung — đưa nó vào giữa. Chỉnh
   // `scrollLeft` thay vì scrollIntoView để không kéo cả trang theo chiều dọc.
   useEffect(() => {
+    if (variant !== "rail") return;
     const nav = navRef.current;
     const active = nav?.querySelector<HTMLElement>("[aria-current=page]");
     if (!nav || !active) return;
     nav.scrollLeft = active.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2;
-  }, [pathname, tabParam]);
+  }, [pathname, tabParam, variant]);
 
   if (variant === "rail" && tabs.length === 0) return null;
 
   return (
     <nav
       ref={navRef}
-      className={variant === "bar" ? "c-topnav-tabs" : "c-mtabs"}
+      className={variant === "side" ? "c-side-tabs" : "c-mtabs"}
       aria-label={current ? t(current.en, current.vi) : undefined}
     >
       {tabs.map((tab, i) => {
@@ -53,10 +55,11 @@ export default function ModuleTabs({ variant }: { variant: "bar" | "rail" }) {
             scroll={false}
             aria-current={active ? "page" : undefined}
             aria-label={label}
-            className={`${variant === "bar" ? "c-topnav-item" : "c-mtab"} ${active ? "active" : ""}`}
+            title={label}
+            className={`${variant === "side" ? "c-side-item" : "c-mtab"} ${active ? "active" : ""}`}
           >
-            <Icon size={variant === "bar" ? 16 : 18} strokeWidth={1.8} />
-            <span>{label}</span>
+            <Icon size={18} strokeWidth={1.8} />
+            <span className={variant === "side" ? "c-side-text" : undefined}>{label}</span>
           </Link>
         );
       })}

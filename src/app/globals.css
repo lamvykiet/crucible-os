@@ -347,7 +347,10 @@ html { background: var(--sheet); }
 @layer base {
   body {
     margin: 0;
-    background: var(--sheet);
+    /* Trong suốt: phông trời cố định (`.c-shell::before`, z-index âm) nằm
+       giữa nền <html> và nội dung — nền của body sẽ đè lên nó. Màu kem nền
+       nằm ở <html>. */
+    background: transparent;
     color: var(--color-text);
     font: var(--text-body);
     letter-spacing: var(--tracking-ui);
@@ -654,39 +657,110 @@ html { background: var(--sheet); }
 /* ---------------------------------------------------------------------------
  * Vỏ giao diện: phông cảnh + thanh kính trên, tấm nền kem dưới. Không sidebar.
  * ------------------------------------------------------------------------ */
-/* Thanh trên: tấm kính nổi, dính đỉnh khi cuộn. Nó nằm NGOÀI `.c-scene` (con
-   trực tiếp của `.c-shell`) để còn dính được qua cả trang; `margin-bottom` âm
-   kéo phông cảnh lên nằm phía sau nó. */
-.c-topnav {
-  position: sticky; top: 12px; z-index: 40;
-  display: flex; align-items: center; gap: 6px;
-  min-height: 52px;
-  width: calc(100% - 2 * var(--shell-pad-x)); max-width: var(--page-max);
-  margin: 12px auto -64px;
-  padding: 8px;
-  border-radius: 22px;
-  color: var(--on-glass);
+/* Sidebar kính bên trái (từ 768px) — thay thanh trên từ 13/11/2026.
+   Thu gọn: cột icon 68px. Bung (hover / focus / ghim): panel 248px.
+   Mỗi mục giữ nguyên lề trái 15px ở cả hai trạng thái, nên icon đứng yên khi
+   panel bung ra — chỉ chữ hiện thêm bên phải. */
+:root { --side-w: 68px; --side-w-open: 248px; --side-gap: 12px; }
+.c-side {
+  position: fixed; z-index: 45;
+  top: var(--side-gap); bottom: var(--side-gap); left: var(--side-gap);
+  width: var(--side-w);
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 12px 10px;
+  border-radius: 26px;
+  color: var(--ink);
   isolation: isolate;
+  overflow: hidden;
+  transition: width .24s var(--ease), box-shadow .24s var(--ease);
 }
-.c-topnav::before {
+.c-side::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
-  background: var(--glass);
-  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-nav);
-  transition: background var(--dur) var(--ease);
+  background: var(--side-glass);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4); backdrop-filter: blur(28px) saturate(1.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 0 0 1px rgba(255, 255, 255, .28), 0 24px 48px -28px rgba(60, 30, 10, .55);
 }
-/* Đã cuộn qua phông cảnh: phía sau là tấm nền kem, kính 30% làm chữ trắng
-   chìm — đậm lên. `data-scrolled` do TopNav đặt. */
-.c-topnav[data-scrolled="true"]::before { background: var(--glass-nav); }
-/* Dải tab con của function đang mở — chỉ phần này cuộn ngang, KHÔNG phải cả
-   thanh: thanh mà có overflow thì menu xổ ở logo bị cắt mất. */
-.c-topnav-tabs { display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-.c-topnav-tabs::-webkit-scrollbar { display: none; }
+.c-side:hover, .c-side:focus-within, .c-side.pinned { width: var(--side-w-open); }
+.c-side:hover:not(.pinned), .c-side:focus-within:not(.pinned) { box-shadow: 0 30px 60px -20px rgba(40, 20, 10, .45); }
+:root { --side-glass: rgba(255, 250, 244, .62); }
+[data-theme="dark"] { --side-glass: rgba(34, 26, 21, .66); }
 
-/* Menu function xổ ra từ logo. Mở bằng rê chuột HOẶC focus (bàn phím, chạm
-   trên máy tính bảng). `padding-top` của panel là cầu nối vô hình để chuột
-   đi từ logo xuống danh sách mà không "rơi" khỏi vùng hover. */
-.c-fnmenu { position: relative; flex: none; margin-right: 8px; }
+/* Chữ của mọi mục: ẩn khi thu gọn, hiện khi bung. */
+.c-side-text { white-space: nowrap; opacity: 0; transition: opacity .16s var(--ease); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.c-side:hover .c-side-text, .c-side:focus-within .c-side-text, .c-side.pinned .c-side-text { opacity: 1; transition-delay: .06s; }
+
+.c-side-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 2px 0 8px; }
+.c-side-brand { display: flex; align-items: center; gap: 12px; min-width: 0; padding-left: 4px; color: var(--ink); text-decoration: none; }
+.c-side-brand:hover { color: var(--ink); text-decoration: none; }
+.c-side-brand .c-logo-mark { width: 40px; height: 40px; border-radius: 13px; flex: none; box-shadow: 0 6px 14px -8px rgba(60, 30, 10, .6); }
+.c-side-brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.c-side-brand-text b { font: 700 15px/1.2 var(--font-display); font-stretch: 85%; text-transform: uppercase; letter-spacing: .02em; }
+.c-side-brand-text small { font: 450 12px/1.3 var(--font-body); color: var(--ink-3); }
+.c-side-pin {
+  flex: none; width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer;
+  display: grid; place-content: center; color: var(--ink-2);
+  background: rgba(255, 255, 255, .7); box-shadow: 0 4px 10px -6px rgba(60, 30, 10, .6);
+  opacity: 0; transition: opacity .16s var(--ease);
+}
+[data-theme="dark"] .c-side-pin { background: rgba(255, 244, 230, .14); }
+.c-side:hover .c-side-pin, .c-side:focus-within .c-side-pin, .c-side.pinned .c-side-pin { opacity: 1; }
+
+.c-side-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; display: flex; flex-direction: column; gap: 2px; }
+.c-side-scroll::-webkit-scrollbar { display: none; }
+.c-side-tabs { display: flex; flex-direction: column; gap: 2px; }
+.c-side-foot { display: flex; flex-direction: column; gap: 2px; padding-top: 6px; border-top: 1px solid var(--line); }
+
+/* Nhãn nhóm: chữ VIẾT HOA giãn rộng khi bung; thu gọn thì chỉ còn khoảng cách. */
+.c-side-label { height: 26px; display: flex; align-items: flex-end; padding: 0 0 4px 15px; font: 600 10.5px/1 var(--font-display); letter-spacing: .2em; text-transform: uppercase; color: var(--ink-3); }
+
+.c-side-item {
+  position: relative; flex: none;
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; height: 40px; padding: 0 15px;
+  border: 0; border-radius: 14px; background: none; cursor: pointer;
+  font: 500 14.5px/1 var(--font-body); color: var(--ink-2); text-align: left; text-decoration: none;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.c-side-item svg { flex: none; }
+.c-side-item:hover { background: rgba(255, 255, 255, .45); color: var(--ink); text-decoration: none; }
+[data-theme="dark"] .c-side-item:hover { background: rgba(255, 244, 230, .08); }
+/* Đang chọn: viên trắng 92% chữ nâu — như mẫu. */
+.c-side-item.active, .c-side-item.active:hover { background: rgba(255, 255, 255, .92); color: #2b1f14; box-shadow: 0 6px 16px -10px rgba(60, 30, 10, .55); }
+.c-side-meta { margin-left: auto; font: 600 11px/1 var(--font-display); letter-spacing: .12em; color: var(--ink-3); }
+
+/* Số đếm: viên tròn đất nung bên phải khi bung; thu gọn thì thành chấm số nhỏ góc icon. */
+.c-side-badge {
+  margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+  display: grid; place-content: center;
+  font: 650 11px/1 var(--font-body); color: #fff9e2; background: #b0281f;
+  transition: all .2s var(--ease);
+}
+.c-side:not(:hover):not(:focus-within):not(.pinned) .c-side-badge {
+  position: absolute; left: 26px; top: 5px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 9.5px;
+  box-shadow: 0 0 0 2px var(--sheet);
+}
+
+/* Thẻ người dùng ở đáy. */
+.c-side-user { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 8px 4px 2px; min-width: 0; }
+.c-side-avatar {
+  flex: none; width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-content: center;
+  font: 700 15px/1 var(--font-display); color: #2b1f14;
+  background: radial-gradient(circle at 35% 30%, #ffe9c9, #e7b78a 70%);
+  box-shadow: 0 6px 14px -8px rgba(60, 30, 10, .6);
+}
+.c-side-user-text { display: flex; flex-direction: column; line-height: 1.2; }
+.c-side-user-text b { font: 600 14px/1.25 var(--font-body); color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
+.c-side-user-text small { font: 450 12px/1.3 var(--font-body); color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; }
+
+/* Nội dung nhường chỗ cho sidebar: luôn chừa cột thu gọn; ghim mở thì chừa
+   cả panel. Hover KHÔNG đẩy nội dung — panel bung ra đè lên. */
+@media (min-width: 768px) {
+  .c-shell { padding-left: calc(var(--side-w) + var(--side-gap)); transition: padding-left .24s var(--ease); }
+  .c-shell:has(.c-side.pinned) { padding-left: calc(var(--side-w-open) + var(--side-gap)); }
+}
+
+/* Menu function xổ ra từ logo — chỉ còn dùng ở `MobileTopBar` (điện thoại). */
 .c-fnmenu-trigger { display: inline-flex; align-items: center; gap: 6px; padding: 0 6px 0 0; border: 0; border-radius: 14px; background: none; color: var(--on-glass); cursor: pointer; }
 .c-fnmenu-panel {
   position: absolute; left: -8px; top: 100%; z-index: 60;
@@ -700,8 +774,6 @@ html { background: var(--sheet); }
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
   box-shadow: inset 0 1px 0 var(--glass-edge), 0 24px 48px -20px rgba(40, 20, 10, .6);
 }
-.c-fnmenu:hover .c-fnmenu-panel,
-.c-fnmenu:focus-within .c-fnmenu-panel { display: flex; }
 .c-fnmenu-item {
   display: flex; align-items: center; gap: 12px;
   padding: 11px 14px; border-radius: 14px;
@@ -710,18 +782,6 @@ html { background: var(--sheet); }
 .c-fnmenu-item svg { opacity: .85; }
 .c-fnmenu-item:hover { background: rgba(255, 255, 255, .14); color: var(--on-glass); text-decoration: none; }
 .c-fnmenu-item.active, .c-fnmenu-item.active:hover { background: rgba(255, 255, 255, .92); color: #2b1f14; }
-.c-topnav-item {
-  display: inline-flex; align-items: center; gap: 7px; flex: none;
-  padding: 9px 14px; border-radius: 14px;
-  font: 500 15px/1 var(--font-body); white-space: nowrap;
-  color: var(--on-glass-2); cursor: pointer; border: none; background: none; text-decoration: none;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
-}
-.c-topnav-item svg { opacity: .85; }
-.c-topnav-item:hover { background: rgba(255, 255, 255, .14); color: var(--on-glass); text-decoration: none; }
-/* Đang chọn: viên trắng 92% chữ nâu. */
-.c-topnav-item.active,
-.c-topnav-item.active:hover { background: rgba(255, 255, 255, .92); color: #2b1f14; }
 
 /* Logo: ô vuông trắng, chữ grotesk. */
 .c-logo-mark {
@@ -732,7 +792,8 @@ html { background: var(--sheet); }
 }
 .c-logo-word { font: 700 15px/1 var(--font-display); font-stretch: 85%; text-transform: uppercase; letter-spacing: .02em; color: var(--on-glass); }
 
-/* Thanh trên của điện thoại: kính, dính đỉnh, cùng mẹo margin âm như TopNav. */
+/* Thanh trên của điện thoại: kính, dính đỉnh, đứng trước phông cảnh với
+   margin-bottom âm để phông nằm phía sau nó. */
 .c-mtopbar {
   position: sticky; top: 12px; z-index: 40;
   display: flex; flex-direction: column; gap: 4px;
@@ -789,13 +850,20 @@ html { background: var(--sheet); }
  * ------------------------------------------------------------------------ */
 .c-shell { display: flex; flex-direction: column; min-height: 100vh; }
 
-/* Phông cảnh hoàng hôn đầu trang. Thanh kính trên (`.c-topnav` / `.c-mtopbar`)
-   nằm NGAY TRƯỚC nó với margin-bottom âm, nên đệm trên ở đây chừa chỗ cho
-   thanh. Đệm đáy 120px để tấm nền trườn lên 80px mà vẫn còn 40px phông. */
+/* Phông cảnh đầu trang. Trên điện thoại thanh kính `.c-mtopbar` nằm NGAY
+   TRƯỚC nó với margin-bottom âm, nên đệm trên chừa chỗ cho thanh; trên web
+   điều hướng là sidebar bên trái nên đệm trên nhỏ. Đệm đáy 120px để tấm nền
+   trườn lên 80px mà vẫn còn 40px phông. */
+/* Phông trời CỐ ĐỊNH phía sau cả trang: sidebar và lề trái luôn nằm trên nền
+   ấm (như mẫu), còn tấm nền kem trườn lên che phần dưới. Vẽ ở `::before`
+   position: fixed — không dùng background-attachment: fixed vì iOS Safari bỏ
+   qua nó. <body> phải trong suốt, nếu không nền của nó vẽ đè lên lớp z-index
+   âm này. */
+.c-shell::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--sky); }
 .c-scene {
   position: relative; isolation: isolate; overflow: hidden;
-  background: var(--sky);
-  padding: 104px var(--shell-pad-x) 120px;
+  background: transparent;
+  padding: 44px var(--shell-pad-x) 120px;
   color: var(--scene-ink);
 }
 .c-scene::before, .c-scene::after { content: ""; position: absolute; z-index: -1; filter: blur(30px); border-radius: 50%; pointer-events: none; }
@@ -989,12 +1057,12 @@ html { background: var(--sheet); }
 /* ---------------------------------------------------------------------------
  * Khung shell theo bề ngang màn hình.
  *
- * `.c-topnav { display: flex }` và `.c-mtopbar { display: flex }` khai báo
+ * `.c-side { display: flex }` và `.c-mtopbar { display: flex }` khai báo
  * NGOÀI @layer nên luôn đè `hidden md:flex` / `md:hidden` của Tailwind. Thiếu
  * khối này thì thanh dưới của điện thoại hiện nguyên trên máy tính.
  * ------------------------------------------------------------------------ */
 @media (max-width: 767px) {
-  .c-topnav { display: none; }
+  .c-side { display: none; }
 }
 @media (min-width: 768px) {
   .c-mtopbar { display: none; }

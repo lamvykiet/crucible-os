@@ -15,7 +15,7 @@ const TAB_IDS = ["dashboard", "income", "expense", "debts", "assets", "accounts"
 
 /**
  * Sổ chi tiêu. Tab đang mở nằm trên URL (`/finance?tab=income`) chứ không
- * trong state: thanh trên (`TopNav`) vẽ dải tab này từ `src/lib/modules.tsx`
+ * trong state: `Sidebar` (web) và `MobileTopBar` vẽ dải tab này từ `src/lib/modules.tsx`
  * và chỉ đổi được URL. Nhờ vậy nút Back cũng đi đúng từng tab.
  *
  * Dải tab nằm trên thanh trên ở cả web lẫn điện thoại (`ModuleTabs`).

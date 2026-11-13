@@ -47,7 +47,7 @@ là thứ duy nhất cả năm phiên cùng đọc. Trước khi sửa bất c�
 | Video | `api/video/{fetch,queue,resolve}` (trình duyệt), `api/video/{upload,pending}` (Shortcut iOS) và `api/video/share/*` + trang `src/app/video-share/` (Shortcut ở nút Chia sẻ); logic chung ở `src/lib/{videoQueue,videoShare}.ts` |
 | Thói quen | `src/app/habits/`, `src/components/habits/`, `api/habits/`, `src/lib/habits.ts` |
 | Sức khoẻ | `src/app/health/`, `src/components/health/`, `api/health/`, `src/lib/{health,healthServer,healthImport,exercises}.ts` |
-| Vỏ giao diện | `MainLayoutWrapper`, `Scene` (`SceneHero`), `TopNav`, `MobileTopBar`, `ModuleTabs`, `src/app/globals.css` |
+| Vỏ giao diện | `MainLayoutWrapper`, `Scene` (`SceneHero`), `Sidebar`, `MobileTopBar`, `ModuleTabs`, `src/app/globals.css` |
 
 ## Đổi cái này thì kéo theo cái kia
 
@@ -86,7 +86,7 @@ cột biểu đồ LÕM (`--neu-inset`); thẻ lồng trong thẻ chỉ là dả
 pastel `.c-tile-{fin,health,learn,habit}`, mỗi hàng đúng MỘT ô tối
 (`.c-tile.dark`). Màu hành động duy nhất là nâu mật ong `--action` `#542a08`
 (đảo thành `#ecc494` ở theme tối): nút chính, tab đang chọn, switch, cột nhấn.
-Kính CHỈ trên phông cảnh, thanh điều hướng, tooltip/menu nổi — không bao
+Kính CHỈ trên phông cảnh, sidebar, thanh điều hướng, tooltip/menu nổi — không bao
 giờ trên tấm nền kem. Thứ gì đè lên nội dung khác (modal, lịch chọn ngày, menu
 thả, tooltip, cột dính) dùng `--glass-solid` ĐẶC hẳn — globals.css tự bắt chúng
 theo class vị trí (`fixed/absolute/md:absolute/sticky` hoặc `shadow-xl`) + nền
@@ -94,7 +94,7 @@ theo class vị trí (`fixed/absolute/md:absolute/sticky` hoặc `shadow-xl`) + 
 `bg-[var(--glass-solid)]`, nếu không chữ hai lớp đọc chồng lên nhau.
 
 **Kính đặt lớp mờ ở `::before`, không trên chính phần tử** (`.c-glass`,
-`.c-topnav`, `.c-mtopbar`, `.c-bottomnav`). Giống `transform`,
+`.c-side`, `.c-mtopbar`). Giống `transform`,
 `backdrop-filter` biến phần tử thành KHỐI CHỨA của `position: fixed` — modal
 render bên trong sẽ co vào nó. Đừng gắn `backdrop-filter` thẳng lên thẻ hay tấm
 modal.
@@ -137,26 +137,27 @@ lần cuối. Đừng bỏ hai thứ đó.
 **Sáng là mặc định, không theo hệ điều hành.** Bảng sáng nằm thẳng trên
 `:root`; bảng tối chỉ áp khi người dùng bấm nút (`[data-theme="dark"]`).
 
-**Không có sidebar.** Từ 768px: `TopNav` là tấm kính dính đỉnh, đứng TRƯỚC
-phông cảnh với `margin-bottom` âm (nên vừa nằm trên phông lúc đầu trang, vừa
-dính được khi cuộn); qua khỏi phông thì `data-scrolled` đậm kính lên để chữ
-trắng không chìm trên nền kem. Các function gom vào LOGO (rê chuột hoặc focus
-là xổ danh sách icon + tên); giữa thanh là TAB CON của function đang mở. Điện
-thoại có CÙNG cấu trúc: `MobileTopBar` là tấm kính hai hàng — hàng trên logo
-(chạm để xổ menu function) + tên function + cài đặt/ngôn ngữ/sáng-tối; hàng
-dưới là tab con (chỉ icon, tab chọn hiện chữ). KHÔNG có dock dưới: gỡ ngày
-23/10/2026 theo yêu cầu chủ dự án vì nó chỉ lặp menu logo — đừng thêm lại. Dải tab của cả hai khổ là MỘT component `ModuleTabs` —
-đừng viết lại dải tab trong từng trang (từng có bốn kiểu khác nhau trước
-23/10/2026).
+**Điều hướng web là `Sidebar` kính bên trái** (từ 13/11/2026 theo mẫu "Glassy
+Dashboard" chủ dự án chọn — thay thanh trên `TopNav`, đã gỡ). Thu gọn là cột
+icon 68px; rê chuột / Tab tới thì bung thành panel 248px ĐÈ lên nội dung; nút
+‹ › ghim mở thì nội dung dịch sang nhường chỗ (`.c-shell:has(.c-side.pinned)`).
+Nhóm: Function (Tài chính có số hoá đơn chờ duyệt) · tab con của function đang
+mở · Hệ thống (cài đặt, ngôn ngữ, sáng/tối) · thẻ người dùng (`/api/me`). Phía
+sau là phông trời CỐ ĐỊNH (`.c-shell::before`), nên `<body>` phải trong suốt —
+cho nền vào body là phông biến mất. Điện thoại không có sidebar: `MobileTopBar`
+là tấm kính hai hàng — hàng trên logo (chạm để xổ menu function) + tên function
++ cài đặt/ngôn ngữ/sáng-tối; hàng dưới là tab con (chỉ icon, tab chọn hiện
+chữ). KHÔNG có dock dưới: gỡ ngày 23/10/2026 theo yêu cầu chủ dự án vì nó chỉ
+lặp menu logo — đừng thêm lại. Dải tab của cả hai khổ là MỘT component
+`ModuleTabs` (`side` / `rail`) — đừng viết lại dải tab trong từng trang.
 
 **Danh sách function và tab con chỉ nằm ở `src/lib/modules.tsx`** — menu logo,
 dải tab trên `TopNav`, menu và tab của `MobileTopBar` và tên
 function to trên phông cảnh đều đọc từ đó. Tab trong cùng một trang (Tài chính,
 Knowledge) đi bằng `?tab=` trên URL, không bằng state: trang đọc
 `useSearchParams()`, nên `page.tsx` của nó phải bọc `<Suspense>` (thiếu là Next
-bắt cả trang render phía client), và `TopNav` cũng bọc phần tab trong Suspense.
-`.c-topnav` KHÔNG được có `overflow` — menu xổ ở logo sẽ bị cắt; chỉ
-`.c-topnav-tabs` cuộn ngang.
+bắt cả trang render phía client), và `Sidebar` / `MobileTopBar` cũng bọc
+`ModuleTabs` trong Suspense.
 
 **Bán kính `--radius-sm/md/lg/xl/2xl` TRÙNG TÊN với thang của Tailwind v4** ⇒
 đổi chúng là đổi luôn mọi `rounded-*` trong JSX. Bo của hệ v3 đặt TÊN RIÊNG:
@@ -191,11 +192,11 @@ tháng về số, nên đừng truyền `tick` khác đè lên.
 Tailwind cho heading. Mặc định thẻ nằm trong `@layer base`, thang chữ nằm trong
 `@layer components`. Viết mặc định thẻ **ngoài** mọi `@layer` sẽ nuốt sạch utility
 — đã từng làm 83 heading và 58 thẻ `<p>` mất tác dụng, không linter nào báo.
-Ngoại lệ có chủ ý: `.c-topnav`, `.c-bottomnav` và khối nhịp trang (`.c-main`)
+Ngoại lệ có chủ ý: `.c-side`, `.c-mtopbar` và khối nhịp trang (`.c-main`)
 cố tình nằm ngoài mọi layer để thắng utility viết thẳng trong JSX —
 `hidden md:flex`, `space-y-8`, `p-5`, `gap-6`. Có media query ở cuối
-`globals.css` lo phần ẩn/hiện theo bề ngang; bỏ nó đi là thanh điều hướng dưới
-của điện thoại hiện nguyên trên máy tính.
+`globals.css` lo phần ẩn/hiện theo bề ngang; bỏ nó đi là thanh trên của điện
+thoại hiện nguyên trên máy tính và sidebar chen vào màn hình điện thoại.
 
 **Sửa modal bất kỳ trong Finance** → khổ chính là **375px**, không phải desktop.
 Modal phải cuộn được tới trường cuối và nút lưu luôn thấy. Ba lỗi mobile đã sửa:
