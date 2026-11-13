@@ -72,7 +72,7 @@ export const refLabel = (value: string, position: "insideTopLeft" | "insideTopRi
   ({
     value,
     position,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: 700,
     fill: "var(--color-text-muted)",
     stroke: "var(--color-surface)",
@@ -111,7 +111,7 @@ export function labelAt(index: number, format: (v: number) => string, opts: { dy
     const x = anchor === "middle" ? fitLabelX(raw, text, props.parentViewBox) : raw;
     const y = Number(props.y) + (opts.dy ?? -8);
     return (
-      <text x={x} y={y} textAnchor={anchor} fontSize={11} fontWeight={700} fill="var(--color-text)">
+      <text x={x} y={y} textAnchor={anchor} fontSize={12} fontWeight={700} fill="var(--color-text)">
         {text}
       </text>
     );
@@ -122,11 +122,11 @@ export function labelAt(index: number, format: (v: number) => string, opts: { dy
 /**
  * Nhãn căn giữa trên cột/điểm cuối cùng tràn ra ngoài mép phải ở khổ 375px
  * ("837k" thành "837l"). Đẩy tâm nhãn vào trong vùng vẽ — `parentViewBox` do
- * recharts truyền cho mọi nhãn. Bề rộng chữ ước theo cỡ 11px đậm.
+ * recharts truyền cho mọi nhãn. Bề rộng chữ ước theo cỡ 12px đậm.
  */
 export function fitLabelX(x: number, text: string, box?: { x?: number; width?: number }) {
   if (!box || box.width === undefined) return x;
-  const half = (text.length * 6.6) / 2;
+  const half = (text.length * 7.2) / 2;
   const left = Number(box.x ?? 0);
   const right = left + Number(box.width);
   return Math.max(left + half, Math.min(x, right - half));
@@ -144,7 +144,7 @@ export function stackTotalAt(index: number, total: number, format: (v: number) =
     const text = format(total);
     const x = fitLabelX(Number(props.x) + Number(props.width ?? 0) / 2, text, props.parentViewBox);
     return (
-      <text x={x} y={Number(props.y) - 8} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--color-text)">
+      <text x={x} y={Number(props.y) - 8} textAnchor="middle" fontSize={12} fontWeight={700} fill="var(--color-text)">
         {text}
       </text>
     );

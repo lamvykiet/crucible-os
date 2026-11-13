@@ -195,8 +195,10 @@
   color-scheme: dark;
 
   --sheet: #1d1712;
-  --neu-hi: #2a221b;
-  --neu-lo: #120d0a;
+  /* Chênh sáng–tối quanh #1d1712 nới thêm một nấc (trước là #2a221b/#120d0a):
+     ở mức cũ bóng kép gần như không thấy, các thẻ dính vào nhau. */
+  --neu-hi: #30271f;
+  --neu-lo: #0d0906;
   --ink: #f6eee2;
   --ink-2: #cbbba8;
   --ink-3: #a8977f;
@@ -445,6 +447,13 @@ html { background: var(--sheet); }
   .c-metric-value {
     font: 400 clamp(26px, 2.6vw, 32px)/1.1 var(--font-body);
     letter-spacing: -.02em;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  /* Bậc nhỏ của cùng con số — hàng 5 ô, lưới 2 cột trên điện thoại
+     (`MetricCard size="sm"`). */
+  .c-metric-value-sm {
+    font: 400 clamp(20px, 2vw, 24px)/1.15 var(--font-body);
+    letter-spacing: -.015em;
     font-variant-numeric: lining-nums tabular-nums;
   }
 }
@@ -947,6 +956,12 @@ html { background: var(--sheet); }
   border-color: transparent;
 }
 
+/* Lớp phủ sau modal: JSX viết `bg-black/50` — đen lạnh trên nền kem ấm. Đổi
+   sang nâu mực của hệ. Chỉ đổi MÀU; `backdrop-blur-sm` trên lớp phủ giữ
+   nguyên (lớp phủ đã là `fixed inset-0`, không co con nào lại). */
+.fixed.inset-0[class*="bg-black/50"] { background-color: rgba(43, 31, 20, .5); }
+[data-theme="dark"] .fixed.inset-0[class*="bg-black/50"] { background-color: rgba(8, 5, 3, .62); }
+
 /* Những thứ nổi ĐÈ lên nội dung khác — lịch chọn ngày, chọn tháng, menu thả
    của ô gợi ý, tấm modal, mặt thẻ lật, cột dính khi cuộn ngang bảng. Lớp nào
    trong suốt là chữ của nó và chữ bên dưới đọc chồng lên nhau (09/10: lịch
@@ -1014,6 +1029,29 @@ html { background: var(--sheet); }
   content: ""; flex: 1; height: 1px; min-width: 24px;
   background: linear-gradient(90deg, var(--color-border), transparent);
 }
+
+/* ---------------------------------------------------------------------------
+ * `.c-fin` — sàn cỡ chữ của Finance (đặt trên div gốc của `FinancePage`).
+ *
+ * Luật v3: chữ phụ không nhỏ hơn 13px (Playfair mảnh, nhỏ hơn là nhạt). JSX
+ * của Finance lại viết `text-xs` (12px) ở ~190 chỗ và `text-[9–11px]` ở ~90
+ * chỗ — đo trên tab Tổng quan thì 61% số chữ dưới 13px. Thay vì sửa từng chỗ:
+ *
+ *   - `text-xs` của Tailwind v4 đọc `--text-xs`, nên đặt lại biến trong phạm
+ *     vi này là mọi `text-xs` bên trong lên 13px. Module khác không đổi.
+ *   - Cỡ viết cứng 9–11px lên 12px (hàng dày: ô lịch, bảng lịch trả nợ — 13px
+ *     làm vỡ dòng ở khổ 375px). Nhãn VIẾT HOA grotesk là ngoại lệ có sẵn của
+ *     hệ (`--text-overline` 11px), nên chỉ lên 11px.
+ *   - Chỗ nào THẬT SỰ phải giữ cỡ gốc (số trong ô 28px…) thì thêm `c-micro`.
+ *
+ * Nằm ngoài @layer để thắng utility, như phần còn lại của khối này.
+ * ------------------------------------------------------------------------ */
+.c-fin { --text-xs: 13px; --text-xs--line-height: 1.4; }
+.c-fin :is([class*="text-[9px]"], [class*="text-[10px]"], [class*="text-[11px]"]):not(.c-micro) { font-size: 12px; }
+.c-fin .uppercase:is([class*="text-[9px]"], [class*="text-[10px]"], [class*="text-[11px]"]):not(.c-micro) { font-size: 11px; }
+/* Nhãn mắt trong Finance giãn .14em — cùng nhịp với mọi `.uppercase` trên tấm
+   nền; .28em của `.c-overline` gốc làm nhãn dài ("Tỷ lệ tiết kiệm") gãy dòng. */
+.c-fin .c-overline { letter-spacing: .14em; }
 
 /* Biểu đồ — chỉ phần "khung": lưới, trục, chữ, chú giải, tooltip. MÀU CỦA
    DỮ LIỆU do từng biểu đồ tự đặt bằng token `--viz-*` (src/lib/viz.ts), không

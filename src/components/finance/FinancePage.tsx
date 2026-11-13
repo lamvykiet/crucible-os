@@ -27,7 +27,10 @@ export default function FinancePage() {
   const setActiveTab = (id: string) => router.push(`/finance?tab=${id}`, { scroll: false });
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-20">
+    // `c-fin`: sàn cỡ chữ 13px của hệ v3, bó riêng trong Finance — xem khối
+    // ".c-fin" ở globals.css. Modal render bên trong các tab nên cũng nằm trong
+    // phạm vi này. Đệm đáy do `.c-main` lo, không chồng `pb-*` ở đây.
+    <div className="c-fin max-w-7xl mx-auto space-y-6">
       <FinanceScene />
 
       {/* Tab Content */}

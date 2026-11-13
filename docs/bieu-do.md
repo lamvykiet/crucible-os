@@ -1,11 +1,13 @@
 # Biểu đồ trong Crucible — quy tắc
 
 Rút từ *Storytelling with Data* (Cole Nussbaumer Knaflic) và bộ kiểm dataviz,
-áp vào hệ "Function" giấy kem / đất nung. Đọc hết trước khi vẽ hay sửa biểu đồ.
+áp vào hệ v3 "Mật ong & Bạch đàn" (tấm nền kem, một màu hành động nâu mật ong
+`--action`). Đọc hết trước khi vẽ hay sửa biểu đồ.
 
 Bộ công cụ: `src/lib/viz.tsx` (màu, trục, lưới, cột, đường, tooltip, nhãn một
 điểm), `src/components/charts/ChartCard.tsx` (khung thẻ, chú giải, `Delta`,
-`StatTile`), `src/components/finance/MonthAxisTick.tsx` (`monthAxis` cho trục
+`StatTile`), `src/components/charts/{MetricCard,SectionHeader,RankBar}.tsx`
+(xem mục 7), `src/components/finance/MonthAxisTick.tsx` (`monthAxis` cho trục
 tháng). Mẫu chuẩn: `src/components/finance/MonthBreakdown.tsx`.
 
 ## 1. Bắt đầu từ câu muốn nói, không từ loại biểu đồ
@@ -45,7 +47,8 @@ Không bao giờ: biểu đồ hai trục Y, 3D, pie/donut, đổ bóng trong bi
 
 ## 4. Màu: xám là mặc định, nhấn là ngoại lệ
 
-- `VIZ.muted` (xám ấm) cho mọi dữ liệu nền. `VIZ.accent` (đất nung) cho ĐÚNG
+- `VIZ.muted` (xám ấm) cho mọi dữ liệu nền. `VIZ.accent` (nâu mật ong `--action`;
+  giao diện tối là mật ong nhạt) cho ĐÚNG
   điểm câu chuyện nói tới: tháng đang xem, hôm nay, mục tăng mạnh nhất.
   Một biểu đồ thường chỉ có MỘT chỗ màu nhấn.
 - Kỳ so sánh (tháng trước, năm trước): `VIZ.ghost` hoặc vạch mốc `VIZ.ink`.
@@ -54,7 +57,11 @@ Không bao giờ: biểu đồ hai trục Y, 3D, pie/donut, đổ bóng trong bi
   "Khác" (`VIZ.other`). Bảng này đã qua kiểm mù màu — đừng tự thêm màu.
 - Khúc phụ của cùng một đối tượng (thưởng so với lương): `soft(color)`.
 - Màu trạng thái (`--color-success/error`) chỉ cho tốt/xấu, và luôn đi kèm
-  mũi tên hay chữ (`Delta`). Chi tăng là xấu, thu tăng là tốt.
+  mũi tên hay chữ (`Delta` — viên `.c-delta`). Chi tăng là xấu, thu tăng là tốt.
+  SỐ MỨC (thu, chi, dư nợ, giá trị) là màu mực: thu nhập không tự nó "xanh",
+  chi tiêu không tự nó "cam". `VIZ.ink` và `VIZ.accent` gần cùng tông nâu trên
+  nền v3 — đừng dùng cặp đó cho hai đường cần phân biệt; một đường `VIZ.muted`,
+  một đường `VIZ.accent`, ghi nhãn ở điểm cuối.
 - Chữ không bao giờ mang màu của chuỗi — chữ dùng màu chữ; ô màu bên cạnh
   mới mang danh tính.
 
@@ -77,3 +84,23 @@ Không bao giờ: biểu đồ hai trục Y, 3D, pie/donut, đổ bóng trong bi
   quên là recharts tô xanh tím mặc định (globals.css có lưới an toàn kéo về
   xám, nhưng đừng dựa vào nó).
 - Chụp màn hình thật ở 1440px và 375px; nhìn nhãn chồng nhau, chữ bị cắt.
+
+## 7. Ô số liệu, tiêu đề mục, thanh ngang — mỗi thứ MỘT bản
+
+Ba thứ này từng được viết tay lại ở từng tab (khoảng 25 thẻ số liệu ba dáng, ba
+kiểu tiêu đề mục, bốn bản thanh ngang). Nay dùng chung, đừng viết bản nữa:
+
+| Cần | Dùng | Ghi chú |
+|---|---|---|
+| Ô số liệu đứng riêng trên tấm nền | `MetricCard` | icon trung tính, nhãn `.c-overline`, số `.c-metric-value`; `tone="good\|bad"` chỉ khi con số tự nó là tin tốt/xấu |
+| Ô số liệu lồng trong một thẻ | `StatTile` | dải tint phẳng; một ô `emphasis`, các ô còn lại lùi |
+| Chênh lệch so với kỳ khác | `Delta` | viên `.c-delta`; `plain` cho hàng dày |
+| Tiêu đề một mục lớn trong tab | `SectionHeader` | `c-h3` + icon 20px + cụm nút bên phải; tiêu đề cả tab vẫn là `c-h2 c-page-title` |
+| Một thanh trên thước chung | `RankBar` (`mark` = vạch mốc), `Bullet` | vẽ bằng div, không cần recharts |
+| Danh sách xếp hạng tên · số · thanh | `RankList` | truyền `format` (`formatVND` / `money`) |
+
+**Cỡ chữ trong Finance.** Div gốc của `FinancePage` mang class `c-fin`
+(globals.css): `text-xs` bên trong là 13px, cỡ viết cứng 9–11px lên 12px, nhãn
+VIẾT HOA lên 11px. Viết chữ phụ mới thì dùng `text-xs`, đừng viết
+`text-[10px]`/`text-[11px]`. Chỗ thật sự phải giữ cỡ gốc (số trong ô tròn 16px)
+thêm class `c-micro`.

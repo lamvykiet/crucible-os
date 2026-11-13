@@ -20,7 +20,7 @@ export interface SeriesKeyItem {
 
 export function SeriesKey({ items }: { items: SeriesKeyItem[] }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-[var(--color-text-muted)]">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[var(--color-text-muted)]">
       {items.map((it) => (
         <span key={it.label} className="inline-flex items-center gap-1.5">
           {it.shape === "line" ? (
@@ -72,53 +72,73 @@ export default function ChartCard({
       </header>
       {keys && keys.length > 0 && <SeriesKey items={keys} />}
       {children}
-      {footnote && <p className="text-[11px] text-[var(--color-text-faint)]">{footnote}</p>}
+      {footnote && <p className="text-xs text-[var(--color-text-faint)]">{footnote}</p>}
     </section>
   );
 }
 
 /**
- * Mũi tên tăng/giảm có chữ, màu theo "tăng là tốt hay xấu" (chi tăng là xấu,
- * thu tăng là tốt). Màu trạng thái luôn đi kèm mũi tên — không bao giờ chỉ
- * dựa vào màu.
+ * Viên tăng/giảm: mũi tên + phần trăm trên nền tint (`.c-delta` của hệ v3), màu
+ * theo "tăng là tốt hay xấu" (chi tăng là xấu, thu tăng là tốt). Màu trạng thái
+ * luôn đi kèm mũi tên — không bao giờ chỉ dựa vào màu. Phần "so với kỳ nào"
+ * (`vs`) nằm NGOÀI viên, màu chữ phụ.
+ *
+ * `plain`: bỏ nền viên, chỉ còn mũi tên + số có màu — cho hàng dày (bảng nhiều
+ * cột, hai chênh lệch chồng nhau trong một dòng) nơi viên làm dòng cao lên.
  */
 export function Delta({
   pct,
   upIsGood,
   vs,
+  plain = false,
 }: {
   pct: number | null;
   upIsGood: boolean;
   /** "so tháng trước" — nói rõ so với kỳ nào. */
   vs?: string;
+  plain?: boolean;
 }) {
   const { t } = useLanguage();
-  const tail = vs ? <span className="font-normal text-[var(--color-text-faint)]"> {vs}</span> : null;
+  const tail = vs ? <span className="text-xs text-[var(--color-text-faint)]">{vs}</span> : null;
   // Kỳ gốc bằng 0: chỉ ghi "mới" — "mới so 0" thì thừa chữ.
   if (pct === null)
-    return <span className="text-[11px] text-[var(--color-text-faint)]">{t("new", "mới")}</span>;
-  if (pct === 0)
-    return (
-      <span className="text-[11px] text-[var(--color-text-faint)]">
-        ±0%{tail}
+    return <span className="text-xs text-[var(--color-text-faint)]">{t("new", "mới")}</span>;
+  const tone = pct === 0 ? "flat" : (pct > 0) === upIsGood ? "good" : "bad";
+  const body = (
+    <>
+      {pct > 0 && <ArrowUp size={12} aria-hidden />}
+      {pct < 0 && <ArrowDown size={12} aria-hidden />}
+      <span className="tabular-nums">
+        {pct === 0 ? "±0" : Math.abs(pct)}%
       </span>
-    );
-  const up = pct > 0;
-  const good = up === upIsGood;
+    </>
+  );
   return (
-    <span
-      className={`inline-flex items-center gap-0.5 text-[11px] font-bold ${
-        good ? "text-[var(--color-success)]" : "text-[var(--color-error)]"
-      }`}
-    >
-      {up ? <ArrowUp size={11} aria-hidden /> : <ArrowDown size={11} aria-hidden />}
-      <span className="tabular-nums">{Math.abs(pct)}%</span>
+    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 align-middle">
+      {plain ? (
+        <span
+          className={`inline-flex items-center gap-0.5 text-xs font-bold ${
+            tone === "good"
+              ? "text-[var(--color-success)]"
+              : tone === "bad"
+                ? "text-[var(--color-error)]"
+                : "text-[var(--color-text-faint)]"
+          }`}
+        >
+          {body}
+        </span>
+      ) : (
+        <span className={`c-delta ${tone}`}>{body}</span>
+      )}
       {tail}
     </span>
   );
 }
 
-/** Ô số liệu: nhãn · giá trị (chữ số tỷ lệ, không tabular) · so sánh · ghi chú. */
+/**
+ * Ô số liệu LỒNG TRONG THẺ (dải tint phẳng): nhãn · giá trị · so sánh · ghi
+ * chú. Ô số liệu đứng riêng trên tấm nền thì dùng `MetricCard`.
+ */
 export function StatTile({
   label,
   value,
@@ -134,17 +154,19 @@ export function StatTile({
   emphasis?: boolean;
 }) {
   return (
-    <div className="rounded-2xl bg-[var(--color-surface-2)] p-4 min-w-0">
-      <div className="text-[11px] text-[var(--color-text-muted)]">{label}</div>
+    // `@container` + cỡ chữ theo `cqi`: trong lưới 2 cột ở khổ 375px ô chỉ rộng
+    // ~113px, số tiền tỷ đồng cỡ 20px làm chữ "đ" rớt xuống dòng riêng.
+    <div className="@container rounded-2xl bg-[var(--color-surface-2)] p-4 min-w-0">
+      <div className="text-xs text-[var(--color-text-muted)]">{label}</div>
       <div
-        className={`mt-1 font-bold ${
-          emphasis ? "text-xl text-[var(--color-text)]" : "text-base text-[var(--color-text-muted)]"
+        className={`mt-1 font-bold leading-tight tabular-nums ${
+          emphasis ? "text-[length:clamp(15px,13cqi,20px)] text-[var(--color-text)]" : "text-base text-[var(--color-text-muted)]"
         }`}
       >
         {value}
       </div>
       {(delta || note) && (
-        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-[var(--color-text-faint)]">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-[var(--color-text-faint)]">
           {delta}
           {note && <span>{note}</span>}
         </div>
