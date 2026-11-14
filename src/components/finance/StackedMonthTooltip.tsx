@@ -45,27 +45,33 @@ export default function StackedMonthTooltip({
   const total = Number(
     totalRow?.value ?? rows.reduce((sum, r) => sum + (r.value || 0), 0)
   );
+  // Nhãn trục là "2026-10"; trong chú giải viết theo lối đọc vi-VN "10/2026".
+  const heading =
+    typeof label === "string" && /^\d{4}-\d{2}$/.test(label)
+      ? `${label.slice(5, 7)}/${label.slice(0, 4)}`
+      : label;
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs">
-      <p className="font-bold text-[var(--color-text)]">{label}</p>
-      <p className="font-bold tabular-nums text-[var(--color-text)] mb-1.5">
-        {formatVND(total)}
+    // Nền do globals.css ép về `--glass-solid` (lớp nổi đè lên biểu đồ).
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--glass-solid)] px-3.5 py-2.5 text-xs min-w-44 max-w-[18rem]">
+      <p className="flex items-baseline justify-between gap-4">
+        <span className="text-[var(--color-text-muted)]">{heading}</span>
+        <span className="font-bold tabular-nums whitespace-nowrap text-[var(--color-text)]">{formatVND(total)}</span>
       </p>
-      <ul className="space-y-1">
+      <ul className="mt-2 pt-2 border-t border-[var(--color-border)] flex flex-col gap-1">
         {rows.map((r) => (
           <li key={String(r.dataKey)} className="flex items-center gap-2">
             <span
-              className="w-2.5 h-2.5 rounded-sm flex-none"
+              className="w-2.5 h-2.5 rounded-[3px] flex-none"
               style={{ background: r.color }}
               aria-hidden
             />
             <span className="flex-1 min-w-0 truncate text-[var(--color-text-muted)]">
               {r.dataKey === otherKey ? otherLabel : r.name || String(r.dataKey)}
             </span>
-            <span className="tabular-nums font-bold text-[var(--color-text)]">
+            <span className="tabular-nums font-semibold text-[var(--color-text)]">
               {total > 0 ? Math.round(((r.value || 0) / total) * 100) : 0}%
             </span>
-            <span className="tabular-nums text-[var(--color-text-faint)]">
+            <span className="tabular-nums whitespace-nowrap text-[var(--color-text-faint)]">
               {formatVND(r.value || 0)}
             </span>
           </li>

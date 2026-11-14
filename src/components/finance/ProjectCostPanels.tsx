@@ -101,7 +101,7 @@ export function CostPanel({
         <button
           onClick={onTransfer}
           disabled={cogs.totalWip <= 0 && cogs.totalCogs <= 0}
-          className="c-btn c-btn-sm min-h-11 md:min-h-0 bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] disabled:opacity-50"
+          className="c-btn c-btn-secondary c-btn-sm min-h-11 disabled:opacity-50"
         >
           <ArrowRightLeft size={15} /> {t("Move to COGS", "Kết chuyển giá vốn")}
         </button>
@@ -152,12 +152,12 @@ export function CostPanel({
                   <span
                     className={`text-sm truncate ${
                       r.total ? "text-[var(--color-text)]" : "text-[var(--color-text-faint)]"
-                    } ${largest && r.code === largest.code && r.total > 0 ? "font-bold" : ""}`}
+                    } ${largest && r.code === largest.code && r.total > 0 ? "font-semibold" : ""}`}
                   >
                     {t(r.en, r.vi)}
                   </span>
                 </span>
-                <span className="shrink-0 text-sm tabular-nums font-bold text-[var(--color-text)]">
+                <span className="shrink-0 text-sm tabular-nums whitespace-nowrap font-bold text-[var(--color-text)]">
                   {formatVND(r.total)}
                   <span className="ml-1.5 font-normal text-[var(--color-text-faint)]">
                     {cogs.totalCost > 0 ? Math.round((r.total / cogs.totalCost) * 100) : 0}%
@@ -165,7 +165,7 @@ export function CostPanel({
                 </span>
               </div>
               {r.total !== 0 && (
-                <p className="text-[11px] text-[var(--color-text-faint)] mt-0.5 pl-[18px] tabular-nums">
+                <p className="text-xs text-[var(--color-text-faint)] mt-0.5 pl-[18px] tabular-nums">
                   WIP {money(cogs.wip[r.code] ?? 0)} · {t("COGS", "giá vốn")} {money(cogs.cogs[r.code] ?? 0)}
                 </p>
               )}
@@ -200,13 +200,11 @@ export function CostPanel({
       {cogs.budget && budgetPct !== null && cogs.variance !== null ? (
         <div>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <span className="text-sm font-bold text-[var(--color-text)]">{t("Budget vs actual", "Ngân sách so với thực tế")}</span>
+            <span className="text-sm font-semibold text-[var(--color-text)]">{t("Budget vs actual", "Ngân sách so với thực tế")}</span>
             <span
-              className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
-                cogs.status === "OVER_BUDGET"
-                  ? "bg-[var(--color-error-tint)] text-[var(--color-error)]"
-                  : "bg-[var(--color-success-tint)] text-[var(--color-success)]"
-              }`}
+              // `.c-chip-*` nằm ngoài @layer nên phải dùng biến thể của nó,
+              // utility `bg-*`/`text-*` không thắng được.
+              className={`c-chip ${cogs.status === "OVER_BUDGET" ? "c-chip-error" : "c-chip-success"}`}
             >
               {cogs.status === "OVER_BUDGET"
                 ? t("Over budget", "Vượt ngân sách")
@@ -237,7 +235,7 @@ export function CostPanel({
       ) : (
         <button
           onClick={onEditBudget}
-          className="text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text)] min-h-9"
+          className="self-start text-sm text-[var(--color-text-muted)] underline underline-offset-2 hover:text-[var(--color-text)] min-h-11"
         >
           {t("Set a budget to compare against →", "Đặt ngân sách dự toán để so với thực tế →")}
         </button>
@@ -245,12 +243,17 @@ export function CostPanel({
 
       {/* Sổ cái phải khớp phân bổ. Lệch là có đường ghi giao dịch nào đó quên
           ghi sổ — nói ra thay vì để hai con số khác nhau nằm im trên màn hình. */}
+      {/* Màu trạng thái chỉ ở icon; chữ nói bằng lời. */}
       <p
-        className={`text-[11px] flex items-center gap-1.5 ${
-          cogs.reconciled ? "text-[var(--color-text-faint)]" : "text-[var(--color-warning)]"
+        className={`text-xs flex items-center gap-1.5 ${
+          cogs.reconciled ? "text-[var(--color-text-faint)]" : "font-semibold text-[var(--color-text)]"
         }`}
       >
-        {cogs.reconciled ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
+        {cogs.reconciled ? (
+          <CheckCircle2 size={14} className="shrink-0" aria-hidden />
+        ) : (
+          <AlertCircle size={14} className="shrink-0 text-[var(--color-warning)]" aria-hidden />
+        )}
         {cogs.reconciled
           ? t("Ledger matches the allocations", "Sổ cái khớp với phân bổ")
           : t("Ledger does not match the allocations — tell Claude", "Sổ cái lệch với phân bổ — cần kiểm tra lại")}
@@ -274,11 +277,11 @@ export function LedgerPanel({ ledger, count }: { ledger: LedgerView[]; count: nu
   const BUCKET: Record<string, string> = { WIP: "WIP", COGS: t("COGS", "Giá vốn"), REVENUE: t("Revenue", "Doanh thu") };
 
   return (
-    <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
+    <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] min-w-0">
       <button
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full flex items-start justify-between gap-3 text-left"
+        className="w-full min-h-11 flex items-start justify-between gap-3 text-left"
       >
         <span className="min-w-0">
           <span className="block c-h5 text-[var(--color-text)]">{t("Project ledger", "Sổ cái dự án")}</span>
@@ -306,12 +309,12 @@ export function LedgerPanel({ ledger, count }: { ledger: LedgerView[]; count: nu
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="flex items-center gap-2 min-w-0">
                       <span
-                        className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0 ${
+                        // Loại bút toán là PHÂN LOẠI, không phải tốt/xấu: viên
+                        // trung tính, bút toán đảo phân biệt bằng viền.
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
                           e.kind === "REVERSAL"
-                            ? "bg-[var(--color-warning-tint)] text-[var(--color-warning)]"
-                            : e.kind === "COGS_TRANSFER"
-                              ? "bg-[var(--color-info-tint)] text-[var(--color-info)]"
-                              : "bg-[var(--color-surface-2)] text-[var(--color-text-muted)]"
+                            ? "border border-[var(--color-border-strong)] text-[var(--color-text)]"
+                            : "bg-[var(--color-surface-2)] text-[var(--color-text-muted)]"
                         }`}
                       >
                         {KIND[e.kind] ?? e.kind}
@@ -321,19 +324,19 @@ export function LedgerPanel({ ledger, count }: { ledger: LedgerView[]; count: nu
                         <span className="text-[var(--color-text-faint)]"> · {BUCKET[e.bucket] ?? e.bucket}</span>
                       </span>
                     </span>
-                    <span className="shrink-0 text-sm font-bold tabular-nums text-[var(--color-text)]">
-                      <span className="text-[10px] font-bold text-[var(--color-text-faint)] mr-1">
+                    <span className="shrink-0 text-sm font-bold tabular-nums whitespace-nowrap text-[var(--color-text)]">
+                      <span className="text-xs font-normal text-[var(--color-text-faint)] mr-1">
                         {credit ? t("Cr", "Có") : t("Dr", "Nợ")}
                       </span>
                       {formatVND(e.amount)}
                     </span>
                   </div>
                   <div className="flex items-baseline justify-between gap-3 mt-0.5">
-                    <span className="text-[11px] text-[var(--color-text-faint)] truncate">
+                    <span className="text-xs text-[var(--color-text-faint)] truncate">
                       {dayLabel(e.postingDate)}
                       {e.note ? ` · ${e.note}` : ""}
                     </span>
-                    <span className="shrink-0 text-[11px] tabular-nums text-[var(--color-text-faint)]">
+                    <span className="shrink-0 text-xs tabular-nums whitespace-nowrap text-[var(--color-text-faint)]">
                       {t("running", "luỹ kế")} {formatVND(e.runningTotalCost)}
                     </span>
                   </div>
@@ -342,7 +345,7 @@ export function LedgerPanel({ ledger, count }: { ledger: LedgerView[]; count: nu
             })}
           </ul>
           {count > ledger.length && (
-            <p className="text-[11px] text-[var(--color-text-faint)] mt-3">
+            <p className="text-xs text-[var(--color-text-faint)] mt-3">
               {t(`showing the latest ${ledger.length} of ${count}`, `đang hiện ${ledger.length} bút toán gần nhất trên ${count}`)}
             </p>
           )}

@@ -7,6 +7,7 @@ import AssetModal, { type AssetDraft } from "./AssetModal";
 import { todayLocalIso } from "@/lib/localDate";
 import { formatVND } from "@/lib/formatMoney";
 import { VIZ } from "@/lib/viz";
+import MetricCard from "@/components/charts/MetricCard";
 
 // Tài sản và công cụ dụng cụ.
 //
@@ -89,10 +90,10 @@ export default function AssetsTab() {
           setAllDebts(json.data.allDebts ?? []);
           setErrorText("");
         } else {
-          setErrorText(json.error || "Không tải được danh sách tài sản");
+          setErrorText(json.error || "load");
         }
       } catch {
-        if (!ignore) setErrorText("Không tải được danh sách tài sản");
+        if (!ignore) setErrorText("load");
       }
     })();
     return () => { ignore = true; };
@@ -137,27 +138,6 @@ export default function AssetsTab() {
     if (res.ok) setReloadTick((n) => n + 1);
   };
 
-  const card = (
-    icon: React.ReactNode,
-    label: string,
-    value: string,
-    hint: string,
-    tone = "text-[var(--color-text)]"
-  ) => (
-    <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-muted)] flex items-center justify-center flex-none">
-          {icon}
-        </div>
-        <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-          {label}
-        </div>
-      </div>
-      <div className={`text-2xl font-bold ${tone}`}>{value}</div>
-      <div className="text-xs text-[var(--color-text-faint)] mt-1">{hint}</div>
-    </div>
-  );
-
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -174,7 +154,7 @@ export default function AssetsTab() {
           onClick={() => openNew()}
           aria-label={t("Add asset", "Thêm tài sản")}
           title={t("Add asset", "Thêm tài sản")}
-          className="c-btn c-btn-primary c-btn-pill shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
+          className="c-btn c-btn-primary w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
         >
           <Plus size={16} /> <span className="hidden md:inline">{t("Add asset", "Thêm tài sản")}</span>
         </button>
@@ -182,7 +162,9 @@ export default function AssetsTab() {
 
       {errorText && (
         <div className="text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-4 rounded-xl">
-          {errorText}
+          {errorText === "load"
+            ? t("Could not load the asset list.", "Không tải được danh sách tài sản.")
+            : errorText}
         </div>
       )}
 
@@ -190,52 +172,54 @@ export default function AssetsTab() {
       {unlinkedDebts.map((d) => (
         <div
           key={d.id}
-          className="bg-[var(--color-warning-tint)] border border-[var(--color-warning)] rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3"
+          className="flex flex-wrap items-center gap-3 rounded-2xl bg-[var(--color-warning-tint)] p-4"
         >
-          <div className="flex items-center gap-3 text-sm text-[var(--color-warning)]">
-            <Link2 size={18} className="flex-none" />
-            <span>
+          <Link2 size={18} className="flex-none text-[var(--color-warning)]" aria-hidden />
+          <p className="min-w-0 flex-1 basis-56 text-sm text-[var(--color-text)]">
               {t("Loan", "Khoản vay")} <b>{d.name}</b>{" "}
               {t(
                 "is not linked to any asset yet, so its equity cannot be computed.",
                 "chưa gắn với tài sản nào, nên chưa tính được vốn chủ sở hữu."
               )}
-            </span>
-          </div>
-          <button onClick={() => openNew(d.id)} className="c-btn c-btn-secondary c-btn-sm">
+          </p>
+          <button onClick={() => openNew(d.id)} className="c-btn c-btn-secondary c-btn-sm min-h-11">
             {t("Add the asset", "Thêm tài sản cho khoản vay này")}
           </button>
         </div>
       ))}
 
       {totals && totals.count > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-          {card(
-            <Package size={20} />,
-            t("Current worth", "Giá trị hiện tại"),
-            formatVND(totals.worth),
-            `${totals.count} ${t("assets", "tài sản")}`
-          )}
-          {card(
-            <Wallet size={20} />,
-            t("Your equity", "Vốn chủ sở hữu"),
-            formatVND(totals.equity),
-            t("worth minus outstanding loans", "giá trị trừ dư nợ còn lại"),
-            totals.equity < 0 ? "text-[var(--color-error)]" : "text-[var(--color-success)]"
-          )}
-          {card(
-            <Building2 size={20} />,
-            t("Outstanding loans", "Dư nợ còn lại"),
-            formatVND(totals.debt),
-            t("linked to these assets", "gắn với các tài sản này"),
-            "text-[var(--color-warning)]"
-          )}
-          {card(
-            <TrendingDown size={20} />,
-            t("Depreciation", "Khấu hao"),
-            formatVND(totals.monthlyDepreciation),
-            t("per month, book value", "mỗi tháng, theo sổ sách")
-          )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {/* Số MỨC màu mực; chỉ vốn chủ ÂM (nợ vượt giá trị) mới là tin xấu. */}
+          <MetricCard
+            size="sm"
+            icon={<Package size={16} />}
+            label={t("Current worth", "Giá trị hiện tại")}
+            value={formatVND(totals.worth)}
+            note={`${totals.count} ${t("assets", "tài sản")}`}
+          />
+          <MetricCard
+            size="sm"
+            icon={<Wallet size={16} />}
+            label={t("Your equity", "Vốn chủ sở hữu")}
+            value={formatVND(totals.equity)}
+            tone={totals.equity < 0 ? "bad" : "neutral"}
+            note={t("worth minus outstanding loans", "giá trị trừ dư nợ còn lại")}
+          />
+          <MetricCard
+            size="sm"
+            icon={<Building2 size={16} />}
+            label={t("Outstanding loans", "Dư nợ còn lại")}
+            value={formatVND(totals.debt)}
+            note={t("linked to these assets", "gắn với các tài sản này")}
+          />
+          <MetricCard
+            size="sm"
+            icon={<TrendingDown size={16} />}
+            label={t("Depreciation", "Khấu hao")}
+            value={formatVND(totals.monthlyDepreciation)}
+            note={t("per month, book value", "mỗi tháng, theo sổ sách")}
+          />
         </div>
       )}
 
@@ -244,14 +228,23 @@ export default function AssetsTab() {
       )}
 
       {assets && assets.length === 0 && (
-        <div className="bg-[var(--color-surface)] rounded-2xl p-8 border border-[var(--color-border)] text-center">
-          <p className="text-sm text-[var(--color-text-muted)]">
-            {t("No assets recorded yet.", "Chưa ghi tài sản nào.")}
+        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 md:p-8 flex flex-col items-center gap-2 text-center">
+          <h3 className="c-h5 text-[var(--color-text)]">
+            {t("No assets recorded yet", "Chưa ghi tài sản nào")}
+          </h3>
+          <p className="text-sm text-[var(--color-text-muted)] max-w-xl">
+            {t(
+              "Add what you own with its purchase price and date to see what it is worth today and how much of it is yours.",
+              "Thêm thứ bạn đang sở hữu kèm giá mua và ngày mua để thấy hôm nay nó đáng bao nhiêu và bao nhiêu là của bạn."
+            )}
           </p>
+          <button onClick={() => openNew()} className="mt-3 c-btn c-btn-primary">
+            <Plus size={16} /> {t("Add asset", "Thêm tài sản")}
+          </button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {(assets ?? []).map((a) => {
           const Icon = CATEGORY_ICON[a.category] ?? Package;
           const noDep = a.monthlyDepreciation === 0;
@@ -261,12 +254,12 @@ export default function AssetsTab() {
           return (
             <div
               key={a.id}
-              className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm"
+              className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col min-w-0"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-muted)] flex items-center justify-center flex-none">
-                    <Icon size={20} />
+                    <Icon size={18} />
                   </div>
                   <div className="min-w-0">
                     <h3 className="c-h5 text-[var(--color-text)] truncate" title={a.name}>
@@ -279,43 +272,43 @@ export default function AssetsTab() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center shrink-0 -mr-2 -mt-2">
                   <button
                     onClick={() => openEdit(a)}
                     aria-label={t("Edit", "Sửa")}
-                    className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-faint)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
+                    className="w-11 h-11 flex items-center justify-center rounded-xl text-[var(--color-text-faint)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
                   >
                     <Pencil size={16} />
                   </button>
                   <button
                     onClick={() => handleDelete(a)}
                     aria-label={t("Delete", "Xoá")}
-                    className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-faint)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-tint)] transition-colors"
+                    className="w-11 h-11 flex items-center justify-center rounded-xl text-[var(--color-text-faint)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-tint)] transition-colors"
                   >
                     <Trash2 size={16} />
                   </button>
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
                 <div>
-                  <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                  <div className="c-overline text-[var(--color-text-muted)]">
                     {a.currentValue !== null
                       ? t("Valued at", "Định giá")
                       : t("Book value", "Giá trị sổ sách")}
                   </div>
-                  <div className="text-lg font-bold text-[var(--color-text)] tabular-nums">
+                  <div className="mt-1 c-metric-value-sm whitespace-nowrap text-[var(--color-text)]">
                     {formatVND(a.worth)}
                   </div>
                 </div>
                 {a.loans.length > 0 && (
                   <div>
-                    <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+                    <div className="c-overline text-[var(--color-text-muted)]">
                       {t("Your equity", "Vốn chủ sở hữu")}
                     </div>
                     <div
-                      className={`text-lg font-bold tabular-nums ${
-                        a.equity < 0 ? "text-[var(--color-error)]" : "text-[var(--color-success)]"
+                      className={`mt-1 c-metric-value-sm whitespace-nowrap ${
+                        a.equity < 0 ? "text-[var(--color-error)]" : "text-[var(--color-text)]"
                       }`}
                     >
                       {formatVND(a.equity)}
@@ -325,15 +318,15 @@ export default function AssetsTab() {
               </div>
 
               {a.loans.length > 0 && (
-                <ul className="mt-2 space-y-1">
+                <ul className="mt-3 flex flex-col gap-1">
                   {a.loans.map((l) => (
-                    <li key={l.id} className="text-xs text-[var(--color-text-muted)]">
+                    <li key={l.id} className="text-xs tabular-nums text-[var(--color-text-muted)]">
                       {l.name} · {t("outstanding", "dư nợ")} {formatVND(l.outstanding)}
                       {l.asOf && ` (${t("as of", "tới")} ${l.asOf})`}
                     </li>
                   ))}
                   {a.loans.length > 1 && (
-                    <li className="text-xs font-bold text-[var(--color-warning)]">
+                    <li className="text-xs font-semibold tabular-nums text-[var(--color-text)]">
                       {t("total", "tổng")} {formatVND(a.outstandingDebt)}
                     </li>
                   )}
@@ -342,7 +335,7 @@ export default function AssetsTab() {
 
               {!noDep && (
                 <div className="mt-4">
-                  <div className="flex justify-between text-xs text-[var(--color-text-muted)] mb-1">
+                  <div className="flex justify-between gap-3 text-xs tabular-nums text-[var(--color-text-muted)] mb-1.5">
                     <span>
                       {t("Depreciated", "Đã khấu hao")} {formatVND(a.accumulatedDepreciation)}
                     </span>

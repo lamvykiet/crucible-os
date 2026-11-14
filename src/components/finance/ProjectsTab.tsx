@@ -13,6 +13,7 @@ import { todayLocalIso } from "@/lib/localDate";
 import { monthAxis } from "./MonthAxisTick";
 import { VIZ, GRID, yAxis, BAR, LINE, TOOLTIP, TOOLTIP_LINE } from "@/lib/viz";
 import ChartCard, { StatTile } from "@/components/charts/ChartCard";
+import { RankList } from "@/components/charts/RankBar";
 import TransactionModal from "./TransactionModal";
 import ProjectModal, { emptyProject, type ProjectDraft } from "./ProjectModal";
 import AttachTransactionsModal from "./AttachTransactionsModal";
@@ -117,16 +118,6 @@ function Meter({ pct, color = VIZ.accent }: { pct: number; color?: string }) {
   return (
     <div className="h-2 w-full rounded-full overflow-hidden" style={{ background: VIZ.ghost }} aria-hidden>
       <div className="h-full rounded-full" style={{ width: `${w}%`, minWidth: w > 0 ? 4 : 0, background: color }} />
-    </div>
-  );
-}
-
-/** Thanh xếp hạng ngang (không rãnh): dài theo `value / max`, đầu bo 4px như `BAR_H`. */
-function RankBar({ value, max, color }: { value: number; max: number; color: string }) {
-  const w = max > 0 ? (Math.max(0, value) / max) * 100 : 0;
-  return (
-    <div className="h-3 w-full" aria-hidden>
-      <div className="h-full rounded-r-[4px]" style={{ width: `${w}%`, minWidth: value > 0 ? 3 : 0, background: color }} />
     </div>
   );
 }
@@ -281,7 +272,7 @@ export default function ProjectsTab() {
           onClick={() => setProjectDraft(emptyProject())}
           aria-label={t("New project", "Dự án mới")}
           title={t("New project", "Dự án mới")}
-          className="c-btn c-btn-primary shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5! shrink-0"
+          className="c-btn c-btn-primary w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5! shrink-0"
         >
           <Plus size={16} /> <span className="hidden md:inline">{t("New project", "Dự án mới")}</span>
         </button>
@@ -298,7 +289,7 @@ export default function ProjectsTab() {
             <button
               key={p.id}
               onClick={() => setSelectedId(p.id)}
-              className={`shrink-0 px-4 min-h-11 rounded-full text-sm font-bold border transition-colors ${
+              className={`shrink-0 px-4 min-h-11 rounded-full text-sm font-semibold border transition-colors ${
                 p.id === selectedId
                   ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] border-[var(--color-primary)]"
                   : "bg-[var(--color-surface)] text-[var(--color-text-muted)] border-[var(--color-border)] hover:text-[var(--color-text)]"
@@ -314,32 +305,34 @@ export default function ProjectsTab() {
       )}
 
       {listFailed && !projects ? (
-        <div className="flex flex-col items-center justify-center gap-3 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-10">
-          <p className="text-sm text-[var(--color-text-muted)]">
-            {t("Could not load your projects.", "Không tải được danh sách dự án.")}
+        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 md:p-8 flex flex-col items-center gap-2 text-center">
+          <h3 className="c-h5 text-[var(--color-text)]">
+            {t("Could not load your projects", "Không tải được danh sách dự án")}
+          </h3>
+          <p className="text-sm text-[var(--color-text-muted)] max-w-xl">
+            {t("Your projects are still there — this load failed. Try again.", "Dự án vẫn còn, chỉ lần tải này bị lỗi. Thử tải lại.")}
           </p>
-          <button onClick={refresh} className="c-btn c-btn-tertiary c-btn-sm">
+          <button onClick={refresh} className="mt-3 c-btn c-btn-secondary">
             <RotateCcw size={14} /> {t("Retry", "Thử lại")}
           </button>
         </div>
       ) : projects === null || (loading && !current) ? (
-        <div className="flex justify-center items-center h-64 text-[var(--color-text-faint)]">
-          <Loader2 size={20} className="animate-spin" />
-          <span className="ml-3 text-sm font-bold">{t("Loading data...", "Đang tải dữ liệu...")}</span>
-        </div>
+        <p className="flex items-center gap-2 text-sm text-[var(--color-text-faint)]">
+          <Loader2 size={16} className="animate-spin" aria-hidden /> {t("Loading...", "Đang tải...")}
+        </p>
       ) : projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-4 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-10">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center">
-            <Hammer size={30} />
+        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 md:p-8 flex flex-col items-center gap-2 text-center">
+          <div className="mb-2 w-12 h-12 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center" aria-hidden>
+            <Hammer size={22} />
           </div>
-          <p className="text-lg font-bold text-[var(--color-text)]">{t("No projects yet", "Chưa có dự án nào")}</p>
-          <p className="text-sm text-[var(--color-text-muted)] max-w-md">
+          <h3 className="c-h5 text-[var(--color-text)]">{t("No projects yet", "Chưa có dự án nào")}</h3>
+          <p className="text-sm text-[var(--color-text-muted)] max-w-xl">
             {t(
               "Create one, then tag spending and income to it when you record them.",
               "Tạo một dự án, rồi khi ghi chi phí hay doanh thu thì chọn dự án đó ở ô “Chi cho dự án” / “Doanh thu của dự án”."
             )}
           </p>
-          <button onClick={() => setProjectDraft(emptyProject())} className="c-btn c-btn-primary c-btn-pill">
+          <button onClick={() => setProjectDraft(emptyProject())} className="mt-3 c-btn c-btn-primary">
             <Plus size={16} /> {t("New project", "Dự án mới")}
           </button>
         </div>
@@ -524,7 +517,6 @@ function ProjectBody({
         );
 
   // --- Doanh thu từ ai / Mua gì nhiều nhất ----------------------------------
-  const maxSource = Math.max(1, ...revenueBySource.map((c) => c.amount));
   const topSource = revenueBySource.reduce<(typeof revenueBySource)[number] | null>(
     (best, s) => (!best || s.amount > best.amount ? s : best),
     null
@@ -539,7 +531,6 @@ function ProjectBody({
             `${topSource.name} brought in ${Math.round((topSource.amount / Math.max(1, sourceSum)) * 100)}% of revenue`,
             `${topSource.name} mang về ${Math.round((topSource.amount / Math.max(1, sourceSum)) * 100)}% doanh thu`
           );
-  const maxItem = Math.max(1, ...topItems.map((c) => c.amount));
   const topItem = topItems.reduce<(typeof topItems)[number] | null>(
     (best, s) => (!best || s.amount > best.amount ? s : best),
     null
@@ -552,7 +543,7 @@ function ProjectBody({
   return (
     <div className="space-y-6">
       {/* --- Tên dự án và thao tác --- */}
-      <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
+      <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-5 min-w-0">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -561,7 +552,7 @@ function ProjectBody({
                   là một gạch lạc. Tắt riêng ở đây (quy tắc kia nằm ngoài
                   @layer nên phải có `!`). */}
               <h3 className="c-h3 text-[var(--color-text)] after:hidden!">{project.name}</h3>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
+              <span className="c-chip">
                 {statusLabel}
               </span>
             </div>
@@ -578,25 +569,26 @@ function ProjectBody({
             onClick={onEditProject}
             aria-label={t("Edit project", "Sửa dự án")}
             title={t("Edit project", "Sửa dự án")}
-            className="shrink-0 -mr-2 w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-faint)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
+            className="shrink-0 -mr-2 -mt-2 w-11 h-11 flex items-center justify-center rounded-xl text-[var(--color-text-faint)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
           >
             <Pencil size={17} />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2 mt-5">
-          <button onClick={onAddCost} className="c-btn c-btn-primary c-btn-sm min-h-11 md:min-h-0">
+        {/* Hai nút ngang nhau trên 375px, chỉ một nút mang màu chính. */}
+        <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2">
+          <button onClick={onAddCost} className="c-btn c-btn-primary c-btn-sm min-h-11">
             <TrendingDown size={15} /> {t("Record cost", "Ghi chi phí")}
           </button>
           <button
             onClick={onAddRevenue}
-            className="c-btn c-btn-sm min-h-11 md:min-h-0 bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)]"
+            className="c-btn c-btn-secondary c-btn-sm min-h-11"
           >
             <TrendingUp size={15} /> {t("Record revenue", "Ghi doanh thu")}
           </button>
           <button
             onClick={onAttach}
-            className="col-span-2 c-btn c-btn-sm min-h-11 md:min-h-0 bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]"
+            className="col-span-2 c-btn c-btn-tertiary c-btn-sm min-h-11"
           >
             <Link2 size={15} /> {t("Add earlier transactions", "Gắn giao dịch đã ghi")}
           </button>
@@ -668,16 +660,19 @@ function ProjectBody({
       </ChartCard>
 
       {!hasMoney ? (
-        <div className="bg-[var(--color-surface)] rounded-2xl p-8 border border-dashed border-[var(--color-border)] text-center">
-          <p className="text-sm font-bold text-[var(--color-text)]">
+        <div className="bg-[var(--color-surface)] rounded-2xl p-6 md:p-8 border border-[var(--color-border)] flex flex-col items-center gap-2 text-center">
+          <h3 className="c-h5 text-[var(--color-text)]">
             {t("Nothing tagged to this project yet", "Chưa có khoản nào thuộc dự án này")}
-          </p>
-          <p className="text-sm text-[var(--color-text-muted)] mt-2 max-w-lg mx-auto">
+          </h3>
+          <p className="text-sm text-[var(--color-text-muted)] max-w-xl">
             {t(
               "Use the buttons above, or pick this project in the “Spent on project” box when you record or scan a receipt.",
               "Bấm các nút phía trên, hoặc chọn dự án này ở ô “Chi cho dự án” / “Doanh thu của dự án” khi ghi tay hay quét hoá đơn."
             )}
           </p>
+          <button onClick={onAttach} className="mt-3 c-btn c-btn-secondary">
+            <Link2 size={16} /> {t("Add earlier transactions", "Gắn giao dịch đã ghi")}
+          </button>
         </div>
       ) : (
         <>
@@ -787,45 +782,47 @@ function ProjectBody({
                   )}
                 </p>
               ) : (
-                <ul className="flex flex-col gap-3">
-                  {revenueBySource.map((s) => {
-                    const top = s.name === topSource?.name;
-                    return (
-                      <li key={s.name} className="flex flex-col gap-1.5">
-                        <div className="flex items-baseline justify-between gap-3 text-sm">
-                          <span className={`min-w-0 truncate text-[var(--color-text)] ${top ? "font-bold" : ""}`}>
-                            {s.name}
-                            <span className="font-normal text-[var(--color-text-faint)]"> · {s.count} {t("orders", "lần")}</span>
-                          </span>
-                          <span className="shrink-0 tabular-nums font-bold text-[var(--color-text)]">{formatVND(s.amount)}</span>
-                        </div>
-                        <RankBar value={s.amount} max={maxSource} color={top ? VIZ.accent : VIZ.muted} />
-                      </li>
-                    );
+                <RankList
+                  format={formatVND}
+                  rows={revenueBySource.map((src) => {
+                    const top = src.name === topSource?.name;
+                    return {
+                      key: src.name,
+                      name: (
+                        <>
+                          {src.name}
+                          <span className="font-normal text-[var(--color-text-faint)]"> · {src.count} {t("orders", "lần")}</span>
+                        </>
+                      ),
+                      amount: src.amount,
+                      color: top ? VIZ.accent : VIZ.muted,
+                      strong: top,
+                    };
                   })}
-                </ul>
+                />
               )}
             </ChartCard>
 
             {topItems.length > 0 && (
               <ChartCard title={itemTitle} subtitle={t("Most bought, from receipt line items", "Mua gì nhiều nhất, gộp từ chi tiết hoá đơn")}>
-                <ul className="flex flex-col gap-3">
-                  {topItems.map((it) => {
+                <RankList
+                  format={formatVND}
+                  rows={topItems.map((it) => {
                     const top = it.name === topItem?.name;
-                    return (
-                      <li key={it.name} className="flex flex-col gap-1.5">
-                        <div className="flex items-baseline justify-between gap-3 text-sm">
-                          <span className={`min-w-0 truncate text-[var(--color-text)] ${top ? "font-bold" : ""}`}>
-                            {it.name}
-                            <span className="font-normal text-[var(--color-text-faint)]"> · SL {it.quantity}</span>
-                          </span>
-                          <span className="shrink-0 tabular-nums font-bold text-[var(--color-text)]">{formatVND(it.amount)}</span>
-                        </div>
-                        <RankBar value={it.amount} max={maxItem} color={top ? VIZ.accent : VIZ.muted} />
-                      </li>
-                    );
+                    return {
+                      key: it.name,
+                      name: (
+                        <>
+                          {it.name}
+                          <span className="font-normal text-[var(--color-text-faint)]"> · {t("qty", "SL")} {it.quantity}</span>
+                        </>
+                      ),
+                      amount: it.amount,
+                      color: top ? VIZ.accent : VIZ.muted,
+                      strong: top,
+                    };
                   })}
-                </ul>
+                />
               </ChartCard>
             )}
           </div>
@@ -833,14 +830,16 @@ function ProjectBody({
       )}
       {/* --- Sổ của dự án --- */}
       {transactions.length > 0 && (
-        <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)]">
-          <h4 className="c-h5 text-[var(--color-text)]">{t("Project transactions", "Giao dịch của dự án")}</h4>
-          <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
+        <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-4 min-w-0">
+          <header>
+            <h4 className="c-h5 text-[var(--color-text)]">{t("Project transactions", "Giao dịch của dự án")}</h4>
+          <p className="text-xs text-[var(--color-text-faint)] mt-1">
             {t(
               `${transactions.length} ${transactions.length === 1 ? "entry" : "entries"} · tap one to edit · they also stay in Expense / Income`,
               `${transactions.length} khoản · chạm để sửa · các khoản này vẫn nằm trong Chi tiêu / Thu nhập chung`
             )}
           </p>
+          </header>
           <ul className="divide-y divide-[var(--color-border)] -mx-2">
             {transactions.map((tx) => {
               const income = tx.type === "Income";
@@ -850,12 +849,12 @@ function ProjectBody({
                 <li key={tx.id} className="flex items-center gap-1">
                   <button
                     onClick={() => onEditTx(tx)}
-                    className="flex-1 min-w-0 text-left px-2 py-3 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
+                    className="flex-1 min-w-0 text-left px-2 py-3 rounded-xl hover:bg-[var(--color-surface-2)] transition-colors"
                   >
                     <span className="flex items-baseline justify-between gap-3">
-                      <span className="text-sm font-bold text-[var(--color-text)] truncate">{tx.supplier}</span>
+                      <span className="text-sm font-semibold text-[var(--color-text)] truncate" title={tx.supplier}>{tx.supplier}</span>
                       <span
-                        className={`text-sm font-bold tabular-nums shrink-0 ${
+                        className={`text-sm font-bold tabular-nums whitespace-nowrap shrink-0 ${
                           income || refund ? "text-[var(--color-success)]" : "text-[var(--color-text)]"
                         }`}
                       >
@@ -885,7 +884,7 @@ function ProjectBody({
                     onClick={() => onUnlink(tx.id)}
                     aria-label={t("Remove from project", "Gỡ khỏi dự án")}
                     title={t("Remove from project (keeps the transaction)", "Gỡ khỏi dự án (giao dịch vẫn còn trong sổ)")}
-                    className="shrink-0 w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-faint)] hover:text-[var(--color-error)] hover:bg-[var(--color-surface-2)] transition-colors"
+                    className="shrink-0 w-11 h-11 flex items-center justify-center rounded-xl text-[var(--color-text-faint)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-tint)] transition-colors"
                   >
                     <Unlink size={16} />
                   </button>

@@ -101,7 +101,7 @@ export default function HistoryTab() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t("Bạn có chắc chắn muốn xóa giao dịch này không?", "Are you sure you want to delete this transaction?"))) return;
+    if (!confirm(t("Are you sure you want to delete this transaction?", "Bạn có chắc chắn muốn xoá giao dịch này không?"))) return;
     
     setIsDeleting(id);
     try {
@@ -109,10 +109,10 @@ export default function HistoryTab() {
       if (res.ok) {
         setTransactions(prev => prev.filter(t => t.id !== id));
       } else {
-        alert("Failed to delete transaction");
+        alert(t("Could not delete the transaction.", "Không xoá được giao dịch."));
       }
     } catch (err) {
-      alert("Error deleting transaction");
+      alert(t("Could not delete the transaction.", "Không xoá được giao dịch."));
     } finally {
       setIsDeleting(null);
     }
@@ -198,6 +198,58 @@ export default function HistoryTab() {
     setEditModalOpen(true);
   };
 
+  // Đang thu hẹp danh sách bằng thứ gì đó ngoài tháng — quyết định câu chữ và
+  // nút của trạng thái trống.
+  const narrowed = Boolean(query.trim() || activeFilters > 0 || selectedDay);
+
+  // `type` lưu tiếng Anh trong DB; chỉ đổi phần CHỮ hiển thị.
+  const typeLabel = (type: string) => {
+    switch (type.toLowerCase()) {
+      case "income": return t("Income", "Thu nhập");
+      case "expense": return t("Expense", "Chi phí");
+      case "transfer": return t("Transfer", "Chuyển khoản");
+      case "refund": return t("Refund", "Hoàn tiền");
+      case "adjustment": return t("Adjustment", "Điều chỉnh");
+      default: return type;
+    }
+  };
+  // Số tiền: chi là số MỨC nên màu mực kèm dấu trừ; chỉ tiền VÀO (thu, hoàn)
+  // mới mang màu tốt kèm dấu cộng. Chuyển khoản và điều chỉnh không phải thu
+  // hay chi nên không gắn dấu.
+  const amountSign = (tx: Transaction) => {
+    const k = tx.type.toLowerCase();
+    return k === "expense" ? "−" : k === "income" || k === "refund" ? "+" : "";
+  };
+  const amountTone = (tx: Transaction) => {
+    const k = tx.type.toLowerCase();
+    return k === "income" || k === "refund" ? "text-[var(--color-success)]" : "text-[var(--color-text)]";
+  };
+
+  // Vùng chạm 44px và cách nhau 12px. Trước đây hai nút chỉ 28px và sát nhau —
+  // trên điện thoại rất dễ bấm nhầm sang nút xoá, mà xoá thì không lấy lại được.
+  const rowActions = (tx: Transaction) => (
+    <div className="flex flex-none justify-end gap-3 -mr-2">
+      <button
+        onClick={() => handleEdit(tx)}
+        disabled={isDeleting === tx.id}
+        aria-label={t("Edit", "Chỉnh sửa")}
+        title={t("Edit", "Chỉnh sửa")}
+        className="w-11 h-11 flex items-center justify-center rounded-xl text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
+      >
+        <Edit2 size={16} />
+      </button>
+      <button
+        onClick={() => handleDelete(tx.id)}
+        disabled={isDeleting === tx.id}
+        aria-label={t("Delete", "Xoá")}
+        title={t("Delete", "Xoá")}
+        className="w-11 h-11 flex items-center justify-center rounded-xl text-[var(--color-text-faint)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-tint)] transition-colors disabled:opacity-50"
+      >
+        {isDeleting === tx.id ? <span className="animate-spin inline-block">⍥</span> : <Trash2 size={16} />}
+      </button>
+    </div>
+  );
+
   return (
     <div className="space-y-8 animate-in fade-in">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -223,10 +275,10 @@ export default function HistoryTab() {
           theo khoảng ngày mà vẫn vẽ lịch tháng thì các ô hiện số của một quãng
           khác với quãng đang xem — sai mà không có gì báo. */}
       {rangeActive ? (
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 text-sm text-[var(--color-text-muted)] flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] px-5 py-2 text-sm text-[var(--color-text-muted)] flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>
             {t("Filtering by date range", "Đang lọc theo khoảng ngày")}:{" "}
-            <b className="text-[var(--color-text)]">
+            <b className="font-semibold tabular-nums text-[var(--color-text)]">
               {fromDate || t("the beginning", "đầu kỳ")} → {toDate || t("today", "hôm nay")}
             </b>
           </span>
@@ -246,7 +298,7 @@ export default function HistoryTab() {
         />
       )}
 
-      <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
+      <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden">
         <div className="p-4 border-b border-[var(--color-border)] flex items-center gap-2">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" size={16} />
@@ -255,13 +307,13 @@ export default function HistoryTab() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("Search transactions...", "Tìm kiếm giao dịch...")}
-              className="w-full bg-[var(--color-surface-2)] border-none rounded-lg pl-9 pr-9 py-2 text-base md:text-sm text-[var(--color-text)] focus:ring-2 focus:ring-[var(--color-success)] focus:outline-none"
+              className="w-full bg-[var(--color-surface-2)] border-none rounded-full pl-9 pr-10 min-h-11 text-base md:text-sm text-[var(--color-text)] focus:ring-2 focus:ring-[var(--color-accent)] focus:outline-none"
             />
             {query && (
               <button
                 onClick={() => setQuery("")}
                 aria-label={t("Clear search", "Xoá tìm kiếm")}
-                className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg text-[var(--color-text-faint)] hover:text-[var(--color-text)]"
+                className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full text-[var(--color-text-faint)] hover:text-[var(--color-text)]"
               >
                 <X size={14} />
               </button>
@@ -271,7 +323,7 @@ export default function HistoryTab() {
             onClick={() => setFilterOpen((v) => !v)}
             aria-expanded={filterOpen}
             aria-label={t("Filters", "Bộ lọc")}
-            className={`relative w-11 h-11 flex items-center justify-center rounded-lg transition-colors ${
+            className={`relative flex-none w-11 h-11 flex items-center justify-center rounded-full transition-colors ${
               filterOpen || activeFilters > 0
                 ? "bg-[var(--color-surface-2)] text-[var(--color-text)]"
                 : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
@@ -279,7 +331,7 @@ export default function HistoryTab() {
           >
             <Filter size={18} />
             {activeFilters > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-[var(--color-primary)] text-[var(--color-on-primary)] text-[10px] font-bold flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-[var(--color-primary)] text-[var(--color-on-primary)] text-[10px] c-micro font-bold tabular-nums flex items-center justify-center">
                 {activeFilters}
               </span>
             )}
@@ -290,14 +342,14 @@ export default function HistoryTab() {
             popover neo vào một nút 44px rất dễ tràn mép màn hình. */}
         {filterOpen && (
           <div className="p-4 border-b border-[var(--color-border)] bg-[var(--color-surface-2)] grid grid-cols-1 md:grid-cols-4 gap-3">
-            <label className="space-y-1.5">
-              <span className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+            <label className="flex flex-col gap-1.5">
+              <span className="block c-overline text-[var(--color-text-muted)]">
                 {t("Type", "Loại")}
               </span>
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-3 py-2.5 min-h-11 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
               >
                 <option value="All">{t("All types", "Tất cả các loại")}</option>
                 <option value="Income">{t("Income", "Thu nhập")}</option>
@@ -307,14 +359,14 @@ export default function HistoryTab() {
               </select>
             </label>
 
-            <label className="space-y-1.5">
-              <span className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+            <label className="flex flex-col gap-1.5">
+              <span className="block c-overline text-[var(--color-text-muted)]">
                 {t("Category", "Nhóm chi tiêu")}
               </span>
               <select
                 value={catFilter}
                 onChange={(e) => setCatFilter(e.target.value)}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-3 py-2.5 min-h-11 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
               >
                 <option value="All">{t("All", "Tất cả")}</option>
                 {categories.map((c) => (
@@ -323,14 +375,14 @@ export default function HistoryTab() {
               </select>
             </label>
 
-            <label className="space-y-1.5">
-              <span className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+            <label className="flex flex-col gap-1.5">
+              <span className="block c-overline text-[var(--color-text-muted)]">
                 {t("Payment", "Cách thanh toán")}
               </span>
               <select
                 value={payFilter}
                 onChange={(e) => setPayFilter(e.target.value)}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-3 py-2.5 min-h-11 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
               >
                 <option value="All">{t("All", "Tất cả")}</option>
                 {Object.entries(PAYMENT_METHOD_LABELS).map(([k, label]) => (
@@ -339,14 +391,14 @@ export default function HistoryTab() {
               </select>
             </label>
 
-            <label className="space-y-1.5">
-              <span className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+            <label className="flex flex-col gap-1.5">
+              <span className="block c-overline text-[var(--color-text-muted)]">
                 {t("Source", "Nguồn")}
               </span>
               <select
                 value={sourceFilter}
                 onChange={(e) => setSourceFilter(e.target.value)}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-3 py-2.5 min-h-11 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
               >
                 <option value="All">{t("All", "Tất cả")}</option>
                 <option value="manual">{t("Entered by hand", "Nhập tay")}</option>
@@ -357,8 +409,8 @@ export default function HistoryTab() {
 
             {/* Khoảng ngày cắt ngang tháng đang chọn — đặt cạnh các ô lọc khác
                 nhưng nói rõ nó tải lại dữ liệu, không chỉ thu hẹp danh sách. */}
-            <label className="space-y-1.5 md:col-span-2">
-              <span className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+            <label className="flex flex-col gap-1.5 md:col-span-2">
+              <span className="block c-overline text-[var(--color-text-muted)]">
                 {t("From date", "Từ ngày")}
               </span>
               <CustomDatePicker
@@ -367,12 +419,12 @@ export default function HistoryTab() {
                 allowClear
                 placeholder={t("Any start", "Không giới hạn")}
                 aria-label={t("From date", "Từ ngày")}
-                className="w-full flex items-center justify-between gap-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 min-h-11 text-left text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+                className="w-full flex items-center justify-between gap-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-3 py-2.5 min-h-11 text-left text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
               />
             </label>
 
-            <label className="space-y-1.5 md:col-span-2">
-              <span className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+            <label className="flex flex-col gap-1.5 md:col-span-2">
+              <span className="block c-overline text-[var(--color-text-muted)]">
                 {t("To date", "Đến ngày")}
               </span>
               <CustomDatePicker
@@ -381,7 +433,7 @@ export default function HistoryTab() {
                 allowClear
                 placeholder={t("Any end", "Không giới hạn")}
                 aria-label={t("To date", "Đến ngày")}
-                className="w-full flex items-center justify-between gap-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 min-h-11 text-left text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+                className="w-full flex items-center justify-between gap-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-3 py-2.5 min-h-11 text-left text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
               />
             </label>
 
@@ -416,12 +468,12 @@ export default function HistoryTab() {
         )}
 
         {(query || activeFilters > 0 || selectedDay) && (
-          <div className="px-4 py-2.5 border-b border-[var(--color-border)] text-xs text-[var(--color-text-muted)]">
+          <div className="px-4 md:px-5 py-2.5 border-b border-[var(--color-border)] text-xs tabular-nums text-[var(--color-text-muted)]">
             {shown.length} / {transactions.length} {t("transactions", "giao dịch")}
             {selectedDay && ` · ${t("day", "ngày")} ${selectedDay}`}
             {rangeActive && ` · ${fromDate || "…"} → ${toDate || "…"}`}
             {truncated && (
-              <span className="text-[var(--color-warning)]">
+              <span className="font-semibold text-[var(--color-text)]">
                 {" "}· {t(
                   "showing the 1000 most recent only — narrow the range",
                   "mới hiện 1000 giao dịch gần nhất — hãy thu hẹp khoảng ngày"
@@ -432,82 +484,106 @@ export default function HistoryTab() {
         )}
 
         {isLoading ? (
-          <div className="flex justify-center items-center h-64 text-[var(--color-success)]">
-            <span className="animate-spin text-4xl leading-none">⍥</span>
-            <span className="ml-3 font-bold">{t("Loading...", "Đang tải...")}</span>
-          </div>
+          <p className="p-5 text-sm text-[var(--color-text-faint)]">{t("Loading...", "Đang tải...")}</p>
         ) : shown.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
-            <p className="text-[var(--color-text-muted)]">
-              {t("No transactions found for this period.", "Không tìm thấy giao dịch nào trong khoảng thời gian này.")}
+          <div className="p-6 md:p-8 flex flex-col items-center gap-2 text-center">
+            <h3 className="c-h5 text-[var(--color-text)]">
+              {narrowed
+                ? t("No transactions match", "Không có giao dịch nào khớp")
+                : t("No transactions in this period", "Chưa có giao dịch nào trong kỳ này")}
+            </h3>
+            <p className="text-sm text-[var(--color-text-muted)] max-w-xl">
+              {narrowed
+                ? t(
+                    "The search, day or filters above leave nothing to show.",
+                    "Ô tìm kiếm, ngày đang chọn hoặc bộ lọc phía trên không để lại dòng nào."
+                  )
+                : t(
+                    "Pick another month, or record a transaction from the Overview tab.",
+                    "Chọn tháng khác, hoặc ghi một giao dịch từ tab Tổng quan."
+                  )}
             </p>
+            {narrowed && (
+              <button
+                onClick={() => { clearFilters(); setQuery(""); setSelectedDay(null); }}
+                className="mt-3 c-btn c-btn-secondary"
+              >
+                {t("Clear search and filters", "Xoá tìm kiếm và bộ lọc")}
+              </button>
+            )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[var(--color-surface-2)] text-[var(--color-text-muted)] text-xs uppercase tracking-wider">
-                  <th className="p-4 font-bold">{t("Date", "Ngày")}</th>
-                  <th className="p-4 font-bold">{t("Type", "Loại")}</th>
-                  <th className="p-4 font-bold">{t("Category", "Danh mục")}</th>
-                  <th className="p-4 font-bold">{t("Merchant/Source", "Đối tác/Nguồn")}</th>
-                  <th className="p-4 font-bold text-right">{t("Amount", "Số tiền")}</th>
-                  <th className="p-4 font-bold text-right">{t("Actions", "Thao tác")}</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm divide-y divide-[var(--color-border)]">
-                {shown.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-[var(--color-surface-2)] transition-colors">
-                    <td className="p-4 text-[var(--color-text)] whitespace-nowrap">{tx.date}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                        tx.type.toLowerCase() === 'income' ? 'bg-[var(--color-success-tint)] text-[var(--color-success)]' :
-                        tx.type.toLowerCase() === 'expense' ? 'bg-[var(--color-warning-tint)] text-[var(--color-warning)]' :
-                        'bg-[var(--color-surface-2)] text-[var(--color-text-muted)]'
-                      }`}>
-                        {tx.type}
-                      </span>
-                    </td>
-                    <td className="p-4 text-[var(--color-text)]">{tx.category}</td>
-                    <td className="p-4">
-                      <div className="text-[var(--color-text)] font-semibold">{tx.supplier}</div>
-                      {tx.note && <div className="text-xs text-[var(--color-text-faint)] truncate max-w-xs">{tx.note}</div>}
-                    </td>
-                    <td className={`p-4 text-right font-bold whitespace-nowrap ${
-                      tx.type.toLowerCase() === 'income' ? 'text-[var(--color-success)]' : 'text-[var(--color-warning)]'
-                    }`}>
-                      {tx.type.toLowerCase() === 'expense' ? '-' : '+'}{formatVND(tx.amount)}
-                    </td>
-                    <td className="p-4 text-right whitespace-nowrap">
-                      {/* Vùng chạm 44px và cách nhau 12px. Trước đây hai nút
-                          chỉ 28px và sát nhau — trên điện thoại rất dễ bấm
-                          nhầm sang nút xoá, mà xoá thì không lấy lại được. */}
-                      <div className="flex justify-end gap-3">
-                        <button 
-                          onClick={() => handleEdit(tx)}
-                          disabled={isDeleting === tx.id}
-                          aria-label={t("Chỉnh sửa", "Edit")}
-                          className="w-11 h-11 md:w-9 md:h-9 flex items-center justify-center text-[var(--color-info)] hover:bg-[var(--color-surface)] rounded-lg transition-colors"
-                          title={t("Chỉnh sửa", "Edit")}
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(tx.id)}
-                          disabled={isDeleting === tx.id}
-                          aria-label={t("Xóa", "Delete")}
-                          className="w-11 h-11 md:w-9 md:h-9 flex items-center justify-center text-[var(--color-error)] hover:bg-[var(--color-error-tint)] rounded-lg transition-colors disabled:opacity-50"
-                          title={t("Xóa", "Delete")}
-                        >
-                          {isDeleting === tx.id ? <span className="animate-spin inline-block">⍥</span> : <Trash2 size={16} />}
-                        </button>
+          <>
+            {/* Khổ 375px: bảng sáu cột phải cuộn ngang mới thấy số tiền, nên
+                dưới 768px mỗi giao dịch là một dòng hai tầng — nơi chi và số
+                tiền ở trên, ngày · loại · nhóm và hai nút ở dưới. Cùng dữ
+                liệu, cùng thứ tự với bảng. */}
+            <ul className="md:hidden divide-y divide-[var(--color-border)]">
+              {shown.map((tx) => (
+                <li key={tx.id} className="px-4 pt-3 pb-1 flex flex-col min-w-0">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="min-w-0 truncate text-sm font-semibold text-[var(--color-text)]">
+                      {tx.supplier || tx.category}
+                    </span>
+                    <span className={`flex-none text-sm font-bold tabular-nums whitespace-nowrap ${amountTone(tx)}`}>
+                      {amountSign(tx)}{formatVND(tx.amount)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 text-xs text-[var(--color-text-faint)]">
+                      <div className="truncate">
+                        <span className="tabular-nums">{tx.date}</span> · {typeLabel(tx.type)} · {tx.category}
                       </div>
-                    </td>
+                      {tx.note && <div className="truncate">{tx.note}</div>}
+                    </div>
+                    {rowActions(tx)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[var(--color-surface-2)] text-[var(--color-text-muted)] text-xs uppercase">
+                    <th className="px-5 py-3 font-medium">{t("Date", "Ngày")}</th>
+                    <th className="px-5 py-3 font-medium">{t("Type", "Loại")}</th>
+                    <th className="px-5 py-3 font-medium">{t("Category", "Danh mục")}</th>
+                    <th className="px-5 py-3 font-medium">{t("Merchant/Source", "Đối tác/Nguồn")}</th>
+                    <th className="px-5 py-3 font-medium text-right">{t("Amount", "Số tiền")}</th>
+                    <th className="px-5 py-3 font-medium text-right">{t("Actions", "Thao tác")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="text-sm divide-y divide-[var(--color-border)]">
+                  {shown.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-[var(--color-surface-2)] transition-colors">
+                      <td className="px-5 py-3 text-[var(--color-text-muted)] tabular-nums whitespace-nowrap">{tx.date}</td>
+                      <td className="px-5 py-3">
+                        <span
+                          className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                            tx.type.toLowerCase() === "income"
+                              ? "bg-[var(--color-success-tint)] text-[var(--color-success)]"
+                              : "bg-[var(--color-surface-2)] text-[var(--color-text-muted)]"
+                          }`}
+                        >
+                          {typeLabel(tx.type)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-[var(--color-text)]">{tx.category}</td>
+                      <td className="px-5 py-3">
+                        <div className="text-[var(--color-text)] font-semibold">{tx.supplier}</div>
+                        {tx.note && <div className="text-xs text-[var(--color-text-faint)] truncate max-w-xs">{tx.note}</div>}
+                      </td>
+                      <td className={`px-5 py-3 text-right font-bold tabular-nums whitespace-nowrap ${amountTone(tx)}`}>
+                        {amountSign(tx)}{formatVND(tx.amount)}
+                      </td>
+                      <td className="px-5 py-1 text-right whitespace-nowrap">{rowActions(tx)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

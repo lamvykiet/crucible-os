@@ -10,6 +10,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, catColor, soft } from "@/lib/viz";
 import ChartCard, { StatTile, type SeriesKeyItem } from "@/components/charts/ChartCard";
+import SectionHeader from "@/components/charts/SectionHeader";
 import { monthAxis, careerMonthAxis } from "./MonthAxisTick";
 
 // Bức tranh nợ, đọc từ lịch trả nợ — xem docs/bieu-do.md.
@@ -159,6 +160,25 @@ export default function DebtOverview({ refreshKey }: { refreshKey: number }) {
     balanceKeys.length > 1 ? balanceKeys.map((k) => ({ label: nameOf(k), color: colourOfId(k), shape: "bar" })) : undefined;
   const lastKey = balanceKeys[balanceKeys.length - 1];
 
+  // Số tiền trong ô `StatTile`. Lưới 2 cột ở khổ 375px để lại ~113px cho con
+  // số, mà "2.258.980.126 ₫" cần ~125px nên ký hiệu tiền rớt xuống dòng riêng.
+  // Dưới 1 tỷ thì luôn vừa: chỉ cấm ngắt dòng. Từ 1 tỷ: ô hẹp hiện bản rút
+  // gọn hai số lẻ ("2,26 tỷ ₫", số đủ nằm ở `title`), ô đủ rộng hiện số đủ.
+  // `@min-[170px]` đo theo `@container` của chính `StatTile`.
+  const tight = (n: number) => {
+    const v = (Math.abs(n) / 1_000_000_000).toFixed(2);
+    return `${n < 0 ? "−" : ""}${vi ? v.replace(".", ",") : v} ${t("bn", "tỷ")} ₫`;
+  };
+  const tileMoney = (n: number) =>
+    Math.abs(n) < 1_000_000_000 ? (
+      <span className="whitespace-nowrap">{formatVND(n)}</span>
+    ) : (
+      <>
+        <span className="whitespace-nowrap @min-[170px]:hidden" title={formatVND(n)}>{tight(n)}</span>
+        <span className="hidden whitespace-nowrap @min-[170px]:inline">{formatVND(n)}</span>
+      </>
+    );
+
   const payoff = totals.payoffDate ? viMonthOf(totals.payoffDate) : null;
   const yearsLeft = totals.monthsLeft > 0 ? (totals.monthsLeft / 12).toFixed(1) : "0";
   // Tiền lãi tính theo phần trăm của gốc đã vay — câu "vay 2,1 tỷ trả 3,4 tỷ"
@@ -256,7 +276,7 @@ export default function DebtOverview({ refreshKey }: { refreshKey: number }) {
           <StatTile
             emphasis
             label={t("Still to pay", "Còn phải trả")}
-            value={formatVND(totals.totalLeft)}
+            value={tileMoney(totals.totalLeft)}
             note={t(
               `${money(totals.outstanding)} principal + ${money(totals.interestLeft)} interest`,
               `${money(totals.outstanding)} gốc + ${money(totals.interestLeft)} lãi`
@@ -264,12 +284,12 @@ export default function DebtOverview({ refreshKey }: { refreshKey: number }) {
           />
           <StatTile
             label={t("Every month", "Mỗi tháng")}
-            value={formatVND(totals.monthlyPayment)}
+            value={tileMoney(totals.monthlyPayment)}
             note={t(`${totals.activeCount} active loans`, `${totals.activeCount} khoản đang trả`)}
           />
           <StatTile
             label={t("Interest, all in", "Tiền lãi, cả đời vay")}
-            value={formatVND(interestTotal)}
+            value={tileMoney(interestTotal)}
             note={t(
               `${interestOverPrincipal}% of the ${money(totals.principalTotal)} borrowed`,
               `bằng ${interestOverPrincipal}% của ${money(totals.principalTotal)} đã vay`
@@ -509,75 +529,78 @@ export default function DebtOverview({ refreshKey }: { refreshKey: number }) {
       )}
 
       {/* --- 6. Tiến độ từng khoản --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {debts.map((d) => (
-          <div
-            key={d.id}
-            className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-3 min-w-0"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-2.5 h-2.5 rounded-[3px] flex-none"
-                    style={{ background: catColor(d.colourIndex) }}
-                    aria-hidden
-                  />
-                  <span className="font-bold text-[var(--color-text)] truncate">{d.name}</span>
-                </div>
-                <div className="text-xs text-[var(--color-text-faint)] mt-1">
-                  {d.type} · {d.interestRate}%/{t("yr", "năm")}
-                </div>
-              </div>
-              <div className="text-right flex-none">
-                <div className="font-bold tabular-nums text-[var(--color-text)]">{formatVND(d.remaining)}</div>
-                <div className="text-xs text-[var(--color-text-faint)]">
-                  {t("left of", "còn lại /")} {money(d.principal)}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Meter pct={d.paidPct} />
-              <div className="flex items-baseline justify-between gap-3 text-xs">
-                <span className="font-bold tabular-nums text-[var(--color-text)]">
-                  {t(`${d.paidPct}% of principal repaid`, `Đã trả ${d.paidPct}% gốc`)}
-                </span>
-                <span className="tabular-nums text-[var(--color-text-faint)]">
-                  {t(`${d.paidPeriods} of ${d.totalPeriods} periods`, `${d.paidPeriods}/${d.totalPeriods} kỳ`)}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-              <div>
-                <div className="text-[var(--color-text-muted)]">{t("Interest still to pay", "Lãi còn phải trả")}</div>
-                <div className="font-bold tabular-nums text-[var(--color-text)] mt-0.5">{money(d.interestLeft)}</div>
-              </div>
-              <div>
-                <div className="text-[var(--color-text-muted)]">{t("Debt-free on", "Hết nợ vào")}</div>
-                <div className="font-bold tabular-nums text-[var(--color-text)] mt-0.5">
-                  {d.payoffDate ? viMonthOf(d.payoffDate) : "—"}
-                </div>
-              </div>
-              {d.nextDue && (
-                <div className="col-span-2 pt-2 border-t border-[var(--color-border)]">
-                  <div className="text-[var(--color-text-muted)]">
-                    {t("Next payment", "Kỳ tới")} · {t("period", "kỳ")} {d.nextDue.period} · {d.nextDue.dueDate}
+      <div className="flex flex-col gap-5">
+        <SectionHeader title={t("Progress, loan by loan", "Tiến độ từng khoản")} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {debts.map((d) => (
+            <div
+              key={d.id}
+              className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-3 min-w-0"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-2.5 h-2.5 rounded-[3px] flex-none"
+                      style={{ background: catColor(d.colourIndex) }}
+                      aria-hidden
+                    />
+                    <span className="font-semibold text-[var(--color-text)] truncate" title={d.name}>{d.name}</span>
                   </div>
+                  <div className="text-xs text-[var(--color-text-faint)] mt-1">
+                    {d.type} · {d.interestRate}%/{t("yr", "năm")}
+                  </div>
+                </div>
+                <div className="text-right flex-none">
+                  <div className="font-bold tabular-nums whitespace-nowrap text-[var(--color-text)]">{formatVND(d.remaining)}</div>
+                  <div className="text-xs text-[var(--color-text-faint)]">
+                    {t("left of", "còn lại /")} {money(d.principal)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Meter pct={d.paidPct} />
+                <div className="flex items-baseline justify-between gap-3 text-xs">
+                  <span className="font-semibold tabular-nums text-[var(--color-text)]">
+                    {t(`${d.paidPct}% of principal repaid`, `Đã trả ${d.paidPct}% gốc`)}
+                  </span>
+                  <span className="tabular-nums text-[var(--color-text-faint)]">
+                    {t(`${d.paidPeriods} of ${d.totalPeriods} periods`, `${d.paidPeriods}/${d.totalPeriods} kỳ`)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                <div>
+                  <div className="text-[var(--color-text-muted)]">{t("Interest still to pay", "Lãi còn phải trả")}</div>
+                  <div className="font-bold tabular-nums text-[var(--color-text)] mt-0.5">{money(d.interestLeft)}</div>
+                </div>
+                <div>
+                  <div className="text-[var(--color-text-muted)]">{t("Debt-free on", "Hết nợ vào")}</div>
                   <div className="font-bold tabular-nums text-[var(--color-text)] mt-0.5">
-                    {formatVND(d.nextDue.payment)}
-                    {/* Tách gốc/lãi ngay ở đây: biết 6,7 triệu trong 12,5 triệu
-                        là tiền lãi thì mới thấy vì sao dư nợ xuống chậm. */}
-                    <span className="ml-2 font-normal text-[var(--color-text-faint)]">
-                      {t("principal", "gốc")} {money(d.nextDue.principal)} · {t("interest", "lãi")} {money(d.nextDue.interest)}
-                    </span>
+                    {d.payoffDate ? viMonthOf(d.payoffDate) : "—"}
                   </div>
                 </div>
-              )}
+                {d.nextDue && (
+                  <div className="col-span-2 pt-2 border-t border-[var(--color-border)]">
+                    <div className="text-[var(--color-text-muted)]">
+                      {t("Next payment", "Kỳ tới")} · {t("period", "kỳ")} {d.nextDue.period} · {d.nextDue.dueDate}
+                    </div>
+                    <div className="flex flex-wrap items-baseline gap-x-2 font-bold tabular-nums text-[var(--color-text)] mt-0.5">
+                      <span className="whitespace-nowrap">{formatVND(d.nextDue.payment)}</span>
+                      {/* Tách gốc/lãi ngay ở đây: biết 6,7 triệu trong 12,5 triệu
+                          là tiền lãi thì mới thấy vì sao dư nợ xuống chậm. */}
+                      <span className="font-normal text-[var(--color-text-faint)]">
+                        {t("principal", "gốc")} {money(d.nextDue.principal)} · {t("interest", "lãi")} {money(d.nextDue.interest)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

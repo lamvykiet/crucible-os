@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import {
   BarChart, Bar, Line, LineChart, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from "recharts";
-import { ChevronDown, AlertCircle } from "lucide-react";
+import { ChevronDown, AlertCircle, ScanSearch } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, labelAt, pctChange, catColor, refLabel, barLabelAt, drawnIndex, stackTotalAt } from "@/lib/viz";
-import { SeriesKey, Delta, StatTile, type SeriesKeyItem } from "@/components/charts/ChartCard";
+import ChartCard, { Delta, StatTile } from "@/components/charts/ChartCard";
+import SectionHeader from "@/components/charts/SectionHeader";
+import { RankList, type RankRow } from "@/components/charts/RankBar";
 import { monthAxis } from "./MonthAxisTick";
 
 // Không gian soi MỘT nhóm chi tiêu.
@@ -119,10 +121,15 @@ function StackTooltip({
   const focus = activeSub && bucket[activeSub] ? activeSub : null;
 
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-xs max-w-[280px]">
-      <p className="font-bold text-[var(--color-text)]">{monthName}</p>
-      <p className="font-bold tabular-nums text-[var(--color-text)] mb-2">{formatVND(total)}</p>
-      <ul className="flex flex-col gap-1.5">
+    // Cùng dáng với `StackedMonthTooltip`; nền đặc vì nó đè lên biểu đồ.
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--glass-solid)] px-3.5 py-2.5 text-xs min-w-44 max-w-[280px]">
+      <p className="flex items-baseline justify-between gap-4">
+        <span className="text-[var(--color-text-muted)]">
+          {/^\d{4}-\d{2}$/.test(monthName) ? `${monthName.slice(5, 7)}/${monthName.slice(0, 4)}` : monthName}
+        </span>
+        <span className="font-bold tabular-nums whitespace-nowrap text-[var(--color-text)]">{formatVND(total)}</span>
+      </p>
+      <ul className="mt-2 pt-2 border-t border-[var(--color-border)] flex flex-col gap-1.5">
         {rows.map(([sub, v]) => {
           const isFocus = sub === focus;
           return (
@@ -131,12 +138,12 @@ function StackTooltip({
                 <span className="w-2.5 h-2.5 rounded-[3px] flex-none" style={{ background: colorOf(sub) }} aria-hidden />
                 <span
                   className={`flex-1 min-w-0 truncate ${
-                    isFocus ? "font-bold text-[var(--color-text)]" : "text-[var(--color-text-muted)]"
+                    isFocus ? "font-semibold text-[var(--color-text)]" : "text-[var(--color-text-muted)]"
                   }`}
                 >
                   {sub === NONE_KEY ? noneLabel : sub}
                 </span>
-                <span className="tabular-nums text-[var(--color-text)]">{formatVND(v.amount)}</span>
+                <span className="tabular-nums whitespace-nowrap text-[var(--color-text)]">{formatVND(v.amount)}</span>
               </div>
               {/* Ngày phát sinh chỉ mở cho khúc đang trỏ vào — mở hết thì chú
                   giải dài hơn cả biểu đồ. */}
@@ -161,74 +168,6 @@ function StackTooltip({
         })}
       </ul>
     </div>
-  );
-}
-
-/** Một khối biểu đồ bên trong thẻ lớn: câu kết luận, dòng mô tả, chú giải. */
-function Panel({
-  title,
-  subtitle,
-  keys,
-  children,
-  className = "",
-}: {
-  title: ReactNode;
-  subtitle?: ReactNode;
-  keys?: SeriesKeyItem[];
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={`flex flex-col gap-3 min-w-0 ${className}`}>
-      <header>
-        <h4 className="text-sm font-bold text-[var(--color-text)] text-balance">{title}</h4>
-        {subtitle && <p className="text-xs text-[var(--color-text-faint)] mt-1">{subtitle}</p>}
-      </header>
-      {keys && keys.length > 0 && <SeriesKey items={keys} />}
-      {children}
-    </section>
-  );
-}
-
-interface BarRow {
-  key: string;
-  name: string;
-  value: number;
-  display: string;
-  color: string;
-  strong?: boolean;
-  note?: string;
-}
-
-/** Cột ngang (vẽ bằng div): tên + số ở dòng trên, thanh mảnh ở dòng dưới. */
-function BarRows({ rows }: { rows: BarRow[] }) {
-  const scale = Math.max(1, ...rows.map((r) => r.value));
-  return (
-    <ul className="flex flex-col gap-3">
-      {rows.map((r) => (
-        <li key={r.key} className="flex flex-col gap-1">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className={`min-w-0 truncate text-sm text-[var(--color-text)] ${r.strong ? "font-bold" : ""}`} title={r.name}>
-              {r.name}
-            </span>
-            <span className="flex-none text-sm font-bold tabular-nums text-[var(--color-text)]">
-              {r.display}
-              {r.note && <span className="ml-1.5 text-xs font-normal text-[var(--color-text-faint)]">{r.note}</span>}
-            </span>
-          </div>
-          <div className="h-3 w-full" aria-hidden>
-            <div
-              className="h-full rounded-r-[4px]"
-              style={{
-                width: `${(Math.max(0, r.value) / scale) * 100}%`,
-                minWidth: r.value > 0 ? 3 : 0,
-                background: r.color,
-              }}
-            />
-          </div>
-        </li>
-      ))}
-    </ul>
   );
 }
 
@@ -313,27 +252,26 @@ export default function ExpenseGroupAnalysis({
   }, [group, month, refreshKey]);
 
   const selectClass =
-    "w-full md:w-auto bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl pl-4 pr-10 py-2.5 min-h-11 text-base md:text-sm font-bold text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)] appearance-none";
+    "w-full md:w-auto bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl pl-4 pr-10 py-2.5 min-h-11 text-base md:text-sm font-semibold text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)] appearance-none";
   const noneLabel = t("no sub-category", "chưa có danh mục con");
   const subLabel = (s: string) => (s === NONE_KEY ? noneLabel : s === REST_KEY ? t("Other", "Khác") : s);
   const money = (v: number) => compactMoney(v, vi);
 
   return (
-    <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-5 md:p-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h3 className="c-h5 text-[var(--color-text)]">
-            {t("Group deep dive", "Soi riêng một nhóm")}
-          </h3>
-          <p className="text-xs text-[var(--color-text-faint)] mt-1">
-            {t(
-              "this section has its own month, the rest of the page stays put",
-              "mục này có tháng riêng, phần còn lại của trang không đổi theo"
-            )}
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative">
+    // Một MỤC trên tấm nền, không còn là một thẻ lớn bọc tám biểu đồ: mỗi
+    // biểu đồ là một `ChartCard` riêng như phần còn lại của tab, nên không có
+    // thẻ lồng thẻ và tiêu đề từng biểu đồ cùng cỡ với mọi thẻ khác.
+    <div className="flex flex-col gap-5">
+      <SectionHeader
+        icon={<ScanSearch size={20} />}
+        title={t("Group deep dive", "Soi riêng một nhóm")}
+        subtitle={t(
+          "this section has its own month, the rest of the page stays put",
+          "mục này có tháng riêng, phần còn lại của trang không đổi theo"
+        )}
+        actions={
+          <>
+          <div className="relative w-full sm:w-auto">
             <select
               value={group}
               onChange={(e) => {
@@ -355,8 +293,9 @@ export default function ExpenseGroupAnalysis({
             />
           </div>
           <CustomMonthPicker value={month} onChange={setMonth} />
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {failed && (
         <p className="text-sm text-[var(--color-error)]">
@@ -369,9 +308,9 @@ export default function ExpenseGroupAnalysis({
       )}
 
       {!failed && !isLoading && data && (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-6">
           {!data.hasAnyData ? (
-            <p className="text-sm text-[var(--color-text-muted)]">
+            <p className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-5 md:p-6 text-sm text-[var(--color-text-muted)]">
               {t(
                 `No spending recorded for ${label(group)} in the last two years.`,
                 `Hai năm qua chưa ghi khoản chi nào cho nhóm ${label(group)}.`
@@ -508,11 +447,10 @@ function GroupCharts({
           `Most payments are ${data.sizeBuckets[commonSize].name} — ${data.sizeBuckets[commonSize].count} of ${sizeTotal}`,
           `Phần lớn là khoản ${data.sizeBuckets[commonSize].name} — ${data.sizeBuckets[commonSize].count}/${sizeTotal} giao dịch`
         );
-  const sizeRows: BarRow[] = data.sizeBuckets.map((b, i) => ({
+  const sizeRows: RankRow[] = data.sizeBuckets.map((b, i) => ({
     key: b.name,
     name: b.name,
-    value: b.count,
-    display: `${b.count}`,
+    amount: b.count,
     color: i === commonSize ? VIZ.accent : VIZ.muted,
     strong: i === commonSize,
     note: b.amount > 0 ? money(b.amount) : undefined,
@@ -541,11 +479,10 @@ function GroupCharts({
         `${topSubYear.name || noneLabel} chiếm ${topSubYear.share}% nhóm ${G} năm ${data.year}`
       )
     : t(`Sub-categories in ${data.year}`, `Danh mục con năm ${data.year}`);
-  const subYearRows: BarRow[] = data.subGroupsYear.map((s, i) => ({
+  const subYearRows: RankRow[] = data.subGroupsYear.map((s, i) => ({
     key: s.name || NONE_KEY,
     name: s.name || noneLabel,
-    value: s.amount,
-    display: formatVND(s.amount),
+    amount: s.amount,
     color: i === 0 ? VIZ.accent : VIZ.muted,
     strong: i === 0,
     note: `${s.share}%`,
@@ -554,14 +491,13 @@ function GroupCharts({
   const merchantHeadline = topMerchant
     ? t(
         `${topMerchant.name || t("(no name)", "(chưa đặt tên)")} took the most of ${G} in ${data.year} — ${topMerchant.share}%`,
-        `${topMerchant.name || "(chưa đặt tên)"} nhận nhiều nhất nhóm ${G} năm ${data.year} — ${topMerchant.share}%`
+        `${topMerchant.name || t("(no name)", "(chưa đặt tên)")} nhận nhiều nhất nhóm ${G} năm ${data.year} — ${topMerchant.share}%`
       )
     : t(`Where the money went in ${data.year}`, `Chi cho ai năm ${data.year}`);
-  const merchantRows: BarRow[] = data.merchants.map((m, i) => ({
+  const merchantRows: RankRow[] = data.merchants.map((m, i) => ({
     key: m.name || NONE_KEY,
     name: m.name || t("(no name)", "(chưa đặt tên)"),
-    value: m.amount,
-    display: formatVND(m.amount),
+    amount: m.amount,
     color: i === 0 ? VIZ.accent : VIZ.muted,
     strong: i === 0,
     note: `${m.count}×`,
@@ -571,41 +507,43 @@ function GroupCharts({
     <>
       {/* Bốn con số: tháng đang xem là ô chính; ba ô còn lại là mốc so sánh,
           mỗi ô kèm mũi tên "tháng này so với mốc đó". */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        <StatTile
-          emphasis
-          label={`${t("This month", "Tháng này")} · ${data.month}`}
-          value={formatVND(data.current.total)}
-          note={`${data.current.count} ${t("transactions", "giao dịch")}${
-            data.current.count > 0 ? ` · ${t("avg", "BQ")} ${formatVND(data.current.avg)}` : ""
-          }`}
-        />
-        <StatTile
-          label={`${t("Last month", "Tháng trước")} · ${data.prevMonth.label}`}
-          value={formatVND(data.prevMonth.total)}
-          delta={<Delta pct={change(data.current.total, data.prevMonth.total)} upIsGood={false} vs={t(`${mm} vs this figure`, `${mm} so với mốc này`)} />}
-        />
-        <StatTile
-          label={`${t("Same month last year", "Cùng kỳ năm trước")} · ${data.lastYearMonth.label}`}
-          value={formatVND(data.lastYearMonth.total)}
-          delta={<Delta pct={change(data.current.total, data.lastYearMonth.total)} upIsGood={false} vs={t(`${mm} vs this figure`, `${mm} so với mốc này`)} />}
-        />
-        <StatTile
-          label={`${t("Year to date", "Luỹ kế năm")} ${data.year}`}
-          value={formatVND(data.ytd.total)}
-          delta={<Delta pct={change(data.ytd.total, data.lastYtd.total)} upIsGood={false} vs={t(`vs same period ${prevYear}`, `so cùng kỳ ${prevYear}`)} />}
-        />
-      </div>
+      <section className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] min-w-0">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+          <StatTile
+            emphasis
+            label={`${t("This month", "Tháng này")} · ${data.month}`}
+            value={formatVND(data.current.total)}
+            note={`${data.current.count} ${t("transactions", "giao dịch")}${
+              data.current.count > 0 ? ` · ${t("avg", "BQ")} ${formatVND(data.current.avg)}` : ""
+            }`}
+          />
+          <StatTile
+            label={`${t("Last month", "Tháng trước")} · ${data.prevMonth.label}`}
+            value={formatVND(data.prevMonth.total)}
+            delta={<Delta pct={change(data.current.total, data.prevMonth.total)} upIsGood={false} vs={t(`${mm} vs this figure`, `${mm} so với mốc này`)} />}
+          />
+          <StatTile
+            label={`${t("Same month last year", "Cùng kỳ năm trước")} · ${data.lastYearMonth.label}`}
+            value={formatVND(data.lastYearMonth.total)}
+            delta={<Delta pct={change(data.current.total, data.lastYearMonth.total)} upIsGood={false} vs={t(`${mm} vs this figure`, `${mm} so với mốc này`)} />}
+          />
+          <StatTile
+            label={`${t("Year to date", "Luỹ kế năm")} ${data.year}`}
+            value={formatVND(data.ytd.total)}
+            delta={<Delta pct={change(data.ytd.total, data.lastYtd.total)} upIsGood={false} vs={t(`vs same period ${prevYear}`, `so cùng kỳ ${prevYear}`)} />}
+          />
+        </div>
+      </section>
 
       {data.missingMonths.length > 0 && (
-        <div className="flex items-start gap-3 rounded-2xl border border-[var(--color-warning)] bg-[var(--color-warning-tint)] p-4">
-          <AlertCircle size={18} className="shrink-0 mt-0.5 text-[var(--color-warning)]" />
-          <p className="text-sm text-[var(--color-text)]">
+        <div className="flex flex-wrap items-start gap-3 rounded-2xl bg-[var(--color-warning-tint)] p-4">
+          <AlertCircle size={18} className="flex-none mt-0.5 text-[var(--color-warning)]" aria-hidden />
+          <p className="min-w-0 flex-1 basis-56 text-sm text-[var(--color-text)]">
             {t(
               `${data.missingMonths.length} of the last 12 months have nothing in this group: `,
               `${data.missingMonths.length} trong 12 tháng gần nhất không có khoản nào thuộc nhóm này: `
             )}
-            <b>{data.missingMonths.join(", ")}</b>
+            <b className="font-semibold tabular-nums">{data.missingMonths.join(", ")}</b>
             {". "}
             {t(
               "If this is a recurring cost, those months are probably unrecorded.",
@@ -617,7 +555,7 @@ function GroupCharts({
 
       {/* 1 — 24 tháng. Nhiều danh mục con: cột chồng, màu theo danh mục con.
           Một danh mục con: cột xám, tháng đang xem màu nhấn. */}
-      <Panel
+      <ChartCard
         title={stackHeadline}
         subtitle={
           single
@@ -673,12 +611,12 @@ function GroupCharts({
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </Panel>
+      </ChartCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 2 — Luỹ kế: năm nay màu nhấn, năm trước xám; tên năm ghi ngay đầu
             mút đường thay cho chú giải. */}
-        <Panel
+        <ChartCard
           title={cumHeadline}
           subtitle={t(`Running total of ${G}, ${data.year} against ${prevYear}`, `Luỹ kế ${G}, ${data.year} so với ${prevYear}`)}
           keys={[
@@ -715,10 +653,10 @@ function GroupCharts({
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </Panel>
+        </ChartCard>
 
         {/* 3 — Mùa vụ: tháng cao nhất màu nhấn + ghi số, không trục Y. */}
-        <Panel
+        <ChartCard
           title={seasonHeadline}
           subtitle={t(
             "Average per calendar month, across every year on record",
@@ -742,11 +680,11 @@ function GroupCharts({
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </Panel>
+        </ChartCard>
 
         {/* 4 — Tỷ trọng: một đường xám, tháng đang xem chấm màu nhấn + ghi số,
             đường trung bình nét đứt ghi nhãn tại chỗ. */}
-        <Panel
+        <ChartCard
           title={shareHeadline}
           subtitle={t(
             `${G} as a share of everything spent each month · dashed line = average`,
@@ -779,22 +717,22 @@ function GroupCharts({
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </Panel>
+        </ChartCard>
 
         {/* 5 — Cỡ khoản chi: thang cỡ có thứ tự, nên giữ thứ tự chứ không xếp
             hạng; cột ngang để nhãn "100k – 500k" không bị chen ở khổ 375px. */}
-        <Panel
+        <ChartCard
           title={sizeHeadline}
           subtitle={t(
             "Number of transactions by size, last 12 months · grey figure = amount",
             "Số giao dịch theo cỡ khoản, 12 tháng gần nhất · số mờ = tổng tiền"
           )}
         >
-          <BarRows rows={sizeRows} />
-        </Panel>
+          <RankList rows={sizeRows} format={(v) => String(v)} />
+        </ChartCard>
 
         {/* 6 — Thứ trong tuần */}
-        <Panel
+        <ChartCard
           title={weekHeadline}
           subtitle={t("Spending by day of the week, last 12 months", "Chi theo thứ trong tuần, 12 tháng gần nhất")}
         >
@@ -819,29 +757,29 @@ function GroupCharts({
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </Panel>
+        </ChartCard>
 
         {/* 7 — Danh mục con trong năm */}
-        <Panel title={subYearHeadline} subtitle={t(`Sub-categories of ${G}, ${data.year}`, `Danh mục con của ${G}, năm ${data.year}`)}>
+        <ChartCard title={subYearHeadline} subtitle={t(`Sub-categories of ${G}, ${data.year}`, `Danh mục con của ${G}, năm ${data.year}`)}>
           {subYearRows.length === 0 ? (
             <p className="text-sm text-[var(--color-text-muted)]">
               {t("Nothing recorded this year.", "Năm nay chưa ghi khoản nào.")}
             </p>
           ) : (
-            <BarRows rows={subYearRows} />
+            <RankList rows={subYearRows} format={formatVND} />
           )}
-        </Panel>
+        </ChartCard>
       </div>
 
-      <Panel title={merchantHeadline} subtitle={t(`Who got paid from ${G}, ${data.year}`, `Chi cho ai trong nhóm ${G}, năm ${data.year}`)}>
+      <ChartCard title={merchantHeadline} subtitle={t(`Who got paid from ${G}, ${data.year}`, `Chi cho ai trong nhóm ${G}, năm ${data.year}`)}>
         {merchantRows.length === 0 ? (
           <p className="text-sm text-[var(--color-text-muted)]">
             {t("Nothing recorded this year.", "Năm nay chưa ghi khoản nào.")}
           </p>
         ) : (
-          <BarRows rows={merchantRows} />
+          <RankList rows={merchantRows} format={formatVND} />
         )}
-      </Panel>
+      </ChartCard>
     </>
   );
 }

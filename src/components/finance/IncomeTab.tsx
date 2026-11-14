@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowDownLeft, AlertCircle, CalendarX } from "lucide-react";
+import { ArrowDownLeft, AlertCircle, Briefcase, CalendarX, PieChart as PieChartIcon, TrendingUp } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, Cell, ReferenceLine,
@@ -16,6 +16,8 @@ import StackedMonthTooltip from "./StackedMonthTooltip";
 import { compactMoney, formatVND } from "@/lib/formatMoney";
 import { VIZ, GRID, yAxis, xAxis, BAR, LINE, STACK_GAP, TOOLTIP, TOOLTIP_LINE, pctChange, refLabel, barLabelAt } from "@/lib/viz";
 import ChartCard, { SeriesKey, Delta, StatTile } from "@/components/charts/ChartCard";
+import SectionHeader from "@/components/charts/SectionHeader";
+import { Bullet } from "@/components/charts/RankBar";
 import { monthAxis } from "./MonthAxisTick";
 import IncomeCareer from "./IncomeCareer";
 
@@ -153,25 +155,6 @@ function endLabel(index: number, text: (v: number) => string, place: "above" | "
   return render;
 }
 
-/** Một thanh kỳ này + vạch mốc kỳ trước trên cùng một thước (bullet). */
-function Bullet({ now, before, scale, color }: { now: number; before: number; scale: number; color: string }) {
-  const pos = (v: number) => `${(Math.max(0, v) / scale) * 100}%`;
-  return (
-    <div className="relative h-5 w-full" aria-hidden>
-      <div
-        className="absolute left-0 top-1/2 -translate-y-1/2 h-3 rounded-r-[4px]"
-        style={{ width: pos(now), minWidth: now > 0 ? 3 : 0, background: color }}
-      />
-      {before > 0 && (
-        <div
-          className="absolute top-0 bottom-0 w-0.5 rounded-full"
-          style={{ left: `calc(${pos(before)} - 1px)`, background: VIZ.ink }}
-        />
-      )}
-    </div>
-  );
-}
-
 export default function IncomeTab() {
   const { t, language } = useLanguage();
   const vi = language === "vi";
@@ -227,19 +210,14 @@ export default function IncomeTab() {
   } = data;
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64 text-[var(--color-success)]">
-        <span className="animate-spin text-4xl leading-none">⍥</span>
-        <span className="ml-3 font-bold">{t("Loading data...", "Đang tải dữ liệu...")}</span>
-      </div>
-    );
+    return <p className="text-sm text-[var(--color-text-faint)]">{t("Loading...", "Đang tải...")}</p>;
   }
 
   if (errorCode) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
-        <AlertCircle size={32} className="text-[var(--color-error)]" />
-        <p className="font-bold text-[var(--color-text)]">
+      <div className="flex items-start gap-3 rounded-2xl bg-[var(--color-error-tint)] p-4">
+        <AlertCircle size={18} className="flex-none mt-0.5 text-[var(--color-error)]" aria-hidden />
+        <p className="min-w-0 text-sm text-[var(--color-text)]">
           {errorCode === "network"
             ? t("Could not reach the server.", "Không kết nối được tới máy chủ.")
             : apiMessage || t("Could not load income data.", "Không tải được dữ liệu thu nhập.")}
@@ -248,46 +226,62 @@ export default function IncomeTab() {
     );
   }
 
+  // Đầu tab + modal ghi thu nhập — dùng chung cho trạng thái trống và màn đủ.
+  const header = (
+    <>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h2 className="c-h2 c-page-title text-[var(--color-text)]">
+            {t("Income", "Thu nhập")}
+          </h2>
+          <p className="text-[var(--color-text-muted)] text-sm mt-1">
+            {t("Income sources & trends", "Nguồn thu & xu hướng thu nhập")}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+          <button
+            onClick={() => setIsIncomeModalOpen(true)}
+            aria-label={t("Add Income", "Thêm thu nhập")}
+            title={t("Add Income", "Thêm thu nhập")}
+            className="c-btn c-btn-primary w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
+          >
+            <ArrowDownLeft size={16} /> <span className="hidden md:inline">{t("Add Income", "Thêm thu nhập")}</span>
+          </button>
+          <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
+        </div>
+      </div>
+
+      <TransactionModal
+        isOpen={isIncomeModalOpen}
+        onClose={() => setIsIncomeModalOpen(false)}
+        onSuccess={() => setRefreshKey(prev => prev + 1)}
+        defaultType="Income"
+      />
+    </>
+  );
+
   if (!hasData) {
     return (
       <div className="space-y-8 animate-in fade-in">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h2 className="c-h2 c-page-title text-[var(--color-text)]">
-              {t("Income", "Thu nhập")}
-            </h2>
-            <p className="text-[var(--color-text-muted)] text-sm mt-1">
-              {t("Income sources & trends", "Nguồn thu & xu hướng thu nhập")}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-            <button
-              onClick={() => setIsIncomeModalOpen(true)}
-              aria-label={t("Add Income", "Thêm thu nhập")}
-              title={t("Add Income", "Thêm thu nhập")}
-              className="c-btn c-btn-success shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
-            >
-              <ArrowDownLeft size={16} /> <span className="hidden md:inline">{t("Add Income", "Thêm thu nhập")}</span>
-            </button>
-            <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
-          </div>
-        </div>
+        {header}
 
-        <TransactionModal
-          isOpen={isIncomeModalOpen}
-          onClose={() => setIsIncomeModalOpen(false)}
-          onSuccess={() => setRefreshKey(prev => prev + 1)}
-          defaultType="Income"
-        />
-
-        <div className="flex flex-col items-center justify-center h-80 gap-4 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)]">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center">
-            <CalendarX size={32} />
+        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 md:p-8 flex flex-col items-center gap-2 text-center">
+          <div className="mb-2 w-12 h-12 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center" aria-hidden>
+            <CalendarX size={22} />
           </div>
-          <p className="text-lg font-bold text-[var(--color-text)]">
-            {t("No income recorded yet", "Chưa ghi nhận khoản thu nhập nào trong tháng này")}
+          <h3 className="c-h5 text-[var(--color-text)]">
+            {t("No income recorded yet", "Chưa ghi khoản thu nhập nào")}
+          </h3>
+          <p className="text-sm text-[var(--color-text-muted)] max-w-xl">
+            {t(
+              "Record a salary or any other income to see where the money comes from and how it changes over time.",
+              "Ghi một khoản lương hoặc khoản thu bất kỳ để thấy tiền về từ đâu và thay đổi ra sao theo thời gian."
+            )}
           </p>
+          <button onClick={() => setIsIncomeModalOpen(true)} className="mt-3 c-btn c-btn-primary">
+            <ArrowDownLeft size={16} /> {t("Add Income", "Thêm thu nhập")}
+          </button>
         </div>
       </div>
     );
@@ -401,101 +395,111 @@ export default function IncomeTab() {
         );
   const sourceScale = Math.max(1, ...sourceComparison.map((s) => Math.max(s.amount, s.prevAmount)));
 
+  // Số tiền trong ô `StatTile`: không để ký hiệu tiền rớt xuống dòng riêng ở
+  // lưới 2 cột khổ 375px (~113px cho con số). Dưới 1 tỷ luôn vừa; từ 1 tỷ thì
+  // ô hẹp hiện bản rút gọn hai số lẻ (số đủ ở `title`), ô đủ rộng hiện số đủ.
+  const tileMoney = (n: number) => {
+    if (Math.abs(n) < 1_000_000_000) return <span className="whitespace-nowrap">{formatVND(n)}</span>;
+    const v = (Math.abs(n) / 1_000_000_000).toFixed(2);
+    return (
+      <>
+        <span className="whitespace-nowrap @min-[170px]:hidden" title={formatVND(n)}>
+          {n < 0 ? "−" : ""}{vi ? v.replace(".", ",") : v} {t("bn", "tỷ")} ₫
+        </span>
+        <span className="hidden whitespace-nowrap @min-[170px]:inline">{formatVND(n)}</span>
+      </>
+    );
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h2 className="c-h2 text-[var(--color-text)]">
-            {t("Income", "Thu nhập")}
-          </h2>
-          <p className="text-[var(--color-text-muted)] text-sm mt-1">
-            {t("Income sources & trends", "Nguồn thu & xu hướng thu nhập")}
+      {header}
+
+      {/* Bốn con số chính: tháng đang chọn là ô chính, ba ô còn lại là bối cảnh.
+          Nằm trong một thẻ (như Chi tiêu và Nợ) — `StatTile` là dải tint phẳng,
+          đặt trần trên tấm nền thì chìm mất. Tiêu đề thẻ là câu kết luận. */}
+      <section className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-4 min-w-0">
+        <header>
+          {/* Câu của CẢ NĂM, để không lặp tiêu đề thẻ "12 tháng" bên dưới
+              (thẻ đó nói về tháng đang chọn). Hai số đều do API trả về. */}
+          <h4 className="c-h5 text-[var(--color-text)] text-balance">
+            {yearTotal > 0
+              ? t(
+                  `${year} so far: ${money(yearTotal)} in, about ${money(avgPerMonth)} a month`,
+                  `Năm ${year} tới nay thu ${money(yearTotal)}, bình quân ${money(avgPerMonth)} mỗi tháng`
+                )
+              : t(`No income recorded in ${year} yet`, `Năm ${year} chưa ghi khoản thu nào`)}
+          </h4>
+          <p className="text-xs text-[var(--color-text-faint)] mt-1">
+            {t(
+              `income in ${selM}, next to the year so far`,
+              `thu nhập ${selM}, đặt cạnh cả năm tới nay`
+            )}
           </p>
+        </header>
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+          <StatTile
+            emphasis
+            label={t(`Income ${selM}`, `Thu nhập ${selM}`)}
+            value={tileMoney(monthlyIncome)}
+            delta={
+              curIdx >= 1 ? (
+                <Delta pct={pctChange(monthlyIncome, prevMonthAmount)} upIsGood vs={t("vs last month", "so tháng trước")} />
+              ) : undefined
+            }
+          />
+          <StatTile
+            label={t(`${year} so far`, `Năm ${year} tới nay`)}
+            value={tileMoney(yearTotal)}
+            note={
+              prevYearTotal > 0
+                ? t(`all of ${year - 1}: ${money(prevYearTotal)}`, `cả năm ${year - 1}: ${money(prevYearTotal)}`)
+                : t("no data for previous year", `chưa có dữ liệu năm ${year - 1}`)
+            }
+          />
+          <StatTile
+            label={t(`Avg per month ${year}`, `BQ/tháng ${year}`)}
+            value={tileMoney(avgPerMonth)}
+            delta={
+              prevAvgPerMonth > 0 ? (
+                <Delta pct={pctChange(avgPerMonth, prevAvgPerMonth)} upIsGood vs={t(`vs ${year - 1}`, `so ${year - 1}`)} />
+              ) : undefined
+            }
+          />
+          <StatTile
+            label={t(`Avg per month ${year - 1}`, `BQ/tháng ${year - 1}`)}
+            value={prevAvgPerMonth > 0 ? tileMoney(prevAvgPerMonth) : "—"}
+          />
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-          <button
-            onClick={() => setIsIncomeModalOpen(true)}
-            aria-label={t("Add Income", "Thêm thu nhập")}
-            title={t("Add Income", "Thêm thu nhập")}
-            className="c-btn c-btn-success shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
-          >
-            <ArrowDownLeft size={16} /> <span className="hidden md:inline">{t("Add Income", "Thêm thu nhập")}</span>
-          </button>
-          <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
-        </div>
-      </div>
-
-      <TransactionModal
-        isOpen={isIncomeModalOpen}
-        onClose={() => setIsIncomeModalOpen(false)}
-        onSuccess={() => setRefreshKey(prev => prev + 1)}
-        defaultType="Income"
-      />
-
-      {/* Bốn con số chính: tháng đang chọn là ô chính, ba ô còn lại là bối cảnh. */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        <StatTile
-          emphasis
-          label={t(`Income ${selM}`, `Thu nhập ${selM}`)}
-          value={formatVND(monthlyIncome)}
-          delta={
-            curIdx >= 1 ? (
-              <Delta pct={pctChange(monthlyIncome, prevMonthAmount)} upIsGood vs={t("vs last month", "so tháng trước")} />
-            ) : undefined
-          }
-        />
-        <StatTile
-          label={t(`${year} so far`, `Năm ${year} tới nay`)}
-          value={formatVND(yearTotal)}
-          note={
-            prevYearTotal > 0
-              ? t(`all of ${year - 1}: ${money(prevYearTotal)}`, `cả năm ${year - 1}: ${money(prevYearTotal)}`)
-              : t("no data for previous year", `chưa có dữ liệu năm ${year - 1}`)
-          }
-        />
-        <StatTile
-          label={t(`Avg per month ${year}`, `BQ/tháng ${year}`)}
-          value={formatVND(avgPerMonth)}
-          delta={
-            prevAvgPerMonth > 0 ? (
-              <Delta pct={pctChange(avgPerMonth, prevAvgPerMonth)} upIsGood vs={t(`vs ${year - 1}`, `so ${year - 1}`)} />
-            ) : undefined
-          }
-        />
-        <StatTile
-          label={t(`Avg per month ${year - 1}`, `BQ/tháng ${year - 1}`)}
-          value={prevAvgPerMonth > 0 ? formatVND(prevAvgPerMonth) : "—"}
-        />
-      </div>
+      </section>
 
       {/* Sự nghiệp — khối này KHÔNG theo tháng báo cáo, nó đọc cả lịch sử.
           Đặt ngay sau bốn ô tổng vì "chỗ nào trả khá hơn" mới là câu hỏi lớn,
           còn tháng này thu bao nhiêu chỉ là một dòng trong đó. */}
-      <div>
-        <h3 className="c-h3 text-[var(--color-text)] mb-2 mt-8">
-          {t("Career & employers", "Sự nghiệp & nơi đã làm")}
-        </h3>
-        <p className="text-sm text-[var(--color-text-muted)] mb-6">
-          {t(
+      <div className="flex flex-col gap-5">
+        <SectionHeader
+          icon={<Briefcase size={20} />}
+          title={t("Career & employers", "Sự nghiệp & nơi đã làm")}
+          subtitle={t(
             "the whole history, not the selected month",
             "toàn bộ lịch sử, không phụ thuộc tháng đang chọn"
           )}
-        </p>
+        />
         <IncomeCareer refreshKey={refreshKey} />
       </div>
 
       {/* Phân tích nguồn thu */}
-      <div>
-        <h3 className="c-h3 text-[var(--color-text)] mb-6 mt-8">
-          {t("Income Analysis", "Phân tích nguồn thu")} — {year}
-        </h3>
+      <div className="flex flex-col gap-5">
+        <SectionHeader
+          icon={<PieChartIcon size={20} />}
+          title={<>{t("Income Analysis", "Phân tích nguồn thu")} — {year}</>}
+        />
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] grid grid-cols-1 sm:grid-cols-3 gap-3 min-w-0">
           <StatTile
             emphasis
             label={t("Largest source", "Nguồn thu lớn nhất")}
-            value={<span className="block truncate">{largestSource?.name || "—"}</span>}
+            value={<span className="block truncate" title={largestSource?.name}>{largestSource?.name || "—"}</span>}
             note={
               largestSource
                 ? t(`${largestSource.share}% of ${year} income`, `chiếm ${largestSource.share}% thu nhập năm ${year}`)
@@ -504,361 +508,360 @@ export default function IncomeTab() {
           />
           <StatTile
             label={t("Highest month", "Tháng cao nhất")}
-            value={highestMonth ? formatVND(highestMonth.amount) : "—"}
+            value={highestMonth ? tileMoney(highestMonth.amount) : "—"}
             note={highestMonth ? mLabel(highestMonth.month) : undefined}
           />
           <StatTile
             label={t("Lowest month", "Tháng thấp nhất")}
-            value={lowestMonth ? formatVND(lowestMonth.amount) : "—"}
+            value={lowestMonth ? tileMoney(lowestMonth.amount) : "—"}
             note={lowestMonth ? mLabel(lowestMonth.month) : undefined}
           />
         </div>
       </div>
 
       {/* Xu hướng */}
-      <h3 className="c-h3 text-[var(--color-text)] mb-6 mt-8">
-        {t("Trends", "Xu hướng")}
-      </h3>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 12 tháng: cột xám, tháng đang chọn màu nhấn + ghi số; đường trung
-            bình 12 tháng nét đứt ghi nhãn tại chỗ. */}
-        <ChartCard
-          title={trendHeadline}
-          subtitle={t(
-            `Income per month, 12 months to ${selM} · dashed line = 12-month average`,
-            `Thu nhập mỗi tháng, 12 tháng tới ${selM} · nét đứt = trung bình 12 tháng`
-          )}
-        >
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlySeries} margin={{ top: 20, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid {...GRID} />
-                <XAxis dataKey="name" {...monthAxis(monthlySeries.map((d) => d.name))} />
-                <YAxis {...yAxis(money)} />
-                <Tooltip
-                  {...TOOLTIP}
-                  formatter={(v) => [formatVND(Number(v) || 0), t("Income", "Thu nhập")]}
-                  labelFormatter={(l) => mLabel(String(l))}
-                />
-                {avg12 > 0 && (
-                  <ReferenceLine
-                    y={avg12}
-                    stroke={VIZ.muted}
-                    strokeDasharray="4 3"
-                    label={refLabel(`${t("avg", "TB")} ${money(avg12)}`)}
-                  />
-                )}
-                <Bar dataKey="amount" fill={VIZ.muted} {...BAR} label={barLabelAt(monthlySeries, "amount", curIdx, money)}>
-                  {monthlySeries.map((p, i) => (
-                    <Cell key={p.name} fill={i === curIdx ? VIZ.accent : VIZ.muted} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
-        {/* Theo năm: năm thu nhiều nhất mang màu nhấn; ít cột nên ghi số lên
-            từng cột và bỏ trục Y. */}
-        <ChartCard
-          title={annualHeadline}
-          subtitle={t(
-            `Total income per calendar year${annualTotals.some((p) => p.name === String(year)) ? ` · ${year} is year to date` : ""}`,
-            `Tổng thu nhập mỗi năm${annualTotals.some((p) => p.name === String(year)) ? ` · ${year} tính tới hiện tại` : ""}`
-          )}
-        >
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={annualTotals} margin={{ top: 20, right: 4, left: labelEveryYear ? 4 : 0, bottom: 0 }}>
-                {!labelEveryYear && <CartesianGrid {...GRID} />}
-                <XAxis dataKey="name" {...xAxis} interval={0} />
-                {!labelEveryYear && <YAxis {...yAxis(money)} />}
-                <Tooltip
-                  {...TOOLTIP}
-                  formatter={(v) => [formatVND(Number(v) || 0), t("Income", "Thu nhập")]}
-                />
-                <Bar
-                  dataKey="amount"
-                  fill={VIZ.muted}
-                  {...BAR}
-                  label={labelEveryYear ? barLabels(money, bestYearIdx) : barLabelAt(annualTotals, "amount", bestYearIdx, money)}
-                >
-                  {annualTotals.map((p, i) => (
-                    <Cell key={p.name} fill={i === bestYearIdx ? VIZ.accent : VIZ.muted} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
-        {/* Luỹ kế năm nay đặt cạnh năm ngoái. Tổng năm chỉ nói kết quả khi đã
-            hết năm; đường luỹ kế nói đang đi nhanh hay chậm hơn ngay từ giữa
-            năm, lúc còn kịp làm gì đó. Nhãn ở đầu mút thay cho chú giải. */}
-        <ChartCard
-          title={paceHeadline}
-          subtitle={t(
-            `Cumulative income, Jan to Dec · ${year} against ${year - 1}`,
-            `Thu nhập luỹ kế từ tháng 1 · ${year} so với ${year - 1}`
-          )}
-        >
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={cumulative} margin={{ top: 22, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid {...GRID} />
-                <XAxis
-                  dataKey="name"
-                  {...xAxis}
-                  interval={0}
-                  tickFormatter={(v) => String(Number(v))}
-                />
-                <YAxis {...yAxis(money)} />
-                <Tooltip
-                  {...TOOLTIP_LINE}
-                  formatter={(v, n) => [formatVND(Number(v) || 0), n]}
-                  labelFormatter={(l) => calMonth(String(l), vi)}
-                />
-                {hasLastYear && (
-                  <Line
-                    {...LINE}
-                    dataKey="lastYear"
-                    name={String(year - 1)}
-                    stroke={VIZ.muted}
-                    connectNulls
-                    isAnimationActive={false}
-                    label={endLabel(11, (v) => `${year - 1} · ${money(v)}`, thisAbove ? "below" : "above", false)}
-                  />
-                )}
-                <Line
-                  {...LINE}
-                  dataKey="thisYear"
-                  name={String(year)}
-                  stroke={VIZ.accent}
-                  connectNulls={false}
-                  isAnimationActive={false}
-                  label={cumIdx >= 0 ? endLabel(cumIdx, (v) => `${year} · ${money(v)}`, thisAbove ? "above" : "below", true) : undefined}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
-        {/* Thưởng Tết và thưởng cuối năm rơi vào tháng cố định. Nhìn một năm thì
-            chúng chỉ là cột vọt lên bất thường; gộp mọi năm mới thành quy luật
-            — và quy luật đó mới là thứ lập kế hoạch được. */}
-        <ChartCard
-          title={seasonHeadline}
-          subtitle={
-            seasonYears >= 2
-              ? t(
-                  `Average income for each calendar month, ${seasonYears} years of data`,
-                  `Trung bình thu nhập từng tháng trong năm, gộp ${seasonYears} năm dữ liệu`
-                )
-              : t(
-                  "Average income for each calendar month · only one year of data, not yet a pattern",
-                  "Trung bình thu nhập từng tháng trong năm · mới có một năm dữ liệu, chưa thành quy luật"
-                )
-          }
-        >
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={seasonality} margin={{ top: 20, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid {...GRID} />
-                <XAxis dataKey="name" {...xAxis} interval={0} tickFormatter={(v) => String(Number(v))} />
-                <YAxis {...yAxis(money)} />
-                <Tooltip
-                  {...TOOLTIP}
-                  formatter={(v) => [formatVND(Number(v) || 0), t("Average", "Trung bình")]}
-                  labelFormatter={(l) => calMonth(String(l), vi)}
-                />
-                <Bar
-                  dataKey="avg"
-                  name={t("Average", "Trung bình")}
-                  fill={VIZ.muted}
-                  {...BAR}
-                  label={seasonTop && seasonTop.avg > 0 ? barLabelAt(seasonality, "avg", seasonTopIdx, money) : undefined}
-                >
-                  {seasonality.map((p, i) => (
-                    <Cell key={p.name} fill={i === seasonTopIdx && p.avg > 0 ? VIZ.accent : VIZ.muted} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
-        {/* Cơ cấu nguồn thu theo tháng — trả lời "tháng đó tiền về từ đâu",
-            thứ mà một cột tổng không nói được. Nguồn lớn nhất mang màu nhấn
-            và nằm sát đáy; các nguồn còn lại xám, tách bằng khe nền. Màu
-            danh tính từng công ty nằm ở khối Sự nghiệp — ở đây chỉ một câu
-            hỏi: phụ thuộc nguồn chính tới đâu. */}
-        <ChartCard
-          className="lg:col-span-2"
-          title={mixHeadline}
-          subtitle={t(
-            `Income per month by source, 12 months to ${selM} · hover a column for the split`,
-            `Thu nhập mỗi tháng theo nguồn, 12 tháng tới ${selM} · rê vào cột để xem từng nguồn`
-          )}
-          keys={
-            topSource
-              ? [
-                  { label: topSource, color: VIZ.accent, shape: "bar" },
-                  ...(stackOrder.length > 1
-                    ? [{ label: t("Other sources", "Các nguồn còn lại"), color: VIZ.muted, shape: "bar" as const }]
-                    : []),
-                ]
-              : undefined
-          }
-        >
-          {sourceKeys.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)]">
-              {t("No income in the last 12 months.", "12 tháng qua chưa có khoản thu nào.")}
-            </p>
-          ) : (
-            <div className="h-72 w-full">
+      <div className="flex flex-col gap-5">
+        <SectionHeader icon={<TrendingUp size={20} />} title={t("Trends", "Xu hướng")} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 12 tháng: cột xám, tháng đang chọn màu nhấn + ghi số; đường trung
+              bình 12 tháng nét đứt ghi nhãn tại chỗ. */}
+          <ChartCard
+            title={trendHeadline}
+            subtitle={t(
+              `Income per month, 12 months to ${selM} · dashed line = 12-month average`,
+              `Thu nhập mỗi tháng, 12 tháng tới ${selM} · nét đứt = trung bình 12 tháng`
+            )}
+          >
+            <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={sourceMonthly} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                <BarChart data={monthlySeries} margin={{ top: 20, right: 4, left: 0, bottom: 0 }}>
                   <CartesianGrid {...GRID} />
-                  <XAxis dataKey="name" {...monthAxis(sourceMonthly.map((d) => String(d.name)))} />
+                  <XAxis dataKey="name" {...monthAxis(monthlySeries.map((d) => d.name))} />
                   <YAxis {...yAxis(money)} />
                   <Tooltip
                     {...TOOLTIP}
-                    content={
-                      <StackedMonthTooltip
-                        otherKey={OTHER_SOURCE_KEY}
-                        otherLabel={t("Other sources", "Nguồn khác")}
-                      />
-                    }
+                    formatter={(v) => [formatVND(Number(v) || 0), t("Income", "Thu nhập")]}
+                    labelFormatter={(l) => mLabel(String(l))}
                   />
-                  {stackOrder.map((key, i) => (
-                    <Bar
-                      key={key}
-                      dataKey={key}
-                      stackId="src"
-                      name={sourceName(key)}
-                      fill={key === topSource ? VIZ.accent : VIZ.muted}
-                      {...STACK_GAP}
-                      maxBarSize={BAR.maxBarSize}
-                      radius={i === stackOrder.length - 1 ? BAR.radius : 0}
+                  {avg12 > 0 && (
+                    <ReferenceLine
+                      y={avg12}
+                      stroke={VIZ.muted}
+                      strokeDasharray="4 3"
+                      label={refLabel(`${t("avg", "TB")} ${money(avg12)}`)}
                     />
-                  ))}
+                  )}
+                  <Bar dataKey="amount" fill={VIZ.muted} {...BAR} label={barLabelAt(monthlySeries, "amount", curIdx, money)}>
+                    {monthlySeries.map((p, i) => (
+                      <Cell key={p.name} fill={i === curIdx ? VIZ.accent : VIZ.muted} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          )}
-        </ChartCard>
+          </ChartCard>
 
-        {/* So sánh từng nguồn với chính nó của năm ngoái (thanh = năm nay, vạch
-            = cả năm ngoái). Nguồn đã dừng hẳn cũng nằm trong danh sách: chỗ hụt
-            đi là thứ dễ bỏ sót nhất vì nó không còn dòng nào để nhìn thấy. */}
-        <ChartCard
-          className="lg:col-span-2"
-          title={sourcesHeadline}
-          subtitle={t(
-            `Each source in ${year} so far · tick = all of ${year - 1}`,
-            `Từng nguồn năm ${year} tới nay · vạch = cả năm ${year - 1}`
-          )}
-          footnote={
-            concentration.sourceCount > 1 ? (
-              <>
-                {t(
-                  `Top two sources: ${concentration.topTwoShare}%.`,
-                  `Hai nguồn lớn nhất: ${concentration.topTwoShare}%.`
-                )}
-                {/* Nói thẳng rủi ro phụ thuộc bằng số tiền còn lại, thay vì
-                    một chỉ số tập trung mà đọc xong vẫn phải tự diễn giải. */}
-                {concentration.topShare >= 50 && (
-                  <>
-                    {" "}
-                    {t(`Without the largest, ${year} income is `, `Mất nguồn lớn nhất thì thu nhập ${year} còn `)}
-                    <b className="tabular-nums text-[var(--color-text)]">{formatVND(concentration.withoutTop)}</b>.
-                  </>
-                )}
-              </>
-            ) : undefined
-          }
-        >
-          {sourceComparison.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)]">
-              {t("No income recorded yet.", "Chưa ghi khoản thu nào.")}
-            </p>
-          ) : (
-            <>
-              <SeriesKey
-                items={[
-                  { label: String(year), color: VIZ.muted, shape: "bar" },
-                  { label: String(year - 1), color: VIZ.ink, shape: "tick" },
-                ]}
-              />
-              <ul className="-mx-2 flex flex-col">
-                {sourceComparison.map((s) => {
-                  const isNew = s.prevAmount === 0 && s.amount > 0;
-                  const isGone = s.amount === 0 && s.prevAmount > 0;
-                  const highlight = s.name === largestSource?.name && s.amount > 0;
-                  return (
-                    <li
-                      key={s.name}
-                      className="border-b border-[var(--color-border)] last:border-b-0 px-2 py-2.5 grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_9rem] items-center gap-x-4 gap-y-1"
-                    >
-                      <span className="min-w-0 flex flex-col">
-                        <span
-                          className={`text-sm truncate ${
-                            isGone
-                              ? "text-[var(--color-text-faint)]"
-                              : highlight
-                                ? "font-bold text-[var(--color-text)]"
-                                : "text-[var(--color-text)]"
-                          }`}
-                          title={s.name}
-                        >
-                          {s.name}
-                        </span>
-                        <span className="text-[11px] text-[var(--color-text-faint)] truncate">
-                          {s.months > 0
-                            ? t(
-                                `paid in ${s.months} months · avg ${money(s.avgPerActiveMonth)}`,
-                                `có thu ${s.months} tháng · BQ ${money(s.avgPerActiveMonth)}`
-                              )
-                            : null}
-                          {s.months > 0 && s.lastMonth ? " · " : null}
-                          {s.lastMonth ? t(`last ${mLabel(s.lastMonth)}`, `gần nhất ${mLabel(s.lastMonth)}`) : null}
-                        </span>
-                      </span>
-                      <span className="order-3 col-span-2 md:order-none md:col-span-1">
-                        <Bullet
-                          now={s.amount}
-                          before={s.prevAmount}
-                          scale={sourceScale}
-                          color={highlight ? VIZ.accent : VIZ.muted}
+          {/* Theo năm: năm thu nhiều nhất mang màu nhấn; ít cột nên ghi số lên
+              từng cột và bỏ trục Y. */}
+          <ChartCard
+            title={annualHeadline}
+            subtitle={t(
+              `Total income per calendar year${annualTotals.some((p) => p.name === String(year)) ? ` · ${year} is year to date` : ""}`,
+              `Tổng thu nhập mỗi năm${annualTotals.some((p) => p.name === String(year)) ? ` · ${year} tính tới hiện tại` : ""}`
+            )}
+          >
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={annualTotals} margin={{ top: 20, right: 4, left: labelEveryYear ? 4 : 0, bottom: 0 }}>
+                  {!labelEveryYear && <CartesianGrid {...GRID} />}
+                  <XAxis dataKey="name" {...xAxis} interval={0} />
+                  {!labelEveryYear && <YAxis {...yAxis(money)} />}
+                  <Tooltip
+                    {...TOOLTIP}
+                    formatter={(v) => [formatVND(Number(v) || 0), t("Income", "Thu nhập")]}
+                  />
+                  <Bar
+                    dataKey="amount"
+                    fill={VIZ.muted}
+                    {...BAR}
+                    label={labelEveryYear ? barLabels(money, bestYearIdx) : barLabelAt(annualTotals, "amount", bestYearIdx, money)}
+                  >
+                    {annualTotals.map((p, i) => (
+                      <Cell key={p.name} fill={i === bestYearIdx ? VIZ.accent : VIZ.muted} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
+          {/* Luỹ kế năm nay đặt cạnh năm ngoái. Tổng năm chỉ nói kết quả khi đã
+              hết năm; đường luỹ kế nói đang đi nhanh hay chậm hơn ngay từ giữa
+              năm, lúc còn kịp làm gì đó. Nhãn ở đầu mút thay cho chú giải. */}
+          <ChartCard
+            title={paceHeadline}
+            subtitle={t(
+              `Cumulative income, Jan to Dec · ${year} against ${year - 1}`,
+              `Thu nhập luỹ kế từ tháng 1 · ${year} so với ${year - 1}`
+            )}
+          >
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={cumulative} margin={{ top: 22, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid {...GRID} />
+                  <XAxis
+                    dataKey="name"
+                    {...xAxis}
+                    interval={0}
+                    tickFormatter={(v) => String(Number(v))}
+                  />
+                  <YAxis {...yAxis(money)} />
+                  <Tooltip
+                    {...TOOLTIP_LINE}
+                    formatter={(v, n) => [formatVND(Number(v) || 0), n]}
+                    labelFormatter={(l) => calMonth(String(l), vi)}
+                  />
+                  {hasLastYear && (
+                    <Line
+                      {...LINE}
+                      dataKey="lastYear"
+                      name={String(year - 1)}
+                      stroke={VIZ.muted}
+                      connectNulls
+                      isAnimationActive={false}
+                      label={endLabel(11, (v) => `${year - 1} · ${money(v)}`, thisAbove ? "below" : "above", false)}
+                    />
+                  )}
+                  <Line
+                    {...LINE}
+                    dataKey="thisYear"
+                    name={String(year)}
+                    stroke={VIZ.accent}
+                    connectNulls={false}
+                    isAnimationActive={false}
+                    label={cumIdx >= 0 ? endLabel(cumIdx, (v) => `${year} · ${money(v)}`, thisAbove ? "above" : "below", true) : undefined}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
+          {/* Thưởng Tết và thưởng cuối năm rơi vào tháng cố định. Nhìn một năm thì
+              chúng chỉ là cột vọt lên bất thường; gộp mọi năm mới thành quy luật
+              — và quy luật đó mới là thứ lập kế hoạch được. */}
+          <ChartCard
+            title={seasonHeadline}
+            subtitle={
+              seasonYears >= 2
+                ? t(
+                    `Average income for each calendar month, ${seasonYears} years of data`,
+                    `Trung bình thu nhập từng tháng trong năm, gộp ${seasonYears} năm dữ liệu`
+                  )
+                : t(
+                    "Average income for each calendar month · only one year of data, not yet a pattern",
+                    "Trung bình thu nhập từng tháng trong năm · mới có một năm dữ liệu, chưa thành quy luật"
+                  )
+            }
+          >
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={seasonality} margin={{ top: 20, right: 4, left: 0, bottom: 0 }}>
+                  <CartesianGrid {...GRID} />
+                  <XAxis dataKey="name" {...xAxis} interval={0} tickFormatter={(v) => String(Number(v))} />
+                  <YAxis {...yAxis(money)} />
+                  <Tooltip
+                    {...TOOLTIP}
+                    formatter={(v) => [formatVND(Number(v) || 0), t("Average", "Trung bình")]}
+                    labelFormatter={(l) => calMonth(String(l), vi)}
+                  />
+                  <Bar
+                    dataKey="avg"
+                    name={t("Average", "Trung bình")}
+                    fill={VIZ.muted}
+                    {...BAR}
+                    label={seasonTop && seasonTop.avg > 0 ? barLabelAt(seasonality, "avg", seasonTopIdx, money) : undefined}
+                  >
+                    {seasonality.map((p, i) => (
+                      <Cell key={p.name} fill={i === seasonTopIdx && p.avg > 0 ? VIZ.accent : VIZ.muted} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
+          {/* Cơ cấu nguồn thu theo tháng — trả lời "tháng đó tiền về từ đâu",
+              thứ mà một cột tổng không nói được. Nguồn lớn nhất mang màu nhấn
+              và nằm sát đáy; các nguồn còn lại xám, tách bằng khe nền. Màu
+              danh tính từng công ty nằm ở khối Sự nghiệp — ở đây chỉ một câu
+              hỏi: phụ thuộc nguồn chính tới đâu. */}
+          <ChartCard
+            className="lg:col-span-2"
+            title={mixHeadline}
+            subtitle={t(
+              `Income per month by source, 12 months to ${selM} · hover a column for the split`,
+              `Thu nhập mỗi tháng theo nguồn, 12 tháng tới ${selM} · rê vào cột để xem từng nguồn`
+            )}
+            keys={
+              topSource
+                ? [
+                    { label: topSource, color: VIZ.accent, shape: "bar" },
+                    ...(stackOrder.length > 1
+                      ? [{ label: t("Other sources", "Các nguồn còn lại"), color: VIZ.muted, shape: "bar" as const }]
+                      : []),
+                  ]
+                : undefined
+            }
+          >
+            {sourceKeys.length === 0 ? (
+              <p className="text-sm text-[var(--color-text-muted)]">
+                {t("No income in the last 12 months.", "12 tháng qua chưa có khoản thu nào.")}
+              </p>
+            ) : (
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={sourceMonthly} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                    <CartesianGrid {...GRID} />
+                    <XAxis dataKey="name" {...monthAxis(sourceMonthly.map((d) => String(d.name)))} />
+                    <YAxis {...yAxis(money)} />
+                    <Tooltip
+                      {...TOOLTIP}
+                      content={
+                        <StackedMonthTooltip
+                          otherKey={OTHER_SOURCE_KEY}
+                          otherLabel={t("Other sources", "Nguồn khác")}
                         />
-                      </span>
-                      <span className="text-right">
-                        <span className="block text-sm font-bold tabular-nums text-[var(--color-text)]">
-                          {formatVND(s.amount)}
-                          {s.share > 0 && (
-                            <span className="ml-1.5 text-[11px] font-normal text-[var(--color-text-faint)]">{s.share}%</span>
-                          )}
+                      }
+                    />
+                    {stackOrder.map((key, i) => (
+                      <Bar
+                        key={key}
+                        dataKey={key}
+                        stackId="src"
+                        name={sourceName(key)}
+                        fill={key === topSource ? VIZ.accent : VIZ.muted}
+                        {...STACK_GAP}
+                        maxBarSize={BAR.maxBarSize}
+                        radius={i === stackOrder.length - 1 ? BAR.radius : 0}
+                      />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </ChartCard>
+
+          {/* So sánh từng nguồn với chính nó của năm ngoái (thanh = năm nay, vạch
+              = cả năm ngoái). Nguồn đã dừng hẳn cũng nằm trong danh sách: chỗ hụt
+              đi là thứ dễ bỏ sót nhất vì nó không còn dòng nào để nhìn thấy. */}
+          <ChartCard
+            className="lg:col-span-2"
+            title={sourcesHeadline}
+            subtitle={t(
+              `Each source in ${year} so far · tick = all of ${year - 1}`,
+              `Từng nguồn năm ${year} tới nay · vạch = cả năm ${year - 1}`
+            )}
+            footnote={
+              concentration.sourceCount > 1 ? (
+                <>
+                  {t(
+                    `Top two sources: ${concentration.topTwoShare}%.`,
+                    `Hai nguồn lớn nhất: ${concentration.topTwoShare}%.`
+                  )}
+                  {/* Nói thẳng rủi ro phụ thuộc bằng số tiền còn lại, thay vì
+                      một chỉ số tập trung mà đọc xong vẫn phải tự diễn giải. */}
+                  {concentration.topShare >= 50 && (
+                    <>
+                      {" "}
+                      {t(`Without the largest, ${year} income is `, `Mất nguồn lớn nhất thì thu nhập ${year} còn `)}
+                      <b className="tabular-nums text-[var(--color-text)]">{formatVND(concentration.withoutTop)}</b>.
+                    </>
+                  )}
+                </>
+              ) : undefined
+            }
+          >
+            {sourceComparison.length === 0 ? (
+              <p className="text-sm text-[var(--color-text-muted)]">
+                {t("No income recorded yet.", "Chưa ghi khoản thu nào.")}
+              </p>
+            ) : (
+              <>
+                <SeriesKey
+                  items={[
+                    { label: String(year), color: VIZ.muted, shape: "bar" },
+                    { label: String(year - 1), color: VIZ.ink, shape: "tick" },
+                  ]}
+                />
+                <ul className="-mx-2 flex flex-col">
+                  {sourceComparison.map((s) => {
+                    const isNew = s.prevAmount === 0 && s.amount > 0;
+                    const isGone = s.amount === 0 && s.prevAmount > 0;
+                    const highlight = s.name === largestSource?.name && s.amount > 0;
+                    return (
+                      <li
+                        key={s.name}
+                        className="border-b border-[var(--color-border)] last:border-b-0 px-2 py-2.5 grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_9rem] items-center gap-x-4 gap-y-1"
+                      >
+                        <span className="min-w-0 flex flex-col">
+                          <span
+                            className={`text-sm truncate ${
+                              isGone
+                                ? "text-[var(--color-text-faint)]"
+                                : highlight
+                                  ? "font-semibold text-[var(--color-text)]"
+                                  : "text-[var(--color-text)]"
+                            }`}
+                            title={s.name}
+                          >
+                            {s.name}
+                          </span>
+                          <span className="text-xs text-[var(--color-text-faint)] truncate">
+                            {s.months > 0
+                              ? t(
+                                  `paid in ${s.months} months · avg ${money(s.avgPerActiveMonth)}`,
+                                  `có thu ${s.months} tháng · BQ ${money(s.avgPerActiveMonth)}`
+                                )
+                              : null}
+                            {s.months > 0 && s.lastMonth ? " · " : null}
+                            {s.lastMonth ? t(`last ${mLabel(s.lastMonth)}`, `gần nhất ${mLabel(s.lastMonth)}`) : null}
+                          </span>
                         </span>
-                        <span className="block">
-                          {isGone ? (
-                            <span className="text-[11px] text-[var(--color-text-faint)]">
-                              {t(`stopped · ${money(s.prevAmount)} in ${year - 1}`, `đã dừng · ${year - 1} thu ${money(s.prevAmount)}`)}
-                            </span>
-                          ) : isNew ? (
-                            <Delta pct={null} upIsGood vs={t("this year", "năm nay")} />
-                          ) : (
-                            <Delta pct={s.pct} upIsGood vs={t(`vs ${money(s.prevAmount)}`, `từ ${money(s.prevAmount)}`)} />
-                          )}
+                        <span className="order-3 col-span-2 md:order-none md:col-span-1">
+                          <Bullet
+                            now={s.amount}
+                            before={s.prevAmount}
+                            scale={sourceScale}
+                            color={highlight ? VIZ.accent : VIZ.muted}
+                          />
                         </span>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
-        </ChartCard>
+                        <span className="text-right">
+                          <span className="block text-sm font-bold tabular-nums whitespace-nowrap text-[var(--color-text)]">
+                            {formatVND(s.amount)}
+                            {s.share > 0 && (
+                              <span className="ml-1.5 text-xs font-normal text-[var(--color-text-faint)]">{s.share}%</span>
+                            )}
+                          </span>
+                          <span className="block">
+                            {isGone ? (
+                              <span className="text-xs text-[var(--color-text-faint)]">
+                                {t(`stopped · ${money(s.prevAmount)} in ${year - 1}`, `đã dừng · ${year - 1} thu ${money(s.prevAmount)}`)}
+                              </span>
+                            ) : isNew ? (
+                              <Delta pct={null} upIsGood vs={t("this year", "năm nay")} />
+                            ) : (
+                              <Delta pct={s.pct} upIsGood vs={t(`vs ${money(s.prevAmount)}`, `từ ${money(s.prevAmount)}`)} />
+                            )}
+                          </span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+          </ChartCard>
+        </div>
       </div>
 
       <PeriodComparison

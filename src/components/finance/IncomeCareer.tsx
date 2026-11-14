@@ -169,6 +169,22 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
   }
   if (!data.hasData || data.employers.length === 0) return null;
 
+  // Số tiền trong ô `StatTile`: không để ký hiệu tiền rớt xuống dòng riêng ở
+  // lưới 2 cột khổ 375px. Dưới 1 tỷ luôn vừa; từ 1 tỷ thì ô hẹp hiện bản rút
+  // gọn hai số lẻ (số đủ ở `title`), ô đủ rộng hiện số đủ.
+  const tileMoney = (n: number) => {
+    if (Math.abs(n) < 1_000_000_000) return <span className="whitespace-nowrap">{formatVND(n)}</span>;
+    const v = (Math.abs(n) / 1_000_000_000).toFixed(2);
+    return (
+      <>
+        <span className="whitespace-nowrap @min-[170px]:hidden" title={formatVND(n)}>
+          {n < 0 ? "−" : ""}{vi ? v.replace(".", ",") : v} {t("bn", "tỷ")} ₫
+        </span>
+        <span className="hidden whitespace-nowrap @min-[170px]:inline">{formatVND(n)}</span>
+      </>
+    );
+  };
+
   const {
     employers, employerSeries, subKeys, yearByEmployer, yearBySub,
     timeline, timelineSeries, gaps, totals, months, firstMonth, years,
@@ -313,40 +329,53 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* --- Bốn con số của cả chặng đường --- */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatTile
-          emphasis
-          label={t("Earned all time", "Tổng thu từ trước tới nay")}
-          value={formatVND(totals.allTime)}
-          note={t(
-            `${totals.employerCount} places · ${totals.careerMonths} months`,
-            `${totals.employerCount} nơi · ${totals.careerMonths} tháng`
-          )}
-        />
-        <StatTile
-          label={t("Avg per paid month", "BQ tháng CÓ lương")}
-          value={formatVND(totals.avgPerPaidMonth)}
-          note={t(`${totals.monthsPaid} months paid`, `${totals.monthsPaid} tháng có tiền về`)}
-        />
-        <StatTile
-          label={t("Avg across the whole run", "BQ cả chặng đường")}
-          value={formatVND(totals.avgPerCareerMonth)}
-          note={t("gaps included", "tính cả tháng trống")}
-        />
-        <StatTile
-          label={t("Months with nothing", "Tháng không có đồng nào")}
-          value={String(totals.gapMonths)}
-          note={
-            totals.careerMonths > 0
-              ? t(
-                  `${Math.round((totals.gapMonths / totals.careerMonths) * 100)}% of the run`,
-                  `${Math.round((totals.gapMonths / totals.careerMonths) * 100)}% quãng đường`
-                )
-              : undefined
-          }
-        />
-      </div>
+      {/* --- Bốn con số của cả chặng đường ---
+          Trong một thẻ: `StatTile` là dải tint phẳng, đặt trần trên tấm nền
+          thì chìm. Tiêu đề thẻ ghép từ ba số API đã trả, không tính thêm gì. */}
+      <ChartCard
+        title={t(
+          `${money(totals.allTime)} earned across ${totals.employerCount} places in ${totals.careerMonths} months`,
+          `Đã thu ${money(totals.allTime)} qua ${totals.employerCount} nơi trong ${totals.careerMonths} tháng`
+        )}
+        subtitle={t(
+          "the whole run, from the first payslip to the latest",
+          "cả chặng đường, từ khoản lương đầu tiên tới khoản gần nhất"
+        )}
+      >
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatTile
+            emphasis
+            label={t("Earned all time", "Tổng thu từ trước tới nay")}
+            value={tileMoney(totals.allTime)}
+            note={t(
+              `${totals.employerCount} places · ${totals.careerMonths} months`,
+              `${totals.employerCount} nơi · ${totals.careerMonths} tháng`
+            )}
+          />
+          <StatTile
+            label={t("Avg per paid month", "BQ tháng CÓ lương")}
+            value={tileMoney(totals.avgPerPaidMonth)}
+            note={t(`${totals.monthsPaid} months paid`, `${totals.monthsPaid} tháng có tiền về`)}
+          />
+          <StatTile
+            label={t("Avg across the whole run", "BQ cả chặng đường")}
+            value={tileMoney(totals.avgPerCareerMonth)}
+            note={t("gaps included", "tính cả tháng trống")}
+          />
+          <StatTile
+            label={t("Months with nothing", "Tháng không có đồng nào")}
+            value={String(totals.gapMonths)}
+            note={
+              totals.careerMonths > 0
+                ? t(
+                    `${Math.round((totals.gapMonths / totals.careerMonths) * 100)}% of the run`,
+                    `${Math.round((totals.gapMonths / totals.careerMonths) * 100)}% quãng đường`
+                  )
+                : undefined
+            }
+          />
+        </div>
+      </ChartCard>
 
       {/* --- Dải thời gian: nằm ở đâu, bao lâu, và hở chỗ nào --- */}
       <ChartCard
@@ -382,16 +411,16 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                         style={{ background: catColor(e.colourIndex) }}
                         aria-hidden
                       />
-                      <span className="text-xs font-bold text-[var(--color-text)] truncate">
+                      <span className="text-sm font-semibold text-[var(--color-text)] truncate" title={e.name}>
                         {e.name}
                       </span>
                       {e.active && (
-                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] flex-none">
+                        <span className="text-xs text-[var(--color-text-muted)] flex-none">
                           · {t("current", "đang nhận")}
                         </span>
                       )}
                     </span>
-                    <span className="sm:flex-none text-[11px] tabular-nums text-[var(--color-text-faint)]">
+                    <span className="sm:flex-none text-xs tabular-nums text-[var(--color-text-faint)]">
                       <b className="text-[var(--color-text)]">{money(e.total)}</b>{" "}
                       · {viMonth(e.from)} – {viMonth(e.to)} · {e.tenure} {t("mo", "tháng")}
                     </span>
@@ -449,7 +478,7 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
           ...(hasBonus
             ? [{ label: t("pale = bonus", "bậc nhạt = thưởng"), color: soft(VIZ.muted), shape: "bar" as const }]
             : []),
-          { label: t("12-month average", "Bình quân 12 tháng"), color: VIZ.ink, shape: "dash" as const },
+          { label: t("12-month average", "Bình quân 12 tháng"), color: VIZ.muted, shape: "dash" as const },
         ]}
       >
         <div className="h-72 w-full">
@@ -495,8 +524,10 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                 {...LINE}
                 dataKey="trailing12"
                 name={t("12-month average", "Bình quân 12 tháng")}
-                stroke={VIZ.ink}
-                strokeWidth={1.5}
+                // Đường tham chiếu là `VIZ.muted` (docs/bieu-do.md), không phải
+                // màu mực: nó là mốc để so, không phải dữ liệu chính.
+                stroke={VIZ.muted}
+                strokeWidth={2}
                 strokeDasharray="4 3"
                 connectNulls={false}
                 isAnimationActive={false}
@@ -612,16 +643,16 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
         <div className="overflow-x-auto -mx-1 px-1">
           <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="text-[11px] text-[var(--color-text-muted)]">
-                <th className="text-left py-2 pr-3 font-bold sticky left-0 bg-[var(--color-surface)]">
+              <tr className="text-xs text-[var(--color-text-muted)]">
+                <th className="text-left py-2 pr-3 font-medium sticky left-0 bg-[var(--color-surface)]">
                   {t("Source", "Nguồn")}
                 </th>
                 {years.map((y) => (
-                  <th key={y} className="text-right py-2 px-2 tabular-nums font-bold whitespace-nowrap">
+                  <th key={y} className="text-right py-2 px-2 tabular-nums font-medium whitespace-nowrap">
                     {y}
                   </th>
                 ))}
-                <th className="text-right py-2 pl-3 font-bold whitespace-nowrap">
+                <th className="text-right py-2 pl-3 font-medium whitespace-nowrap">
                   {t("Total", "Tổng")}
                 </th>
               </tr>
@@ -681,7 +712,7 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-[var(--color-border-strong)]">
-                <td className="py-2.5 pr-3 text-[11px] font-bold text-[var(--color-text-muted)] sticky left-0 bg-[var(--color-surface)]">
+                <td className="py-2.5 pr-3 text-xs font-semibold text-[var(--color-text-muted)] sticky left-0 bg-[var(--color-surface)]">
                   {t("All sources", "Tất cả")}
                 </td>
                 {years.map((y) => {
@@ -736,9 +767,9 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                         style={{ background: catColor(e.colourIndex) }}
                         aria-hidden
                       />
-                      <span className="font-bold text-[var(--color-text)] truncate" title={e.name}>{e.name}</span>
+                      <span className="font-semibold text-[var(--color-text)] truncate" title={e.name}>{e.name}</span>
                       {e.active && (
-                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] flex-none">
+                        <span className="text-xs text-[var(--color-text-muted)] flex-none">
                           · {t("current", "đang nhận")}
                         </span>
                       )}
@@ -750,7 +781,7 @@ export default function IncomeCareer({ refreshKey }: { refreshKey: number }) {
                     </div>
                   </div>
                   <div className="text-right flex-none">
-                    <div className="font-bold tabular-nums text-[var(--color-text)]">
+                    <div className="font-bold tabular-nums whitespace-nowrap text-[var(--color-text)]">
                       {formatVND(e.total)}
                     </div>
                     <div className="text-xs text-[var(--color-text-faint)]">
