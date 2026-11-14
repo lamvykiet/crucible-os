@@ -5,13 +5,15 @@ import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import type { BarShapeProps } from "recharts";
-import { AlertCircle, CalendarDays } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { todayLocalIso } from "@/lib/localDate";
 import { VIZ, GRID, BAR, TOOLTIP, xAxis, yAxis, pctChange, refLabel, barLabelAt } from "@/lib/viz";
 import ChartCard, { Delta } from "@/components/charts/ChartCard";
+import MetricCard from "@/components/charts/MetricCard";
+import { RankList } from "@/components/charts/RankBar";
 
 // Hôm nay, hôm qua, cả tuần.
 //
@@ -90,17 +92,8 @@ function LastWeekTick(props: BarShapeProps) {
   return <rect x={x - 3} y={y - 1} width={width + 6} height={2.5} rx={1} fill={VIZ.ink} />;
 }
 
-/** Cột ngang xếp hạng (div): một thanh, thước chung `scale`. Cùng dáng với Bullet của MonthBreakdown. */
-function RankBar({ value, scale, color }: { value: number; scale: number; color: string }) {
-  return (
-    <div className="relative h-3 w-full" aria-hidden>
-      <div
-        className="absolute inset-y-0 left-0 rounded-r-[4px]"
-        style={{ width: `${(Math.max(0, value) / scale) * 100}%`, minWidth: value > 0 ? 3 : 0, background: color }}
-      />
-    </div>
-  );
-}
+/** Dáng chung của trạng thái rỗng trong thẻ. */
+const EMPTY = "py-6 text-center text-sm text-[var(--color-text-muted)]";
 
 interface PanelProps {
   refreshKey: number;
@@ -143,13 +136,13 @@ export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
 
   if (failed) {
     return (
-      <p className="text-sm text-[var(--color-error)]">
+      <p className={`${EMPTY} text-[var(--color-error)]!`}>
         {t("Could not load this week.", "Không tải được dữ liệu tuần này.")}
       </p>
     );
   }
   if (!data) {
-    return <p className="text-sm text-[var(--color-text-faint)]">{t("Loading...", "Đang tải...")}</p>;
+    return <p className={EMPTY}>{t("Loading...", "Đang tải...")}</p>;
   }
 
   const { today, yesterday, week, days, weeks, weekdayAverage, blankDays } = data;
@@ -246,27 +239,32 @@ export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
   // Ba thẻ đầu. "Hôm qua" đặt cạnh "Hôm nay" vì ghi sổ buổi tối thì hôm qua mới
   // là ngày gần nhất đã trọn vẹn — so với một ngày mới đi được nửa chừng thì
   // không nói lên điều gì.
+  //
+  // Con số lớn của cả ba là TIỀN RA (chi tiêu + trả gốc) — nhãn nói rõ điều đó,
+  // trước đây thẻ chỉ ghi "Hôm nay" và người đọc phải đoán số ấy là gì.
   const cards: {
     key: string;
     title: string;
     slice: Slice;
+    /** Góc phải hàng nhãn: phạm vi ngày. */
+    aside?: string;
     note: string;
-    accent?: boolean;
   }[] = [
     {
       key: "today",
-      title: t("Today", "Hôm nay"),
+      title: t("Cash out today", "Tiền ra hôm nay"),
       slice: today,
+      aside: today.date ? shortDate(today.date) : undefined,
       note:
         today.count === 0
           ? t("nothing recorded yet", "chưa ghi khoản nào")
           : t(`${today.count} records`, `${today.count} khoản`),
-      accent: true,
     },
     {
       key: "yesterday",
-      title: t("Yesterday", "Hôm qua"),
+      title: t("Cash out yesterday", "Tiền ra hôm qua"),
       slice: yesterday,
+      aside: yesterday.date ? shortDate(yesterday.date) : undefined,
       note:
         yesterday.count === 0
           ? t("nothing recorded", "không có khoản nào")
@@ -274,12 +272,10 @@ export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
     },
     {
       key: "week",
-      title: t("This week", "Tuần này"),
+      title: t("Cash out this week", "Tiền ra tuần này"),
       slice: week,
-      note: `${shortDate(week.from)} – ${shortDate(week.to)} · ${t(
-        `${week.count} records`,
-        `${week.count} khoản`
-      )}`,
+      aside: `${shortDate(week.from)} – ${shortDate(week.to)}`,
+      note: t(`${week.count} records`, `${week.count} khoản`),
     },
   ];
 
@@ -288,53 +284,43 @@ export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
       {/* --- Ba thẻ --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {cards.map((c) => (
-          <div
+          <MetricCard
             key={c.key}
-            className={`bg-[var(--color-surface)] rounded-2xl p-5 border ${
-              c.accent ? "border-[var(--color-accent)]" : "border-[var(--color-border)]"
-            }`}
-          >
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                {c.title}
-              </span>
-              <span className="text-[11px] text-[var(--color-text-faint)]">{c.note}</span>
-            </div>
-            <div className="mt-2 text-2xl font-bold tabular-nums text-[var(--color-text)]">
-              {formatVND(c.slice.cashOut)}
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--color-text-muted)]">
-              {c.slice.income > 0 && (
-                <span className="text-[var(--color-success)]">
-                  + {formatVND(c.slice.income)} {t("in", "vào")}
-                </span>
-              )}
-              {c.slice.debtPrincipal > 0 && (
-                <span>
-                  {t("incl. principal", "gồm trả gốc")} {money(c.slice.debtPrincipal)}
-                </span>
-              )}
-              {c.key === "week" && (
-                <>
-                  <span>
+            label={c.title}
+            aside={c.aside}
+            // Tiền ra là số MỨC: màu mực. Chênh lệch so tuần trước mới mang màu.
+            value={<span className="whitespace-nowrap">{formatVND(c.slice.cashOut)}</span>}
+            delta={
+              c.key === "week" && lastSoFar > 0 ? (
+                <Delta pct={likePct} upIsGood={false} vs={t("vs same days last week", "so cùng kỳ tuần trước")} />
+              ) : undefined
+            }
+            note={
+              <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 tabular-nums">
+                <span>{c.note}</span>
+                {c.slice.income > 0 && (
+                  <span className="whitespace-nowrap">
+                    + {formatVND(c.slice.income)} {t("in", "thu vào")}
+                  </span>
+                )}
+                {c.slice.debtPrincipal > 0 && (
+                  <span className="whitespace-nowrap">
+                    {t("incl. principal", "gồm trả gốc")} {money(c.slice.debtPrincipal)}
+                  </span>
+                )}
+                {c.key === "week" && (
+                  <span className="whitespace-nowrap">
                     {t("avg/day", "BQ/ngày")} <b className="text-[var(--color-text)]">{money(avgPerElapsedDay)}</b>
                   </span>
-                  {lastSoFar > 0 && (
-                    <Delta
-                      pct={likePct}
-                      upIsGood={false}
-                      vs={t("vs same days last week", "so cùng kỳ tuần trước")}
-                    />
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+                )}
+              </span>
+            }
+          />
         ))}
       </div>
 
       {/* --- Bảy ngày, đặt cạnh tuần trước --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <ChartCard
           title={sevenDayHeadline}
           subtitle={t(
@@ -407,52 +393,38 @@ export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
           subtitle={t("Spending by category, the six largest groups", "Chi theo nhóm, sáu nhóm lớn nhất")}
         >
           {week.topGroups.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)]">
-              {t("Nothing recorded this week.", "Tuần này chưa ghi khoản chi nào.")}
-            </p>
+            <p className={EMPTY}>{t("Nothing recorded this week.", "Tuần này chưa ghi khoản chi nào.")}</p>
           ) : (
-            <ul className="flex flex-col gap-3">
-              {week.topGroups.map((g, i) => (
-                <li key={g.name} className="flex flex-col gap-1 min-w-0">
-                  <div className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className={`min-w-0 truncate text-[var(--color-text)] ${i === 0 ? "font-bold" : ""}`}>
-                      {label(g.name)}
-                    </span>
-                    <span className="flex-none tabular-nums">
-                      <span className="font-bold text-[var(--color-text)]">{formatVND(g.amount)}</span>
-                      <span className="ml-2 inline-block w-9 text-right text-xs text-[var(--color-text-faint)]">
-                        {groupShare(g.amount)}%
-                      </span>
-                    </span>
-                  </div>
-                  <RankBar value={g.amount} scale={maxGroup} color={i === 0 ? VIZ.accent : VIZ.muted} />
-                </li>
-              ))}
-            </ul>
+            <RankList
+              format={formatVND}
+              scale={maxGroup}
+              rows={week.topGroups.map((g, i) => ({
+                key: g.name,
+                name: label(g.name),
+                amount: g.amount,
+                note: `${groupShare(g.amount)}%`,
+                strong: i === 0,
+                color: i === 0 ? VIZ.accent : VIZ.muted,
+              }))}
+            />
           )}
         </ChartCard>
       </div>
 
       {/* --- Hai danh sách: hôm nay và hôm qua --- */}
-      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${compact ? "hidden" : ""}`}>
+      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 items-start ${compact ? "hidden" : ""}`}>
         {[today, yesterday].map((slice, i) => (
-          <div
+          <ChartCard
             key={slice.date}
-            className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)]"
-          >
-            <div className="flex items-baseline justify-between gap-3 mb-4">
-              <h4 className="c-h5 text-[var(--color-text)]">
-                {i === 0 ? t("Today in detail", "Hôm nay có gì") : t("Yesterday in detail", "Hôm qua có gì")}
-              </h4>
-              <span className="text-xs tabular-nums text-[var(--color-text-faint)]">
+            title={i === 0 ? t("Today in detail", "Hôm nay có gì") : t("Yesterday in detail", "Hôm qua có gì")}
+            action={
+              <span className="flex-none text-xs tabular-nums text-[var(--color-text-faint)]">
                 {slice.date ? shortDate(slice.date) : ""}
               </span>
-            </div>
+            }
+          >
             {!slice.items || slice.items.length === 0 ? (
-              <p className="text-sm text-[var(--color-text-muted)] flex items-center gap-2">
-                <CalendarDays size={15} className="text-[var(--color-text-faint)]" />
-                {t("Nothing recorded.", "Không có khoản nào.")}
-              </p>
+              <p className={EMPTY}>{t("Nothing recorded.", "Không có khoản nào.")}</p>
             ) : (
               <ul className="divide-y divide-[var(--color-border)]">
                 {slice.items.map((it, j) => (
@@ -462,7 +434,7 @@ export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
                         {it.supplier || t("(no name)", "(chưa đặt tên)")}
                       </span>
                       <span
-                        className={`flex-none tabular-nums font-bold text-sm ${
+                        className={`flex-none tabular-nums whitespace-nowrap font-bold text-sm ${
                           it.type?.toLowerCase() === "income"
                             ? "text-[var(--color-success)]"
                             : "text-[var(--color-text)]"
@@ -480,13 +452,12 @@ export default function WeekPanel({ refreshKey, compact = false }: PanelProps) {
                 ))}
               </ul>
             )}
-          </div>
+          </ChartCard>
         ))}
       </div>
 
-
       {/* --- Bối cảnh dài hơn: 12 tuần và trung bình theo thứ --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <ChartCard
           title={weeksHeadline}
           subtitle={t(

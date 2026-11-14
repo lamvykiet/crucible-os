@@ -50,6 +50,14 @@ function short(n: number): string {
 
 const isIncome = (t: Tx) => t.type?.trim().toLowerCase() === "income";
 
+/**
+ * Số tiền trong ô lịch ở khổ điện thoại. Ô chỉ rộng ~49px (375px chia bảy), nên
+ * đây là ngoại lệ có chủ ý của sàn 13px: giữ 11px (`c-micro` chặn `.c-fin` nâng
+ * lên 12px) và không xuống dòng — ở 12px "+12.5tr" dài hơn bề ngang ô và tràn
+ * sang ngày bên cạnh.
+ */
+const CELL_NUM = "c-micro text-[11px] leading-tight font-bold tabular-nums whitespace-nowrap tracking-tight";
+
 export default function TransactionCalendar({
   month,
   transactions,
@@ -92,8 +100,8 @@ export default function TransactionCalendar({
   ];
 
   return (
-    <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-[var(--color-border)] flex flex-wrap items-center justify-between gap-3">
+    <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden min-w-0">
+      <div className="px-[var(--card-pad)] py-4 border-b border-[var(--color-border)] flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h3 className="c-h5 text-[var(--color-text)]">
             {t("Month view", "Xem theo tháng")}
@@ -101,7 +109,7 @@ export default function TransactionCalendar({
           {daysPast.length > 0 && (
             <p className="text-xs text-[var(--color-text-faint)] mt-1">
               {t("recorded", "đã ghi")}{" "}
-              <b className="text-[var(--color-text)]">
+              <b className="text-[var(--color-text)] tabular-nums">
                 {daysPast.length - missing.length}/{daysPast.length}
               </b>{" "}
               {t("days", "ngày")}
@@ -119,7 +127,7 @@ export default function TransactionCalendar({
         {selectedDay && (
           <button
             onClick={() => onSelectDay(null)}
-            className="text-xs min-h-11 md:min-h-0 px-3 md:py-1.5 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] transition-colors"
+            className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
           >
             {t("Show whole month", "Xem cả tháng")}
           </button>
@@ -130,7 +138,7 @@ export default function TransactionCalendar({
         {weekdays.map((w) => (
           <div
             key={w}
-            className="px-1 py-2 text-center text-[10px] md:text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]"
+            className="px-0.5 py-2 text-center text-[10px] uppercase text-[var(--color-text-faint)]"
           >
             {w}
           </div>
@@ -159,7 +167,7 @@ export default function TransactionCalendar({
             <button
               key={iso}
               onClick={() => onSelectDay(active ? null : iso)}
-              className={`min-h-16 md:min-h-28 border-b border-r border-[var(--color-border)] p-1 md:p-2 text-left align-top transition-colors ${
+              className={`min-w-0 overflow-hidden min-h-16 md:min-h-28 border-b border-r border-[var(--color-border)] p-0.5 md:p-2 text-left align-top transition-colors ${
                 active
                   ? "bg-[var(--color-accent-tint)]"
                   : gap
@@ -182,14 +190,14 @@ export default function TransactionCalendar({
                 {/* Tổng chi của ngày, để trả lời "ngày này bao nhiêu" mà không
                     phải cộng nhẩm các dòng bên dưới. */}
                 {spend > 0 && (
-                  <span className="hidden md:inline text-[11px] font-bold text-[var(--color-text)] tabular-nums">
+                  <span className="hidden md:inline text-xs font-bold text-[var(--color-text)] tabular-nums whitespace-nowrap">
                     {short(spend)}
                   </span>
                 )}
               </div>
 
               {gap && (
-                <div className="mt-0.5 text-[10px] leading-tight text-[var(--color-warning)]">
+                <div className="mt-0.5 px-1 md:px-0 text-[10px] leading-tight text-[var(--color-warning)]">
                   <span className="md:hidden">—</span>
                   <span className="hidden md:inline">
                     {t("not recorded", "chưa ghi")}
@@ -200,22 +208,22 @@ export default function TransactionCalendar({
               {list.length > 0 && (
                 <>
                   {/* Điện thoại: ô quá hẹp cho tên nơi chi, chỉ hiện tổng. */}
-                  <div className="md:hidden mt-0.5 space-y-0.5">
+                  <div className="md:hidden mt-0.5 px-0.5 flex flex-col gap-0.5">
                     {spend > 0 && (
-                      <div className="text-[10px] font-bold text-[var(--color-text)] tabular-nums">
+                      <div className={`${CELL_NUM} text-[var(--color-text)]`}>
                         {short(spend)}
                       </div>
                     )}
                     {earn > 0 && (
-                      <div className="text-[10px] font-bold text-[var(--color-success)] tabular-nums">
+                      <div className={`${CELL_NUM} text-[var(--color-success)]`}>
                         +{short(earn)}
                       </div>
                     )}
                   </div>
 
-                  <div className="hidden md:block mt-1 space-y-1">
+                  <div className="hidden md:flex flex-col gap-1 mt-1">
                     {earn > 0 && (
-                      <div className="text-[10px] font-bold text-[var(--color-success)] tabular-nums px-1">
+                      <div className="text-[10px] font-bold text-[var(--color-success)] tabular-nums whitespace-nowrap px-1">
                         +{short(earn)} {t("in", "thu")}
                       </div>
                     )}
@@ -226,7 +234,7 @@ export default function TransactionCalendar({
                         className={`truncate rounded px-1 py-0.5 text-[10px] leading-tight ${
                           isIncome(tx)
                             ? "bg-[var(--color-success-tint)] text-[var(--color-success)]"
-                            : "bg-[var(--color-warning-tint)] text-[var(--color-warning)]"
+                            : "bg-[var(--color-surface-2)] text-[var(--color-text-muted)]"
                         }`}
                       >
                         {short(tx.amount)} · {tx.supplier}
@@ -245,7 +253,7 @@ export default function TransactionCalendar({
         })}
       </div>
 
-      <div className="px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--color-text-faint)]">
+      <div className="px-[var(--card-pad)] py-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--color-text-faint)]">
         <span className="inline-flex items-center gap-1.5">
           <span className="w-3 h-3 rounded border border-[var(--color-border)] bg-[var(--color-warning-tint)]" />
           {t("day with nothing recorded", "ngày chưa ghi khoản nào")}

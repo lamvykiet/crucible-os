@@ -54,7 +54,7 @@ export default function DayTransactionsCard({
   onAddTransaction,
   title,
 }: Props) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [data, setData] = useState<DayData | null>(null);
   // Lưu MÃ lỗi thay vì câu chữ: hàm t() được tạo mới ở mỗi lần render nên không
   // đưa vào deps của effect được, mà dịch lúc render thì luôn đúng ngôn ngữ.
@@ -105,25 +105,27 @@ export default function DayTransactionsCard({
   // liệu của ngày cũ khi người dùng bấm sang ngày mới.
   const isLoading = !errorCode && (!data || data.date !== date);
 
-  const heading =
+  const rawHeading =
     title ??
-    new Date(`${date}T00:00:00Z`).toLocaleDateString("vi-VN", {
+    new Date(`${date}T00:00:00Z`).toLocaleDateString(language === "vi" ? "vi-VN" : "en-GB", {
       timeZone: "UTC",
       weekday: "long",
       day: "numeric",
       month: "numeric",
     });
+  // "thứ hai, 5/10" đứng làm tiêu đề thì phải viết hoa.
+  const heading = rawHeading.charAt(0).toUpperCase() + rawHeading.slice(1);
 
   return (
-    <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between gap-3 p-5 border-b border-[var(--color-border)]">
+    <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden min-w-0">
+      <div className="flex items-center justify-between gap-3 pl-[var(--card-pad)] pr-3 py-4 border-b border-[var(--color-border)]">
         <div className="min-w-0">
           <h3 className="c-h5 text-[var(--color-text)] truncate">{heading}</h3>
           {data && !isLoading && (
-            <p className="text-xs text-[var(--color-text-faint)] mt-1">
+            <p className="text-xs text-[var(--color-text-faint)] mt-1 tabular-nums">
               {data.count === 0
                 ? t("nothing recorded", "chưa ghi khoản nào")
-                : `${data.count} ${t("records", "khoản")} · ${formatVND(data.expense)}`}
+                : `${data.count} ${t("records", "khoản")} · ${t("spent", "chi")} ${formatVND(data.expense)}`}
             </p>
           )}
         </div>
@@ -148,19 +150,19 @@ export default function DayTransactionsCard({
       </div>
 
       {errorCode && (
-        <div className="p-5 text-sm text-[var(--color-error)]">
+        <div className="px-[var(--card-pad)] py-5 text-sm text-[var(--color-error)]">
           {errorCode === "load" ? t("Could not load", "Không tải được") : errorCode}
         </div>
       )}
 
       {!errorCode && isLoading && (
-        <div className="p-5 text-sm text-[var(--color-text-faint)]">
+        <div className="px-[var(--card-pad)] py-5 text-sm text-[var(--color-text-faint)]">
           {t("Loading...", "Đang tải...")}
         </div>
       )}
 
       {!errorCode && !isLoading && data && data.count === 0 && (
-        <div className="px-5 py-8 text-center">
+        <div className="px-5 py-6 flex flex-col items-center text-center">
           <p className="text-sm text-[var(--color-text-muted)]">
             {t(
               "No transactions recorded for this day.",
@@ -190,16 +192,16 @@ export default function DayTransactionsCard({
             ].filter(Boolean) as string[];
 
             return (
-              <li key={tx.id} className="px-5 py-3">
+              <li key={tx.id} className="px-[var(--card-pad)] py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p
-                      className="font-bold text-[var(--color-text)] truncate"
+                      className="text-sm font-bold text-[var(--color-text)] truncate"
                       title={tx.supplier || undefined}
                     >
                       {tx.supplier || t("(no name)", "(chưa đặt tên)")}
                     </p>
-                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                    <p className="text-xs text-[var(--color-text-faint)] mt-0.5">
                       {tx.categoryGroup || t("no group", "chưa có nhóm")}
                       {tx.subGroup ? ` · ${tx.subGroup}` : ""}
                       {" · "}
@@ -207,7 +209,7 @@ export default function DayTransactionsCard({
                     </p>
                   </div>
                   <span
-                    className={`shrink-0 font-bold tabular-nums ${
+                    className={`shrink-0 text-sm font-bold tabular-nums whitespace-nowrap ${
                       isIncome
                         ? "text-[var(--color-success)]"
                         : "text-[var(--color-text)]"
@@ -218,8 +220,8 @@ export default function DayTransactionsCard({
                   </span>
                 </div>
                 {gaps.length > 0 && (
-                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-[var(--color-warning)]">
-                    <AlertCircle size={13} className="shrink-0" />
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+                    <AlertCircle size={13} className="shrink-0 text-[var(--color-warning)]" />
                     {gaps.join(" · ")}
                   </p>
                 )}

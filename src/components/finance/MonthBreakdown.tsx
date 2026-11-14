@@ -7,7 +7,8 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import { formatVND, compactMoney } from "@/lib/formatMoney";
 import { VIZ, BAR, TOOLTIP, pctChange, refLabel, barLabelAt } from "@/lib/viz";
-import { SeriesKey, Delta, StatTile } from "@/components/charts/ChartCard";
+import ChartCard, { SeriesKey, Delta, StatTile } from "@/components/charts/ChartCard";
+import { Bullet } from "@/components/charts/RankBar";
 import { monthAxis } from "./MonthAxisTick";
 
 // Chi vào đâu, thu từ đâu — theo nơi chi và theo nhóm danh mục.
@@ -121,7 +122,7 @@ export default function MonthBreakdown({ month, refreshKey }: { month: string; r
 
   if (failed && !data) {
     return (
-      <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] text-sm text-[var(--color-text-muted)]">
+      <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] text-sm text-[var(--color-error)]">
         {t("Could not load the breakdown.", "Không tải được phân tích nơi chi / nhóm chi.")}
       </div>
     );
@@ -155,28 +156,26 @@ export default function MonthBreakdown({ month, refreshKey }: { month: string; r
   const shown = showAll || query ? rows : rows.slice(0, SHOW);
   const scale = Math.max(1, ...shown.map((r) => Math.max(r.month, r.prev)));
 
-  const seg = (on: boolean) =>
-    `flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-4 min-h-10 rounded-full text-xs font-bold transition-colors ${
-      on ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-    }`;
+  // Rãnh chọn của hệ v3 (`.c-seg`): rãnh lõm, mục đang chọn là viên tối.
+  const seg = (on: boolean) => `c-seg-opt flex-1 md:flex-none justify-center min-h-10 ${on ? "active" : ""}`;
 
   return (
     <div className="flex flex-col gap-4">
       {/* --- Bộ lọc: một hàng phía trên, ngoài thẻ --- */}
       <div className="flex flex-col md:flex-row md:items-center gap-3">
-        <div className="flex gap-1 p-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)]">
-          <button onClick={() => { setSide("expense"); setOpen(null); }} className={seg(!income)}>
+        <div className="c-seg">
+          <button onClick={() => { setSide("expense"); setOpen(null); }} aria-pressed={!income} className={seg(!income)}>
             {t("Spending", "Chi tiêu")}
           </button>
-          <button onClick={() => { setSide("income"); setOpen(null); }} className={seg(income)}>
+          <button onClick={() => { setSide("income"); setOpen(null); }} aria-pressed={income} className={seg(income)}>
             {t("Income", "Thu nhập")}
           </button>
         </div>
-        <div className="flex gap-1 p-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)]">
-          <button onClick={() => { setView("vendors"); setOpen(null); }} className={seg(view === "vendors")}>
+        <div className="c-seg">
+          <button onClick={() => { setView("vendors"); setOpen(null); }} aria-pressed={view === "vendors"} className={seg(view === "vendors")}>
             <Store size={14} /> {income ? t("By source", "Theo nguồn thu") : t("By place", "Theo nơi chi")}
           </button>
-          <button onClick={() => { setView("groups"); setOpen(null); }} className={seg(view === "groups")}>
+          <button onClick={() => { setView("groups"); setOpen(null); }} aria-pressed={view === "groups"} className={seg(view === "groups")}>
             <Shapes size={14} /> {t("By category", "Theo nhóm")}
           </button>
         </div>
@@ -186,21 +185,19 @@ export default function MonthBreakdown({ month, refreshKey }: { month: string; r
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={view === "vendors" ? t("Find… e.g. highlands", "Tìm… VD: highlands") : t("Find… e.g. coffee", "Tìm… VD: cafe")}
-            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full pl-10 pr-4 py-2 min-h-10 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+            aria-label={t("Find a place or category", "Tìm nơi chi hoặc nhóm")}
+            className="c-input w-full pl-10! min-h-11 text-base md:text-sm"
           />
         </div>
       </div>
 
-      <section className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-5 min-w-0">
-        <header>
-          <h4 className="c-h5 text-[var(--color-text)] text-balance">{headline}</h4>
-          <p className="text-xs text-[var(--color-text-faint)] mt-1">
-            {t(
-              `${income ? "Income" : "Spending"} by ${kind}, ${mLabel(data.month)} against ${mLabel(data.prevMonth)}`,
-              `${income ? "Thu" : "Chi"} theo ${kind}, ${mLabel(data.month)} so với ${mLabel(data.prevMonth)}`
-            )}
-          </p>
-        </header>
+      <ChartCard
+        title={headline}
+        subtitle={t(
+          `${income ? "Income" : "Spending"} by ${kind}, ${mLabel(data.month)} against ${mLabel(data.prevMonth)}`,
+          `${income ? "Thu" : "Chi"} theo ${kind}, ${mLabel(data.month)} so với ${mLabel(data.prevMonth)}`
+        )}
+      >
 
         {/* --- Bốn con số: tháng này là ô chính, ba ô còn lại là bối cảnh --- */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
@@ -223,7 +220,7 @@ export default function MonthBreakdown({ month, refreshKey }: { month: string; r
           <p className="text-sm text-[var(--color-text-muted)]">
             {t("Biggest rise vs last month:", "Tăng nhiều nhất so tháng trước:")}{" "}
             <strong className="text-[var(--color-text)]">{nameOf(riser)}</strong>{" "}
-            <span className="tabular-nums">+{money(riser.month - riser.prev)}</span>
+            <span className="tabular-nums whitespace-nowrap">+{money(riser.month - riser.prev)}</span>
           </p>
         )}
 
@@ -235,7 +232,7 @@ export default function MonthBreakdown({ month, refreshKey }: { month: string; r
         />
 
         {rows.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-faint)]">
+          <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">
             {query
               ? t("Nothing matches.", "Không có mục nào khớp.")
               : income
@@ -266,36 +263,17 @@ export default function MonthBreakdown({ month, refreshKey }: { month: string; r
         {!query && rows.length > SHOW && (
           <button
             onClick={() => setShowAll((v) => !v)}
-            className="self-start text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text)] min-h-9"
+            className="c-btn c-btn-tertiary c-btn-sm self-start min-h-11 md:min-h-9"
           >
             {showAll ? t("Show top 10", "Thu gọn còn 10 mục") : t(`Show all ${rows.length}`, `Xem tất cả ${rows.length} mục`)}
           </button>
         )}
-      </section>
+      </ChartCard>
     </div>
   );
 }
 
 // ==========================================================================
-
-/** Một thanh kỳ này + vạch mốc kỳ trước, cùng thước `scale`. */
-function Bullet({ now, before, scale, color }: { now: number; before: number; scale: number; color: string }) {
-  const pos = (v: number) => `${(Math.max(0, v) / scale) * 100}%`;
-  return (
-    <div className="relative h-5 w-full" aria-hidden>
-      <div
-        className="absolute left-0 top-1/2 -translate-y-1/2 h-3 rounded-r-[4px]"
-        style={{ width: pos(now), minWidth: now > 0 ? 3 : 0, background: color }}
-      />
-      {before > 0 && (
-        <div
-          className="absolute top-0 bottom-0 w-0.5 rounded-full"
-          style={{ left: `calc(${pos(before)} - 1px)`, background: VIZ.ink }}
-        />
-      )}
-    </div>
-  );
-}
 
 function BreakdownRow({
   row,
@@ -349,7 +327,7 @@ function BreakdownRow({
           <Bullet now={row.month} before={row.prev} scale={scale} color={highlight ? VIZ.accent : VIZ.muted} />
         </span>
         <span className="text-right">
-          <span className="block text-sm font-bold tabular-nums text-[var(--color-text)]">{formatVND(row.month)}</span>
+          <span className="block text-sm font-bold tabular-nums whitespace-nowrap text-[var(--color-text)]">{formatVND(row.month)}</span>
           <span className="block">
             <Delta pct={pctChange(row.month, row.prev)} upIsGood={income} vs={t(`vs ${money(row.prev)}`, `từ ${money(row.prev)}`)} />
           </span>
@@ -419,7 +397,7 @@ function BreakdownRow({
                       <Bullet now={c.month} before={c.prev} scale={childScale} color={VIZ.muted} />
                     </span>
                     <span className="text-right text-xs">
-                      <span className="font-bold tabular-nums text-[var(--color-text)]">{formatVND(c.month)}</span>{" "}
+                      <span className="font-bold tabular-nums whitespace-nowrap text-[var(--color-text)]">{formatVND(c.month)}</span>{" "}
                       <Delta pct={pctChange(c.month, c.prev)} upIsGood={income} />
                     </span>
                   </li>
@@ -429,7 +407,7 @@ function BreakdownRow({
           )}
 
           {row.variants && row.variants > 1 ? (
-            <p className="text-[11px] text-[var(--color-text-faint)]">
+            <p className="text-xs text-[var(--color-text-faint)]">
               {t(
                 `Merged ${row.variants} spellings of this name (case and accents ignored).`,
                 `Đã gộp ${row.variants} cách viết của tên này (không phân biệt hoa thường, có dấu hay không).`

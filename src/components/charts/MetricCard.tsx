@@ -59,7 +59,9 @@ export default function MetricCard({
       <div className="flex items-center gap-2.5 min-w-0">
         {icon && (
           <span
-            className={`flex-none flex items-center justify-center rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-muted)] ${
+            // Dưới 640px thẻ chỉ rộng ~166px (lưới 2 cột ở 375px): icon 40px làm
+            // nhãn hoa gãy hai dòng, nên ẩn đi — nhãn đã nói đủ.
+            className={`flex-none hidden sm:flex items-center justify-center rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-muted)] ${
               sm ? "w-8 h-8" : "w-10 h-10"
             }`}
             aria-hidden

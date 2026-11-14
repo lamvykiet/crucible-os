@@ -6,7 +6,8 @@ import { todayLocalIso } from "@/lib/localDate";
 import PeriodBreakdownModal from "./PeriodBreakdownModal";
 import { formatVND } from "@/lib/formatMoney";
 import { VIZ } from "@/lib/viz";
-import { SeriesKey, Delta } from "@/components/charts/ChartCard";
+import ChartCard, { Delta } from "@/components/charts/ChartCard";
+import { Bullet } from "@/components/charts/RankBar";
 
 // So sánh tuần này / tháng này / năm nay với kỳ liền trước và cùng kỳ năm ngoái.
 //
@@ -135,6 +136,7 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
   }, [kind, refreshKey]);
 
   const isLoading = !failed && (!data || data.period !== kind);
+  const ready = !failed && !isLoading && data !== null;
 
   const tabs: [PeriodKind, string][] = [
     ["week", t("This week", "Tuần này")],
@@ -142,10 +144,8 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
     ["year", t("This year", "Năm nay")],
   ];
 
-  const seg = (on: boolean) =>
-    `flex-1 md:flex-none inline-flex items-center justify-center px-4 min-h-10 rounded-full text-xs font-bold transition-colors ${
-      on ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-    }`;
+  // Rãnh chọn kỳ của hệ v3 (`.c-seg`): rãnh lõm, mục đang chọn là viên tối.
+  const seg = (on: boolean) => `c-seg-opt flex-1 md:flex-none justify-center min-h-10 ${on ? "active" : ""}`;
 
   const fmt = (m: MetricKey, v: number) => (METRIC_META[m].isCount ? String(v) : formatVND(v));
   /** Hai kỳ cùng 0 thì là "không đổi", không phải "mới" — `pct` rỗng khi kỳ gốc bằng 0. */
@@ -189,24 +189,33 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
   return (
     <div className="flex flex-col gap-4">
       {/* Bộ chọn kỳ: một hàng phía trên, ngoài thẻ */}
-      <div className="flex gap-1 p-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] self-stretch md:self-start">
+      <div className="c-seg self-stretch md:self-start" role="group" aria-label={t("Period", "Kỳ so sánh")}>
         {tabs.map(([k, lbl]) => (
-          <button key={k} onClick={() => setKind(k)} className={seg(kind === k)}>
+          <button key={k} onClick={() => setKind(k)} aria-pressed={kind === k} className={seg(kind === k)}>
             {lbl}
           </button>
         ))}
       </div>
 
-      <section className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-4 min-w-0">
-        <header>
-          <h4 className="c-h5 text-[var(--color-text)] text-balance">{headline}</h4>
-          {data && !isLoading && (
-            <p className="text-xs text-[var(--color-text-faint)] mt-1">
-              {title ? `${title} · ` : ""}
-              {t(`${data.current.label} against ${data.previous.label} and ${data.lastYear.label}`, `${data.current.label} so với ${data.previous.label} và ${data.lastYear.label}`)}
-            </p>
-          )}
-        </header>
+      <ChartCard
+        title={headline}
+        subtitle={
+          ready
+            ? `${title ? `${title} · ` : ""}${t(
+                `${data.current.label} against ${data.previous.label} and ${data.lastYear.label}`,
+                `${data.current.label} so với ${data.previous.label} và ${data.lastYear.label}`
+              )}`
+            : undefined
+        }
+        keys={
+          ready
+            ? [
+                { label: data.current.label, color: VIZ.muted, shape: "bar" },
+                { label: data.previous.label, color: VIZ.ink, shape: "tick" },
+              ]
+            : undefined
+        }
+      >
 
         {failed && (
           <p className="text-sm text-[var(--color-error)]">
@@ -219,15 +228,8 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
           </p>
         )}
 
-        {!failed && !isLoading && data && (
+        {ready && (
           <>
-            <SeriesKey
-              items={[
-                { label: data.current.label, color: VIZ.muted, shape: "bar" },
-                { label: data.previous.label, color: VIZ.ink, shape: "tick" },
-              ]}
-            />
-
             <ul className="-mx-2 flex flex-col">
               {metrics.map((m) => {
                 const meta = METRIC_META[m];
@@ -246,7 +248,7 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
                       <span className="min-w-0">
                         <span className={`block text-sm truncate text-[var(--color-text)] ${m === lead ? "font-bold" : ""}`}>{name}</span>
                         {meta.hintVi && (
-                          <span className="block text-[10px] text-[var(--color-text-faint)]">
+                          <span className="block text-xs text-[var(--color-text-faint)]">
                             {t(meta.hintEn!, meta.hintVi)}
                           </span>
                         )}
@@ -260,7 +262,7 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
                         />
                       </span>
                       <span className="text-right">
-                        <span className="block text-sm font-bold tabular-nums text-[var(--color-text)]">{fmt(m, now)}</span>
+                        <span className="block text-sm font-bold tabular-nums whitespace-nowrap text-[var(--color-text)]">{fmt(m, now)}</span>
                         <span className="block">
                           <Delta
                             pct={pctOf(data.deltas.previous[m])}
@@ -289,7 +291,7 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
             {/* Nói rõ đang so trên bao nhiêu ngày. Không có dòng này thì "giảm
                 40%" đọc như thành tích, trong khi thật ra kỳ này mới đi được
                 nửa chặng. */}
-            <p className="text-[11px] text-[var(--color-text-faint)]">
+            <p className="text-xs text-[var(--color-text-faint)]">
               {t("Tap a row to see the transactions behind it. ", "Bấm vào một dòng để xem các giao dịch làm nên con số đó. ")}
               {data.isComplete
                 ? t("full period compared", "so trọn kỳ")
@@ -305,7 +307,7 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
             </p>
           </>
         )}
-      </section>
+      </ChartCard>
 
       {data && openMetric && (
         <PeriodBreakdownModal
@@ -318,29 +320,6 @@ export default function PeriodComparison({ metrics, title, refreshKey = 0 }: Pro
           to={data.current.to}
           expected={data.current[openMetric]}
           isCount={METRIC_META[openMetric].isCount}
-        />
-      )}
-    </div>
-  );
-}
-
-/**
- * Một thanh kỳ này + vạch mốc kỳ trước, cùng thước `scale` (kiểu bullet, như
- * MonthBreakdown). Số âm ("Còn lại" âm) không vẽ được thành thanh — để trống,
- * con số bên phải đã mang dấu.
- */
-function Bullet({ now, before, scale, color }: { now: number; before: number; scale: number; color: string }) {
-  const pos = (v: number) => `${(Math.max(0, v) / scale) * 100}%`;
-  return (
-    <div className="relative h-5 w-full" aria-hidden>
-      <div
-        className="absolute left-0 top-1/2 -translate-y-1/2 h-3 rounded-r-[4px]"
-        style={{ width: pos(now), minWidth: now > 0 ? 3 : 0, background: color }}
-      />
-      {before > 0 && (
-        <div
-          className="absolute top-0 bottom-0 w-0.5 rounded-full"
-          style={{ left: `calc(${pos(before)} - 1px)`, background: VIZ.ink }}
         />
       )}
     </div>

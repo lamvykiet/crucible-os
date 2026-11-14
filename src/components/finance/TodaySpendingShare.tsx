@@ -6,6 +6,7 @@ import { useCategories } from "@/lib/useCategories";
 import { formatVND } from "@/lib/formatMoney";
 import { VIZ } from "@/lib/viz";
 import ChartCard from "@/components/charts/ChartCard";
+import { RankList } from "@/components/charts/RankBar";
 
 // Tỷ trọng chi tiêu của MỘT ngày theo nhóm danh mục.
 //
@@ -48,7 +49,7 @@ interface Props {
 }
 
 export default function TodaySpendingShare({ date, refreshKey = 0, title }: Props) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { label } = useCategories("Expense");
   const [data, setData] = useState<{ date: string; transactions: DayTx[] } | null>(null);
   // Lưu mã lỗi, dịch lúc render — cùng lý do như DayTransactionsCard.
@@ -109,13 +110,9 @@ export default function TodaySpendingShare({ date, refreshKey = 0, title }: Prop
       amount: ranked.slice(head.length).reduce((s, [, amount]) => s + amount, 0),
     });
   }
-  // Thước chung là nhóm lớn nhất, không phải tổng: cột dài nhất chạm mép phải,
-  // các cột khác so được với nó bằng mắt.
-  const scale = Math.max(1, ...rows.map((r) => r.amount));
-
   const rawHeading =
     title ??
-    new Date(`${date}T00:00:00Z`).toLocaleDateString("vi-VN", {
+    new Date(`${date}T00:00:00Z`).toLocaleDateString(language === "vi" ? "vi-VN" : "en-GB", {
       timeZone: "UTC",
       weekday: "long",
       day: "numeric",
@@ -155,42 +152,23 @@ export default function TodaySpendingShare({ date, refreshKey = 0, title }: Prop
       )}
 
       {!errorCode && !isLoading && rows.length === 0 && (
-        <p className="py-4 text-center text-sm text-[var(--color-text-muted)]">
+        <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">
           {t("No spending recorded for this day.", "Ngày này chưa ghi khoản chi nào.")}
         </p>
       )}
 
       {ready && (
-        <ul className="flex flex-col gap-3 min-w-0">
-          {rows.map((r, i) => (
-            <li key={r.key} className="flex flex-col gap-1 min-w-0">
-              <div className="flex items-baseline justify-between gap-3 text-sm">
-                <span
-                  className={`min-w-0 truncate text-[var(--color-text)] ${i === 0 ? "font-bold" : ""}`}
-                  title={r.name}
-                >
-                  {r.name}
-                </span>
-                <span className="flex-none tabular-nums">
-                  <span className="font-bold text-[var(--color-text)]">{formatVND(r.amount)}</span>
-                  <span className="ml-2 inline-block w-9 text-right text-xs text-[var(--color-text-faint)]">
-                    {formatPct(r.amount, total)}
-                  </span>
-                </span>
-              </div>
-              <div className="relative h-3 w-full" aria-hidden>
-                <div
-                  className="absolute inset-y-0 left-0 rounded-r-[4px]"
-                  style={{
-                    width: `${(r.amount / scale) * 100}%`,
-                    minWidth: 3,
-                    background: i === 0 ? VIZ.accent : r.key === "__other" ? VIZ.other : VIZ.muted,
-                  }}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
+        <RankList
+          format={formatVND}
+          rows={rows.map((r, i) => ({
+            key: r.key,
+            name: r.name,
+            amount: r.amount,
+            note: formatPct(r.amount, total),
+            strong: i === 0,
+            color: i === 0 ? VIZ.accent : r.key === "__other" ? VIZ.other : VIZ.muted,
+          }))}
+        />
       )}
     </ChartCard>
   );

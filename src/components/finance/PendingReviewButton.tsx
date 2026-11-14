@@ -41,13 +41,17 @@ export default function PendingReviewButton({ refreshKey = 0, onProcessed }: Pen
 
   if (count === 0 && !isOpen) return null;
 
+  // `t(english, vietnamese)` — bản trước truyền ngược nên giao diện tiếng Việt
+  // hiện "Review invoices" và ngược lại.
+  const label = t(`Review receipts (${count})`, `Duyệt hoá đơn (${count})`);
+
   return (
     <>
       <button
         onClick={() => setIsOpen(true)}
-        aria-label={t(`Duyệt hóa đơn (${count})`, `Review invoices (${count})`)}
-        title={t(`Duyệt hóa đơn (${count})`, `Review invoices (${count})`)}
-        className="c-btn c-btn-warning shadow-sm gap-1.5 px-2.5! [&>svg]:shrink-0 min-w-11 h-11 md:min-w-0 md:h-auto md:px-5! md:py-2.5!"
+        aria-label={label}
+        title={label}
+        className="c-btn c-btn-secondary flex-none gap-1.5 px-2.5! [&>svg]:shrink-0 min-w-11 h-11 md:min-w-0 md:h-auto md:px-5! md:py-2.5!"
       >
         {/* Thu về icon trên mobile, nhưng SỐ hoá đơn chờ thì giữ: đó mới là
             thứ nút này nói, icon không thay được.
@@ -58,7 +62,7 @@ export default function PendingReviewButton({ refreshKey = 0, onProcessed }: Pen
             bóp còn 2px — nút thành một chấm mờ, không lỗi, không cảnh báo. */}
         <ListTodo size={16} />
         <span className="md:hidden text-xs font-bold tabular-nums">{count}</span>
-        <span className="hidden md:inline">{t(`Duyệt hóa đơn (${count})`, `Review invoices (${count})`)}</span>
+        <span className="hidden md:inline">{label}</span>
       </button>
 
       <ReviewQueueModal

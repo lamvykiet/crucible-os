@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   Calendar, Receipt, DollarSign, CreditCard, ArrowLeftRight, Target,
   PiggyBank, AlertCircle, TrendingUp, CalendarX, ListChecks, CalendarDays,
-  Banknote, CalendarClock, Scale,
+  Banknote, CalendarClock, Scale, RefreshCw, CheckCircle2,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -28,6 +28,9 @@ import { monthAxis } from "./MonthAxisTick";
 import WeekPanel from "./WeekPanel";
 import { VIZ, GRID, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, xAxis, yAxis, labelAt, pctChange, soft, refLabel } from "@/lib/viz";
 import ChartCard from "@/components/charts/ChartCard";
+import MetricCard, { type MetricTone } from "@/components/charts/MetricCard";
+import SectionHeader from "@/components/charts/SectionHeader";
+import RankBar, { RankList } from "@/components/charts/RankBar";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,
@@ -103,23 +106,40 @@ const mLabel = (k: string) => {
   return m ? `${m}/${y}` : k;
 };
 
-/** Một thanh ngang xếp hạng (div) trên thước chung `scale` — cùng dáng Bullet
- *  của MonthBreakdown. `mark` là vạch mốc (hạn mức ngân sách). */
-function HBar({ value, scale, color, mark }: { value: number; scale: number; color: string; mark?: number }) {
-  const pos = (v: number) => `${(Math.max(0, v) / scale) * 100}%`;
+/** Dáng chung của trạng thái rỗng trong thẻ. */
+const EMPTY_NOTE = "py-6 text-center text-sm text-[var(--color-text-muted)]";
+
+/** Một MỤC của trang: tiêu đề mục đi liền nội dung của nó (gần nhau = cùng nhóm). */
+const SECTION = "flex flex-col gap-[var(--block-gap)]";
+
+/**
+ * Số tiền trong `MetricCard`: không xuống dòng, và co cỡ chữ theo bề ngang THẺ
+ * (thẻ phải mang `@container`). Lưới 2 cột ở khổ 375px cho mỗi thẻ ~166px; số
+ * "123.400.000 ₫" ở cỡ gốc 26px thì rớt chữ "₫" xuống dòng riêng. `1em` là cỡ
+ * của `.c-metric-value` bên ngoài, nên trên máy tính con số giữ nguyên cỡ.
+ */
+function Fit({ children }: { children: ReactNode }) {
+  return <span className="block whitespace-nowrap text-[length:clamp(15px,10.5cqi,1em)]">{children}</span>;
+}
+
+/** Một dòng cảnh báo: icon mang màu (đỏ = xấu, xanh = tốt, xám = ghi nhận), chữ màu mực. */
+function AlertRow({ tone, icon, children }: { tone: "bad" | "good" | "note"; icon: ReactNode; children: ReactNode }) {
   return (
-    <div className="relative h-4 w-full" aria-hidden>
-      <div
-        className="absolute left-0 top-1/2 -translate-y-1/2 h-3 rounded-r-[4px]"
-        style={{ width: pos(value), minWidth: value > 0 ? 3 : 0, background: color }}
-      />
-      {mark !== undefined && mark > 0 && (
-        <div
-          className="absolute top-0 bottom-0 w-0.5 rounded-full"
-          style={{ left: `calc(${pos(mark)} - 1px)`, background: VIZ.ink }}
-        />
-      )}
-    </div>
+    <li className="py-3 first:pt-0 last:pb-0 flex items-start gap-3 text-sm text-[var(--color-text)]">
+      <span
+        className={`flex-none mt-0.5 ${
+          tone === "bad"
+            ? "text-[var(--color-error)]"
+            : tone === "good"
+              ? "text-[var(--color-success)]"
+              : "text-[var(--color-text-faint)]"
+        }`}
+        aria-hidden
+      >
+        {icon}
+      </span>
+      <span className="min-w-0">{children}</span>
+    </li>
   );
 }
 
@@ -383,11 +403,96 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
     },
   ];
 
+  // --- Đầu trang: MỘT bản cho cả nhánh có dữ liệu lẫn nhánh tháng trống -------
+  const openAdd = (type: "Expense" | "Income") => {
+    setTransactionType(type);
+    setIsTransactionModalOpen(true);
+  };
+  const bump = () => setRefreshKey((prev) => prev + 1);
+  const monthTag = mLabel(selectedMonth || data.month);
+
+  // Điện thoại: hai hàng CÓ CHỦ Ý — chọn tháng + hàng chờ duyệt ở trên, ba nút
+  // hành động chia đều bề ngang ở dưới, có chữ. Bản trước là năm nút icon trong
+  // một hàng `flex-wrap`: nút chờ duyệt rớt xuống hàng riêng, và không nút nào
+  // là nút chính. Dấu `!` trên padding là bắt buộc — `.c-btn` nằm ngoài @layer.
+  const actionBtn = "c-btn h-11 min-w-0 px-2! [&>svg]:shrink-0 md:h-auto md:px-5! md:py-2.5!";
+  const pageHeader = (
+    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+      <div className="min-w-0">
+        <h2 className="c-h2 c-page-title text-[var(--color-text)]">{t("Overview", "Tổng quan")}</h2>
+        <p className="text-sm text-[var(--color-text-muted)] mt-1">
+          {t(
+            "Today, this week, this month — and where you stand",
+            "Hôm nay, tuần này, tháng này — và mình đang đứng ở đâu"
+          )}
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-2 md:flex md:flex-wrap md:items-center md:gap-3">
+        <div className="col-span-2 min-w-0">
+          <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+        </div>
+        <div className="flex justify-end md:order-last">
+          <PendingReviewButton refreshKey={refreshKey} onProcessed={bump} />
+        </div>
+        <button
+          onClick={() => openAdd("Expense")}
+          title={t("Add expense", "Thêm chi phí")}
+          className={`${actionBtn} c-btn-primary`}
+        >
+          <ArrowUpRight size={16} />
+          <span className="md:hidden">{t("Expense", "Chi phí")}</span>
+          <span className="hidden md:inline">{t("Add expense", "Thêm chi phí")}</span>
+        </button>
+        <button
+          onClick={() => openAdd("Income")}
+          title={t("Add income", "Thêm thu nhập")}
+          className={`${actionBtn} c-btn-secondary`}
+        >
+          <ArrowDownLeft size={16} />
+          <span className="md:hidden">{t("Income", "Thu nhập")}</span>
+          <span className="hidden md:inline">{t("Add income", "Thêm thu nhập")}</span>
+        </button>
+        <button
+          onClick={() => setIsScanModalOpen(true)}
+          title={t("Scan a receipt", "Quét hoá đơn")}
+          className={`${actionBtn} c-btn-secondary`}
+        >
+          <Receipt size={16} />
+          <span className="md:hidden">{t("Scan", "Quét")}</span>
+          <span className="hidden md:inline">{t("Scan a receipt", "Quét hoá đơn")}</span>
+        </button>
+      </div>
+    </div>
+  );
+
+  const modals = (
+    <>
+      <TransactionModal
+        isOpen={isTransactionModalOpen}
+        onClose={() => {
+          setIsTransactionModalOpen(false);
+          setScannedData(null);
+        }}
+        onSuccess={bump}
+        defaultType={transactionType}
+        initialData={scannedData}
+      />
+      <ScanInvoiceModal
+        isOpen={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+        onSuccess={() => {
+          setIsScanModalOpen(false);
+          bump();
+        }}
+      />
+    </>
+  );
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64 text-[var(--color-success)]">
-        <span className="animate-spin text-4xl leading-none">⍥</span>
-        <span className="ml-3 font-bold">{t("Loading data...", "Đang tải dữ liệu...")}</span>
+      <div className="flex justify-center items-center gap-3 h-64 text-sm text-[var(--color-text-muted)]">
+        <RefreshCw size={18} className="animate-spin" aria-hidden />
+        {t("Loading data...", "Đang tải dữ liệu...")}
       </div>
     );
   }
@@ -395,13 +500,16 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
   if (errorCode) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
-        <AlertCircle size={32} className="text-[var(--color-error)]" />
-        <p className="font-bold text-[var(--color-text)]">
+        <AlertCircle size={28} className="text-[var(--color-error)]" aria-hidden />
+        <p className="text-sm font-bold text-[var(--color-text)]">
           {errorCode === "network"
             ? t("Could not reach the server.", "Không kết nối được tới máy chủ.")
             : apiMessage ||
-              t("Could not load dashboard data.", "Không tải được dữ liệu dashboard.")}
+              t("Could not load the overview.", "Không tải được dữ liệu tổng quan.")}
         </p>
+        <button onClick={bump} className="c-btn c-btn-secondary c-btn-sm min-h-11">
+          <RefreshCw size={14} /> {t("Try again", "Thử lại")}
+        </button>
       </div>
     );
   }
@@ -409,92 +517,30 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
   if (!hasData) {
     return (
       <div className="space-y-8 animate-in fade-in">
-        {/* Trước là `flex justify-between items-center` không có biến thể mobile:
-            trên màn hẹp tiêu đề bị ép còn vài ký tự mỗi dòng và nhóm nút đè lên
-            nó. Xếp chồng dưới 768px, giống các tab Expense/Debts. */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+        {pageHeader}
+        {modals}
+
+        <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] flex flex-col items-center gap-4 py-12! text-center">
+          <span className="w-14 h-14 rounded-2xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center" aria-hidden>
+            <CalendarX size={26} />
+          </span>
           <div>
-            <h3 className="c-h3 c-page-title text-[var(--color-text)]">Dashboard</h3>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1">{t("Your financial overview", "Tổng quan tài chính")}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-            <button 
-              onClick={() => {
-                setTransactionType("Income");
-                setIsTransactionModalOpen(true);
-              }}
-              aria-label={t("Add Income", "Thu nhập")}
-              title={t("Add Income", "Thu nhập")}
-              className="c-btn c-btn-success shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
-            >
-              <ArrowDownLeft size={16} /> <span className="hidden md:inline">{t("Add Income", "Thu nhập")}</span>
-            </button>
-            <button 
-              onClick={() => {
-                setTransactionType("Expense");
-                setIsTransactionModalOpen(true);
-              }}
-              aria-label={t("Add Expense", "Chi phí")}
-              title={t("Add Expense", "Chi phí")}
-              className="c-btn c-btn-accent shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
-            >
-              <ArrowUpRight size={16} /> <span className="hidden md:inline">{t("Add Expense", "Chi phí")}</span>
-            </button>
-            <button 
-              onClick={() => setIsScanModalOpen(true)}
-              aria-label={t("Scan Invoice", "Quét hóa đơn")}
-              title={t("Scan Invoice", "Quét hóa đơn")}
-              className="c-btn c-btn-secondary shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
-            >
-              <Receipt size={16} className="text-[var(--color-success)]" /> <span className="hidden md:inline">{t("Scan Invoice", "Quét hóa đơn")}</span>
-            </button>
-            <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
-          </div>
-        </div>
-        
-        <TransactionModal 
-          isOpen={isTransactionModalOpen}
-          onClose={() => {
-            setIsTransactionModalOpen(false);
-            setScannedData(null);
-          }}
-          onSuccess={() => setRefreshKey(prev => prev + 1)}
-          defaultType={transactionType}
-          initialData={scannedData}
-        />
-        <ScanInvoiceModal 
-          isOpen={isScanModalOpen} 
-          onClose={() => setIsScanModalOpen(false)} 
-          onSuccess={() => {
-            setIsScanModalOpen(false);
-            setRefreshKey(prev => prev + 1);
-          }} 
-        />
-        
-        <div className="flex flex-col items-center justify-center h-80 gap-4 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center">
-            <CalendarX size={32} />
-          </div>
-          <div>
-            <p className="text-lg font-bold text-[var(--color-text)]">
-              {t("No transactions this month", "Chưa có giao dịch trong tháng này")}
+            <p className="c-h4 text-[var(--color-text)]">
+              {t(`Nothing recorded in ${monthTag}`, `Tháng ${monthTag} chưa có giao dịch nào`)}
             </p>
             <p className="text-sm text-[var(--color-text-muted)] mt-1">
-              {selectedMonth}
-              {" — "}
               {t(
-                "nothing has been imported for this period yet.",
-                "chưa import dữ liệu cho kỳ này."
+                "Add the first one or scan a receipt with the buttons above.",
+                "Ghi khoản đầu tiên hoặc quét một hoá đơn bằng các nút phía trên."
               )}
             </p>
           </div>
           {latestMonthWithData && latestMonthWithData !== selectedMonth && (
             <button
               onClick={() => setSelectedMonth(latestMonthWithData)}
-              className="mt-2 bg-[var(--color-success-tint)] text-[var(--color-success)] hover:bg-[color-mix(in_srgb,var(--color-success)_24%,transparent)] rounded-full px-5 py-2.5 text-sm font-bold transition-colors shadow-sm"
+              className="c-btn c-btn-secondary min-h-11"
             >
-              {t("Go to", "Xem tháng")} {latestMonthWithData}
+              {t("Go to", "Xem tháng")} {mLabel(latestMonthWithData)}
             </button>
           )}
         </div>
@@ -541,7 +587,6 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
   // --- Biểu đồ: câu kết luận tính từ dữ liệu (docs/bieu-do.md §1) -----------
   const vi = language === "vi";
   const money = (n: number) => compactMoney(n, vi);
-  const monthTag = mLabel(selectedMonth || data.month);
 
   // Tháng có tự trả nổi không: chỉ xét tháng đã trọn (xem completedMonths).
   const overspentSet = new Set(completedMonths.filter((m) => m.cashOut > m.income).map((m) => m.name));
@@ -627,72 +672,68 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
             `Cả ${budgetVsActual.length} nhóm có ngân sách đều còn trong hạn mức`
           );
 
+  // --- Màu của con số (luật v3) ----------------------------------------------
+  // Số MỨC (thu, chi, dư nợ, giá trị) là màu mực. Đỏ/xanh chỉ khi con số TỰ NÓ
+  // là tin xấu/tốt: dòng tiền âm, vượt ngân sách, giá trị ròng âm. Bản trước tô
+  // thu nhập xanh kể cả khi bằng 0, chi tiêu màu thổ hoàng, tiền ra luôn đỏ —
+  // sáu thẻ sáu màu, không còn màu nào báo được điều gì.
+  const badIf = (cond: boolean): MetricTone => (cond ? "bad" : "neutral");
+  const showDebtRatio = debtService > 0;
+  const netWorth = worth ? worth.assets - worth.debt : 0;
+
+  const ratedHealth = healthRows.filter((r) => r.band !== null);
+  const goodHealth = ratedHealth.filter((r) => r.band === "good").length;
+  const healthHeadline =
+    ratedHealth.length === 0
+      ? t("Financial health", "Sức khoẻ tài chính")
+      : goodHealth === ratedHealth.length
+        ? t(`All ${ratedHealth.length} ratios are within their thresholds`, `Cả ${ratedHealth.length} tỷ lệ đều trong ngưỡng`)
+        : t(
+            `${goodHealth} of ${ratedHealth.length} ratios are within their thresholds`,
+            `${goodHealth}/${ratedHealth.length} tỷ lệ đang trong ngưỡng`
+          );
+  const bandWord = (b: "good" | "warn" | "bad" | null) =>
+    b === "good" ? t("on target", "đạt") : b === "warn" ? t("watch", "cần chú ý") : b === "bad" ? t("off target", "chưa đạt") : "";
+
+  // Cảnh báo: đếm đúng các điều kiện đang hiện bên dưới, để tiêu đề thẻ là một
+  // câu kết luận thay cho "Cảnh báo & Gợi ý".
+  const debtAlert = debtServiceRatio !== null && debtServiceRatio > 50;
+  const alertCount =
+    overBudget.length +
+    (debtAlert ? 1 : 0) +
+    (savingsRate < 0 ? 1 : 0) +
+    (zeroSpendBudgets.length > 0 ? 1 : 0) +
+    (unclassified.length > 0 ? 1 : 0);
+  const alertHeadline =
+    alertCount === 0
+      ? t(`No alerts for ${monthTag}`, `Tháng ${monthTag} không có cảnh báo nào`)
+      : t(
+          `${alertCount} thing${alertCount > 1 ? "s" : ""} to look at in ${monthTag}`,
+          `${alertCount} điều cần xem trong tháng ${monthTag}`
+        );
+
+  // Ba thẻ "còn thiếu gì" — số thẻ đổi theo dữ liệu, lưới đổi theo để không
+  // thẻ nào mồ côi một hàng.
+  const gapCards = 1 + (upcoming.length > 0 ? 1 : 0) + (gapTotal > 0 ? 1 : 0);
+
+  const navBtn = (tab: string, label: string) => (
+    <button
+      key={tab + label}
+      onClick={() => onNavigate?.(tab)}
+      className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
+    >
+      {label} <ArrowUpRight size={14} />
+    </button>
+  );
+
   return (
     <div className="space-y-8 animate-in fade-in">
-      {/* Xem chú thích ở nhánh "chưa có dữ liệu" phía trên — cùng một header. */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-        <div>
-          <h3 className="c-h3 c-page-title text-[var(--color-text)]">Dashboard</h3>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">{t("Your financial overview", "Tổng quan tài chính")}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-          <button 
-            onClick={() => {
-              setTransactionType("Income");
-              setIsTransactionModalOpen(true);
-            }}
-            aria-label={t("Add Income", "Thu nhập")}
-            title={t("Add Income", "Thu nhập")}
-            className="c-btn c-btn-success shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
-          >
-            <ArrowDownLeft size={16} /> <span className="hidden md:inline">{t("Add Income", "Thu nhập")}</span>
-          </button>
-          <button 
-            onClick={() => {
-              setTransactionType("Expense");
-              setIsTransactionModalOpen(true);
-            }}
-            aria-label={t("Add Expense", "Chi phí")}
-            title={t("Add Expense", "Chi phí")}
-            className="c-btn c-btn-accent shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
-          >
-            <ArrowUpRight size={16} /> <span className="hidden md:inline">{t("Add Expense", "Chi phí")}</span>
-          </button>
-          <button 
-            onClick={() => setIsScanModalOpen(true)}
-            aria-label={t("Scan Invoice", "Quét hóa đơn")}
-            title={t("Scan Invoice", "Quét hóa đơn")}
-            className="c-btn c-btn-secondary shadow-sm w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
-          >
-            <Receipt size={16} className="text-[var(--color-success)]" /> <span className="hidden md:inline">{t("Scan Invoice", "Quét hóa đơn")}</span>
-          </button>
-          <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
-        </div>
-      </div>
-
-      <TransactionModal 
-        isOpen={isTransactionModalOpen}
-        onClose={() => {
-          setIsTransactionModalOpen(false);
-          setScannedData(null);
-        }}
-        onSuccess={() => setRefreshKey(prev => prev + 1)}
-        defaultType={transactionType}
-        initialData={scannedData}
-      />
-      <ScanInvoiceModal 
-        isOpen={isScanModalOpen} 
-        onClose={() => setIsScanModalOpen(false)} 
-        onSuccess={() => {
-          setIsScanModalOpen(false);
-          setRefreshKey(prev => prev + 1);
-        }} 
-      />
+      {pageHeader}
+      {modals}
       <IncompleteDataModal
         isOpen={isIncompleteOpen}
         onClose={() => setIsIncompleteOpen(false)}
-        onSaved={() => setRefreshKey((prev) => prev + 1)}
+        onSaved={bump}
       />
 
       {/* Mục đầu tiên: hôm nay chi gì (trái) và tỷ trọng theo nhóm (phải).
@@ -703,10 +744,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
             date={focusDate}
             refreshKey={refreshKey}
             title={isCurrentMonth ? t("Today", "Hôm nay") : undefined}
-            onAddTransaction={() => {
-              setTransactionType("Expense");
-              setIsTransactionModalOpen(true);
-            }}
+            onAddTransaction={() => openAdd("Expense")}
           />
           <TodaySpendingShare
             date={focusDate}
@@ -715,370 +753,264 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
           />
         </div>
       ) : (
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-5">
-          <h3 className="c-h5 text-[var(--color-text)]">{t("Daily detail", "Chi tiết theo ngày")}</h3>
-          <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-            {t("No transactions in this month at all.", "Tháng này chưa có giao dịch nào.")}
-          </p>
-        </div>
+        <ChartCard title={t("Daily detail", "Chi tiết theo ngày")}>
+          <p className={EMPTY_NOTE}>{t("No transactions in this month at all.", "Tháng này chưa có giao dịch nào.")}</p>
+        </ChartCard>
       )}
 
       {/* Tuần này. Nằm giữa thẻ "Hôm nay" và khối tháng vì sổ thường được ghi
           vào buổi tối: lúc đó cái cần là hôm nay tiêu gì, hôm qua tiêu gì, tuần
           này đang đi về đâu — chứ chưa phải cả tháng. */}
-      <div className="flex flex-wrap items-end justify-between gap-3 -mb-2">
-        <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
-          <CalendarDays size={24} /> {t("This week", "Tuần này")}
-        </h3>
-        {onNavigate && (
-          <button
-            onClick={() => onNavigate("history")}
-            className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
-          >
-            {t("All transactions", "Toàn bộ giao dịch")} <ArrowUpRight size={14} />
-          </button>
-        )}
-      </div>
-      <WeekPanel refreshKey={refreshKey} />
+      <section className={SECTION}>
+        <SectionHeader
+          icon={<CalendarDays size={20} />}
+          title={t("This week", "Tuần này")}
+          actions={onNavigate && navBtn("history", t("All transactions", "Toàn bộ giao dịch"))}
+        />
+        <WeekPanel refreshKey={refreshKey} />
+      </section>
 
-      {/* Tháng này. Mỗi mục lớn của Dashboard đều có lối đi tiếp sang tab con:
+      {/* Tháng này. Mỗi mục lớn của trang đều có lối đi tiếp sang tab con:
           trang này để NẮM, tab con để ĐÀO. */}
-      <div className="flex flex-wrap items-end justify-between gap-3 -mb-2">
-        <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
-          <Calendar size={24} /> {t("This month", "Tháng này")}
-        </h3>
-        {onNavigate && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => onNavigate("income")}
-              className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
-            >
-              {t("Income", "Thu nhập")} <ArrowUpRight size={14} />
-            </button>
-            <button
-              onClick={() => onNavigate("expense")}
-              className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
-            >
-              {t("Spending", "Chi tiêu")} <ArrowUpRight size={14} />
-            </button>
-            <button
-              onClick={() => onNavigate("history")}
-              className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
-            >
-              {t("All transactions", "Toàn bộ giao dịch")} <ArrowUpRight size={14} />
-            </button>
-          </div>
-        )}
-      </div>
+      <section className={SECTION}>
+        <SectionHeader
+          icon={<Calendar size={20} />}
+          title={isCurrentMonth ? t("This month", "Tháng này") : t(`Month ${monthTag}`, `Tháng ${monthTag}`)}
+          actions={
+            onNavigate && (
+              <>
+                {navBtn("income", t("Income", "Thu nhập"))}
+                {navBtn("expense", t("Spending", "Chi tiêu"))}
+                {navBtn("history", t("All transactions", "Toàn bộ giao dịch"))}
+              </>
+            )
+          }
+        />
 
-      {/* md:grid-cols-4 cũ ép mỗi thẻ còn 96px ở 768px (số tiền cần 155px) vì
-          vùng nội dung tablet chỉ rộng ~440px sau khi trừ sidebar 248px. */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-success-tint)] text-[var(--color-success)] flex items-center justify-center">
-              <DollarSign size={20} />
-            </div>
-            <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Monthly Income", "Thu nhập tháng")}</div>
-          </div>
-          <div className="text-2xl font-bold text-[var(--color-success)]">{formatVND(monthlyIncome)}</div>
-        </div>
-        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-warning-tint)] text-[var(--color-warning)] flex items-center justify-center">
-              <CreditCard size={20} />
-            </div>
-            <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Monthly Expense", "Chi tiêu tháng")}</div>
-          </div>
-          <div className="text-2xl font-bold text-[var(--color-warning)]">{formatVND(monthlyExpense)}</div>
-        </div>
-        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-info-tint)] text-[var(--color-info)] flex items-center justify-center">
-              <ArrowLeftRight size={20} />
-            </div>
-            <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Net Cash Flow", "Dòng tiền ròng")}</div>
-          </div>
-          <div className={`text-2xl font-bold ${netCashFlow < 0 ? "text-[var(--color-error)]" : "text-[var(--color-info)]"}`}>
-            {formatVND(netCashFlow)}
-          </div>
+        {/* MỘT lưới cân: 2 cột trên điện thoại, 3 cột trên máy tính (6 thẻ).
+            Có thẻ "Trả nợ / thu nhập" thì thành 7 — khi đó lưới 4 cột và thẻ
+            dòng tiền ròng chiếm hai cột, nên vẫn không thẻ nào mồ côi. Bản trước
+            là 5 thẻ trong lưới 4 cột cộng 1 thẻ ở lưới riêng: hai thẻ lẻ hàng. */}
+        <div className={`grid grid-cols-2 gap-4 ${showDebtRatio ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+          <MetricCard
+            className="@container"
+            icon={<DollarSign size={18} />}
+            label={t("Income", "Thu nhập")}
+            value={<Fit>{formatVND(monthlyIncome)}</Fit>}
+          />
+          <MetricCard
+            className="@container"
+            icon={<CreditCard size={18} />}
+            label={t("Spending", "Chi tiêu")}
+            value={<Fit>{formatVND(monthlyExpense)}</Fit>}
+          />
           {/* Nói rõ dòng tiền đã trừ cả trả gốc — trước đây thẻ này lấy thu trừ
               chi tiêu rồi gọi là dòng tiền, bỏ sót nguyên phần gốc. */}
-          <div className="text-xs text-[var(--color-text-faint)] mt-1">
-            {t("income − cash out", "thu − tiền ra")} {formatVND(cashOut)}
-          </div>
-        </div>
-
-        {/* Tiền ra: thứ cần biết để chuẩn bị tiền mặt, khác với chi tiêu */}
-        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-error-tint)] text-[var(--color-error)] flex items-center justify-center flex-none">
-              <Banknote size={20} />
-            </div>
-            <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-              {t("Cash out", "Tiền ra thực tế")}
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-[var(--color-error)]">{formatVND(cashOut)}</div>
-          <div className="text-xs text-[var(--color-text-faint)] mt-1">
-            {t("spending", "chi tiêu")} {formatVND(monthlyExpense)}
-            {debtPrincipal > 0 && ` + ${t("principal", "trả gốc")} ${formatVND(debtPrincipal)}`}
-          </div>
-        </div>
-        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-warning-tint)] text-[var(--color-warning)] flex items-center justify-center">
-              <Target size={20} />
-            </div>
-            <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Actual vs Budget (BVA)</div>
-          </div>
-          {budgetUsedPct === null ? (
-            <>
-              <div className="text-2xl font-bold text-[var(--color-text)]">—</div>
-              <div className="text-xs text-[var(--color-text-faint)] mt-1">{t("no budget set", "chưa đặt ngân sách tháng")}</div>
-            </>
-          ) : (
-            <>
-              <div className={`text-2xl font-bold ${budgetUsedPct > 100 ? "text-[var(--color-error)]" : "text-[var(--color-text)]"}`}>
-                {budgetUsedPct}%
-              </div>
-              <div className="text-xs text-[var(--color-text-faint)] mt-1">
-                {formatVND(cashOut)} / {formatVND(totalBudget)}
-              </div>
-            </>
+          <MetricCard
+            className={`@container ${showDebtRatio ? "col-span-2" : ""}`}
+            icon={<ArrowLeftRight size={18} />}
+            label={t("Net cash flow", "Dòng tiền ròng")}
+            tone={badIf(netCashFlow < 0)}
+            value={<Fit>{formatVND(netCashFlow)}</Fit>}
+            note={
+              <span className="tabular-nums">
+                {t("income − cash out", "thu − tiền ra")} {formatVND(cashOut)}
+              </span>
+            }
+          />
+          {/* Tiền ra: thứ cần biết để chuẩn bị tiền mặt, khác với chi tiêu */}
+          <MetricCard
+            className="@container"
+            icon={<Banknote size={18} />}
+            label={t("Cash out", "Tiền ra thực tế")}
+            value={<Fit>{formatVND(cashOut)}</Fit>}
+            note={
+              <span className="tabular-nums">
+                {t("spending", "chi tiêu")} {money(monthlyExpense)}
+                {debtPrincipal > 0 && ` + ${t("principal", "trả gốc")} ${money(debtPrincipal)}`}
+              </span>
+            }
+          />
+          <MetricCard
+            className="@container"
+            icon={<Target size={18} />}
+            label={t("Budget used", "Ngân sách đã dùng")}
+            tone={budgetUsedPct === null ? "faint" : badIf(budgetUsedPct > 100)}
+            value={budgetUsedPct === null ? "—" : `${budgetUsedPct}%`}
+            note={
+              budgetUsedPct === null ? (
+                t("no budget set for this month", "chưa đặt ngân sách tháng")
+              ) : (
+                <span className="tabular-nums">
+                  {money(cashOut)} / {money(totalBudget)}
+                </span>
+              )
+            }
+          >
+            {budgetUsedPct !== null && (
+              <RankBar
+                value={cashOut}
+                scale={Math.max(cashOut, totalBudget)}
+                mark={totalBudget}
+                color={budgetUsedPct > 100 ? VIZ.accent : VIZ.muted}
+              />
+            )}
+          </MetricCard>
+          {/* Không kẹp về 0 — tháng bội chi phải nhìn thấy được. Chưa ghi đồng
+              thu nhập nào thì tỷ lệ không tính được: hiện "0%" đọc như "tiêu
+              sạch những gì kiếm được", trong khi sự thật là chưa có gì để chia. */}
+          <MetricCard
+            className="@container"
+            icon={<PiggyBank size={18} />}
+            label={t("Savings rate", "Tỷ lệ tiết kiệm")}
+            tone={monthlyIncome === 0 ? "faint" : badIf(savingsRate < 0)}
+            value={monthlyIncome === 0 ? "—" : `${savingsRate}%`}
+            note={
+              monthlyIncome === 0
+                ? t("no income recorded this month", "chưa ghi thu nhập tháng này")
+                : savingsRate < 0
+                  ? t("overspending this month", "tháng này chi vượt thu")
+                  : t("retained income", "phần thu nhập giữ lại")
+            }
+          />
+          {/* Gánh nặng trả nợ. Khoản này bắt buộc, không cắt giảm được như tiền
+              ăn uống — nên phải soi riêng chứ không trộn vào tổng chi. */}
+          {showDebtRatio && (
+            <MetricCard
+              className="@container"
+              icon={<Scale size={18} />}
+              label={t("Debt vs income", "Trả nợ / thu nhập")}
+              tone={debtServiceRatio === null ? "faint" : badIf(debtServiceRatio > 100)}
+              value={debtServiceRatio === null ? "—" : `${debtServiceRatio}%`}
+              note={
+                debtServiceRatio === null ? (
+                  t("no income recorded this month", "chưa ghi thu nhập tháng này")
+                ) : (
+                  <span className="tabular-nums">
+                    {money(debtService)} / {money(monthlyIncome)}
+                  </span>
+                )
+              }
+            />
           )}
         </div>
-      </div>
-
-      {/* md:grid-cols-4 cũ ép mỗi thẻ còn 96px ở 768px (số tiền cần 155px) vì
-          vùng nội dung tablet chỉ rộng ~440px sau khi trừ sidebar 248px. */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center">
-              <PiggyBank size={20} />
-            </div>
-            <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Savings Rate", "Tỷ lệ tiết kiệm")}</div>
-          </div>
-          {/* Không kẹp về 0 nữa — tháng bội chi phải nhìn thấy được */}
-          {/* Chưa ghi đồng thu nhập nào thì tỷ lệ tiết kiệm không tính được.
-              Hiện "0%" ở đây đọc như "tiêu sạch những gì kiếm được", trong khi
-              sự thật là chưa có gì để chia. */}
-          <div className={`text-2xl font-bold ${monthlyIncome === 0 ? "text-[var(--color-text-faint)]" : savingsRate < 0 ? "text-[var(--color-error)]" : "text-[var(--color-text)]"}`}>
-            {monthlyIncome === 0 ? "—" : `${savingsRate}%`}
-          </div>
-          <div className="text-xs text-[var(--color-text-faint)] mt-1">
-            {monthlyIncome === 0
-              ? t("no income recorded this month", "chưa ghi thu nhập tháng này")
-              : savingsRate < 0
-                ? t("overspending this month", "tháng này chi vượt thu")
-                : t("retained income", "phần thu nhập giữ lại")}
-          </div>
-        </div>
-
-        {/* Gánh nặng trả nợ. Khoản này bắt buộc, không cắt giảm được như tiền
-            ăn uống — nên phải soi riêng chứ không trộn vào tổng chi. */}
-        {debtService > 0 && (
-          <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-            <div className="flex items-center gap-3 mb-2">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center flex-none ${
-                  debtServiceRatio !== null && debtServiceRatio > 100
-                    ? "bg-[var(--color-error-tint)] text-[var(--color-error)]"
-                    : "bg-[var(--color-info-tint)] text-[var(--color-info)]"
-                }`}
-              >
-                <Scale size={20} />
-              </div>
-              <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                {t("Debt vs income", "Trả nợ / thu nhập")}
-              </div>
-            </div>
-            <div
-              className={`text-2xl font-bold ${
-                debtServiceRatio === null
-                  ? "text-[var(--color-text-faint)]"
-                  : debtServiceRatio > 100
-                    ? "text-[var(--color-error)]"
-                    : debtServiceRatio > 50
-                      ? "text-[var(--color-warning)]"
-                      : "text-[var(--color-text)]"
-              }`}
-            >
-              {debtServiceRatio === null ? "—" : `${debtServiceRatio}%`}
-            </div>
-            <div className="text-xs text-[var(--color-text-faint)] mt-1">
-              {debtServiceRatio === null
-                ? t("no income recorded this month", "chưa ghi thu nhập tháng này")
-                : `${formatVND(debtService)} / ${formatVND(monthlyIncome)}`}
-            </div>
-          </div>
-        )}
-      </div>
+      </section>
 
       {/* Chi vào đâu, thu từ đâu. Thẻ phía trên nói "tháng này chi bao nhiêu";
           khối này nói "chi cho AI, cho NHÓM nào" — và so với tháng trước, cùng
           tháng năm trước, luỹ kế năm nay với cùng kỳ năm trước. */}
-      <div className="flex flex-wrap items-end justify-between gap-3 -mb-2">
-        <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
-          <Store size={24} /> {t("Where it goes, where it comes from", "Chi vào đâu, thu từ đâu")}
-        </h3>
-      </div>
-      <MonthBreakdown month={selectedMonth || thisMonthLocalIso()} refreshKey={refreshKey} />
+      <section className={SECTION}>
+        <SectionHeader
+          icon={<Store size={20} />}
+          title={t("Where it goes, where it comes from", "Chi vào đâu, thu từ đâu")}
+        />
+        <MonthBreakdown month={selectedMonth || thisMonthLocalIso()} refreshKey={refreshKey} />
+      </section>
 
       {/* Tài sản & Nợ. Hai con số tổng của cả Finance nằm ở đây: đang sở hữu
           bao nhiêu và đang nợ bao nhiêu. Trước đây phải mở hai tab khác nhau
-          mới biết, nên Dashboard đọc xong vẫn chưa nắm được mình đứng ở đâu. */}
+          mới biết, nên đọc xong trang này vẫn chưa nắm được mình đứng ở đâu. */}
       {worth && (worth.assets > 0 || worth.debt > 0) && (
-        <div>
-          <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
-            <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3">
-              <Scale size={24} /> {t("Assets & Debt", "Tài sản & Nợ")}
-            </h3>
-            {onNavigate && (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => onNavigate("assets")}
-                  className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
-                >
-                  {t("Assets", "Tài sản")} <ArrowUpRight size={14} />
-                </button>
-                <button
-                  onClick={() => onNavigate("debts")}
-                  className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-9"
-                >
-                  {t("Debts", "Nợ")} <ArrowUpRight size={14} />
-                </button>
-              </div>
-            )}
-          </div>
+        <section className={SECTION}>
+          <SectionHeader
+            icon={<Scale size={20} />}
+            title={t("Assets & Debt", "Tài sản & Nợ")}
+            actions={
+              onNavigate && (
+                <>
+                  {navBtn("assets", t("Assets", "Tài sản"))}
+                  {navBtn("debts", t("Debts", "Nợ"))}
+                </>
+              )
+            }
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             {/* Giá trị ròng trừ TOÀN BỘ dư nợ, không chỉ phần nợ gắn với tài
                 sản — vay tín chấp vẫn là tiền phải trả. */}
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-[var(--color-accent-tint)] text-[var(--color-accent)] flex items-center justify-center flex-none">
-                  <Scale size={20} />
-                </div>
-                <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                  {t("Net worth", "Giá trị ròng")}
-                </div>
-              </div>
-              <div
-                className={`text-2xl font-bold ${
-                  worth.assets - worth.debt < 0
-                    ? "text-[var(--color-error)]"
-                    : "text-[var(--color-text)]"
-                }`}
-              >
-                {formatVND(worth.assets - worth.debt)}
-              </div>
-              <div className="text-xs text-[var(--color-text-faint)] mt-1">
-                {t("assets − debt", "tài sản − dư nợ")}
-              </div>
-            </div>
-
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-[var(--color-success-tint)] text-[var(--color-success)] flex items-center justify-center flex-none">
-                  <Banknote size={20} />
-                </div>
-                <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                  {t("Assets today", "Tài sản hôm nay")}
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-[var(--color-success)]">
-                {formatVND(worth.assets)}
-              </div>
-              <div className="text-xs text-[var(--color-text-faint)] mt-1">
-                {worth.assetCount} {t("items, after depreciation", "món, đã trừ khấu hao")}
-              </div>
-            </div>
-
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-[var(--color-error-tint)] text-[var(--color-error)] flex items-center justify-center flex-none">
-                  <CreditCard size={20} />
-                </div>
-                <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                  {t("Debt outstanding", "Dư nợ còn lại")}
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-[var(--color-error)]">
-                {formatVND(worth.debt)}
-              </div>
-              <div className="text-xs text-[var(--color-text-faint)] mt-1">
-                {worth.debtCount} {t("loans still running", "khoản đang trả")}
-              </div>
-            </div>
-
-            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-[var(--color-info-tint)] text-[var(--color-info)] flex items-center justify-center flex-none">
-                  <CalendarClock size={20} />
-                </div>
-                <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                  {t("Repayment / month", "Trả nợ mỗi tháng")}
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-[var(--color-text)]">
-                {formatVND(worth.monthlyPayment)}
-              </div>
-              <div className="text-xs text-[var(--color-text-faint)] mt-1">
-                {monthlyIncome > 0
+            <MetricCard
+              className="@container"
+              icon={<Scale size={18} />}
+              label={t("Net worth", "Giá trị ròng")}
+              tone={badIf(netWorth < 0)}
+              value={<Fit>{formatVND(netWorth)}</Fit>}
+              note={t("assets − debt", "tài sản − dư nợ")}
+            />
+            <MetricCard
+              className="@container"
+              icon={<Banknote size={18} />}
+              label={t("Assets today", "Tài sản hôm nay")}
+              value={<Fit>{formatVND(worth.assets)}</Fit>}
+              note={`${worth.assetCount} ${t("items, after depreciation", "món, đã trừ khấu hao")}`}
+            />
+            <MetricCard
+              className="@container"
+              icon={<CreditCard size={18} />}
+              label={t("Debt outstanding", "Dư nợ còn lại")}
+              value={<Fit>{formatVND(worth.debt)}</Fit>}
+              note={`${worth.debtCount} ${t("loans still running", "khoản đang trả")}`}
+            />
+            <MetricCard
+              className="@container"
+              icon={<CalendarClock size={18} />}
+              label={t("Repayment / month", "Trả nợ mỗi tháng")}
+              value={<Fit>{formatVND(worth.monthlyPayment)}</Fit>}
+              note={
+                monthlyIncome > 0
                   ? t(
                       `${Math.round((worth.monthlyPayment / monthlyIncome) * 100)}% of this month's income`,
                       `${Math.round((worth.monthlyPayment / monthlyIncome) * 100)}% thu nhập tháng này`
                     )
-                  : t("no income recorded this month", "chưa ghi thu nhập tháng này")}
-              </div>
-            </div>
+                  : t("no income recorded this month", "chưa ghi thu nhập tháng này")
+              }
+            />
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Sức khoẻ tài chính và khả năng chi trả. Dashboard cũ nói "bao nhiêu",
+      {/* Sức khoẻ tài chính và khả năng chi trả. Các thẻ trên nói "bao nhiêu",
           hai khối này nói "như vậy là ổn hay không ổn" — phần mà người đọc vẫn
           phải tự suy ra, và thường suy sai theo hướng lạc quan. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm">
-          <h3 className="c-h5 text-[var(--color-text)]">
-            {t("Financial health", "Sức khoẻ tài chính")}
-          </h3>
-          <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-4">
-            {t(
-              "each line carries the threshold a lender would use",
-              "mỗi dòng kèm ngưỡng mà bên cho vay vẫn dùng để thẩm định"
-            )}
-          </p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <ChartCard
+          title={healthHeadline}
+          subtitle={t(
+            "Financial health · each line carries the threshold a lender would use",
+            "Sức khoẻ tài chính · mỗi dòng kèm ngưỡng mà bên cho vay vẫn dùng để thẩm định"
+          )}
+        >
           <ul className="divide-y divide-[var(--color-border)]">
             {healthRows.map((r) => (
               <li key={r.key} className="py-3 first:pt-0 last:pb-0 flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="font-bold text-[var(--color-text)]">{r.label}</p>
-                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{r.note}</p>
+                  <p className="text-sm font-bold text-[var(--color-text)]">{r.label}</p>
+                  <p className="text-xs text-[var(--color-text-faint)] mt-0.5">{r.note}</p>
                 </div>
                 <div className="flex-none text-right">
+                  {/* Xanh/đỏ chỉ cho hai đầu "đạt" và "chưa đạt"; mức giữa là
+                      màu mực kèm chữ — thổ hoàng không mang nghĩa tốt/xấu. */}
                   <div
-                    className={`text-xl font-bold tabular-nums ${
+                    className={`c-metric-value-sm ${
                       r.band === "good"
                         ? "text-[var(--color-success)]"
-                        : r.band === "warn"
-                          ? "text-[var(--color-warning)]"
-                          : r.band === "bad"
-                            ? "text-[var(--color-error)]"
+                        : r.band === "bad"
+                          ? "text-[var(--color-error)]"
+                          : r.band === "warn"
+                            ? "text-[var(--color-text)]"
                             : "text-[var(--color-text-faint)]"
                     }`}
                   >
                     {r.display}
                   </div>
-                  <div className="text-[10px] text-[var(--color-text-faint)] mt-0.5">{r.hint}</div>
+                  <div className="text-xs text-[var(--color-text-faint)] mt-0.5">
+                    {r.band && <b className="text-[var(--color-text-muted)]">{bandWord(r.band)} · </b>}
+                    {r.hint}
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
-        </div>
+        </ChartCard>
 
         <ChartCard
           title={payHeadline}
@@ -1125,192 +1057,178 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
         </ChartCard>
       </div>
 
-      {/* Chỉ số hôm nay */}
-      <div>
-        <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-3 mb-6">
-          <Calendar size={24} /> {t("Today's Metrics", "Chỉ số hôm nay")}
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-[var(--color-success-tint)] text-[var(--color-success)] flex items-center justify-center">
-                <DollarSign size={16} />
-              </div>
-              <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Daily Income", "Thu nhập ngày")}</div>
-            </div>
-            <div className="c-metric-value text-[var(--color-success)]">{formatVND(dailyIncome)}</div>
-            <div className="text-xs text-[var(--color-text-faint)] mt-1">{t("today", "hôm nay")}</div>
-          </div>
-
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-[var(--color-warning-tint)] text-[var(--color-warning)] flex items-center justify-center">
-                <CreditCard size={16} />
-              </div>
-              <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Daily Expense", "Chi tiêu ngày")}</div>
-            </div>
-            <div className="c-metric-value text-[var(--color-warning)]">{formatVND(dailyExpense)}</div>
-            <div className="text-xs text-[var(--color-text-faint)] mt-1">{t("today", "hôm nay")}</div>
-          </div>
-
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-[var(--color-info-tint)] text-[var(--color-info)] flex items-center justify-center">
-                <ArrowLeftRight size={16} />
-              </div>
-              <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Daily Cash Flow", "Dòng tiền ngày")}</div>
-            </div>
-            <div className={`c-metric-value ${dailyCashFlow < 0 ? "text-[var(--color-error)]" : "text-[var(--color-info)]"}`}>
-              {formatVND(dailyCashFlow)}
-            </div>
-            <div className="text-xs text-[var(--color-text-faint)] mt-1">{t("today", "hôm nay")}</div>
-          </div>
-
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-[var(--color-success-tint)] text-[var(--color-success)] flex items-center justify-center">
-                <Calendar size={16} />
-              </div>
-              <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Avg Daily Expense", "Chi tiêu TB/Ngày")}</div>
-            </div>
-            <div className="c-metric-value text-[var(--color-text)]">{formatVND(avgDailyExpense)}</div>
-            <div className="text-xs text-[var(--color-text-faint)] mt-1">
-              {t("over", "qua")} {elapsedDays} {t("days", "ngày")}
-            </div>
-          </div>
-
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-[var(--color-info-tint)] text-[var(--color-info)] flex items-center justify-center">
-                <TrendingUp size={16} />
-              </div>
-              <div className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("End of Month Forecast", "Dự báo chi cuối tháng")}</div>
-            </div>
-            <div className="c-metric-value text-[var(--color-text)]">{formatVND(eomForecast)}</div>
-            <div className="text-xs text-[var(--color-text-faint)] mt-1">{t("at current rate", "theo nhịp chi hiện tại")}</div>
-          </div>
+      {/* Chỉ số hôm nay. 2 cột dưới 1280px (thẻ cuối chiếm trọn hàng), 5 cột
+          từ đó trở lên — 5 thẻ trong lưới 3 cột thì lẻ hai thẻ. */}
+      <section className={SECTION}>
+        <SectionHeader icon={<Calendar size={20} />} title={t("Today's metrics", "Chỉ số hôm nay")} />
+        <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
+          <MetricCard
+            className="@container"
+            size="sm"
+            icon={<DollarSign size={16} />}
+            label={t("Daily income", "Thu nhập ngày")}
+            value={<Fit>{formatVND(dailyIncome)}</Fit>}
+            note={t("today", "hôm nay")}
+          />
+          <MetricCard
+            className="@container"
+            size="sm"
+            icon={<CreditCard size={16} />}
+            label={t("Daily spending", "Chi tiêu ngày")}
+            value={<Fit>{formatVND(dailyExpense)}</Fit>}
+            note={t("today", "hôm nay")}
+          />
+          <MetricCard
+            className="@container"
+            size="sm"
+            icon={<ArrowLeftRight size={16} />}
+            label={t("Daily cash flow", "Dòng tiền ngày")}
+            tone={badIf(dailyCashFlow < 0)}
+            value={<Fit>{formatVND(dailyCashFlow)}</Fit>}
+            note={t("today", "hôm nay")}
+          />
+          <MetricCard
+            className="@container"
+            size="sm"
+            icon={<Calendar size={16} />}
+            label={t("Avg daily spending", "Chi TB mỗi ngày")}
+            value={<Fit>{formatVND(avgDailyExpense)}</Fit>}
+            note={`${t("over", "qua")} ${elapsedDays} ${t("days", "ngày")}`}
+          />
+          <MetricCard
+            className="@container col-span-2 xl:col-span-1"
+            size="sm"
+            icon={<TrendingUp size={16} />}
+            label={t("End-of-month forecast", "Dự báo chi cuối tháng")}
+            value={<Fit>{formatVND(eomForecast)}</Fit>}
+            note={t("estimate, at the current daily rate", "ước tính, theo nhịp chi hiện tại")}
+          />
         </div>
-      </div>
+      </section>
 
       {/* Còn thiếu gì: ngày chưa ghi sổ, nợ sắp trả, dữ liệu cần bổ sung. Thẻ
           "Hôm nay" đã lên đầu trang. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          {/* Ngày chưa ghi sổ. Đây là lỗ hổng lớn nhất và cũng là thứ khó tự
-              nhận ra nhất: mọi biểu đồ vẫn vẽ đẹp trên phần dữ liệu ít ỏi. */}
-          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-[var(--color-warning-tint)] text-[var(--color-warning)] flex items-center justify-center">
-                <CalendarDays size={16} />
-              </div>
-              <h3 className="c-h5 text-[var(--color-text)]">{t("Days not recorded", "Ngày chưa ghi sổ")}</h3>
-            </div>
-            {blankDays.length === 0 ? (
-              <p className="text-sm text-[var(--color-success)]">
-                {t("Every day so far has at least one record.", "Mọi ngày đã qua đều có ít nhất một khoản.")}
-              </p>
-            ) : (
-              <>
-                <p className="text-2xl font-bold text-[var(--color-warning)]">
-                  {blankDays.length}
-                  <span className="text-base font-normal text-[var(--color-text-faint)]">/{daysToCheck}</span>
-                </p>
-                <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-3">
-                  {t("days with nothing recorded", "ngày không có khoản nào")}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {blankDays.map((d) => (
-                    <span
-                      key={d}
-                      className="min-w-8 h-8 px-2 flex items-center justify-center rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs font-bold text-[var(--color-text-muted)] tabular-nums"
-                    >
-                      {d}
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-3 text-xs text-[var(--color-text-muted)]">
-                  {t(
-                    "Charts below only cover the days that were recorded.",
-                    "Các biểu đồ bên dưới chỉ phản ánh những ngày đã ghi."
-                  )}
-                </p>
-              </>
-            )}
-          </div>
-
-          {/* Sắp phải trả — trả lời "tháng tới cần chuẩn bị bao nhiêu tiền".
-              Số lấy từ lịch trả nợ từng kỳ chứ không từ `Debt.monthlyPayment`,
-              vì kỳ trả thật đổi theo số ngày và dư nợ mỗi tháng. */}
-          {upcoming.length > 0 && (
-            <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--color-error-tint)] text-[var(--color-error)] flex items-center justify-center flex-none">
-                  <CalendarClock size={16} />
-                </div>
-                <h3 className="c-h5 text-[var(--color-text)]">
-                  {t("Debt coming due", "Sắp phải trả nợ")}
-                </h3>
-              </div>
-              <p className="text-2xl font-bold text-[var(--color-error)]">
-                {formatVND(upcoming[0].payment)}
-              </p>
-              <p className="text-xs text-[var(--color-text-faint)] mt-1 mb-3">
-                {t("in", "trong")} {upcoming[0].month} · {t("principal", "gốc")}{" "}
-                {formatVND(upcoming[0].principal)} + {t("interest", "lãi")}{" "}
-                {formatVND(upcoming[0].interest)}
-              </p>
-              <ul className="space-y-1.5">
-                {upcoming.slice(0, 6).map((u) => (
-                  <li key={u.month} className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className="text-[var(--color-text-muted)]">{u.month}</span>
-                    <span className="font-bold tabular-nums text-[var(--color-text)]">
-                      {formatVND(u.payment)}
-                    </span>
-                  </li>
+      <div
+        className={`grid grid-cols-1 gap-6 items-start ${
+          gapCards === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+        }`}
+      >
+        {/* Ngày chưa ghi sổ. Đây là lỗ hổng lớn nhất và cũng là thứ khó tự
+            nhận ra nhất: mọi biểu đồ vẫn vẽ đẹp trên phần dữ liệu ít ỏi. */}
+        <MetricCard
+          size="sm"
+          icon={<CalendarDays size={16} />}
+          label={t("Days not recorded", "Ngày chưa ghi sổ")}
+          tone={blankDays.length === 0 ? "good" : "neutral"}
+          value={
+            <>
+              {blankDays.length}
+              <span className="text-base text-[var(--color-text-faint)]">/{daysToCheck}</span>
+            </>
+          }
+          note={
+            blankDays.length === 0
+              ? t("Every day so far has at least one record.", "Mọi ngày đã qua đều có ít nhất một khoản.")
+              : t("days with nothing recorded", "ngày không có khoản nào")
+          }
+        >
+          {blankDays.length > 0 && (
+            <>
+              <div className="flex flex-wrap gap-1.5">
+                {blankDays.map((d) => (
+                  <span
+                    key={d}
+                    className="min-w-8 h-8 px-2 flex items-center justify-center rounded-lg bg-[var(--color-surface-2)] text-xs font-bold text-[var(--color-text-muted)] tabular-nums"
+                  >
+                    {d}
+                  </span>
                 ))}
-              </ul>
-              <p className="mt-3 text-xs text-[var(--color-text-muted)]">
-                {t("next 6 months", "sáu tháng tới")}:{" "}
-                <b>{formatVND(upcoming.reduce((s, u) => s + u.payment, 0))}</b>
-              </p>
-            </div>
-          )}
-
-          {/* Dữ liệu cần bổ sung — gom mọi lỗ hổng đã biết vào một chỗ bấm được */}
-          {gapTotal > 0 && (
-            <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--color-info-tint)] text-[var(--color-info)] flex items-center justify-center">
-                  <ListChecks size={16} />
-                </div>
-                <h3 className="c-h5 text-[var(--color-text)]">{t("Data to fill in", "Dữ liệu cần bổ sung")}</h3>
               </div>
-              <ul className="space-y-2 text-sm">
-                {gaps.missingSubGroup > 0 && (
-                  <li>
-                    <button
-                      onClick={() => setIsIncompleteOpen(true)}
-                      className="w-full text-left flex items-center justify-between gap-3 rounded-lg px-3 min-h-11 bg-[var(--color-surface-2)] hover:bg-[var(--color-border)] transition-colors text-[var(--color-text)]"
-                    >
-                      <span>{t("missing sub-category", "thiếu danh mục con")}</span>
-                      <span className="font-bold tabular-nums">{gaps.missingSubGroup}</span>
-                    </button>
-                  </li>
+              <p className="text-xs text-[var(--color-text-faint)]">
+                {t(
+                  "Charts below only cover the days that were recorded.",
+                  "Các biểu đồ bên dưới chỉ phản ánh những ngày đã ghi."
                 )}
-                {gaps.unknownPayment > 0 && (
-                  <li className="flex items-center justify-between gap-3 px-3 min-h-11 text-[var(--color-text-muted)]">
-                    <span>{t("payment method unknown", "chưa rõ cách thanh toán")}</span>
-                    <span className="font-bold tabular-nums">{gaps.unknownPayment}</span>
-                  </li>
-                )}
-                {gaps.pendingDrafts > 0 && (
-                  <li className="flex items-center justify-between gap-3 px-3 min-h-11 text-[var(--color-warning)]">
-                    <span>{t("scanned receipts awaiting review", "hoá đơn quét chờ duyệt")}</span>
-                    <span className="font-bold tabular-nums">{gaps.pendingDrafts}</span>
-                  </li>
-                )}
-              </ul>
-            </div>
+              </p>
+            </>
           )}
+        </MetricCard>
+
+        {/* Sắp phải trả — trả lời "tháng tới cần chuẩn bị bao nhiêu tiền".
+            Số lấy từ lịch trả nợ từng kỳ chứ không từ `Debt.monthlyPayment`,
+            vì kỳ trả thật đổi theo số ngày và dư nợ mỗi tháng. */}
+        {upcoming.length > 0 && (
+          <MetricCard
+            className="@container"
+            size="sm"
+            icon={<CalendarClock size={16} />}
+            label={t("Debt coming due", "Sắp phải trả nợ")}
+            aside={mLabel(upcoming[0].month)}
+            value={<Fit>{formatVND(upcoming[0].payment)}</Fit>}
+            note={
+              <span className="tabular-nums">
+                {t("principal", "gốc")} {money(upcoming[0].principal)} + {t("interest", "lãi")}{" "}
+                {money(upcoming[0].interest)}
+              </span>
+            }
+          >
+            <ul className="flex flex-col gap-1.5">
+              {upcoming.slice(0, 6).map((u) => (
+                <li key={u.month} className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="text-[var(--color-text-muted)] tabular-nums">{mLabel(u.month)}</span>
+                  <span className="font-bold tabular-nums whitespace-nowrap text-[var(--color-text)]">
+                    {formatVND(u.payment)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-[var(--color-text-faint)]">
+              {t("next 6 months", "sáu tháng tới")}:{" "}
+              <b className="tabular-nums whitespace-nowrap text-[var(--color-text)]">
+                {formatVND(upcoming.reduce((s, u) => s + u.payment, 0))}
+              </b>
+            </p>
+          </MetricCard>
+        )}
+
+        {/* Dữ liệu cần bổ sung — gom mọi lỗ hổng đã biết vào một chỗ bấm được */}
+        {gapTotal > 0 && (
+          <MetricCard
+            size="sm"
+            icon={<ListChecks size={16} />}
+            label={t("Data to fill in", "Dữ liệu cần bổ sung")}
+            value={gapTotal}
+            note={t("items across the whole ledger", "mục, tính trên toàn bộ sổ")}
+          >
+            <ul className="flex flex-col gap-1.5 text-sm">
+              {gaps.missingSubGroup > 0 && (
+                <li>
+                  <button
+                    onClick={() => setIsIncompleteOpen(true)}
+                    className="w-full text-left flex items-center justify-between gap-3 rounded-xl px-3 min-h-11 bg-[var(--color-surface-2)] hover:bg-[var(--color-border)] transition-colors text-[var(--color-text)]"
+                  >
+                    <span>{t("missing sub-category", "thiếu danh mục con")}</span>
+                    <span className="flex items-center gap-1.5 font-bold tabular-nums">
+                      {gaps.missingSubGroup} <ArrowUpRight size={14} className="text-[var(--color-text-faint)]" />
+                    </span>
+                  </button>
+                </li>
+              )}
+              {gaps.unknownPayment > 0 && (
+                <li className="flex items-center justify-between gap-3 px-3 min-h-11 text-[var(--color-text-muted)]">
+                  <span>{t("payment method unknown", "chưa rõ cách thanh toán")}</span>
+                  <span className="font-bold tabular-nums">{gaps.unknownPayment}</span>
+                </li>
+              )}
+              {gaps.pendingDrafts > 0 && (
+                <li className="flex items-center justify-between gap-3 px-3 min-h-11 text-[var(--color-text-muted)]">
+                  <span>{t("scanned receipts awaiting review", "hoá đơn quét chờ duyệt")}</span>
+                  <span className="font-bold tabular-nums">{gaps.pendingDrafts}</span>
+                </li>
+              )}
+            </ul>
+          </MetricCard>
+        )}
       </div>
 
       <PeriodComparison
@@ -1318,8 +1236,8 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
         refreshKey={refreshKey}
       />
 
-      {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Nhịp chi theo ngày + bản đồ nhiệt */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <ChartCard
           className="lg:col-span-2"
           title={dailyHeadline}
@@ -1378,9 +1296,9 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
           subtitle={t("One square per day — the darker, the more spent", "Mỗi ô một ngày — càng đậm càng chi nhiều")}
         >
           <div className="flex flex-col gap-1.5">
-            <div className="grid grid-cols-7 gap-1.5 mb-1">
+            <div className="grid grid-cols-7 gap-1.5">
               {WEEKDAYS.map((d, i) => (
-                <div key={d} className="text-[10px] font-bold text-[var(--color-text-faint)] text-center">{t(WEEKDAYS_EN[i], d)}</div>
+                <div key={d} className="text-[10px] uppercase text-[var(--color-text-faint)] text-center">{t(WEEKDAYS_EN[i], d)}</div>
               ))}
             </div>
             {weeks.map((week, wi) => (
@@ -1391,13 +1309,13 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
                   return (
                     <div
                       key={ci}
-                      title={`${cell.day}: ${formatVND(cell.expense)}`}
-                      className="aspect-square rounded-md flex items-center justify-center text-[9px] font-bold transition-transform hover:scale-110 cursor-default"
+                      title={`${cell.day}/${Number(monthStr)}: ${formatVND(cell.expense)}`}
+                      className="aspect-square rounded-md flex items-center justify-center text-[10px] font-bold tabular-nums cursor-default"
                       style={{
                         // Màu ô lấy từ token chứ không viết cứng: bản đồ nhiệt
-                        // là thứ duy nhất trong Dashboard tự pha màu theo độ
-                        // đậm, nên nó phải đổi theo bảng màu đang dùng. Một sắc
-                        // độ duy nhất (tuần tự), không phải bảng nhiều màu.
+                        // là thứ duy nhất trên trang tự pha màu theo độ đậm,
+                        // nên nó phải đổi theo bảng màu đang dùng. Một sắc độ
+                        // duy nhất (tuần tự), không phải bảng nhiều màu.
                         backgroundColor:
                           cell.expense > 0
                             ? `rgba(var(--heat-rgb), ${0.15 + intensity * 0.85})`
@@ -1418,11 +1336,13 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
         </ChartCard>
       </div>
 
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Luỹ kế 12 tháng + phân bổ theo nhóm */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Bản cũ là hai vùng tô đậm chồng nhau — vùng sau che vùng trước và
             mắt đọc diện tích chứ không đọc khoảng cách. Hai đường mảnh, tên và
-            số ghi thẳng ở đầu mút: khoảng hở giữa chúng chính là câu chuyện. */}
+            số ghi thẳng ở đầu mút: khoảng hở giữa chúng chính là câu chuyện.
+            Thu là đường XÁM (bối cảnh), chi là đường màu nhấn — `VIZ.ink` và
+            `VIZ.accent` của hệ v3 đều là nâu, đặt cạnh nhau không phân biệt được. */}
         <ChartCard
           title={cumHeadline}
           subtitle={t(
@@ -1430,7 +1350,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
             `Cộng dồn từ ${mLabel(ytdSeries[0]?.name ?? "")} · chi tiêu chưa gồm trả gốc`
           )}
           keys={[
-            { label: t("Income", "Thu"), color: VIZ.ink, shape: "line" },
+            { label: t("Income", "Thu"), color: VIZ.muted, shape: "line" },
             { label: t("Spending", "Chi"), color: VIZ.accent, shape: "line" },
           ]}
         >
@@ -1444,7 +1364,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
                 <Line
                   dataKey="cumulativeIncome"
                   name={t("Cumulative income", "Luỹ kế thu")}
-                  stroke={VIZ.ink}
+                  stroke={VIZ.muted}
                   {...LINE}
                   label={labelAt(ytdSeries.length - 1, (v) => `${t("In", "Thu")} ${money(v)}`, { anchor: "end", dy: incomeOnTop ? -8 : 16 })}
                 />
@@ -1469,112 +1389,85 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
           }
         >
           {categoryBreakdown.length === 0 ? (
-            <div className="flex items-center justify-center h-64 text-[var(--color-text-faint)] text-sm">
-              {t("No expenses this month", "Chưa có chi tiêu trong tháng")}
-            </div>
+            <p className={EMPTY_NOTE}>{t("No expenses this month", "Chưa có chi tiêu trong tháng")}</p>
           ) : (
-            <ul className="flex flex-col gap-3 max-h-72 overflow-y-auto pr-2">
-              {categoryBreakdown.map((c, i) => (
-                <li key={c.group} className="flex flex-col gap-1 min-w-0">
-                  <div className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className={`min-w-0 truncate text-[var(--color-text)] ${i === 0 ? "font-bold" : ""}`} title={c.group}>
-                      {c.group}
-                    </span>
-                    <span className="flex-none tabular-nums">
-                      <span className="font-bold text-[var(--color-text)]">{formatVND(c.amount)}</span>
-                      <span className="ml-2 inline-block w-9 text-right text-xs text-[var(--color-text-faint)]">
-                        {catShare(c.amount)}%
-                      </span>
-                    </span>
-                  </div>
-                  <HBar value={c.amount} scale={maxCategory} color={i === 0 ? VIZ.accent : VIZ.muted} />
-                </li>
-              ))}
-            </ul>
+            <div className="max-h-72 overflow-y-auto pr-2">
+              <RankList
+                format={formatVND}
+                scale={maxCategory}
+                rows={categoryBreakdown.map((c, i) => ({
+                  key: c.group,
+                  name: c.group,
+                  amount: c.amount,
+                  note: `${catShare(c.amount)}%`,
+                  strong: i === 0,
+                  color: i === 0 ? VIZ.accent : VIZ.muted,
+                }))}
+              />
+            </div>
           )}
         </ChartCard>
       </div>
 
-      {/* Widgets Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] shadow-sm flex flex-col">
-          <h3 className="c-h5 text-[var(--color-text)] mb-4 flex items-center gap-2">
-            <AlertCircle size={18} className="text-[var(--color-success)]" /> {t("Alerts & Insights", "Cảnh báo & Gợi ý")}
-          </h3>
-          <div className="space-y-3">
-            {overBudget.map((b) => (
-              <div key={b.group} className="bg-[var(--color-error-tint)] border border-[var(--color-error)] text-[var(--color-error)] rounded-xl p-4 text-sm font-medium flex items-center gap-3">
-                <Target size={16} className="flex-none" />
-                <span>
-                  <b>{b.group}</b> {t("is over budget by", "vượt ngân sách")} {formatVND(-b.remaining)}
-                </span>
-              </div>
-            ))}
+      {/* Cảnh báo + ngân sách */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <ChartCard title={alertHeadline} subtitle={t("Alerts & insights", "Cảnh báo & gợi ý")}>
+          <ul className="divide-y divide-[var(--color-border)]">
             {/* Trả nợ vượt thu nhập: phần chênh phải lấy từ tiết kiệm hoặc vay
-                thêm. Đây là cảnh báo nặng nhất trong bảng nên đặt lên đầu. */}
+                thêm. Đây là cảnh báo nặng nhất trong bảng nên đứng đầu. */}
             {debtServiceRatio !== null && debtServiceRatio > 100 && (
-              <div className="bg-[var(--color-error-tint)] border border-[var(--color-error)] text-[var(--color-error)] rounded-xl p-4 text-sm font-medium flex items-start gap-3">
-                <Scale size={16} className="flex-none mt-0.5" />
-                <span>
-                  <b>
-                    {t("Debt payments exceed income", "Tiền trả nợ vượt quá thu nhập")}
-                  </b>
-                  {": "}
-                  {formatVND(debtService)} / {formatVND(monthlyIncome)} ={" "}
-                  {debtServiceRatio}%.{" "}
-                  {t(
-                    "The gap has to come from savings or new borrowing.",
-                    "Phần chênh phải lấy từ tiết kiệm hoặc vay thêm."
-                  )}
-                </span>
-              </div>
+              <AlertRow tone="bad" icon={<Scale size={16} />}>
+                <b>{t("Debt payments exceed income", "Tiền trả nợ vượt quá thu nhập")}</b>
+                {": "}
+                {formatVND(debtService)} / {formatVND(monthlyIncome)} = {debtServiceRatio}%.{" "}
+                {t(
+                  "The gap has to come from savings or new borrowing.",
+                  "Phần chênh phải lấy từ tiết kiệm hoặc vay thêm."
+                )}
+              </AlertRow>
             )}
+            {overBudget.map((b) => (
+              <AlertRow key={b.group} tone="bad" icon={<Target size={16} />}>
+                <b>{b.group}</b> {t("is over budget by", "vượt ngân sách")} {formatVND(-b.remaining)}
+              </AlertRow>
+            ))}
             {debtServiceRatio !== null && debtServiceRatio > 50 && debtServiceRatio <= 100 && (
-              <div className="bg-[var(--color-warning-tint)] border border-[var(--color-warning)] text-[var(--color-warning)] rounded-xl p-4 text-sm font-medium flex items-start gap-3">
-                <Scale size={16} className="flex-none mt-0.5" />
-                <span>
-                  {t("Debt takes", "Trả nợ chiếm")} <b>{debtServiceRatio}%</b>{" "}
-                  {t("of this month's income", "thu nhập tháng này")} (
-                  {formatVND(debtService)}).
-                </span>
-              </div>
+              <AlertRow tone="note" icon={<Scale size={16} />}>
+                {t("Debt takes", "Trả nợ chiếm")} <b>{debtServiceRatio}%</b>{" "}
+                {t("of this month's income", "thu nhập tháng này")} ({formatVND(debtService)}).
+              </AlertRow>
             )}
             {savingsRate < 0 && (
-              <div className="bg-[var(--color-warning-tint)] border border-[var(--color-warning)] text-[var(--color-warning)] rounded-xl p-4 text-sm font-medium flex items-center gap-3">
-                <TrendingUp size={16} className="flex-none" />
+              <AlertRow tone="bad" icon={<TrendingUp size={16} />}>
                 {t("Spending exceeded income this month.", "Tháng này chi vượt thu.")}
-              </div>
+              </AlertRow>
             )}
             {/* Chiều ngược lại của "vượt ngân sách", và thường đúng hơn: một
                 nhóm đặt ngân sách mà cuối tháng vẫn bằng 0 gần như luôn là
                 thiếu ghi chứ không phải không tiêu. Chỉ nhắc khi tháng đã đi
                 được quá nửa, không thì đầu tháng nhóm nào cũng bằng 0. */}
             {zeroSpendBudgets.length > 0 && (
-              <div className="bg-[var(--color-warning-tint)] border border-[var(--color-warning)] text-[var(--color-warning)] rounded-xl p-4 text-sm font-medium flex items-start gap-3">
-                <CalendarX size={16} className="flex-none mt-0.5" />
-                <span>
-                  {t(
-                    "Budgeted but nothing spent yet — likely unrecorded: ",
-                    "Có ngân sách mà chưa chi đồng nào, nhiều khả năng là chưa ghi: "
-                  )}
-                  <b>{zeroSpendBudgets.map((b) => b.group).join(", ")}</b>
-                </span>
-              </div>
+              <AlertRow tone="note" icon={<CalendarX size={16} />}>
+                {t(
+                  "Budgeted but nothing spent yet — likely unrecorded: ",
+                  "Có ngân sách mà chưa chi đồng nào, nhiều khả năng là chưa ghi: "
+                )}
+                <b>{zeroSpendBudgets.map((b) => b.group).join(", ")}</b>
+              </AlertRow>
             )}
             {unclassified.length > 0 && (
-              <div className="bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-xl p-4 text-sm font-medium flex items-center gap-3">
-                <Receipt size={16} className="flex-none" />
+              <AlertRow tone="note" icon={<Receipt size={16} />}>
                 {t("Not counted as income/expense:", "Không tính vào thu/chi:")}{" "}
                 {unclassified.map((u) => `${u.type} (${u.count})`).join(", ")}
-              </div>
+              </AlertRow>
             )}
-            {overBudget.length === 0 && savingsRate >= 0 && unclassified.length === 0 && zeroSpendBudgets.length === 0 && (debtServiceRatio === null || debtServiceRatio <= 50) && (
-              <div className="bg-[var(--color-success-tint)] border border-[var(--color-success)] text-[var(--color-success)] rounded-xl p-4 text-sm font-medium">
+            {alertCount === 0 && (
+              <AlertRow tone="good" icon={<CheckCircle2 size={16} />}>
                 {t("Everything looks healthy this month.", "Tháng này mọi chỉ số đều ổn.")}
-              </div>
+              </AlertRow>
             )}
-          </div>
-        </div>
+          </ul>
+        </ChartCard>
 
         {/* Kiểu bullet: thanh = đã chi, vạch = hạn mức, mỗi dòng một thước
             riêng (hạn mức các nhóm chênh nhau cả chục lần). Thanh xám; nhóm
@@ -1598,9 +1491,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
           }
         >
           {budgetVsActual.length === 0 ? (
-            <div className="text-sm text-[var(--color-text-muted)]">
-              {t("No monthly budget set.", "Chưa đặt ngân sách cho tháng này.")}
-            </div>
+            <p className={EMPTY_NOTE}>{t("No monthly budget set.", "Chưa đặt ngân sách cho tháng này.")}</p>
           ) : (
             <ul className="flex flex-col gap-3">
               {budgetRows.map((b) => {
@@ -1611,18 +1502,18 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
                       <span className={`min-w-0 truncate text-[var(--color-text)] ${over ? "font-bold" : ""}`} title={b.group}>
                         {b.group}
                       </span>
-                      <span className="flex-none text-right tabular-nums">
+                      <span className="flex-none text-right tabular-nums whitespace-nowrap">
                         <span className="font-bold text-[var(--color-text)]">{formatVND(b.actual)}</span>
                         <span className="text-xs text-[var(--color-text-faint)]"> / {money(b.budget)}</span>
                       </span>
                     </div>
-                    <HBar
+                    <RankBar
                       value={b.actual}
                       scale={Math.max(1, b.actual, b.budget)}
                       color={over ? VIZ.accent : VIZ.muted}
                       mark={b.budget}
                     />
-                    <span className={`text-[11px] tabular-nums ${over ? "font-bold text-[var(--color-error)]" : "text-[var(--color-text-faint)]"}`}>
+                    <span className={`text-xs tabular-nums ${over ? "font-bold text-[var(--color-error)]" : "text-[var(--color-text-faint)]"}`}>
                       {over
                         ? t(`over by ${money(-b.remaining)}`, `vượt ${money(-b.remaining)}`)
                         : t(`${money(b.remaining)} left`, `còn ${money(b.remaining)}`)}
