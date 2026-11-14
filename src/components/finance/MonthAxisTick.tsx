@@ -74,7 +74,13 @@ export default function MonthAxisTick({
   let last = index;
   while (first > 0 && months[first - 1]?.slice(0, 4) === year) first--;
   while (last < months.length - 1 && months[last + 1]?.slice(0, 4) === year) last++;
-  const opensGroup = index === first;
+  // Trục nhiều năm trên khung hẹp (lịch trả nợ 2020–2040 ở 375px): một năm chỉ
+  // còn ~10px trong khi "2020" cần ~26px, các nhãn đè nhau thành một dải chữ.
+  // Khi đó chỉ ghi mỗi 2, 5 hoặc 10 năm một nhãn — chọn bước nhỏ nhất đủ chỗ.
+  const yearPx = step * 12;
+  const yearStride =
+    step > 0 && yearPx < 34 ? [2, 5, 10].find((k) => yearPx * k >= 34) ?? 20 : 1;
+  const opensGroup = index === first && Number(year) % yearStride === 0;
   const centre = x + ((first + last) / 2 - index) * step;
 
   return (
