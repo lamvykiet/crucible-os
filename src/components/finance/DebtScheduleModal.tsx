@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Lock, Pencil, X } from "lucide-react";
+import { ChevronDown, Loader2, Lock, Pencil, X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { formatVND } from "@/lib/formatMoney";
 
@@ -50,6 +50,21 @@ interface Props {
 }
 
 type Filter = "all" | "paid" | "projected";
+
+// Ô nhập của màn này nằm trên nền tint (`--color-surface-2`) nên lấy nền
+// `--color-surface`; đệm ngang 12px thay cho 16px vì lưới sửa kỳ chia hai cột ở
+// khổ 375px. Còn lại cùng khuôn với các hộp thoại khác.
+const fieldBase =
+  "bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-3 py-2.5 min-h-11 text-base md:text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]";
+const labelClass = "c-overline block";
+
+// Thông báo lỗi được đặt trong effect, nơi không gọi `t()` được (hàm `t` đổi
+// mỗi lượt render). Dịch lúc hiển thị.
+const ERROR_EN: Record<string, string> = {
+  "Không tải được lịch trả nợ": "Could not load the repayment schedule",
+  "Không đổi được lãi suất": "Could not change the rate",
+  "Lưu không thành công": "Save failed",
+};
 
 export default function DebtScheduleModal({
   debtId, debtName, initialFilter = "all", onClose, onChanged,
@@ -197,17 +212,17 @@ export default function DebtScheduleModal({
   // (kỳ đã chốt) hay tiền lãi (kỳ tạm tính) là hai chiều của cùng công thức.
   // Cho gõ vào những ô này thì bảng tự mâu thuẫn với chính ngày của nó.
   const derived = (label: string, value: string, hint: string) => (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-        {label} <span className="text-[var(--color-text-faint)]">· {t("auto", "tự tính")}</span>
+    <div className="space-y-2">
+      <label className={labelClass}>
+        {label} · {t("auto", "tự tính")}
       </label>
       <div
         title={hint}
-        className="w-full rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 text-[var(--color-text-muted)] tabular-nums"
+        className="w-full flex items-center rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 min-h-11 text-base md:text-sm text-[var(--color-text-muted)] tabular-nums"
       >
         {value}
       </div>
-      <p className="text-[10px] leading-tight text-[var(--color-text-faint)]">{hint}</p>
+      <p className="text-xs text-[var(--color-text-faint)]">{hint}</p>
     </div>
   );
 
@@ -217,8 +232,8 @@ export default function DebtScheduleModal({
     type: "text" | "number" | "date" = "number",
     step?: string
   ) => (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+    <div className="space-y-2">
+      <label className={labelClass}>
         {label}
       </label>
       <input
@@ -231,13 +246,13 @@ export default function DebtScheduleModal({
             [key]: type === "number" ? Number(e.target.value) : e.target.value,
           }))
         }
-        className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+        className={`w-full ${fieldBase}`}
       />
     </div>
   );
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-2 md:p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-2 md:p-4 animate-in fade-in">
       <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-4xl max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col">
         <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-start gap-3">
           <div className="min-w-0">
@@ -262,8 +277,11 @@ export default function DebtScheduleModal({
           </button>
         </div>
 
+        {/* Đang sửa một kỳ thì ở khổ điện thoại ba dải dưới đây và danh sách
+            nhường chỗ cho form: cả bốn đều `shrink-0`, cộng với form là cao
+            hơn màn hình và nút Lưu rớt khỏi tấm modal. */}
         {summary?.nextPeriod && (
-          <div className="shrink-0 px-5 md:px-6 py-3 bg-[var(--color-surface-2)] border-b border-[var(--color-border)] text-sm">
+          <div className={`shrink-0 px-5 md:px-6 py-3 bg-[var(--color-surface-2)] border-b border-[var(--color-border)] text-sm ${editing ? "hidden md:block" : ""}`}>
             <span className="text-[var(--color-text-muted)]">
               {t("Next instalment", "Kỳ kế tiếp")}:{" "}
             </span>
@@ -278,7 +296,7 @@ export default function DebtScheduleModal({
           </div>
         )}
 
-        <div className="shrink-0 px-5 md:px-6 py-3 flex flex-wrap items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-2)]">
+        <div className={`shrink-0 px-5 md:px-6 py-3 flex-wrap items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-2)] ${editing ? "hidden md:flex" : "flex"}`}>
           <span className="text-xs text-[var(--color-text-muted)]">
             {t("Rate for all projected periods", "Lãi suất cho mọi kỳ tạm tính")}
             {summary ? ` (${summary.projectedCount})` : ""}:
@@ -290,22 +308,22 @@ export default function DebtScheduleModal({
             value={bulkRate}
             onChange={(e) => setBulkRate(e.target.value)}
             placeholder={periods?.find((x) => x.status === "projected")?.interestRate?.toString() ?? "9.42"}
-            className="w-24 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]"
+            className={`w-24 tabular-nums ${fieldBase}`}
           />
           <button
             onClick={handleApplyRate}
             disabled={isApplyingRate || !bulkRate}
-            className="c-btn c-btn-secondary c-btn-sm"
+            className="c-btn c-btn-secondary c-btn-sm min-h-11"
           >
             {isApplyingRate && <Loader2 size={14} className="animate-spin" />}
             {t("Apply", "Áp dụng")}
           </button>
-          <span className="text-[10px] text-[var(--color-text-faint)]">
+          <span className="text-xs text-[var(--color-text-faint)]">
             {t("settled periods keep their actual rate", "kỳ đã chốt giữ nguyên lãi suất thực tế")}
           </span>
         </div>
 
-        <div className="shrink-0 px-5 md:px-6 py-3 flex flex-wrap gap-2 border-b border-[var(--color-border)]">
+        <div className={`shrink-0 px-5 md:px-6 py-3 flex-wrap gap-2 border-b border-[var(--color-border)] ${editing ? "hidden md:flex" : "flex"}`}>
           {([
             ["all", t("All", "Tất cả"), summary?.total],
             ["paid", t("Settled", "Đã chốt"), summary?.paidCount],
@@ -326,10 +344,10 @@ export default function DebtScheduleModal({
           ))}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6">
+        <div className={`flex-1 min-h-0 overflow-y-auto p-5 md:p-6 ${editing ? "hidden md:block" : ""}`}>
           {errorText && (
-            <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
-              {errorText}
+            <div role="alert" className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
+              {t(ERROR_EN[errorText] ?? errorText, errorText)}
             </div>
           )}
 
@@ -401,16 +419,23 @@ export default function DebtScheduleModal({
         </div>
 
         {editing && (
-          <div className="shrink-0 border-t border-[var(--color-border)] bg-[var(--color-surface-2)] p-5 md:p-6 max-h-[60dvh] overflow-y-auto">
+          <div className="flex-1 min-h-0 md:flex-none md:max-h-[60dvh] flex flex-col md:border-t border-[var(--color-border)] bg-[var(--color-surface-2)]">
+            <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6">
+            {/* Ở khổ điện thoại danh sách (và hộp lỗi của nó) đang ẩn. */}
+            {errorText && (
+              <div role="alert" className="md:hidden mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
+                {t(ERROR_EN[errorText] ?? errorText, errorText)}
+              </div>
+            )}
             <div className="flex items-center justify-between gap-3 mb-4">
               <h3 className="c-h5 text-[var(--color-text)]">
                 {t("Edit period", "Sửa kỳ")} {editing.period} — {editing.dueDate}
               </h3>
               <button
                 onClick={() => setEditing(null)}
-                className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] min-h-11 md:min-h-0 px-2"
+                className="c-btn c-btn-tertiary c-btn-sm min-h-11 md:min-h-0"
               >
-                {t("cancel", "huỷ")}
+                {t("Cancel", "Huỷ")}
               </button>
             </div>
 
@@ -448,36 +473,41 @@ export default function DebtScheduleModal({
                     formatVND(derivedInterest),
                     t("balance × rate × days / 365", "dư nợ × lãi suất × ngày / 365")
                   )}
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+              <div className="space-y-2">
+                <label className={labelClass}>
                   {t("Status", "Trạng thái")}
                 </label>
-                <select
-                  value={String(draft.status ?? "")}
-                  onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
-                >
-                  <option value="paid">{t("settled", "đã chốt")}</option>
-                  <option value="projected">{t("projected", "tạm tính")}</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={String(draft.status ?? "")}
+                    onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}
+                    className={`w-full appearance-none pr-9 ${fieldBase}`}
+                  >
+                    <option value="paid">{t("settled", "đã chốt")}</option>
+                    <option value="projected">{t("projected", "tạm tính")}</option>
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
+                </div>
               </div>
               <div className="col-span-2 md:col-span-3">
                 {field(t("Note (e.g. rebate applied)", "Ghi chú (ví dụ: đã cấn khoản hoàn)"), "note", "text")}
               </div>
             </div>
 
-            <div className="flex items-center gap-4 mt-5">
+            </div>
+
+            <div className="shrink-0 px-5 md:px-6 py-4 border-t border-[var(--color-border)] flex flex-wrap items-center justify-end gap-3">
+              <span className="flex-1 min-w-[9rem] text-xs text-[var(--color-text-faint)]">
+                {t("Summary card updates automatically.", "Thẻ tóm tắt tự cập nhật theo.")}
+              </span>
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="c-btn c-btn-primary c-btn-pill shadow-sm"
+                className="c-btn c-btn-primary"
               >
                 {isSaving && <Loader2 size={16} className="animate-spin" />}
                 {t("Save", "Lưu")}
               </button>
-              <span className="text-xs text-[var(--color-text-faint)]">
-                {t("Summary card updates automatically.", "Thẻ tóm tắt tự cập nhật theo.")}
-              </span>
             </div>
           </div>
         )}

@@ -125,7 +125,7 @@ export default function SubGroupSelect({ value, group, type, onChange, className
             type="button"
             onClick={save}
             disabled={busy || !(en.trim() || vi.trim())}
-            className="c-btn c-btn-primary c-btn-sm flex-1 disabled:opacity-50"
+            className="c-btn c-btn-primary c-btn-sm flex-1 min-h-11 md:min-h-0"
           >
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             {t("Create", "Tạo")}
@@ -135,12 +135,12 @@ export default function SubGroupSelect({ value, group, type, onChange, className
             onClick={() => setCreating(false)}
             disabled={busy}
             aria-label={t("Cancel", "Huỷ")}
-            className="c-btn c-btn-sm c-btn-icon"
+            className="c-btn c-btn-tertiary c-btn-sm c-btn-icon min-h-11 min-w-11 md:min-h-0 md:min-w-0"
           >
             <X size={14} />
           </button>
         </div>
-        <p className="text-[11px] text-[var(--color-text-faint)]">
+        <p className="text-xs text-[var(--color-text-faint)]">
           {t(
             `Added under “${label(group)}”. Rename or turn off in Settings.`,
             `Thêm vào nhóm “${label(group)}”. Sửa hay tắt được ở Cài đặt.`

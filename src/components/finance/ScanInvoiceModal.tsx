@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { X, Upload, FileText, Loader2, AlertCircle, Plus, Check } from "lucide-react";
+import { X, Upload, FileText, Loader2, AlertCircle, Plus, Check, ChevronDown } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import SubGroupSelect from "./SubGroupSelect";
@@ -52,9 +52,23 @@ const EMPTY_FORM = {
   notes: "",
 };
 
+// Cùng khuôn ô nhập và nhãn với TransactionModal. `text-base md:text-sm`: dưới
+// 16px thì Safari iPhone phóng to trang khi chạm vào ô.
 const inputClass =
-  "w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm";
-const labelClass = "block text-xs font-bold text-[var(--color-info)] mb-1 uppercase";
+  "w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 min-h-11 text-base md:text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]";
+const selectClass = `${inputClass} appearance-none pr-10`;
+const labelClass = "c-overline block mb-2";
+const chevron = (
+  <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
+);
+
+const PAYMENT_METHOD_EN: Record<string, string> = {
+  cash: "Cash",
+  card: "Card",
+  bank_transfer: "Bank transfer",
+  "e-wallet": "E-wallet",
+  unknown: "Unknown",
+};
 
 /** OCR trả null cho những gì không đọc được — ô nhập cần chuỗi rỗng, không phải "null". */
 const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
@@ -103,7 +117,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
     if (files.length > 3) {
-      setError(t("Chỉ được tải lên tối đa 3 ảnh cùng lúc", "Max 3 images allowed"));
+      setError(t("Max 3 images allowed", "Chỉ được tải lên tối đa 3 ảnh cùng lúc"));
       return;
     }
 
@@ -119,7 +133,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
       const result = await res.json();
 
       if (!res.ok) {
-        const err = new Error(result.error || "Có lỗi xảy ra khi quét hóa đơn");
+        const err = new Error(result.error || t("Something went wrong while scanning the receipt", "Có lỗi xảy ra khi quét hóa đơn"));
         (err as any).movedToError = result.movedToError;
         throw err;
       }
@@ -160,10 +174,10 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
       setError(
         err.movedToError
           ? `${err.message} — ${t(
-              "Ảnh đã được chuyển vào thư mục Error_Invoices trên Drive, bạn có thể quét lại sau.",
-              "The image was moved to Error_Invoices on Drive; you can rescan it later."
+              "The image was moved to Error_Invoices on Drive; you can rescan it later.",
+              "Ảnh đã được chuyển vào thư mục Error_Invoices trên Drive, bạn có thể quét lại sau."
             )}`
-          : err.message || t("Không thể quét hóa đơn. Vui lòng thử lại.", "Scan failed. Please try again.")
+          : err.message || t("Scan failed. Please try again.", "Không thể quét hóa đơn. Vui lòng thử lại.")
       );
       setPreviewUrls((urls) => {
         urls.forEach((url) => URL.revokeObjectURL(url));
@@ -244,11 +258,11 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
 
   const handleSubmit = async () => {
     if (!formData.totalAmount || isNaN(Number(formData.totalAmount))) {
-      setError(t("Vui lòng nhập tổng tiền hợp lệ", "Please enter a valid total"));
+      setError(t("Please enter a valid total", "Vui lòng nhập tổng tiền hợp lệ"));
       return;
     }
     if (!formData.date) {
-      setError(t("Vui lòng nhập ngày hóa đơn", "Please enter the receipt date"));
+      setError(t("Please enter the receipt date", "Vui lòng nhập ngày hóa đơn"));
       return;
     }
 
@@ -269,10 +283,10 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
         onSuccess();
         setStep("saved");
       } else {
-        setError(data.error || t("Có lỗi xảy ra khi lưu nháp", "Failed to save draft"));
+        setError(data.error || t("Failed to save draft", "Có lỗi xảy ra khi lưu nháp"));
       }
     } catch {
-      setError(t("Không thể kết nối đến máy chủ", "Cannot reach the server"));
+      setError(t("Cannot reach the server", "Không thể kết nối đến máy chủ"));
     } finally {
       setIsSubmitting(false);
     }
@@ -298,29 +312,28 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
           step === "review" ? "max-w-6xl h-[90dvh]" : "max-w-md"
         } max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col transition-all duration-300`}
       >
-        <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center">
-          <h2
-            className="c-h3 text-[var(--color-text)]"
-          >
+        <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-center gap-3">
+          <h2 className="c-h3 text-[var(--color-text)]">
             {step === "saved"
-              ? t("Đã lưu vào hàng đợi", "Saved to the queue")
+              ? t("Saved to the queue", "Đã lưu vào hàng đợi")
               : step === "review"
-                ? t("Duyệt kết quả OCR", "Review OCR Result")
-                : t("Quét hóa đơn OCR", "Scan Invoice")}
+                ? t("Check the scan", "Soát kết quả quét")
+                : t("Scan a receipt", "Quét hóa đơn")}
           </h2>
           <button
             onClick={onClose}
             disabled={isScanning || isSubmitting}
-            className="text-[var(--color-text-faint)] hover:text-[var(--color-error)] transition-colors disabled:opacity-50"
+            aria-label={t("Close", "Đóng")}
+            className="shrink-0 -mr-2 w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-faint)] hover:text-[var(--color-error)] hover:bg-[var(--color-surface-2)] transition-colors disabled:opacity-50"
           >
             <X size={20} />
           </button>
         </div>
 
         {step === "upload" && (
-          <div className="p-8 text-center flex flex-col items-center justify-center">
+          <div className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8 text-center flex flex-col items-center">
             {error && (
-              <div className="mb-6 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl w-full text-left">
+              <div role="alert" className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl w-full text-left">
                 {error}
               </div>
             )}
@@ -329,10 +342,10 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
               <div className="py-8 flex flex-col items-center">
                 <Loader2 size={48} className="animate-spin text-[var(--color-info)] mb-4" />
                 <p className="font-bold text-[var(--color-text)]">
-                  {t("Đang phân tích hóa đơn...", "Analyzing receipt...")}
+                  {t("Analyzing receipt...", "Đang phân tích hóa đơn...")}
                 </p>
                 <p className="text-xs text-[var(--color-text-muted)] mt-2">
-                  {t("Vui lòng đợi trong giây lát.", "Please wait.")}
+                  {t("Please wait.", "Vui lòng đợi trong giây lát.")}
                 </p>
               </div>
             ) : (
@@ -341,12 +354,12 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                   <FileText size={32} />
                 </div>
                 <h3 className="c-h4 text-[var(--color-text)] mb-2">
-                  {t("Tải lên hóa đơn", "Upload Receipt")}
+                  {t("Upload Receipt", "Tải lên hóa đơn")}
                 </h3>
                 <p className="text-sm text-[var(--color-text-muted)] mb-8">
                   {t(
-                    "Hỗ trợ JPG, PNG. Có thể chọn tối đa 3 ảnh cho 1 hóa đơn dài.",
-                    "Supports JPG, PNG. Max 3 images for a long receipt."
+                    "Supports JPG, PNG. Max 3 images for a long receipt.",
+                    "Hỗ trợ JPG, PNG. Có thể chọn tối đa 3 ảnh cho 1 hóa đơn dài."
                   )}
                 </p>
 
@@ -361,10 +374,10 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
 
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="c-btn c-btn-primary c-btn-lg c-btn-pill w-full shadow-sm"
+                  className="c-btn c-btn-primary w-full"
                 >
                   <Upload size={18} />
-                  {t("Chọn tệp (1-3 ảnh)", "Select Files (1-3)")}
+                  {t("Select Files (1-3)", "Chọn tệp (1-3 ảnh)")}
                 </button>
               </>
             )}
@@ -372,42 +385,42 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
         )}
 
         {step === "saved" && (
-          <div className="p-8 flex flex-col items-center text-center">
+          <div className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8 flex flex-col items-center text-center">
             <div className="w-16 h-16 rounded-full bg-[var(--color-success-tint)] text-[var(--color-success)] flex items-center justify-center mb-5">
               <Check size={32} />
             </div>
 
-            <h3 className="font-bold text-lg text-[var(--color-text)] mb-2">
-              {t("Chưa ghi vào sổ đâu nhé", "Not in the ledger yet")}
+            <h3 className="c-h4 text-[var(--color-text)] mb-2">
+              {t("Not in the ledger yet", "Chưa ghi vào sổ đâu nhé")}
             </h3>
 
             <p className="text-sm text-[var(--color-text-muted)] mb-1">
-              {formData.supplier || t("Hoá đơn", "Receipt")} ·{" "}
+              {formData.supplier || t("Receipt", "Hoá đơn")} ·{" "}
               <strong className="text-[var(--color-text)]">
-                {Number(formData.totalAmount || 0).toLocaleString("vi-VN")} đ
+                {Number(formData.totalAmount || 0).toLocaleString("vi-VN")} ₫
               </strong>{" "}
-              · {items.length} {t("dòng", "lines")}
+              · {items.length} {t("lines", "dòng")}
             </p>
 
             <p className="text-sm text-[var(--color-text-muted)] mb-6 max-w-sm">
               {t(
-                'Hoá đơn đang nằm trong hàng đợi. Bấm nút cam "Duyệt hóa đơn" ở đầu trang, xem lại lần cuối rồi bấm "Duyệt & ghi vào sổ" thì giao dịch mới được ghi.',
-                'It is waiting in the queue. Press the orange "Review invoices" button at the top of the page, check it once more, then "Approve & record".'
+                'It is waiting in the queue. Press the "Review invoices" button at the top of the page, check it once more, then "Approve & record".',
+                'Hoá đơn đang nằm trong hàng đợi. Bấm nút "Duyệt hóa đơn" ở đầu trang, xem lại lần cuối rồi bấm "Duyệt & ghi vào sổ" thì giao dịch mới được ghi.'
               )}
             </p>
 
             <div className="flex gap-3 w-full">
               <button
+                onClick={resetState}
+                className="c-btn c-btn-secondary flex-1"
+              >
+                {t("Scan another", "Quét tiếp")}
+              </button>
+              <button
                 onClick={onClose}
                 className="c-btn c-btn-primary flex-1"
               >
-                {t("Đóng để đi duyệt", "Close and review")}
-              </button>
-              <button
-                onClick={resetState}
-                className="flex-1 c-btn c-btn-secondary justify-center"
-              >
-                {t("Quét tiếp", "Scan another")}
+                {t("Close and review", "Đóng để đi duyệt")}
               </button>
             </div>
           </div>
@@ -419,14 +432,14 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
               {/* Cột trái: ảnh hóa đơn */}
               <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface-2)] border-b md:border-b-0 md:border-r border-[var(--color-border)] md:overflow-y-auto p-4 flex flex-col gap-4">
                 <h3 className="c-h5 text-[var(--color-text)]">
-                  {t("Ảnh hóa đơn", "Receipt Images")}
+                  {t("Receipt Images", "Ảnh hóa đơn")}
                 </h3>
                 {previewUrls.map((url, i) => (
                   <img
                     key={i}
                     src={url}
-                    alt={`Receipt ${i + 1}`}
-                    className="w-full rounded-lg shadow-sm border border-[var(--color-border)]"
+                    alt={t(`Receipt ${i + 1}`, `Hoá đơn ${i + 1}`)}
+                    className="w-full rounded-lg border border-[var(--color-border)]"
                   />
                 ))}
               </div>
@@ -434,7 +447,7 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
               {/* Cột giữa: thông tin chung */}
               <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface)] border-b md:border-b-0 md:border-r border-[var(--color-border)] md:overflow-y-auto p-5 md:p-6 flex flex-col">
                 {error && (
-                  <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
+                  <div role="alert" className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
                     {error}
                   </div>
                 )}
@@ -444,15 +457,15 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                     <AlertCircle size={18} className="flex-none mt-0.5" />
                     <div>
                       <strong className="block">
-                        {t("Có thể trùng với giao dịch đã có", "Possible duplicate")}
+                        {t("Possible duplicate", "Có thể trùng với giao dịch đã có")}
                       </strong>
                       {duplicateWarning.supplier} ·{" "}
                       {new Date(duplicateWarning.date).toLocaleDateString("vi-VN")} ·{" "}
-                      {duplicateWarning.totalAmount.toLocaleString("vi-VN")} đ
+                      {duplicateWarning.totalAmount.toLocaleString("vi-VN")} ₫
                       <span className="block mt-1 opacity-80">
                         {t(
-                          "Bạn vẫn lưu nháp được — hệ thống sẽ hỏi lại ở bước duyệt.",
-                          "You can still save the draft; you will be asked again at approval."
+                          "You can still save the draft; you will be asked again at approval.",
+                          "Bạn vẫn lưu nháp được — hệ thống sẽ hỏi lại ở bước duyệt."
                         )}
                       </span>
                     </div>
@@ -460,21 +473,20 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                 )}
 
                 <h3 className="c-h5 text-[var(--color-text)] mb-4">
-                  {t("Thông tin chung", "General Info")}
+                  {t("General Info", "Thông tin chung")}
                 </h3>
 
                 <div className="flex flex-col gap-4">
                   <div>
-                    <label className={labelClass}>{t("Ngày hóa đơn", "Date")}</label>
+                    <label className={labelClass}>{t("Date", "Ngày hóa đơn")}</label>
                     <CustomDatePicker
                       value={formData.date}
                       onChange={(v) => setFormData((prev) => ({ ...prev, date: v }))}
-                      aria-label={t("Ngày", "Date")}
-                      className={`${inputClass} flex items-center justify-between gap-2 min-h-11 text-left`}
+                      aria-label={t("Date", "Ngày")}
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>{t("Nhà cung cấp", "Supplier")}</label>
+                    <label className={labelClass}>{t("Supplier", "Nhà cung cấp")}</label>
                     <SupplierInput
                       value={formData.supplier}
                       onChange={(supplier) => setFormData((prev) => ({ ...prev, supplier }))}
@@ -483,50 +495,60 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-3">
                     <div>
-                      <label className={labelClass}>{t("Loại", "Type")}</label>
-                      <select name="type" value={formData.type} onChange={handleFormChange} className={inputClass}>
-                        <option value="Expense">Expense</option>
-                        <option value="Income">Income</option>
-                        <option value="Transfer">Transfer</option>
-                        <option value="Refund">Refund</option>
-                        <option value="Adjustment">Adjustment</option>
-                      </select>
+                      <label className={labelClass}>{t("Type", "Loại")}</label>
+                      <div className="relative">
+                        <select name="type" value={formData.type} onChange={handleFormChange} className={selectClass}>
+                          <option value="Expense">{t("Expense", "Chi tiêu")}</option>
+                          <option value="Income">{t("Income", "Thu nhập")}</option>
+                          <option value="Transfer">{t("Transfer", "Chuyển khoản")}</option>
+                          <option value="Refund">{t("Refund", "Hoàn tiền")}</option>
+                          <option value="Adjustment">{t("Adjustment", "Điều chỉnh")}</option>
+                        </select>
+                        {chevron}
+                      </div>
                     </div>
                     <div>
-                      <label className={labelClass}>{t("Nhóm", "Category")}</label>
-                      <select name="categoryGroup" value={formData.categoryGroup} onChange={handleFormChange} className={inputClass}>
-                        <option value="">{t("— Chọn nhóm —", "— Select —")}</option>
-                        {groupNames.map((c) => (
-                          <option key={c} value={c}>
-                            {label(c)}
-                          </option>
-                        ))}
-                      </select>
+                      <label className={labelClass}>{t("Category", "Nhóm")}</label>
+                      <div className="relative">
+                        <select name="categoryGroup" value={formData.categoryGroup} onChange={handleFormChange} className={selectClass}>
+                          <option value="">{t("— Select —", "— Chọn nhóm —")}</option>
+                          {groupNames.map((c) => (
+                            <option key={c} value={c}>
+                              {label(c)}
+                            </option>
+                          ))}
+                        </select>
+                        {chevron}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-3">
                     <div>
-                      <label className={labelClass}>{t("Nhóm phụ", "Sub-group")}</label>
+                      <label className={labelClass}>{t("Sub-group", "Nhóm phụ")}</label>
                       <SubGroupSelect
                         value={formData.subGroup}
                         group={formData.categoryGroup}
                         type={formData.type}
                         onChange={(subGroup) => setFormData((prev) => ({ ...prev, subGroup }))}
-                        className={inputClass}
+                        className={selectClass}
+                        trailing={chevron}
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>{t("Thanh toán", "Payment")}</label>
-                      <select name="paymentMethod" value={formData.paymentMethod} onChange={handleFormChange} className={inputClass}>
-                        {PAYMENT_METHODS.map((m) => (
-                          <option key={m} value={m}>
-                            {t(PAYMENT_METHOD_LABELS[m], m)}
-                          </option>
-                        ))}
-                      </select>
+                      <label className={labelClass}>{t("Payment", "Thanh toán")}</label>
+                      <div className="relative">
+                        <select name="paymentMethod" value={formData.paymentMethod} onChange={handleFormChange} className={selectClass}>
+                          {PAYMENT_METHODS.map((m) => (
+                            <option key={m} value={m}>
+                              {t(PAYMENT_METHOD_EN[m] ?? m, PAYMENT_METHOD_LABELS[m])}
+                            </option>
+                          ))}
+                        </select>
+                        {chevron}
+                      </div>
                     </div>
                   </div>
 
@@ -555,48 +577,48 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
                     labelClassName={labelClass}
                   />
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-1 xl:grid-cols-2 gap-3 md:gap-4 xl:gap-3">
                     <div>
-                      <label className={labelClass}>{t("Tạm tính", "Subtotal")}</label>
+                      <label className={labelClass}>{t("Subtotal", "Tạm tính")}</label>
                       <AmountInput name="subtotal" value={formData.subtotal} onValueChange={(v) => setFormData((prev) => ({ ...prev, subtotal: v }))} className={inputClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>{t("Thuế", "Tax")}</label>
+                      <label className={labelClass}>{t("Tax", "Thuế")}</label>
                       <AmountInput name="tax" value={formData.tax} onValueChange={(v) => setFormData((prev) => ({ ...prev, tax: v }))} className={inputClass} />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-1 xl:grid-cols-2 gap-3 md:gap-4 xl:gap-3">
                     <div>
-                      <label className={labelClass}>{t("Phí dịch vụ", "Service charge")}</label>
+                      <label className={labelClass}>{t("Service charge", "Phí dịch vụ")}</label>
                       <AmountInput name="serviceCharge" value={formData.serviceCharge} onValueChange={(v) => setFormData((prev) => ({ ...prev, serviceCharge: v }))} className={inputClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>{t("Giảm giá", "Discount")}</label>
+                      <label className={labelClass}>{t("Discount", "Giảm giá")}</label>
                       <AmountInput name="discount" value={formData.discount} onValueChange={(v) => setFormData((prev) => ({ ...prev, discount: v }))} className={inputClass} />
                     </div>
                   </div>
 
                   <div>
-                    <label className={labelClass}>{t("Tổng tiền", "Total")}</label>
+                    <label className={labelClass}>{t("Total", "Tổng tiền")}</label>
                     <AmountInput
                       name="totalAmount"
                       value={formData.totalAmount}
                       onValueChange={(v) => setFormData((prev) => ({ ...prev, totalAmount: v }))}
-                      className={`${inputClass} font-bold text-lg`}
+                      className={`${inputClass} font-bold tabular-nums`}
                     />
                     {totalMismatch && (
                       <p className="mt-1 text-xs text-[var(--color-warning)]">
-                        {t("Tạm tính + thuế + phí − giảm giá =", "Subtotal + tax + fee − discount =")}{" "}
-                        {computedTotal.toLocaleString("vi-VN")} đ,{" "}
-                        {t("lệch với tổng tiền", "differs from the total")}.
+                        {t("Subtotal + tax + fee − discount =", "Tạm tính + thuế + phí − giảm giá =")}{" "}
+                        {computedTotal.toLocaleString("vi-VN")} ₫,{" "}
+                        {t("differs from the total", "lệch với tổng tiền")}.
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <label className={labelClass}>{t("Ghi chú", "Notes")}</label>
-                    <textarea name="notes" value={formData.notes} onChange={handleFormChange} rows={2} className={inputClass} />
+                    <label className={labelClass}>{t("Notes", "Ghi chú")}</label>
+                    <textarea name="notes" value={formData.notes} onChange={handleFormChange} rows={2} className={`${inputClass} resize-none`} />
                   </div>
                 </div>
               </div>
@@ -605,13 +627,13 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
               <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface)] md:overflow-y-auto p-5 md:p-6 flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="c-h5 text-[var(--color-text)]">
-                    {t("Chi tiết món hàng", "Line Items")}
+                    {t("Line Items", "Chi tiết món hàng")}
                   </h3>
                   <button
                     onClick={handleAddItem}
-                    className="text-xs flex items-center gap-1 bg-[var(--color-surface-2)] px-2 py-1 rounded border border-[var(--color-border)] hover:bg-[var(--color-border)]"
+                    className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-0"
                   >
-                    <Plus size={14} /> {t("Thêm dòng", "Add row")}
+                    <Plus size={14} /> {t("Add row", "Thêm dòng")}
                   </button>
                 </div>
 
@@ -624,29 +646,29 @@ export default function ScanInvoiceModal({ isOpen, onClose, onSuccess }: ScanInv
 
                 {items.length > 0 && (
                   <p className="mt-3 text-xs text-[var(--color-text-muted)] text-right">
-                    {t("Tổng các dòng:", "Lines total:")}{" "}
+                    {t("Lines total:", "Tổng các dòng:")}{" "}
                     <strong className="text-[var(--color-text)]">
-                      {itemsTotal.toLocaleString("vi-VN")} đ
+                      {itemsTotal.toLocaleString("vi-VN")} ₫
                     </strong>
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="shrink-0 p-4 border-t border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface-2)]">
+            <div className="shrink-0 p-5 md:p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-2)] flex flex-wrap items-center justify-end gap-3">
+              <button
+                onClick={onClose}
+                className="c-btn c-btn-tertiary"
+              >
+                {t("Close", "Đóng")}
+              </button>
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="c-btn c-btn-primary shadow"
+                className="c-btn c-btn-primary"
               >
                 {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                {t("Lưu & chờ duyệt", "Save for review")}
-              </button>
-              <button
-                onClick={onClose}
-                className="text-sm font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-              >
-                {t("Đóng", "Close")}
+                {t("Save draft — not recorded yet", "Lưu nháp, chưa ghi sổ")}
               </button>
             </div>
           </>

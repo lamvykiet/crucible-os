@@ -202,7 +202,11 @@ thoại hiện nguyên trên máy tính và sidebar chen vào màn hình điện
 Modal phải cuộn được tới trường cuối và nút lưu luôn thấy. Ba lỗi mobile đã sửa:
 chọn tháng, modal tràn màn hình, danh sách món hàng OCR bị cắt ở dòng thứ 3.
 
-**Thêm chuỗi hiển thị** → dùng `t("tiếng Việt", "English")`. Nhưng **không dịch
+**Thêm chuỗi hiển thị** → dùng `t("English", "tiếng Việt")` — tiếng Anh TRƯỚC,
+đúng chữ ký `t(en, vi)` ở `src/lib/LanguageContext.tsx`. Dòng này từng ghi
+ngược, nên ~120 lời gọi trong `TransactionModal`, `ScanInvoiceModal`,
+`ReviewQueueModal`, `DebtModal` truyền tiếng Việt trước và hộp thoại hiện
+tiếng Anh ở chế độ tiếng Việt trên production (đảo lại 14/11/2026). Nhưng **không dịch
 `<datalist>`**: `value` ở đó được điền thẳng vào ô rồi lưu xuống DB, dịch là làm
 số liệu tách đôi giữa hai ngôn ngữ. Chỉ `<select>` thật mới đổi phần chữ,
 `value` giữ nguyên tên chuẩn tiếng Anh.

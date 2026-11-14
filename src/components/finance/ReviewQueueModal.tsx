@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Loader2, FileText, Check, AlertCircle, Plus, ArrowLeft, RefreshCw } from "lucide-react";
+import { X, Loader2, FileText, Check, AlertCircle, Plus, ArrowLeft, RefreshCw, ChevronDown } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import SubGroupSelect from "./SubGroupSelect";
@@ -29,9 +29,23 @@ interface LineItem {
   totalPrice: number | string;
 }
 
+// Cùng khuôn ô nhập và nhãn với TransactionModal. `text-base md:text-sm`: dưới
+// 16px thì Safari iPhone phóng to trang khi chạm vào ô.
 const inputClass =
-  "w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm";
-const labelClass = "block text-xs font-bold text-[var(--color-info)] mb-1 uppercase";
+  "w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 min-h-11 text-base md:text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]";
+const selectClass = `${inputClass} appearance-none pr-10`;
+const labelClass = "c-overline block mb-2";
+const chevron = (
+  <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
+);
+
+const PAYMENT_METHOD_EN: Record<string, string> = {
+  cash: "Cash",
+  card: "Card",
+  bank_transfer: "Bank transfer",
+  "e-wallet": "E-wallet",
+  unknown: "Unknown",
+};
 
 const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 const toDateInput = (v: string | null) => (v ? new Date(v).toISOString().slice(0, 10) : "");
@@ -70,9 +84,9 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
       const res = await fetch("/api/finance/transaction/drafts");
       const data = await res.json();
       if (data.success) setQueue(data.drafts || []);
-      else setError(data.error || t("Không đọc được hàng đợi", "Failed to load the queue"));
+      else setError(data.error || t("Failed to load the queue", "Không đọc được hàng đợi"));
     } catch {
-      setError(t("Lỗi kết nối", "Connection error"));
+      setError(t("Connection error", "Lỗi kết nối"));
     } finally {
       setIsLoading(false);
     }
@@ -103,10 +117,10 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
         setErrorFiles((prev) => prev.filter((f) => f.id !== fileId));
         fetchQueue();
       } else {
-        setError(data.error || t("Quét lại thất bại", "Rescan failed"));
+        setError(data.error || t("Rescan failed", "Quét lại thất bại"));
       }
     } catch {
-      setError(t("Lỗi kết nối", "Connection error"));
+      setError(t("Connection error", "Lỗi kết nối"));
     } finally {
       setRescanning(null);
     }
@@ -140,7 +154,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
       });
       const data = await res.json();
       if (!data.success) {
-        setError(data.error || t("Không mở được hóa đơn", "Could not open the receipt"));
+        setError(data.error || t("Could not open the receipt", "Không mở được hóa đơn"));
         return;
       }
 
@@ -166,7 +180,7 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
       setPreviewIds((d.driveFileIds || "").split(",").filter(Boolean));
       setSaveRule(false);
     } catch {
-      setError(t("Lỗi kết nối", "Connection error"));
+      setError(t("Connection error", "Lỗi kết nối"));
     } finally {
       setIsLoading(false);
     }
@@ -238,11 +252,11 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
   /** Duyệt: ghi Transaction + TransactionLine. `force` bỏ qua kiểm tra trùng. */
   const approve = async (force = false) => {
     if (!formData.totalAmount || isNaN(Number(formData.totalAmount))) {
-      setError(t("Vui lòng nhập tổng tiền hợp lệ", "Please enter a valid total"));
+      setError(t("Please enter a valid total", "Vui lòng nhập tổng tiền hợp lệ"));
       return;
     }
     if (!formData.date) {
-      setError(t("Vui lòng nhập ngày hóa đơn", "Please enter the receipt date"));
+      setError(t("Please enter the receipt date", "Vui lòng nhập ngày hóa đơn"));
       return;
     }
 
@@ -263,10 +277,10 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
       } else if (data.isDuplicate) {
         setDuplicate(data.duplicate);
       } else {
-        setError(data.error || t("Có lỗi xảy ra", "Something went wrong"));
+        setError(data.error || t("Something went wrong", "Có lỗi xảy ra"));
       }
     } catch {
-      setError(t("Lỗi kết nối", "Connection error"));
+      setError(t("Connection error", "Lỗi kết nối"));
     } finally {
       setIsSubmitting(false);
       setResolving(null);
@@ -285,9 +299,9 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
       });
       const data = await res.json();
       if (data.success) finishDraft(activeDraft.id);
-      else setError(data.error || t("Không xử lý được", "Could not complete the action"));
+      else setError(data.error || t("Could not complete the action", "Không xử lý được"));
     } catch {
-      setError(t("Lỗi kết nối", "Connection error"));
+      setError(t("Connection error", "Lỗi kết nối"));
     } finally {
       setResolving(null);
     }
@@ -312,16 +326,15 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
           activeDraft ? "max-w-6xl h-[90dvh]" : "max-w-xl"
         } max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col transition-all duration-300`}
       >
-        <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center">
-          <h2
-            className="c-h3 text-[var(--color-text)]"
-          >
-            {t("Duyệt hóa đơn", "Review Invoices")}
+        <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-center gap-3">
+          <h2 className="c-h3 text-[var(--color-text)]">
+            {t("Review Invoices", "Duyệt hóa đơn")}
           </h2>
           <button
             onClick={onClose}
             disabled={busy}
-            className="text-[var(--color-text-faint)] hover:text-[var(--color-error)] disabled:opacity-50"
+            aria-label={t("Close", "Đóng")}
+            className="shrink-0 -mr-2 w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-faint)] hover:text-[var(--color-error)] hover:bg-[var(--color-surface-2)] transition-colors disabled:opacity-50"
           >
             <X size={20} />
           </button>
@@ -329,16 +342,16 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
 
         {!activeDraft ? (
           /* --- Danh sách chờ duyệt --------------------------------------- */
-          <div className="p-6 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6">
             {error && (
-              <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
+              <div role="alert" className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
                 {error}
               </div>
             )}
 
             <p className="text-sm text-[var(--color-text-muted)] mb-6">
-              {t("Có", "There are")} <strong>{queue.length}</strong>{" "}
-              {t("hóa đơn đang chờ duyệt.", "receipts waiting for review.")}
+              {t("There are", "Có")} <strong>{queue.length}</strong>{" "}
+              {t("receipts waiting for review.", "hóa đơn đang chờ duyệt.")}
             </p>
 
             {isLoading && (
@@ -360,22 +373,22 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                   </div>
                   <div className="flex-1 truncate">
                     <p className="font-bold text-sm text-[var(--color-text)] truncate">
-                      {draft.supplier || t("Hóa đơn mới", "New receipt")}
+                      {draft.supplier || t("New receipt", "Hóa đơn mới")}
                     </p>
                     <p className="text-xs text-[var(--color-text-faint)]">
                       {draft.date ? new Date(draft.date).toLocaleDateString("vi-VN") : "—"} ·{" "}
-                      {draft.items?.length || 0} {t("dòng", "lines")}
+                      {draft.items?.length || 0} {t("lines", "dòng")}
                     </p>
                   </div>
                   <div className="text-sm font-bold text-[var(--color-text)] flex-none">
-                    {draft.totalAmount ? `${draft.totalAmount.toLocaleString("vi-VN")} đ` : "—"}
+                    {draft.totalAmount ? `${draft.totalAmount.toLocaleString("vi-VN")} ₫` : "—"}
                   </div>
                 </button>
               ))}
 
               {!isLoading && queue.length === 0 && (
                 <div className="text-center text-[var(--color-text-faint)] py-10">
-                  {t("Không còn hóa đơn nào trong hàng đợi.", "The queue is empty.")}
+                  {t("The queue is empty.", "Không còn hóa đơn nào trong hàng đợi.")}
                 </div>
               )}
             </div>
@@ -383,12 +396,12 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
             {errorFiles.length > 0 && (
               <div className="mt-8 pt-6 border-t border-[var(--color-border)]">
                 <h3 className="c-h5 text-[var(--color-error)] mb-1">
-                  {t("Hóa đơn quét lỗi", "Failed scans")} ({errorFiles.length})
+                  {t("Failed scans", "Hóa đơn quét lỗi")} ({errorFiles.length})
                 </h3>
                 <p className="text-xs text-[var(--color-text-muted)] mb-4">
                   {t(
-                    "Những ảnh này Gemini đọc không thành công. Bấm quét lại để đưa về hàng đợi.",
-                    "Gemini could not read these images. Rescan to put them back in the queue."
+                    "Gemini could not read these images. Rescan to put them back in the queue.",
+                    "Những ảnh này Gemini đọc không thành công. Bấm quét lại để đưa về hàng đợi."
                   )}
                 </p>
                 <div className="space-y-2">
@@ -402,14 +415,14 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                       <button
                         onClick={() => rescan(f.id)}
                         disabled={rescanning !== null}
-                        className="text-xs font-bold flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-border)] disabled:opacity-50"
+                        className="c-btn c-btn-secondary c-btn-sm shrink-0 min-h-11 md:min-h-0"
                       >
                         {rescanning === f.id ? (
                           <Loader2 size={14} className="animate-spin" />
                         ) : (
                           <RefreshCw size={14} />
                         )}
-                        {t("Quét lại", "Rescan")}
+                        {t("Rescan", "Quét lại")}
                       </button>
                     </div>
                   ))}
@@ -419,36 +432,36 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
           </div>
         ) : (
           /* --- Màn hình duyệt chi tiết ----------------------------------- */
-          <div className="flex flex-col flex-1 overflow-hidden relative">
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden relative">
             {duplicate && (
               <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                <div className="bg-[var(--color-surface)] rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95">
+                <div className="bg-[var(--color-surface)] rounded-3xl p-5 md:p-6 w-full max-w-md max-h-full overflow-y-auto shadow-xl animate-in zoom-in-95">
                   <div className="flex items-center gap-3 text-[var(--color-warning)] mb-4">
                     <AlertCircle size={24} />
                     <h3 className="c-h4">
-                      {t("Phát hiện trùng lặp", "Duplicate detected")}
+                      {t("Duplicate detected", "Phát hiện trùng lặp")}
                     </h3>
                   </div>
                   <p className="text-sm text-[var(--color-text)] mb-2">
                     {t(
-                      "Đã có một giao dịch cùng ngày, cùng nhà cung cấp và cùng số tiền:",
-                      "A transaction with the same date, supplier and amount already exists:"
+                      "A transaction with the same date, supplier and amount already exists:",
+                      "Đã có một giao dịch cùng ngày, cùng nhà cung cấp và cùng số tiền:"
                     )}
                   </p>
                   <div className="bg-[var(--color-surface-2)] p-3 rounded-xl mb-6 text-sm">
                     <div>
-                      <strong>{t("Nhà cung cấp:", "Supplier:")}</strong> {duplicate.supplier}
+                      <strong>{t("Supplier:", "Nhà cung cấp:")}</strong> {duplicate.supplier}
                     </div>
                     <div>
-                      <strong>{t("Ngày:", "Date:")}</strong>{" "}
+                      <strong>{t("Date:", "Ngày:")}</strong>{" "}
                       {new Date(duplicate.date).toLocaleDateString("vi-VN")}
                     </div>
                     <div>
-                      <strong>{t("Tổng tiền:", "Total:")}</strong>{" "}
-                      {duplicate.totalAmount.toLocaleString("vi-VN")} đ
+                      <strong>{t("Total:", "Tổng tiền:")}</strong>{" "}
+                      {duplicate.totalAmount.toLocaleString("vi-VN")} ₫
                     </div>
                     <div className="text-[var(--color-text-muted)] text-xs mt-1">
-                      {duplicate.categoryGroup} · {duplicate.itemCount} {t("dòng", "lines")} ·{" "}
+                      {duplicate.categoryGroup} · {duplicate.itemCount} {t("lines", "dòng")} ·{" "}
                       {duplicate.id}
                     </div>
                   </div>
@@ -457,26 +470,26 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                     <button
                       onClick={() => approve(true)}
                       disabled={resolving !== null}
-                      className="c-btn c-btn-primary w-full"
+                      className="c-btn c-btn-primary w-full !whitespace-normal !leading-snug text-center"
                     >
                       {resolving === "force" ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                      {t("Đây là 2 hóa đơn khác nhau — vẫn ghi", "Two different receipts — record it")}
+                      {t("Two different receipts — record it", "Đây là 2 hóa đơn khác nhau — vẫn ghi")}
                     </button>
                     <button
                       onClick={() => resolveDuplicate("trash")}
                       disabled={resolving !== null}
-                      className="w-full bg-[var(--color-surface-2)] text-[var(--color-text)] py-2.5 rounded-xl font-bold text-sm hover:bg-[var(--color-border)] flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="c-btn c-btn-secondary w-full !whitespace-normal !leading-snug text-center"
                     >
                       {resolving === "trash" && <Loader2 size={16} className="animate-spin" />}
-                      {t("Đưa ảnh vào thùng rác + xóa giao dịch vừa tạo", "Move image to trash + delete the new transaction")}
+                      {t("Move image to trash + delete the new transaction", "Đưa ảnh vào thùng rác + xóa giao dịch vừa tạo")}
                     </button>
                     <button
                       onClick={() => resolveDuplicate("delete")}
                       disabled={resolving !== null}
-                      className="c-btn c-btn-danger w-full"
+                      className="c-btn c-btn-danger w-full !whitespace-normal !leading-snug text-center"
                     >
                       {resolving === "delete" && <Loader2 size={16} className="animate-spin" />}
-                      {t("Xóa luôn ảnh + giao dịch vừa tạo", "Delete image + the new transaction")}
+                      {t("Delete image + the new transaction", "Xóa luôn ảnh + giao dịch vừa tạo")}
                     </button>
                   </div>
                 </div>
@@ -487,14 +500,14 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
               {/* Cột 1: ảnh */}
               <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface-2)] border-b md:border-b-0 md:border-r border-[var(--color-border)] md:overflow-y-auto p-4 flex flex-col gap-4">
                 <h3 className="c-h5 text-[var(--color-text)]">
-                  {t("Ảnh hóa đơn", "Receipt Images")}
+                  {t("Receipt Images", "Ảnh hóa đơn")}
                 </h3>
                 {previewIds.map((id) => (
                   <img
                     key={id}
                     src={`/api/drive/download?id=${id}`}
-                    className="w-full rounded-lg shadow-sm border border-[var(--color-border)]"
-                    alt="Receipt"
+                    className="w-full rounded-lg border border-[var(--color-border)]"
+                    alt={t("Receipt", "Hoá đơn")}
                   />
                 ))}
               </div>
@@ -502,32 +515,31 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
               {/* Cột 2: thông tin chung */}
               <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface)] border-b md:border-b-0 md:border-r border-[var(--color-border)] md:overflow-y-auto p-5 md:p-6 flex flex-col">
                 {error && (
-                  <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
+                  <div role="alert" className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
                     {error}
                   </div>
                 )}
 
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="c-h5 text-[var(--color-text)]">
-                    {t("Thông tin chung", "General Info")}
+                    {t("General Info", "Thông tin chung")}
                   </h3>
-                  <span className="text-xs bg-[var(--color-info-tint)] text-[var(--color-info)] px-2 py-1 rounded-full font-bold">
-                    {t("Còn", "Left")} {queue.length}
+                  <span className="text-xs bg-[var(--color-info-tint)] text-[var(--color-info)] px-2.5 py-1 rounded-full font-bold tabular-nums">
+                    {t("Left", "Còn")} {queue.length}
                   </span>
                 </div>
 
                 <div className="flex flex-col gap-4">
                   <div>
-                    <label className={labelClass}>{t("Ngày hóa đơn", "Date")}</label>
+                    <label className={labelClass}>{t("Date", "Ngày hóa đơn")}</label>
                     <CustomDatePicker
                       value={formData.date || ""}
                       onChange={(v) => setAmountField("date", v)}
-                      aria-label={t("Ngày", "Date")}
-                      className={`${inputClass} flex items-center justify-between gap-2 min-h-11 text-left`}
+                      aria-label={t("Date", "Ngày")}
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>{t("Nhà cung cấp", "Supplier")}</label>
+                    <label className={labelClass}>{t("Supplier", "Nhà cung cấp")}</label>
                     <SupplierInput
                       value={formData.supplier || ""}
                       onChange={(supplier) => setFormData({ ...formData, supplier })}
@@ -536,50 +548,60 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-3">
                     <div>
-                      <label className={labelClass}>{t("Loại", "Type")}</label>
-                      <select name="type" value={formData.type || "Expense"} onChange={handleFormChange} className={inputClass}>
-                        <option value="Expense">Expense</option>
-                        <option value="Income">Income</option>
-                        <option value="Transfer">Transfer</option>
-                        <option value="Refund">Refund</option>
-                        <option value="Adjustment">Adjustment</option>
-                      </select>
+                      <label className={labelClass}>{t("Type", "Loại")}</label>
+                      <div className="relative">
+                        <select name="type" value={formData.type || "Expense"} onChange={handleFormChange} className={selectClass}>
+                          <option value="Expense">{t("Expense", "Chi tiêu")}</option>
+                          <option value="Income">{t("Income", "Thu nhập")}</option>
+                          <option value="Transfer">{t("Transfer", "Chuyển khoản")}</option>
+                          <option value="Refund">{t("Refund", "Hoàn tiền")}</option>
+                          <option value="Adjustment">{t("Adjustment", "Điều chỉnh")}</option>
+                        </select>
+                        {chevron}
+                      </div>
                     </div>
                     <div>
-                      <label className={labelClass}>{t("Nhóm", "Category")}</label>
-                      <select name="categoryGroup" value={formData.categoryGroup || ""} onChange={handleFormChange} className={inputClass}>
-                        <option value="">{t("— Chọn nhóm —", "— Select —")}</option>
-                        {groupNames.map((c) => (
-                          <option key={c} value={c}>
-                            {label(c)}
-                          </option>
-                        ))}
-                      </select>
+                      <label className={labelClass}>{t("Category", "Nhóm")}</label>
+                      <div className="relative">
+                        <select name="categoryGroup" value={formData.categoryGroup || ""} onChange={handleFormChange} className={selectClass}>
+                          <option value="">{t("— Select —", "— Chọn nhóm —")}</option>
+                          {groupNames.map((c) => (
+                            <option key={c} value={c}>
+                              {label(c)}
+                            </option>
+                          ))}
+                        </select>
+                        {chevron}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-3">
                     <div>
-                      <label className={labelClass}>{t("Nhóm phụ", "Sub-group")}</label>
+                      <label className={labelClass}>{t("Sub-group", "Nhóm phụ")}</label>
                       <SubGroupSelect
                         value={formData.subGroup || ""}
                         group={formData.categoryGroup || ""}
                         type={formData.type}
                         onChange={(subGroup) => setFormData((prev: typeof formData) => ({ ...prev, subGroup }))}
-                        className={inputClass}
+                        className={selectClass}
+                        trailing={chevron}
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>{t("Thanh toán", "Payment")}</label>
-                      <select name="paymentMethod" value={formData.paymentMethod || "unknown"} onChange={handleFormChange} className={inputClass}>
-                        {PAYMENT_METHODS.map((m) => (
-                          <option key={m} value={m}>
-                            {t(PAYMENT_METHOD_LABELS[m], m)}
-                          </option>
-                        ))}
-                      </select>
+                      <label className={labelClass}>{t("Payment", "Thanh toán")}</label>
+                      <div className="relative">
+                        <select name="paymentMethod" value={formData.paymentMethod || "unknown"} onChange={handleFormChange} className={selectClass}>
+                          {PAYMENT_METHODS.map((m) => (
+                            <option key={m} value={m}>
+                              {t(PAYMENT_METHOD_EN[m] ?? m, PAYMENT_METHOD_LABELS[m])}
+                            </option>
+                          ))}
+                        </select>
+                        {chevron}
+                      </div>
                     </div>
                   </div>
 
@@ -606,41 +628,41 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
                     labelClassName={labelClass}
                   />
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-1 xl:grid-cols-2 gap-3 md:gap-4 xl:gap-3">
                     <div>
-                      <label className={labelClass}>{t("Tạm tính", "Subtotal")}</label>
+                      <label className={labelClass}>{t("Subtotal", "Tạm tính")}</label>
                       <AmountInput name="subtotal" value={formData.subtotal || ""} onValueChange={(v) => setAmountField("subtotal", v)} className={inputClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>{t("Thuế", "Tax")}</label>
+                      <label className={labelClass}>{t("Tax", "Thuế")}</label>
                       <AmountInput name="tax" value={formData.tax || ""} onValueChange={(v) => setAmountField("tax", v)} className={inputClass} />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-1 xl:grid-cols-2 gap-3 md:gap-4 xl:gap-3">
                     <div>
-                      <label className={labelClass}>{t("Phí dịch vụ", "Service charge")}</label>
+                      <label className={labelClass}>{t("Service charge", "Phí dịch vụ")}</label>
                       <AmountInput name="serviceCharge" value={formData.serviceCharge || ""} onValueChange={(v) => setAmountField("serviceCharge", v)} className={inputClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>{t("Giảm giá", "Discount")}</label>
+                      <label className={labelClass}>{t("Discount", "Giảm giá")}</label>
                       <AmountInput name="discount" value={formData.discount || ""} onValueChange={(v) => setAmountField("discount", v)} className={inputClass} />
                     </div>
                   </div>
 
                   <div>
-                    <label className={labelClass}>{t("Tổng tiền", "Total")}</label>
+                    <label className={labelClass}>{t("Total", "Tổng tiền")}</label>
                     <AmountInput
                       name="totalAmount"
                       value={formData.totalAmount || ""}
                       onValueChange={(v) => setAmountField("totalAmount", v)}
-                      className={`${inputClass} font-bold text-lg`}
+                      className={`${inputClass} font-bold tabular-nums`}
                     />
                   </div>
 
                   <div>
-                    <label className={labelClass}>{t("Ghi chú", "Notes")}</label>
-                    <textarea name="notes" value={formData.notes || ""} onChange={handleFormChange} rows={2} className={inputClass} />
+                    <label className={labelClass}>{t("Notes", "Ghi chú")}</label>
+                    <textarea name="notes" value={formData.notes || ""} onChange={handleFormChange} rows={2} className={`${inputClass} resize-none`} />
                   </div>
                 </div>
               </div>
@@ -649,13 +671,13 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
               <div className="w-full md:w-1/3 shrink-0 md:min-h-0 bg-[var(--color-surface)] md:overflow-y-auto p-5 md:p-6 flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="c-h5 text-[var(--color-text)]">
-                    {t("Chi tiết món hàng", "Line Items")}
+                    {t("Line Items", "Chi tiết món hàng")}
                   </h3>
                   <button
                     onClick={handleAddItem}
-                    className="text-xs flex items-center gap-1 bg-[var(--color-surface-2)] px-2 py-1 rounded border border-[var(--color-border)] hover:bg-[var(--color-border)]"
+                    className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-0"
                   >
-                    <Plus size={14} /> {t("Thêm dòng", "Add row")}
+                    <Plus size={14} /> {t("Add row", "Thêm dòng")}
                   </button>
                 </div>
 
@@ -667,38 +689,37 @@ export default function ReviewQueueModal({ isOpen, onClose }: ReviewQueueModalPr
               </div>
             </div>
 
-            <div className="shrink-0 p-4 border-t border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface-2)] gap-4">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => approve(false)}
-                  disabled={busy || !!duplicate}
-                  className="c-btn c-btn-primary shadow"
-                >
-                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                  {t("Duyệt & ghi vào sổ", "Approve & record")}
-                </button>
-
-                {formData.supplier && formData.categoryGroup && (
-                  <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={saveRule}
-                      onChange={(e) => setSaveRule(e.target.checked)}
-                      className="w-5 h-5 accent-[var(--color-primary)]"
-                    />
-                    {t(
-                      `Lần sau tự chọn "${formData.categoryGroup}" cho ${formData.supplier}`,
-                      `Always use "${formData.categoryGroup}" for ${formData.supplier}`
-                    )}
-                  </label>
-                )}
-              </div>
+            <div className="shrink-0 p-5 md:p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-2)] flex flex-wrap items-center justify-end gap-3">
+              {formData.supplier && formData.categoryGroup && (
+                <label className="w-full md:w-auto md:flex-1 md:min-w-0 flex items-center gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={saveRule}
+                    onChange={(e) => setSaveRule(e.target.checked)}
+                    className="shrink-0 w-5 h-5 accent-[var(--color-primary)]"
+                  />
+                  {t(
+                    `Always use "${formData.categoryGroup}" for ${formData.supplier}`,
+                    `Lần sau tự chọn "${formData.categoryGroup}" cho ${formData.supplier}`
+                  )}
+                </label>
+              )}
               <button
                 onClick={backToList}
                 disabled={busy}
-                className="text-sm font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text)] flex items-center gap-1 disabled:opacity-50"
+                aria-label={t("Back to list", "Về danh sách")}
+                className="c-btn c-btn-tertiary"
               >
-                <ArrowLeft size={14} /> {t("Về danh sách", "Back to list")}
+                <ArrowLeft size={16} />
+                <span className="hidden sm:inline">{t("Back to list", "Về danh sách")}</span>
+              </button>
+              <button
+                onClick={() => approve(false)}
+                disabled={busy || !!duplicate}
+                className="c-btn c-btn-primary"
+              >
+                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                {t("Approve & record", "Duyệt & ghi vào sổ")}
               </button>
             </div>
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2, Trash2 } from "lucide-react";
+import { X, Loader2, Trash2, ChevronDown } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import AmountInput from "@/components/ui/AmountInput";
 import CustomDatePicker from "@/components/ui/CustomDatePicker";
@@ -107,10 +107,10 @@ export default function ProjectModal({ isOpen, draft: initial, onClose, onSaved 
     }
   };
 
-  const labelClass =
-    "block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider";
+  // Cùng khuôn ô nhập và nhãn với TransactionModal.
+  const labelClass = "c-overline block";
   const inputClass =
-    "w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 min-h-11 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]";
+    "w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 min-h-11 text-base md:text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]";
 
   const STATUS_LABELS: Record<string, string> = {
     active: t("Running", "Đang chạy"),
@@ -119,10 +119,10 @@ export default function ProjectModal({ isOpen, draft: initial, onClose, onSaved 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
-      <div className="bg-[var(--color-surface)] rounded-t-3xl md:rounded-3xl w-full max-w-xl max-h-[90dvh] shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-        <div className="shrink-0 p-5 border-b border-[var(--color-border)] flex items-center justify-between gap-3">
-          <h2 className="c-h4 text-[var(--color-text)]">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
+      <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-xl max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col">
+        <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-center gap-3">
+          <h2 className="c-h3 text-[var(--color-text)]">
             {draft.id ? t("Edit project", "Sửa dự án") : t("New project", "Dự án mới")}
           </h2>
           <button
@@ -134,14 +134,14 @@ export default function ProjectModal({ isOpen, draft: initial, onClose, onSaved 
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6 space-y-5">
           {error && (
-            <p className="text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] rounded-xl p-3">
+            <div role="alert" className="text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
               {error}
-            </p>
+            </div>
           )}
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <label className={labelClass}>{t("Name", "Tên dự án")}</label>
             <input
               value={draft.name}
@@ -151,23 +151,26 @@ export default function ProjectModal({ isOpen, draft: initial, onClose, onSaved 
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-2">
               <label className={labelClass}>{t("Status", "Trạng thái")}</label>
-              <select
-                value={draft.status}
-                onChange={(e) => set("status", e.target.value)}
-                className={inputClass}
-              >
-                {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={draft.status}
+                  onChange={(e) => set("status", e.target.value)}
+                  className={`${inputClass} appearance-none pr-10`}
+                >
+                  {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label className={labelClass}>{t("Started on", "Ngày bắt đầu")}</label>
               <CustomDatePicker
                 value={draft.startDate}
@@ -178,14 +181,15 @@ export default function ProjectModal({ isOpen, draft: initial, onClose, onSaved 
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <label className={labelClass}>{t("Planned capital", "Vốn dự định đầu tư")}</label>
             <AmountInput
               value={draft.budget ?? ""}
               onValueChange={(v) => set("budget", v === "" ? null : Number(v) || null)}
               aria-label={t("Planned capital", "Vốn dự định đầu tư")}
+              className={inputClass}
             />
-            <p className="text-[10px] text-[var(--color-text-faint)]">
+            <p className="text-xs text-[var(--color-text-faint)]">
               {t(
                 "optional — lets the page show how much of the plan is spent",
                 "không bắt buộc — có thì trang dự án cho biết đã tiêu bao nhiêu phần kế hoạch"
@@ -193,7 +197,7 @@ export default function ProjectModal({ isOpen, draft: initial, onClose, onSaved 
             </p>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <label className={labelClass}>{t("Notes", "Ghi chú")}</label>
             <textarea
               value={draft.notes}
@@ -203,29 +207,30 @@ export default function ProjectModal({ isOpen, draft: initial, onClose, onSaved 
           </div>
         </div>
 
-        <div className="shrink-0 p-5 border-t border-[var(--color-border)] flex items-center gap-3">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="c-btn c-btn-primary c-btn-pill flex-1 md:flex-none"
-          >
-            {isSaving && <Loader2 size={16} className="animate-spin" />}
-            {t("Save", "Lưu")}
-          </button>
-          <button onClick={onClose} className="c-btn c-btn-tertiary">
-            {t("Cancel", "Hủy")}
-          </button>
+        <div className="shrink-0 p-5 md:p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-2)] flex flex-wrap items-center justify-end gap-3">
+          {/* Xoá nằm hẳn bên trái, tách khỏi cặp Huỷ / Lưu dùng hằng ngày. */}
           {draft.id && (
             <button
               onClick={handleDelete}
               disabled={isSaving}
               aria-label={t("Delete project", "Xoá dự án")}
               title={t("Delete project", "Xoá dự án")}
-              className="ml-auto w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-faint)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-tint)] transition-colors"
+              className="mr-auto -ml-2 w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-faint)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-tint)] transition-colors disabled:opacity-50"
             >
               <Trash2 size={18} />
             </button>
           )}
+          <button onClick={onClose} className="c-btn c-btn-tertiary">
+            {t("Cancel", "Huỷ")}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="c-btn c-btn-primary"
+          >
+            {isSaving && <Loader2 size={16} className="animate-spin" />}
+            {t("Save", "Lưu")}
+          </button>
         </div>
       </div>
     </div>

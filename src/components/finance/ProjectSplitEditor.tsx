@@ -142,7 +142,7 @@ export default function ProjectSplitEditor({
       </select>
       <ChevronDown
         size={16}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none"
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none"
       />
     </div>
   );
@@ -164,7 +164,7 @@ export default function ProjectSplitEditor({
         </select>
         <ChevronDown
           size={16}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none"
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none"
         />
       </div>
     );
@@ -173,8 +173,11 @@ export default function ProjectSplitEditor({
     side === "cost" && value.length === 0 && !!categoryGroup && PROJECT_GROUPS.includes(categoryGroup);
 
   return (
-    <div className="space-y-2">
+    <div>
+      {/* Nhãn tự mang khoảng cách dưới của nó (như ở AccountSelect); để trong
+          khối `space-y-2` thì khoảng cách bị cộng đôi. */}
       <label className={labelClassName}>{label}</label>
+      <div className="space-y-2">
 
       {!multi ? (
         <>
@@ -182,7 +185,7 @@ export default function ProjectSplitEditor({
           {value[0] && side === "cost" && (
             <>
               {categorySelect(value[0], 0)}
-              <p className="text-[11px] text-[var(--color-text-faint)]">
+              <p className="text-xs text-[var(--color-text-faint)]">
                 {(() => {
                   const c = costCategoryOf(value[0].costCategory);
                   return c ? t(c.hintEn, c.hintVi) : "";
@@ -282,6 +285,7 @@ export default function ProjectSplitEditor({
           )}
         </p>
       )}
+      </div>
     </div>
   );
 }

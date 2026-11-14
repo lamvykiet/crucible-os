@@ -96,12 +96,12 @@ export default function AccountSelect({
         </select>
         <ChevronDown
           size={16}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none"
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none"
         />
       </div>
 
       {missingCard && (
-        <p className="mt-1 text-xs text-[var(--color-warning)] flex items-start gap-1.5">
+        <p className="mt-2 text-xs text-[var(--color-warning)] flex items-start gap-1.5">
           <AlertCircle size={13} className="shrink-0 mt-0.5" />
           {t(
             "Paid by card — pick which one, or the card balance will not move.",

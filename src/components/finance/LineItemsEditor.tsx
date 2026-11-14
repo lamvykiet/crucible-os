@@ -40,12 +40,15 @@ interface Props {
 // `text-base md:text-sm`: dưới 768px iOS Safari phóng to cả trang khi chạm vào
 // ô nhập có cỡ chữ dưới 16px. globals.css đã đặt sàn trong @layer base, nhưng
 // một utility `text-sm` viết ở đây sẽ ghi đè đúng cái sàn đó.
+//
+// Cùng khuôn với ô nhập của các hộp thoại (bo, cao 44px, viền, focus); hai chỗ
+// lệch có chủ ý: nền `--color-surface` vì ô nằm trên thẻ tint, và đệm ngang
+// 10px vì ba ô số chia nhau chưa tới 280px ở khổ 375px.
 const fieldClass =
-  "w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-2.5 py-2 " +
+  "w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-2.5 py-2.5 min-h-11 " +
   "text-base md:text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]";
 
-const labelClass =
-  "block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1";
+const labelClass = "c-overline block mb-1";
 
 export default function LineItemsEditor({
   items,
@@ -77,7 +80,7 @@ export default function LineItemsEditor({
           <div className="flex items-end gap-2">
             <div className="flex-1 min-w-0">
               <label className={labelClass}>
-                <span className="tabular-nums text-[var(--color-text-faint)]">{idx + 1}</span>
+                <span className="tabular-nums">{idx + 1}</span>
                 {" · "}
                 {t("Item", "Mặt hàng")}
               </label>

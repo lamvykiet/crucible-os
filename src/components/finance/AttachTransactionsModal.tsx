@@ -27,6 +27,10 @@ interface Candidate {
   items: { productName: string }[];
 }
 
+// Cùng khuôn ô nhập và nhãn với TransactionModal.
+const inputClass =
+  "w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 min-h-11 text-base md:text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]";
+
 interface Props {
   isOpen: boolean;
   projectId: string;
@@ -132,11 +136,11 @@ export default function AttachTransactionsModal({
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
-      <div className="bg-[var(--color-surface)] rounded-t-3xl md:rounded-3xl w-full max-w-2xl max-h-[90dvh] shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-        <div className="shrink-0 p-5 border-b border-[var(--color-border)] flex items-start justify-between gap-3">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
+      <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col">
+        <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-start gap-3">
           <div className="min-w-0">
-            <h2 className="c-h4 text-[var(--color-text)]">
+            <h2 className="c-h3 text-[var(--color-text)]">
               {t("Add earlier transactions", "Gắn giao dịch đã ghi")}
             </h2>
             <p className="text-xs text-[var(--color-text-faint)] mt-1 truncate">
@@ -153,7 +157,7 @@ export default function AttachTransactionsModal({
           </button>
         </div>
 
-        <div className="shrink-0 px-5 pt-4 pb-3 space-y-3 border-b border-[var(--color-border)]">
+        <div className="shrink-0 px-5 md:px-6 pt-4 pb-3 space-y-3 border-b border-[var(--color-border)]">
           <div className="relative">
             <Search
               size={16}
@@ -163,7 +167,7 @@ export default function AttachTransactionsModal({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("Search shop, note, item… e.g. PLA, filament", "Tìm nơi chi, ghi chú, tên món… VD: nhựa, PLA, máy in")}
-              className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-full pl-11 pr-4 py-2.5 min-h-11 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+              className={`${inputClass} pl-11`}
             />
           </div>
           <div className="flex gap-2">
@@ -185,9 +189,9 @@ export default function AttachTransactionsModal({
 
         <div className="flex-1 min-h-0 overflow-y-auto">
           {error && (
-            <p className="m-5 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] rounded-xl p-3">
+            <div role="alert" className="m-5 md:m-6 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
               {error}
-            </p>
+            </div>
           )}
           {loading && rows.length === 0 ? (
             <div className="flex items-center justify-center py-12 text-[var(--color-text-faint)]">
@@ -207,7 +211,7 @@ export default function AttachTransactionsModal({
                     <button
                       onClick={() => toggle(r.id)}
                       aria-pressed={on}
-                      className={`w-full text-left px-5 py-3 flex items-start gap-3 transition-colors ${
+                      className={`w-full text-left px-5 md:px-6 py-3 flex items-start gap-3 transition-colors ${
                         on ? "bg-[var(--color-surface-2)]" : "hover:bg-[var(--color-surface-2)]"
                       }`}
                     >
@@ -248,7 +252,7 @@ export default function AttachTransactionsModal({
           )}
         </div>
 
-        <div className="shrink-0 p-5 border-t border-[var(--color-border)] flex flex-wrap items-center gap-3">
+        <div className="shrink-0 p-5 md:p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-2)] flex flex-wrap items-center justify-end gap-3">
           {/* Khoản chi được gắn vào nhóm chi phí nào. Khoản thu tự thành doanh
               thu nên không cần chọn. Gắn xong vẫn sửa từng khoản được. */}
           {rows.some((r) => selected.has(r.id) && r.type !== "Income") && (
@@ -257,7 +261,7 @@ export default function AttachTransactionsModal({
                 value={costCategory}
                 onChange={(e) => setCostCategory(e.target.value)}
                 aria-label={t("Cost group for the spending", "Nhóm chi phí cho các khoản chi")}
-                className="w-full appearance-none bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-full pl-4 pr-10 py-2.5 min-h-11 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+                className={`${inputClass} appearance-none pr-10`}
               >
                 {COST_CATEGORIES.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -268,22 +272,22 @@ export default function AttachTransactionsModal({
               <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
             </div>
           )}
+          {selected.size > 0 && (
+            <span className="mr-auto text-xs text-[var(--color-text-faint)] tabular-nums">
+              {t("net", "ròng")} {selectedTotal >= 0 ? "+" : "−"}
+              {formatVND(Math.abs(selectedTotal))}
+            </span>
+          )}
           <button
             onClick={handleAttach}
             disabled={saving || selected.size === 0}
-            className="c-btn c-btn-primary c-btn-pill flex-1 md:flex-none disabled:opacity-50"
+            className="c-btn c-btn-primary"
           >
             {saving && <Loader2 size={16} className="animate-spin" />}
             {selected.size > 0
               ? t(`Add ${selected.size}`, `Gắn ${selected.size} giao dịch`)
               : t("Pick transactions", "Chọn giao dịch để gắn")}
           </button>
-          {selected.size > 0 && (
-            <span className="text-xs text-[var(--color-text-faint)] tabular-nums">
-              {t("net", "ròng")} {selectedTotal >= 0 ? "+" : "−"}
-              {formatVND(Math.abs(selectedTotal))}
-            </span>
-          )}
         </div>
       </div>
     </div>

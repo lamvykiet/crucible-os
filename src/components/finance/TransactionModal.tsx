@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, ChevronDown, Loader2, Receipt } from "lucide-react";
+import { X, ChevronDown, Loader2, Plus, Receipt } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import SubGroupSelect from "./SubGroupSelect";
@@ -34,6 +34,20 @@ interface TransactionModalProps {
   /** Tab Dự án đổi số này sau khi tạo dự án mới, để ô chọn dự án có nó ngay. */
   projectsRefreshKey?: number;
 }
+
+// Một khuôn ô nhập và một khuôn nhãn cho mọi hộp thoại Finance. `text-base
+// md:text-sm`: dưới 16px thì Safari iPhone phóng to trang khi chạm vào ô.
+const inputClass =
+  "w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 min-h-11 text-base md:text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]";
+const labelClass = "c-overline block";
+
+const PAYMENT_METHOD_EN: Record<string, string> = {
+  cash: "Cash",
+  card: "Card",
+  bank_transfer: "Bank transfer",
+  "e-wallet": "E-wallet",
+  unknown: "Unknown",
+};
 
 export default function TransactionModal({ isOpen, onClose, onSuccess, defaultType = "Expense", initialData, projectsRefreshKey = 0 }: TransactionModalProps) {
   const { t } = useLanguage();
@@ -174,7 +188,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
   const handleSubmit = async () => {
     setError("");
     if (!formData.amount || isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
-      setError(t("Vui lòng nhập số tiền hợp lệ", "Please enter a valid amount"));
+      setError(t("Please enter a valid amount", "Vui lòng nhập số tiền hợp lệ"));
       return;
     }
 
@@ -213,10 +227,10 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
         });
         setItems([]);
       } else {
-        setError(data.error || "Có lỗi xảy ra");
+        setError(data.error || t("Something went wrong", "Có lỗi xảy ra"));
       }
     } catch (err) {
-      setError("Không thể kết nối đến máy chủ");
+      setError(t("Cannot reach the server", "Không thể kết nối đến máy chủ"));
     } finally {
       setIsSubmitting(false);
     }
@@ -236,11 +250,11 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
       >
         <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-center gap-3">
           <h2 className="c-h3 text-[var(--color-text)]">
-            {initialData?.id ? t("Chỉnh sửa giao dịch", "Edit transaction") : t("Thêm giao dịch thủ công", "Add manual transaction")}
+            {initialData?.id ? t("Edit transaction", "Chỉnh sửa giao dịch") : t("Add manual transaction", "Thêm giao dịch thủ công")}
           </h2>
           <button
             onClick={onClose}
-            aria-label={t("Đóng", "Close")}
+            aria-label={t("Close", "Đóng")}
             className="shrink-0 -mr-2 w-11 h-11 flex items-center justify-center rounded-lg text-[var(--color-text-faint)] hover:text-[var(--color-error)] hover:bg-[var(--color-surface-2)] transition-colors"
           >
             <X size={20} />
@@ -250,7 +264,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
         <div className="flex-1 min-h-0 flex flex-col md:flex-row">
           {receiptIds.length > 0 && (
             <div className="shrink-0 md:w-2/5 max-h-56 md:max-h-none overflow-y-auto bg-[var(--color-surface-2)] border-b md:border-b-0 md:border-r border-[var(--color-border)] p-4 space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+              <div className="c-overline flex items-center gap-2">
                 <Receipt size={14} />
                 {t("Scanned receipt", "Ảnh hoá đơn gốc")}
               </div>
@@ -267,11 +281,11 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                   <img
                     src={`/api/drive/download?id=${fid}`}
                     alt={t("Receipt", "Hoá đơn")}
-                    className="w-full rounded-lg border border-[var(--color-border)] shadow-sm"
+                    className="w-full rounded-lg border border-[var(--color-border)]"
                   />
                 </a>
               ))}
-              <p className="text-[10px] leading-tight text-[var(--color-text-faint)]">
+              <p className="text-xs text-[var(--color-text-faint)]">
                 {t(
                   "Check the date and total against the paper before saving.",
                   "Đối chiếu ngày và tổng tiền với tờ hoá đơn trước khi lưu."
@@ -281,11 +295,11 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
           )}
 
           <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6">
-          {error && <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">{error}</div>}
+          {error && <div role="alert" className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">{error}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Date */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Ngày", "Ngày")}</label>
+              <label className={labelClass}>{t("Date", "Ngày")}</label>
               <div className="relative">
                 {/* `appearance-none` + `min-w-0`: trên iOS Safari, input type=date tự
                     lấy bề rộng theo nội dung và KHÔNG co lại, nên ô ngày phình
@@ -293,31 +307,31 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                 <CustomDatePicker
                   value={formData.date}
                   onChange={(v) => setFormData((prev) => ({ ...prev, date: v }))}
-                  aria-label={t("Ngày", "Date")}
+                  aria-label={t("Date", "Ngày")}
                 />
               </div>
             </div>
 
             {/* Payee / Source */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Nơi chi / nguồn thu", "Nơi chi / nguồn thu")}</label>
+              <label className={labelClass}>{t("Payee / source", "Nơi chi / nguồn thu")}</label>
               <SupplierInput
                 value={formData.supplier}
                 onChange={(supplier) => setFormData((prev) => ({ ...prev, supplier }))}
                 onSelect={applySupplierDefaults}
-                placeholder="VD: Coopmart, Lương tháng 7"
-                className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] focus:border-[var(--color-accent)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none text-[var(--color-text)]"
+                placeholder={t("e.g. Coopmart, July salary", "VD: Coopmart, Lương tháng 7")}
+                className={inputClass}
               />
             </div>
 
             {/* Type */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Loại", "Loại")}</label>
+              <label className={labelClass}>{t("Type", "Loại")}</label>
               <div className="relative">
-                <select name="type" value={formData.type} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none">
-                  <option value="Expense">Expense</option>
-                  <option value="Income">Income</option>
-                  <option value="Transfer">Transfer</option>
+                <select name="type" value={formData.type} onChange={handleChange} className={`${inputClass} appearance-none pr-10`}>
+                  <option value="Expense">{t("Expense", "Chi tiêu")}</option>
+                  <option value="Income">{t("Income", "Thu nhập")}</option>
+                  <option value="Transfer">{t("Transfer", "Chuyển khoản")}</option>
                 </select>
                 <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
               </div>
@@ -325,10 +339,10 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
 
             {/* Category */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Nhóm chi tiêu", "Nhóm chi tiêu")}</label>
+              <label className={labelClass}>{t("Category", "Nhóm chi tiêu")}</label>
               <div className="relative">
-                <select name="categoryGroup" value={formData.categoryGroup} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none">
-                  <option value="">{t("— Chọn nhóm —", "— Select —")}</option>
+                <select name="categoryGroup" value={formData.categoryGroup} onChange={handleChange} className={`${inputClass} appearance-none pr-10`}>
+                  <option value="">{t("— Select —", "— Chọn nhóm —")}</option>
                   {groupNames.map(cat => (
                     <option key={cat} value={cat}>{label(cat)}</option>
                   ))}
@@ -339,39 +353,39 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
 
             {/* Subcategory */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Danh mục con", "Danh mục con")}</label>
+              <label className={labelClass}>{t("Sub-category", "Danh mục con")}</label>
               <SubGroupSelect
                 value={formData.subGroup}
                 group={formData.categoryGroup}
                 type={typeForCategories}
                 onChange={(subGroup) => setFormData((prev) => ({ ...prev, subGroup }))}
-                className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none"
+                className={`${inputClass} appearance-none pr-10`}
                 trailing={<ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />}
               />
             </div>
 
             {/* Amount */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Số tiền (VND)", "Số tiền (VND)")}</label>
-              <AmountInput name="amount" value={formData.amount} onValueChange={(v) => setFormData((prev) => ({ ...prev, amount: v }))} placeholder="125.000" className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]" />
+              <label className={labelClass}>{t("Amount (VND)", "Số tiền (VND)")}</label>
+              <AmountInput name="amount" value={formData.amount} onValueChange={(v) => setFormData((prev) => ({ ...prev, amount: v }))} placeholder="125.000" className={inputClass} />
               {totalMismatch && (
                 <button
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, amount: String(itemsTotal) }))}
                   className="text-xs text-[var(--color-text-muted)] underline underline-offset-2 hover:text-[var(--color-text)]"
                 >
-                  {t("Tổng các dòng:", "Line items total:")} {itemsTotal.toLocaleString("vi-VN")} ₫
+                  {t("Line items total:", "Tổng các dòng:")} {itemsTotal.toLocaleString("vi-VN")} ₫
                 </button>
               )}
             </div>
 
             {/* Payment Method */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Thanh toán", "Thanh toán")}</label>
+              <label className={labelClass}>{t("Payment", "Thanh toán")}</label>
               <div className="relative">
-                <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none">
+                <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className={`${inputClass} appearance-none pr-10`}>
                   {PAYMENT_METHODS.map(m => (
-                    <option key={m} value={m}>{t(PAYMENT_METHOD_LABELS[m], m)}</option>
+                    <option key={m} value={m}>{t(PAYMENT_METHOD_EN[m] ?? m, PAYMENT_METHOD_LABELS[m])}</option>
                   ))}
                 </select>
                 <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
@@ -386,8 +400,8 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
               onChange={(id) => setFormData((prev) => ({ ...prev, accountId: id }))}
               type={formData.type}
               paymentMethod={formData.paymentMethod}
-              selectClassName="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
-              labelClassName="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2"
+              selectClassName={inputClass}
+              labelClassName={`${labelClass} mb-2`}
             />
 
             {/* Phân bổ dự án: chi = vốn/giá thành dự án, thu = doanh thu.
@@ -401,8 +415,8 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                 type={formData.type}
                 totalAmount={formData.amount}
                 categoryGroup={formData.categoryGroup}
-                selectClassName="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
-                labelClassName="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2"
+                selectClassName={inputClass}
+                labelClassName={`${labelClass} mb-2`}
               />
             </div>
 
@@ -410,17 +424,17 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
                 rõ nhất: tiền rời ngân hàng và dư nợ thẻ giảm đi. */}
             {accounts.length > 0 && formData.type === "Transfer" && (
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                  {t("Chuyển tới tài khoản", "Money into")}
+                <label className={labelClass}>
+                  {t("Money into", "Chuyển tới tài khoản")}
                 </label>
                 <div className="relative">
                   <select
                     name="toAccountId"
                     value={formData.toAccountId}
                     onChange={handleChange}
-                    className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] appearance-none"
+                    className={`${inputClass} appearance-none pr-10`}
                   >
-                    <option value="">{t("— Chưa chọn —", "— Not set —")}</option>
+                    <option value="">{t("— Not set —", "— Chưa chọn —")}</option>
                     {accounts
                       .filter((a) => a.id !== formData.accountId)
                       .map((a) => (
@@ -436,20 +450,20 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
             )}
             
             <div className="col-span-1 md:col-span-2 space-y-2">
-               <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{t("Ghi chú", "Ghi chú")}</label>
-               <textarea name="notes" value={formData.notes} onChange={handleChange} className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)] min-h-[80px] resize-none"></textarea>
+               <label className={labelClass}>{t("Notes", "Ghi chú")}</label>
+               <textarea name="notes" value={formData.notes} onChange={handleChange} className={`${inputClass} min-h-[80px] resize-none`}></textarea>
             </div>
           </div>
 
           {/* Line Items Table */}
           <div className="mt-6 border-t border-[var(--color-border)] pt-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="c-h5 text-[var(--color-text)]">Chi tiết món hàng</h3>
+              <h3 className="c-h5 text-[var(--color-text)]">{t("Line items", "Chi tiết món hàng")}</h3>
               <button 
                 onClick={() => updateItems([...items, { productName: "", quantity: 1, unitPrice: 0, totalPrice: 0 }])}
-                className="text-xs flex items-center gap-1 bg-[var(--color-surface-2)] px-4 min-h-11 md:min-h-0 md:px-3 md:py-1.5 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-border)] transition-colors text-[var(--color-text)]"
+                className="c-btn c-btn-secondary c-btn-sm min-h-11 md:min-h-0"
               >
-                Thêm dòng
+                <Plus size={14} /> {t("Add row", "Thêm dòng")}
               </button>
             </div>
             
@@ -462,21 +476,21 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, defaultTy
           </div>
         </div>
 
-        <div className="shrink-0 p-5 md:p-6 border-t border-[var(--color-border)] flex items-center gap-4 bg-[var(--color-surface-2)]">
-          <button 
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="c-btn c-btn-primary c-btn-lg c-btn-pill shadow-sm"
-          >
-            {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-            {t("Lưu giao dịch", "Lưu giao dịch")}
-          </button>
-          <button 
+        <div className="shrink-0 p-5 md:p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-2)] flex flex-wrap items-center justify-end gap-3">
+          <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] font-bold px-4 py-3 text-sm transition-colors disabled:opacity-50"
+            className="c-btn c-btn-tertiary"
           >
-            {t("Hủy", "Hủy")}
+            {t("Cancel", "Huỷ")}
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="c-btn c-btn-primary"
+          >
+            {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+            {t("Save transaction", "Lưu giao dịch")}
           </button>
         </div>
       </div>

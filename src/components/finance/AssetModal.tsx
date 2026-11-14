@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { ChevronDown, Loader2, X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { DEFAULT_LIFE_MONTHS } from "@/lib/assets";
 import { todayLocalIso } from "@/lib/localDate";
@@ -48,6 +48,11 @@ const EMPTY = (): AssetDraft => ({
   debtIds: [],
   notes: "",
 });
+
+// Cùng khuôn ô nhập và nhãn với TransactionModal.
+const inputClass =
+  "w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 min-h-11 text-base md:text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)]";
+const labelClass = "c-overline block";
 
 interface Props {
   isOpen: boolean;
@@ -114,21 +119,21 @@ export default function AssetModal({
   };
 
   const num = (label: string, key: keyof AssetDraft, hint?: string) => (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+    <div className="space-y-2">
+      <label className={labelClass}>
         {label}
       </label>
       <AmountInput
         value={draft[key] as number | null}
         onValueChange={(v) => set(key, (v === "" ? null : Number(v)) as AssetDraft[typeof key])}
-        className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+        className={inputClass}
       />
-      {hint && <p className="text-[10px] leading-tight text-[var(--color-text-faint)]">{hint}</p>}
+      {hint && <p className="text-xs text-[var(--color-text-faint)]">{hint}</p>}
     </div>
   );
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-2 md:p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
       <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col">
         <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-center gap-3">
           <h2 className="c-h3 text-[var(--color-text)]">
@@ -145,14 +150,14 @@ export default function AssetModal({
 
         <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6">
           {error && (
-            <div className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
+            <div role="alert" className="mb-4 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
               {error}
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="space-y-1.5 md:col-span-2">
-              <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+            <div className="space-y-2 md:col-span-2">
+              <label className={labelClass}>
                 {t("Name", "Tên tài sản")}
               </label>
               <input
@@ -160,27 +165,30 @@ export default function AssetModal({
                 value={draft.name}
                 onChange={(e) => set("name", e.target.value)}
                 placeholder={t("e.g. Apartment, MacBook Pro", "VD: Căn hộ, MacBook Pro")}
-                className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+                className={inputClass}
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+            <div className="space-y-2">
+              <label className={labelClass}>
                 {t("Category", "Nhóm")}
               </label>
-              <select
-                value={draft.category}
-                onChange={(e) => pickCategory(e.target.value)}
-                className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
-              >
-                {categories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={draft.category}
+                  onChange={(e) => pickCategory(e.target.value)}
+                  className={`${inputClass} appearance-none pr-10`}
+                >
+                  {categories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+            <div className="space-y-2">
+              <label className={labelClass}>
                 {t("Acquisition date", "Ngày mua")}
               </label>
               <CustomDatePicker
@@ -213,8 +221,8 @@ export default function AssetModal({
             {/* Chọn NHIỀU khoản vay: một căn nhà có thể vừa có khoản vay mua
                 nhà vừa có khoản thế chấp lấy thêm tiền. Chỉ gắn được một khoản
                 thì vốn chủ sở hữu tính thiếu nguyên một khoản nợ. */}
-            <div className="space-y-1.5 md:col-span-2">
-              <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+            <div className="space-y-2 md:col-span-2">
+              <label className={labelClass}>
                 {t("Loans secured by this asset", "Khoản vay gắn với tài sản")}
               </label>
               {debts.length === 0 ? (
@@ -249,7 +257,7 @@ export default function AssetModal({
                   })}
                 </div>
               )}
-              <p className="text-[10px] leading-tight text-[var(--color-text-faint)]">
+              <p className="text-xs text-[var(--color-text-faint)]">
                 {t(
                   "equity = value − total outstanding of every loan ticked here",
                   "vốn chủ sở hữu = giá trị − tổng dư nợ của mọi khoản đánh dấu ở đây"
@@ -257,30 +265,33 @@ export default function AssetModal({
               </p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+            <div className="space-y-2">
+              <label className={labelClass}>
                 {t("Status", "Trạng thái")}
               </label>
-              <select
-                value={draft.status}
-                onChange={(e) => set("status", e.target.value)}
-                className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
-              >
-                <option value="owned">{t("owned", "đang giữ")}</option>
-                <option value="sold">{t("sold", "đã bán")}</option>
-                <option value="written_off">{t("written off", "đã thanh lý")}</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={draft.status}
+                  onChange={(e) => set("status", e.target.value)}
+                  className={`${inputClass} appearance-none pr-10`}
+                >
+                  <option value="owned">{t("owned", "đang giữ")}</option>
+                  <option value="sold">{t("sold", "đã bán")}</option>
+                  <option value="written_off">{t("written off", "đã thanh lý")}</option>
+                </select>
+                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
+              </div>
             </div>
 
-            <div className="space-y-1.5 md:col-span-2">
-              <label className="block text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+            <div className="space-y-2 md:col-span-2">
+              <label className={labelClass}>
                 {t("Notes", "Ghi chú")}
               </label>
               <input
                 type="text"
                 value={draft.notes}
                 onChange={(e) => set("notes", e.target.value)}
-                className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
+                className={inputClass}
               />
             </div>
           </div>
@@ -300,21 +311,21 @@ export default function AssetModal({
           </div>
         </div>
 
-        <div className="shrink-0 p-5 md:p-6 border-t border-[var(--color-border)] flex items-center gap-4 bg-[var(--color-surface-2)]">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="c-btn c-btn-primary c-btn-lg c-btn-pill shadow-sm"
-          >
-            {isSaving && <Loader2 size={16} className="animate-spin" />}
-            {t("Save", "Lưu")}
-          </button>
+        <div className="shrink-0 p-5 md:p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-2)] flex flex-wrap items-center justify-end gap-3">
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] font-bold px-4 py-3 text-sm transition-colors disabled:opacity-50"
+            className="c-btn c-btn-tertiary"
           >
             {t("Cancel", "Huỷ")}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="c-btn c-btn-primary"
+          >
+            {isSaving && <Loader2 size={16} className="animate-spin" />}
+            {t("Save", "Lưu")}
           </button>
         </div>
       </div>

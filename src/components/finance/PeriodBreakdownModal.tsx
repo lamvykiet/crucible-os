@@ -133,12 +133,15 @@ export default function PeriodBreakdownModal({
   // fixed`. Để modal nằm trong đó thì lớp phủ thôi tính theo màn hình, co vừa
   // khung thẻ và bị `overflow-hidden` của thẻ cắt cụt: đo được 1278×310 thay
   // vì 1440×900. Bẫy này đã ghi trong AGENTS.md và vừa tái hiện lại.
+  //
+  // Treo ngoài <body> cũng là ra khỏi div `.c-fin` của FinancePage, nên phải tự
+  // mang class đó — nếu không `text-xs` ở đây về lại 12px, lệch sàn chữ 13px.
   const content = (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
-      <div className="bg-[var(--color-surface)] rounded-t-3xl md:rounded-3xl w-full max-w-2xl max-h-[85dvh] md:max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-        <div className="shrink-0 p-5 border-b border-[var(--color-border)] flex items-start justify-between gap-3">
+    <div className="c-fin fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
+      <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col">
+        <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-start gap-3">
           <div className="min-w-0">
-            <h2 className="c-h4 text-[var(--color-text)] truncate">{metricLabel}</h2>
+            <h2 className="c-h3 text-[var(--color-text)] truncate">{metricLabel}</h2>
             <p className="text-xs text-[var(--color-text-muted)] mt-1">
               {periodLabel} · {from} → {to}
             </p>
@@ -152,8 +155,8 @@ export default function PeriodBreakdownModal({
           </button>
         </div>
 
-        <div className="shrink-0 px-5 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface-2)] flex items-baseline justify-between gap-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+        <div className="shrink-0 px-5 md:px-6 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface-2)] flex items-baseline justify-between gap-3">
+          <span className="c-overline">
             {contributing.length} {t("transactions", "giao dịch")}
           </span>
           <span className="font-bold tabular-nums text-[var(--color-text)]">
@@ -162,7 +165,7 @@ export default function PeriodBreakdownModal({
         </div>
 
         {mismatch && (
-          <p className="shrink-0 px-5 py-2 text-xs text-[var(--color-warning)] border-b border-[var(--color-border)]">
+          <p className="shrink-0 px-5 md:px-6 py-2 text-xs text-[var(--color-warning)] border-b border-[var(--color-border)]">
             {t("This list totals", "Danh sách này cộng ra")} {formatVND(total)},{" "}
             {t("but the table shows", "còn bảng hiện")} {formatVND(expected)}.
           </p>
@@ -170,12 +173,12 @@ export default function PeriodBreakdownModal({
 
         <div className="flex-1 min-h-0 overflow-y-auto">
           {errorCode && (
-            <p className="p-5 text-sm text-[var(--color-error)]">
+            <div role="alert" className="m-5 md:m-6 text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
               {t("Could not load", "Không tải được")}
-            </p>
+            </div>
           )}
           {!errorCode && rows === null && (
-            <p className="p-5 text-sm text-[var(--color-text-faint)]">
+            <p className="p-5 md:p-6 text-sm text-[var(--color-text-faint)]">
               {t("Loading...", "Đang tải...")}
             </p>
           )}
@@ -187,7 +190,7 @@ export default function PeriodBreakdownModal({
           {!errorCode && contributing.length > 0 && (
             <ul className="divide-y divide-[var(--color-border)]">
               {contributing.map(({ tx, amount }) => (
-                <li key={tx.id} className="px-5 py-3 flex items-start justify-between gap-3">
+                <li key={tx.id} className="px-5 md:px-6 py-3 flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-bold text-[var(--color-text)] truncate" title={tx.supplier}>
                       {tx.supplier || t("(no name)", "(chưa đặt tên)")}

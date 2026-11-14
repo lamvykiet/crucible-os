@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { ChevronDown, Loader2, X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { invalidateCategories } from "@/lib/useCategories";
 import { formatVND } from "@/lib/formatMoney";
@@ -126,9 +126,9 @@ export default function IncompleteDataModal({ isOpen, onClose, onSaved }: Props)
   }, {});
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-2 md:p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
       <div className="bg-[var(--color-surface)] rounded-3xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] shadow-xl overflow-hidden flex flex-col">
-        <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-center gap-3">
+        <div className="shrink-0 p-5 md:p-6 border-b border-[var(--color-border)] flex justify-between items-start gap-3">
           <div className="min-w-0">
             <h2 className="c-h3 text-[var(--color-text)]">
               {t("Fill in sub-categories", "Bổ sung danh mục con")}
@@ -151,8 +151,9 @@ export default function IncompleteDataModal({ isOpen, onClose, onSaved }: Props)
 
         <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6 space-y-6">
           {error && (
-            <div className="text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
-              {error}
+            <div role="alert" className="text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-3 rounded-xl">
+              {/* "Không tải được" được đặt trong effect, nơi không gọi `t()` được. */}
+              {error === "Không tải được" ? t("Could not load", "Không tải được") : error}
             </div>
           )}
           {savedCount > 0 && (
@@ -209,22 +210,25 @@ export default function IncompleteDataModal({ isOpen, onClose, onSaved }: Props)
                         )}
                       </p>
                     ) : (
-                      <select
-                        value={picked[r.id] || ""}
-                        onChange={(e) =>
-                          setPicked((p) => ({ ...p, [r.id]: e.target.value }))
-                        }
-                        className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 focus:outline-none focus:border-[var(--color-accent)] text-[var(--color-text)]"
-                      >
-                        <option value="">
-                          {t("— leave blank —", "— để trống —")}
-                        </option>
-                        {r.options.map((o) => (
-                          <option key={o.name} value={o.name}>
-                            {label(o)}
+                      <div className="relative">
+                        <select
+                          value={picked[r.id] || ""}
+                          onChange={(e) =>
+                            setPicked((p) => ({ ...p, [r.id]: e.target.value }))
+                          }
+                          className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 min-h-11 text-base md:text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)] appearance-none pr-10"
+                        >
+                          <option value="">
+                            {t("— leave blank —", "— để trống —")}
                           </option>
-                        ))}
-                      </select>
+                          {r.options.map((o) => (
+                            <option key={o.name} value={o.name}>
+                              {label(o)}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)] pointer-events-none" />
+                      </div>
                     )}
                   </div>
                 ))}
@@ -233,22 +237,22 @@ export default function IncompleteDataModal({ isOpen, onClose, onSaved }: Props)
           ))}
         </div>
 
-        <div className="shrink-0 p-5 md:p-6 border-t border-[var(--color-border)] flex items-center gap-4 bg-[var(--color-surface-2)]">
+        <div className="shrink-0 p-5 md:p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-2)] flex flex-wrap items-center justify-end gap-3">
+          <button
+            onClick={() => { setSavedCount(0); onClose(); }}
+            disabled={isSaving}
+            className="c-btn c-btn-tertiary"
+          >
+            {t("Close", "Đóng")}
+          </button>
           <button
             onClick={handleSave}
             disabled={isSaving || updates.length === 0}
-            className="c-btn c-btn-primary c-btn-lg c-btn-pill shadow-sm"
+            className="c-btn c-btn-primary"
           >
             {isSaving && <Loader2 size={16} className="animate-spin" />}
             {t("Save", "Lưu")}
             {updates.length > 0 ? ` (${updates.length})` : ""}
-          </button>
-          <button
-            onClick={() => { setSavedCount(0); onClose(); }}
-            disabled={isSaving}
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] font-bold px-4 py-3 text-sm transition-colors disabled:opacity-50"
-          >
-            {t("Close", "Đóng")}
           </button>
         </div>
       </div>
