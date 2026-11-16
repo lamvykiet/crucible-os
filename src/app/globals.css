@@ -890,24 +890,49 @@ html { background: var(--sheet); }
 /* Phông cảnh đã in tên function cỡ lớn thì tên trên thanh là lặp — chỉ hiện
    khi đã cuộn qua phông. Trang không có phông tóm tắt thì luôn hiện. */
 .c-shell:has(.c-hello) .c-mtopbar:not([data-scrolled="true"]) .c-logo-word { opacity: 0; }
-/* Có hàng tab thì thanh cao thêm ~40px: kéo phông lên đúng chừng đó. */
-.c-mtopbar.has-tabs { margin-bottom: -96px; padding-bottom: 5px; }
-@media (max-width: 767px) { .c-shell:has(.c-mtopbar.has-tabs) .c-scene { padding-top: 124px; } }
+/* Có hàng tab thì thanh cao thêm ~58px (rãnh 54px + khe): kéo phông lên đúng
+   chừng đó. Đổi cỡ rãnh `.c-mtabs` là phải đổi hai số này. */
+.c-mtopbar.has-tabs { margin-bottom: -116px; padding-bottom: 5px; }
+@media (max-width: 767px) { .c-shell:has(.c-mtopbar.has-tabs) .c-scene { padding-top: 144px; } }
 .c-mtopbar .c-fnmenu-panel.open { display: flex; left: -6px; top: calc(100% + 4px); padding-top: 8px; margin-top: 0; }
 .c-mtopbar .c-fnmenu-panel.open::before { inset: 0; }
 
-/* Hàng tab con trên điện thoại: chỉ icon, tab đang chọn là viên trắng có chữ. */
-.c-mtabs { position: relative; display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; }
+/* Hàng tab con trên điện thoại — "dải tab nở chip" (skill suong-som 7.3, demo
+   pins-17-11.html): rãnh lõm soft UI, tab thường chỉ icon trong ô 42×42, tab
+   đang chọn NỞ thành viên icon + chữ, nền là màu ô của mảng (`--chip`, đặt
+   theo `data-mod` mà `ModuleTabs` gắn lên nav). Chữ luôn `--ink` — màu ô sáng
+   ở theme sáng, sẫm ở theme tối, nên `--ink` đọc được ở cả hai.
+   Rãnh cuộn ngang khi nhiều tab (Tài chính 8 tab) — trang không tràn.
+   Không có dock đáy (gỡ 23/10/2026). */
+.c-mtabs {
+  --chip: var(--sheet);
+  position: relative; display: flex; align-items: center; gap: 2px;
+  overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth;
+  padding: 6px; border-radius: 22px;
+  background: var(--sheet); box-shadow: var(--neu-inset);
+}
+.c-mtabs[data-mod="finance"] { --chip: var(--honey-200); }
+.c-mtabs[data-mod="learning"] { --chip: var(--pista); }
+.c-mtabs[data-mod="habits"] { --chip: var(--euca); }
+.c-mtabs[data-mod="health"] { --chip: var(--peach); }
+.c-mtabs[data-mod="knowledge"] { --chip: var(--tile-knowledge); }
 .c-mtabs::-webkit-scrollbar { display: none; }
 .c-mtab {
-  flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  min-width: 40px; height: 34px; padding: 0 9px; border-radius: 12px;
-  color: var(--on-glass-2); text-decoration: none; font: 500 13px/1 var(--font-body); white-space: nowrap;
+  flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 0;
+  min-width: 42px; height: 42px; padding: 0 11px; border-radius: 999px;
+  color: var(--ink-2); text-decoration: none; font: 600 13px/1 var(--font-body); white-space: nowrap;
+  transition: background 240ms var(--ease), padding 240ms var(--ease), gap 240ms var(--ease), color var(--dur) var(--ease);
 }
-.c-mtab span { display: none; }
-.c-mtab:hover { color: var(--on-glass); text-decoration: none; }
-.c-mtab.active, .c-mtab.active:hover { background: rgba(255, 255, 255, .92); color: var(--night-950); padding: 0 12px; }
-.c-mtab.active span { display: inline; }
+/* Chữ co về 0 thay vì `display: none` để bề ngang NỞ ra được (240ms). */
+.c-mtab span { display: inline-block; max-width: 0; overflow: hidden; opacity: 0; transition: max-width 240ms var(--ease), opacity 240ms var(--ease); }
+.c-mtab:hover { color: var(--ink); text-decoration: none; }
+.c-mtab.active, .c-mtab.active:hover { background: var(--chip); color: var(--ink); padding: 0 14px; gap: 6px; box-shadow: var(--neu-soft); }
+.c-mtab.active span { max-width: 12em; opacity: 1; }
+/* Tắt chuyển động khi người dùng xin (khối reduced-motion cuối file cũng
+   chặn, viết thêm ở đây để luật 7.3 đọc được ngay chỗ nó). */
+@media (prefers-reduced-motion: reduce) {
+  .c-mtab, .c-mtab span { transition: none; }
+}
 .c-mtopbar::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
   background: var(--glass);

@@ -14,7 +14,8 @@ import ModuleTabs from "@/components/ModuleTabs";
  * Thanh trên cho điện thoại — cùng cấu trúc với `TopNav` của web:
  *
  *   hàng 1: [logo ▾] TÊN FUNCTION                [cài đặt · ngôn ngữ · sáng/tối]
- *   hàng 2: tab con của function đang mở (chỉ icon, tab chọn hiện chữ)
+ *   hàng 2: tab con của function đang mở — rãnh lõm, tab chọn nở thành viên
+ *           icon + chữ màu ô của mảng (skill suong-som 7.3, `ModuleTabs` rail)
  *
  * Chạm logo là xổ danh sách MỌI function — đây là lối đổi function DUY NHẤT
  * trên điện thoại (dock dưới đã gỡ 23/10/2026 vì chỉ lặp lại menu này).

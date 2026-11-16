@@ -12,8 +12,10 @@ import { isTabActive, moduleFor } from "@/lib/modules";
  * Dùng ở HAI nơi với cùng một danh sách, để web và điện thoại không lệch nhau:
  *   - `side` — nhóm tab trong `Sidebar` (từ 768px): icon + chữ, chữ ẩn khi
  *              sidebar thu gọn.
- *   - `rail` — hàng dưới của `MobileTopBar` (điện thoại): chỉ icon, tab đang
- *              chọn hiện thêm chữ (SKILL.md mục 5).
+ *   - `rail` — hàng dưới của `MobileTopBar` (điện thoại): rãnh lõm, tab
+ *              thường chỉ icon 42×42, tab đang chọn NỞ thành viên icon + chữ
+ *              nền màu ô của mảng (skill suong-som-design 7.3). Không có
+ *              dock đáy.
  *
  * Đọc `useSearchParams()` nên nơi dùng phải bọc `<Suspense>`.
  */
@@ -42,6 +44,9 @@ export default function ModuleTabs({ variant }: { variant: "side" | "rail" }) {
     <nav
       ref={navRef}
       className={variant === "side" ? "c-side-tabs" : "c-mtabs"}
+      // `data-mod`: tab đang chọn nở thành viên mang màu ô của mảng (skill 7.3)
+      // — màu đặt trong globals.css theo khoá function, không viết hex ở đây.
+      data-mod={current?.key}
       aria-label={current ? t(current.en, current.vi) : undefined}
     >
       {tabs.map((tab, i) => {
@@ -58,7 +63,7 @@ export default function ModuleTabs({ variant }: { variant: "side" | "rail" }) {
             title={label}
             className={`${variant === "side" ? "c-side-item" : "c-mtab"} ${active ? "active" : ""}`}
           >
-            <Icon size={18} strokeWidth={1.8} />
+            <Icon size={variant === "rail" ? 20 : 18} strokeWidth={1.8} aria-hidden />
             <span className={variant === "side" ? "c-side-text" : undefined}>{label}</span>
           </Link>
         );
