@@ -69,23 +69,37 @@ Tạo danh mục NGAY TRONG một modal đang mở (như "+ Tạo nhóm phụ m�
 `SubGroupSelect`) thì phải `await reloadCategories()` — nó tải lại và báo cho
 mọi hook đang mở; `invalidateCategories()` chỉ có tác dụng với modal mở sau.
 
-**Trước khi đổi giao diện** → đọc skill `1991-new-design/SKILL.md` (kèm demo
-`demo/index.html` và `crucible-v3.css`; demo và skill lệch nhau thì DEMO đúng)
-rồi `docs/huong-thiet-ke-2026.md`. Ngày 19/10/2026 chủ dự án chốt hướng **v3
-"Mật ong & Bạch đàn"** sau 3 vòng demo, thay HẲN hướng "Function · Kính" (kính
-trong 17% trên nền ambient, serif nghiêng, một màu đất nung) — đừng trả lại
-hướng cũ khi chưa hỏi. Đổi gì về giao diện: làm demo cho chủ dự án duyệt TRƯỚC.
+**Trước khi đổi giao diện** → đọc skill `.claude/skills/suong-som-design/SKILL.md`
+(design system **v4 "Sương sớm"**) và kế hoạch theo màn
+`docs/redesign-plan-suong-som.md`, rồi `docs/huong-thiet-ke-2026.md`. Cấu trúc
+và luật kỹ thuật vẫn là của v3 (`1991-new-design/SKILL.md`, demo
+`demo/index.html`, `crucible-v3.css` — đọc để hiểu hệ, demo và skill lệch nhau
+thì DEMO đúng). Lịch sử: 19/10/2026 chủ dự án chốt **v3 "Mật ong & Bạch đàn"**,
+thay HẲN hướng "Function · Kính"; **16–17/11/2026** chủ dự án chốt **v4 "Sương
+sớm"** — giữ hai tầng, soft UI, font Bricolage + Playfair, màu tốt/xấu; đổi
+bảng màu (slate · trắng sương · vàng nắng · đất đỏ rút từ ảnh làng quê) và
+phông cảnh (ảnh `public/scene/suong-som.jpg` thay gradient hoàng hôn); duyệt
+6 pattern ở skill mục 7 (demo `1991-new-design/demo/suong-som/pins-17-11.html`)
+và demo token `1991-new-design/demo/suong-som/tokens.html`. Đừng trả lại hướng
+cũ khi chưa hỏi. Đổi gì về giao diện: làm demo cho chủ dự án duyệt TRƯỚC.
+Token đổi giá trị chứ KHÔNG đổi tên (`--honey-*` còn là bí danh); kính, veil
+phông, chữ phụ trên kính và sidebar đã chỉnh 17/11 để đạt tương phản đo trên
+pixel thật của ảnh — đổi ảnh phông là phải đo lại (cách đo ghi trong skill).
 
-**Design system v3 có hai tầng.** Đầu trang là PHÔNG CẢNH hoàng hôn
-(`.c-scene`, `--sky`) với widget KÍNH chữ trắng; trang đặt tiêu đề + widget lên
+**Design system v3/v4 có hai tầng.** Đầu trang là PHÔNG CẢNH ảnh làng quê
+(`.c-scene`, `--sky` = veil + `--scene-photo` + gradient dự phòng, vẽ ở
+`.c-shell::before`) với tiêu đề chữ sáng có bóng (`--scene-ink`,
+`--scene-shadow`) và widget KÍNH sương sáng chữ tối (`--on-glass`); trang đặt tiêu đề + widget lên
 phông bằng `<SceneHero>` (`src/components/Scene.tsx` — portal vào khe của
 `MainLayoutWrapper`). Phần dưới là TẤM NỀN kem `.c-main` (`--sheet`) bo 36px
 trườn lên 80px che phông. Trên tấm nền là **soft UI**: thẻ cùng màu nền, nổi
 bằng bóng kép `--neu-raised`, không viền, không gradient; ô nhập, rãnh tab, rãnh
 cột biểu đồ LÕM (`--neu-inset`); thẻ lồng trong thẻ chỉ là dải tint phẳng. Ô
 pastel `.c-tile-{fin,health,learn,habit}`, mỗi hàng đúng MỘT ô tối
-(`.c-tile.dark`). Màu hành động duy nhất là nâu mật ong `--action` `#542a08`
-(đảo thành `#ecc494` ở theme tối): nút chính, tab đang chọn, switch, cột nhấn.
+(`.c-tile.dark`). Màu hành động duy nhất là slate `--action` `#253035`
+(đảo thành nắng `#D4B27A` ở theme tối): nút chính, tab đang chọn, switch, cột
+nhấn. Nắng `--color-accent` (sun-700 ở sáng — sun-500 không đủ 3:1 trên tấm
+nền) cho link, icon nét, vòng tiến độ.
 Kính CHỈ trên phông cảnh, sidebar, thanh điều hướng, tooltip/menu nổi — không bao
 giờ trên tấm nền kem. Thứ gì đè lên nội dung khác (modal, lịch chọn ngày, menu
 thả, tooltip, cột dính) dùng `--glass-solid` ĐẶC hẳn — globals.css tự bắt chúng

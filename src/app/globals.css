@@ -1,24 +1,27 @@
 @import "tailwindcss";
 
 /* ============================================================================
- * Crucible OS — design system v3 "Mật ong & Bạch đàn".
+ * Crucible OS — design system v4 "Sương sớm" trên cấu trúc v3.
  *
- * Chủ dự án chốt ngày 19/10/2026 sau 3 vòng demo (`1991-new-design/`:
- * SKILL.md, demo/index.html, crucible-v3.css). Thay HOÀN TOÀN hướng cũ
- * "Function · Kính" (kính trong 17% trên nền ambient, serif nghiêng, một màu
- * đất nung). Bản cũ vẫn nằm trong lịch sử git.
+ * v3 "Mật ong & Bạch đàn" chốt 19/10/2026 (`1991-new-design/`). Ngày
+ * 16–17/11/2026 chủ dự án đổi sang v4 "Sương sớm": GIỮ cấu trúc hai tầng,
+ * soft UI, font, màu tốt/xấu và mọi luật kỹ thuật; ĐỔI giá trị token màu và
+ * phông cảnh (ảnh làng quê `public/scene/suong-som.jpg` thay gradient hoàng
+ * hôn, kính sáng kiểu sương với chữ tối). Đặc tả token: skill
+ * `.claude/skills/suong-som-design/SKILL.md`; kế hoạch theo màn:
+ * `docs/redesign-plan-suong-som.md`. Tên token giữ nguyên để JSX không đổi.
  *
  * Năm ý chính, đừng phá:
  *
- *   1. Hai tầng. Đầu trang là PHÔNG CẢNH hoàng hôn (`.c-scene`, `--sky`) với
- *      widget KÍNH chữ trắng. Phần dưới là TẤM NỀN kem (`.c-sheet`) bo 36px
+ *   1. Hai tầng. Đầu trang là PHÔNG CẢNH ảnh (`.c-scene`, `--sky`) với widget
+ *      KÍNH sương sáng chữ tối. Phần dưới là TẤM NỀN kem (`.c-sheet`) bo 36px
  *      trườn lên che phông. Kính CHỈ nằm trên phông cảnh (và thanh điều hướng,
  *      dock, tooltip, menu nổi) — không bao giờ trên tấm nền kem.
  *   2. Soft UI trên tấm nền: thẻ CÙNG MÀU nền, nổi bằng bóng kép sáng–tối;
  *      ô nhập, rãnh tab, rãnh cột biểu đồ LÕM vào. Không viền, không gradient
  *      trên thẻ, không lồng thẻ nổi trong thẻ nổi.
- *   3. Ô pastel theo mảng (`.c-tile`): Tài chính mật ong, Sức khoẻ đào, Học tập
- *      pistachio, Thói quen bạch đàn. Mỗi hàng đúng MỘT ô tối (`--action`).
+ *   3. Ô pastel theo mảng (`.c-tile`): Tài chính nắng, Sức khoẻ đất, Học tập
+ *      sương rêu, Thói quen khaki. Mỗi hàng đúng MỘT ô tối (`--action`).
  *   4. Chữ hai giọng: tiêu đề lớn Bricolage Grotesque 800 hẹp VIẾT HOA; mọi
  *      chữ và số còn lại là Playfair. Không chữ nghiêng.
  *   5. Số liệu: tốt = xanh lá, xấu = đỏ, luôn kèm ▲/▼ hoặc +/−. Màu khác
@@ -60,39 +63,66 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Bảng màu.
+ * Bảng màu — v4 "Sương sớm" (skill suong-som-design mục 1–3).
  *
  * SÁNG LÀ MẶC ĐỊNH. Bảng tối chỉ áp khi người dùng bấm nút
  * (`[data-theme="dark"]`), không theo prefers-color-scheme.
  *
  * Tên biến `--color-*` giữ nguyên — khoảng 400 chỗ trong JSX viết
  * `bg-[var(--color-surface*)]`, đổi giá trị ở đây là cả app đổi vật liệu.
+ *
+ * Các giá trị ghi "chỉnh 17/11" lệch khỏi bảng gốc của skill để đạt tương
+ * phản (chữ ≥ 4.5:1, chữ ≥ 24px và icon ≥ 3:1), đo trên PIXEL THẬT của
+ * `public/scene/suong-som.jpg` ở 1280×800, 1440×900 và 375×812 — skill đã ghi
+ * lại cùng giá trị. Đổi ảnh phông là phải đo lại.
  * ------------------------------------------------------------------------ */
 :root {
   color-scheme: light;
 
-  /* Bảng gốc — Mật ong (pin 995788167601913029) + Bạch đàn (pin 697635798567923617) */
-  --honey-100: #fff9e2;
-  --honey-200: #ecc494;
-  --honey-300: #d6a34f;
-  --honey-500: #9f6a20;
-  --honey-700: #733e0e;
-  --honey-900: #542a08;
-  --euca: #cdd4b1;
-  --pista: #ebeccc;
-  --peach: #feecd0;
-  --ivory: #fff9e2;
-  --clay: #dca278;
+  /* Bảng gốc — rút từ ảnh làng quê sương sớm. */
+  --mist-50: #F4F1EA;
+  --mist-100: #E6E1D6;
+  --sage-300: #A9ABA0;
+  --sage-500: #7E8279;
+  --khaki-500: #7E7B68;
+  --moss-700: #595B52;
+  --slate-800: #313A3B;
+  --slate-900: #253035;
+  --night-950: #1A242B;
+  --sun-200: #EAD9B4;
+  --sun-300: #D4B27A;
+  --sun-500: #B08A48;
+  --sun-700: #7D5F27;
+  --earth-300: #D7B49B;
+  --earth-500: #B98260;
+  --earth-700: #8A5A3E;
 
-  --sheet: #f4efe6;
-  --neu-hi: #ffffff;
-  --neu-lo: #ddd2c2;
-  --ink: #2b1f14;
-  --ink-2: #5e4d3d;
-  --ink-3: #7a6857;   /* 4.65:1 trên sheet */
-  --line: rgba(84, 42, 8, .10);
-  --action: #542a08;
-  --on-action: #fff9e2;
+  /* Bí danh của bảng v3 — JSX không đọc `--honey-*` (soát 16/11/2026), chỉ
+     còn để CSS ngoài cây này không gãy. Đừng dùng mới.
+     Riêng `--honey-200` vẫn là màu ô Tài chính (tên giữ theo skill mục 2). */
+  --honey-100: var(--mist-50);
+  --honey-200: #EFE2C4;        /* ô Tài chính · nắng nhạt */
+  --honey-300: var(--sun-300);
+  --honey-500: var(--sun-500);
+  --honey-700: var(--sun-700);
+  --honey-900: var(--slate-900);
+  --ivory: var(--mist-50);
+  /* Ô theo mảng. */
+  --euca: #DCDCCD;             /* Thói quen · khaki nhạt */
+  --pista: #E3E5DC;            /* Học tập · sương rêu */
+  --peach: #F0DFD2;            /* Sức khoẻ · đất nhạt */
+  --tile-knowledge: var(--mist-100);
+  --clay: var(--earth-300);
+
+  --sheet: #F1EEE7;
+  --neu-hi: #FFFFFF;
+  --neu-lo: #D4CFC4;
+  --ink: #1A242B;
+  --ink-2: #43504E;
+  --ink-3: #5F6863;   /* 4.96:1 trên sheet */
+  --line: rgba(26, 36, 43, .10);
+  --action: #253035;
+  --on-action: #F4F1EA;
   --good: #2f6b34;
   --good-bg: rgba(47, 107, 52, .12);
   --bad: #b0281f;
@@ -103,165 +133,204 @@
   --neu-soft: 4px 4px 10px var(--neu-lo), -4px -4px 10px var(--neu-hi);
   --neu-inset: inset 3px 3px 7px var(--neu-lo), inset -3px -3px 7px var(--neu-hi);
 
-  /* Kính kiểu visionOS: ám nâu ấm, chữ trắng. CHỈ trên phông cảnh. */
-  --glass: rgba(92, 64, 48, .30);
-  --glass-2: rgba(120, 78, 58, .24);
-  --glass-edge: rgba(255, 255, 255, .22);
-  --on-glass: #fff;
-  --on-glass-2: rgba(255, 255, 255, .78);
-  /* Thanh điều hướng có lúc nằm trên tấm nền kem (khi cuộn) — ở đó kính 30%
-     làm chữ trắng chìm, nên đậm hơn. */
-  --glass-nav: rgba(58, 38, 26, .66);
+  /* Kính sương sáng, chữ tối. CHỈ trên phông cảnh.
+     chỉnh 17/11: skill gốc .50/.36/.62 — sau lũy tre tối của ảnh thật chữ
+     phụ chỉ đạt ~3:1, nên kính đục hơn và chữ phụ đậm hơn (.72 → .82). */
+  --glass: rgba(244, 241, 234, .70);
+  --glass-2: rgba(244, 241, 234, .66);
+  --glass-edge: rgba(255, 255, 255, .55);
+  --on-glass: #1A242B;
+  --on-glass-2: rgba(26, 36, 43, .82);
+  /* Thanh điều hướng có lúc nằm trên tấm nền kem (khi cuộn) — đậm hơn. */
+  --glass-nav: rgba(244, 241, 234, .78);
   --glass-blur: blur(24px) saturate(1.3);
-  --scene-ink: #3a2418;
-  --scene-ink-2: #5c3f2e;
-  --sky: linear-gradient(180deg, #cfc9d6 0%, #dccbcc 22%, #e9b9a7 42%, #d9a07e 56%, #a7745a 70%, #7b5141 84%, #5b3a2f 100%);
+  /* Viên delta trên kính (`.c-pill`): nền sương gần đặc để màu tốt/xấu đọc
+     được dù sau kính là lũy tre tối hay ruộng sáng. chỉnh 17/11. */
+  --pill-bg: rgba(247, 245, 240, .90);
+  /* Chữ trên phông ảnh: sáng + bóng mờ. */
+  --scene-ink: #F7F5EF;
+  /* chỉnh 17/11: skill gốc .82 — nhãn ngày 12px cần đặc hơn. */
+  --scene-ink-2: rgba(247, 245, 239, .90);
+  --scene-shadow: 0 2px 18px rgba(26, 36, 43, .45);
+  /* Quầng nắng sau widget phụ và lớp sương mềm ở mép tấm nền. */
+  --scene-sun: rgba(234, 217, 180, .30);
+  --scene-haze: rgba(241, 238, 231, .40);
+  --scene-haze-2: rgba(241, 238, 231, .30);
+  /* Ảnh phông do chủ dự án cung cấp (17/11/2026). Muốn tắt: `none` — gradient
+     dự phòng ở lớp cuối tự hiện. */
+  --scene-photo: url("/scene/suong-som.jpg");
+  /* Ba lớp: veil (để chữ đọc được, kéo ảnh xanh–vàng về tông slate) → ảnh →
+     gradient dự phòng. chỉnh 17/11: skill gốc .10 → .38 (nhạt ở đỉnh) — trên
+     ảnh thật tên function chỉ đạt 2.4:1, nên veil ĐẬM Ở ĐỈNH (vùng chữ), nhạt
+     ở giữa (vùng widget kính), đậm lại một chút ở đáy. */
+  --sky:
+    linear-gradient(180deg, rgba(26, 36, 43, .58) 0%, rgba(26, 36, 43, .54) 30%, rgba(26, 36, 43, .30) 50%, rgba(26, 36, 43, .40) 100%),
+    var(--scene-photo) center 40% / cover no-repeat,
+    linear-gradient(180deg, #D9D6CC 0%, #B9BCB1 35%, #7E8279 60%, #3F4A48 85%, #253035 100%);
 
   /* Ánh xạ token cũ → mới (SKILL.md mục 6). */
   --color-bg: var(--sheet);
   --color-surface: var(--sheet);
   /* Ô lồng trong thẻ, hàng đang rê chuột: một dải tint, không nổi thêm. */
-  --color-surface-2: rgba(84, 42, 8, .05);
-  --color-surface-3: rgba(84, 42, 8, .10);
-  --glass-solid: #faf6ee;   /* ĐẶC hẳn: lớp nổi đè lên chữ */
+  --color-surface-2: rgba(26, 36, 43, .05);
+  --color-surface-3: rgba(26, 36, 43, .10);
+  --glass-solid: #F7F5F0;   /* ĐẶC hẳn: lớp nổi đè lên chữ */
   --glass-pill: var(--action);
   --glass-pill-ink: var(--on-action);
-  --glass-inset: rgba(84, 42, 8, .05);
+  --glass-inset: rgba(26, 36, 43, .05);
 
   --color-text: var(--ink);
   --color-text-muted: var(--ink-2);
   --color-text-faint: var(--ink-3);
 
   --color-border: var(--line);
-  --color-border-strong: rgba(84, 42, 8, .18);
+  --color-border-strong: rgba(26, 36, 43, .18);
 
   --color-primary: var(--action);
-  --color-primary-hover: #6a3810;
-  --color-primary-active: #3f1f05;
+  --color-primary-hover: #34423F;
+  --color-primary-active: #1A242B;
   --color-on-primary: var(--on-action);
 
-  --color-accent: var(--honey-500);
-  --color-accent-tint: rgba(159, 106, 32, .12);
+  /* chỉnh 17/11: skill gốc `--sun-500` — 2.76:1 trên tấm nền, không đủ cho
+     chữ (16 chỗ `text-[var(--color-accent)]`) lẫn icon. `--sun-700` 5.4:1. */
+  --color-accent: var(--sun-700);
+  --color-accent-tint: rgba(125, 95, 39, .08);
+  /* Vòng tiến độ / icon nét đặt TRÊN KÍNH (P1b, P11): `--sun-700` chỉ đạt
+     2.4:1 khi sau kính là lũy tre tối; nắng sẫm này đạt ≥ 3.3:1. chỉnh 17/11. */
+  --accent-on-glass: #654B1D;
 
   /* Màu ngữ nghĩa: CHỈ hai màu mang nghĩa tốt/xấu. */
   --color-success: var(--good);
   --color-success-tint: var(--good-bg);
-  --color-warning: var(--honey-500);
-  --color-warning-tint: rgba(159, 106, 32, .12);
+  --color-warning: var(--sun-700);
+  /* chỉnh 17/11: tint .12 làm chữ cảnh báo trên nó còn 4.38:1 — hạ .08 (4.62:1). */
+  --color-warning-tint: rgba(125, 95, 39, .08);
   --color-error: var(--bad);
   --color-error-tint: var(--bad-bg);
   --color-info: var(--ink-3);
-  --color-info-tint: rgba(122, 104, 87, .1);
+  --color-info-tint: rgba(95, 104, 99, .1);
 
-  --color-focus: var(--honey-500);
+  --color-focus: #3F4A48;
 
-  --shadow-float: 0 30px 60px -20px rgba(60, 30, 10, .35);
+  --shadow-float: 0 30px 60px -20px rgba(26, 36, 43, .35);
   --shadow-input-glow: rgba(0, 0, 0, .12) 0 0 20px 0;
-  --focus-ring: 0 0 0 3px rgba(159, 106, 32, .35);
+  --focus-ring: 0 0 0 3px rgba(37, 48, 53, .35);
 
   --card-edge: 0 0 0 0 transparent;
   --card-sheen: none;
   --shadow-card: var(--neu-raised);
   --shadow-card-hover: var(--neu-raised);
-  --shadow-nav: inset 0 1px 0 var(--glass-edge), 0 20px 40px -24px rgba(40, 20, 10, .5);
+  --shadow-nav: inset 0 1px 0 var(--glass-edge), 0 20px 40px -24px rgba(26, 36, 43, .5);
 
-  --chart-1: #542a08;
-  --chart-2: #9f6a20;
-  --chart-3: #d6a34f;
-  --chart-4: #ecc494;
-  --chart-5: #cdd4b1;
-  --chart-6: #ebeccc;
+  --chart-1: #253035;
+  --chart-2: #595B52;
+  --chart-3: #7E7B68;
+  --chart-4: #B08A48;
+  --chart-5: #A9ABA0;
+  --chart-6: #D7B49B;
 
   /* Trực quan hoá dữ liệu — xem docs/bieu-do.md. XÁM là mặc định, MỘT điểm
      nhấn tô `--action`. `--viz-cat-*` giữ bộ đã qua kiểm mù màu 08/10/2026 —
-     chưa kiểm lại trên nền v3 thì đừng đổi. */
-  --viz-accent: #542a08;
-  --viz-muted: #cbb9a2;
-  --viz-ghost: rgba(84, 42, 8, .12);
-  --viz-other: #d9ccbb;
-  --viz-ink: #2b1f14;
-  --viz-grid: rgba(84, 42, 8, .1);
+     chưa kiểm lại thì đừng đổi. `--viz-muted` thấp (1.55:1) là CỐ Ý: cột
+     thường luôn có nhãn số đi kèm. */
+  --viz-accent: #253035;
+  --viz-muted: #C3C2B6;
+  --viz-ghost: rgba(37, 48, 53, .10);
+  --viz-other: #D6D4CA;
+  --viz-ink: #1A242B;
+  --viz-grid: rgba(37, 48, 53, .10);
   --viz-cat-1: #b05a36;
   --viz-cat-2: #0e7aa0;
   --viz-cat-3: #a87812;
   --viz-cat-4: #8c3f8e;
 
-  --heat-rgb: 159, 106, 32;
-  --heat-empty: rgba(84, 42, 8, .06);
-  --heat-fg-strong: #fff9e2;
+  --heat-rgb: 63, 74, 72;
+  --heat-empty: rgba(37, 48, 53, .06);
+  --heat-fg-strong: #F4F1EA;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --sheet: #1d1712;
-  /* Chênh sáng–tối quanh #1d1712 nới thêm một nấc (trước là #2a221b/#120d0a):
-     ở mức cũ bóng kép gần như không thấy, các thẻ dính vào nhau. */
-  --neu-hi: #30271f;
-  --neu-lo: #0d0906;
-  --ink: #f6eee2;
-  --ink-2: #cbbba8;
-  --ink-3: #a8977f;
-  --line: rgba(255, 236, 210, .08);
-  --action: #ecc494;
-  --on-action: #2b1f14;
+  --sheet: #161D21;
+  --neu-hi: #232C31;
+  --neu-lo: #0B0F11;
+  --ink: #EEF0EA;
+  --ink-2: #B9C0BB;
+  --ink-3: #8F9893;
+  --line: rgba(238, 240, 234, .08);
+  --action: #D4B27A;
+  --on-action: #1A242B;
   --good: #86cf8f;
   --good-bg: rgba(134, 207, 143, .14);
   --bad: #ff8a7d;
   --bad-bg: rgba(255, 138, 125, .14);
-  --peach: #3a2a20;
-  --pista: #2c3022;
-  --euca: #33382a;
-  --honey-200: #4a3620;
-  --clay: #43291e;
+  --honey-200: #3A3324;
+  --peach: #3A2C25;
+  --pista: #2A302D;
+  --euca: #2F3029;
+  --tile-knowledge: var(--neu-hi);
+  --clay: #3A2C25;
 
-  --glass: rgba(40, 28, 22, .42);
-  --glass-2: rgba(60, 40, 30, .36);
-  --glass-nav: rgba(30, 22, 18, .66);
-  --scene-ink: #fff4e6;
-  --scene-ink-2: rgba(255, 244, 230, .75);
-  --sky: linear-gradient(180deg, #2c2836 0%, #3b2e37 25%, #5a3a37 45%, #6b4433 58%, #4a3026 74%, #2b1c16 100%);
+  --glass: rgba(26, 36, 43, .48);
+  --glass-2: rgba(26, 36, 43, .38);
+  --glass-nav: rgba(22, 29, 33, .70);
+  --glass-edge: rgba(255, 255, 255, .22);
+  --on-glass: #F4F1EA;
+  --on-glass-2: rgba(244, 241, 234, .75);
+  --pill-bg: rgba(22, 29, 33, .80);
+  --scene-ink: #F7F5EF;
+  --scene-ink-2: rgba(247, 245, 239, .90);
+  --scene-sun: rgba(212, 178, 122, .12);
+  --scene-haze: rgba(14, 19, 22, .55);
+  --scene-haze-2: rgba(14, 19, 22, .45);
+  --sky:
+    linear-gradient(180deg, rgba(14, 19, 22, .55) 0%, rgba(14, 19, 22, .78) 100%),
+    var(--scene-photo) center 40% / cover no-repeat,
+    linear-gradient(180deg, #2A3236 0%, #1E262A 60%, #12181B 100%);
 
-  --color-surface-2: rgba(255, 236, 210, .05);
-  --color-surface-3: rgba(255, 236, 210, .10);
-  --glass-solid: #261e18;
-  --glass-inset: rgba(255, 236, 210, .05);
-  --color-border-strong: rgba(255, 236, 210, .16);
+  --color-surface-2: rgba(238, 240, 234, .05);
+  --color-surface-3: rgba(238, 240, 234, .10);
+  --glass-solid: #1E262A;
+  --glass-inset: rgba(238, 240, 234, .05);
+  --color-border-strong: rgba(238, 240, 234, .16);
 
-  --color-primary-hover: #f3d3a9;
-  --color-primary-active: #d6a34f;
+  --color-primary-hover: #DEC291;
+  --color-primary-active: var(--sun-500);
 
-  --color-accent: #ecc494;
-  --color-accent-tint: rgba(236, 196, 148, .14);
-  --color-warning: #d6a34f;
-  --color-warning-tint: rgba(214, 163, 79, .14);
-  --color-info-tint: rgba(168, 151, 127, .14);
-  --color-focus: #ecc494;
+  --color-accent: var(--sun-300);
+  --color-accent-tint: rgba(212, 178, 122, .14);
+  --accent-on-glass: var(--sun-300);
+  --color-warning: var(--sun-300);
+  --color-warning-tint: rgba(212, 178, 122, .14);
+  --color-info-tint: rgba(143, 152, 147, .14);
+  --color-focus: var(--sun-300);
 
   --shadow-float: 0 30px 60px -20px rgba(0, 0, 0, .7);
-  --focus-ring: 0 0 0 3px rgba(236, 196, 148, .3);
+  --shadow-nav: inset 0 1px 0 var(--glass-edge), 0 20px 40px -24px rgba(0, 0, 0, .6);
+  --focus-ring: 0 0 0 3px rgba(212, 178, 122, .45);
 
-  --chart-1: #ecc494;
-  --chart-2: #d6a34f;
-  --chart-3: #9f6a20;
-  --chart-4: #6b5236;
-  --chart-5: #3a3f2d;
-  --chart-6: #2c3022;
+  --chart-1: #D4B27A;
+  --chart-2: #A9ABA0;
+  --chart-3: #B08A48;
+  --chart-4: #7E8279;
+  --chart-5: #595B52;
+  --chart-6: #3F4A48;
 
-  --viz-accent: #ecc494;
-  --viz-muted: #5a4a3a;
-  --viz-ghost: rgba(255, 236, 210, .1);
-  --viz-other: #4a3e33;
-  --viz-ink: #f6eee2;
-  --viz-grid: rgba(255, 236, 210, .08);
+  --viz-accent: #D4B27A;
+  --viz-muted: #4A5450;
+  --viz-ghost: rgba(238, 240, 234, .10);
+  --viz-other: #3A4340;
+  --viz-ink: #EEF0EA;
+  --viz-grid: rgba(238, 240, 234, .08);
   --viz-cat-1: #c96c43;
   --viz-cat-2: #2f93bd;
   --viz-cat-3: #b98a1e;
   --viz-cat-4: #a865a5;
 
-  --heat-rgb: 236, 196, 148;
-  --heat-empty: rgba(255, 236, 210, .05);
-  --heat-fg-strong: #2b1f14;
+  --heat-rgb: 212, 178, 122;
+  --heat-empty: rgba(238, 240, 234, .05);
+  --heat-fg-strong: #1A242B;
 }
 
 /* ---------------------------------------------------------------------------
@@ -330,7 +399,7 @@
 
 /* ---------------------------------------------------------------------------
  * Nền. Không còn nền ambient: dưới cùng là màu kem phẳng của tấm nền, phông
- * cảnh hoàng hôn chỉ nằm ở đầu trang (`.c-scene`, xem khối vỏ giao diện).
+ * cảnh (ảnh `--scene-photo`) chỉ lộ ra ở đầu trang (`.c-scene`, xem khối vỏ giao diện).
  *
  * Thẻ KHÔNG dùng backdrop-filter, và kính cũng không gắn thẳng lên phần tử:
  * backdrop-filter (giống transform) biến phần tử thành KHỐI CHỨA của
@@ -370,7 +439,7 @@ html { background: var(--sheet); }
   a { color: var(--color-accent); text-decoration: none; }
   a:hover { color: var(--color-primary-hover); text-decoration: underline; }
   :focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 6px; }
-  ::selection { background: rgba(214, 163, 79, .35); }
+  ::selection { background: rgba(212, 178, 122, .40); }
 
   /* iOS Safari tự phóng to CẢ TRANG khi chạm vào ô nhập có cỡ chữ dưới 16px.
      Phóng rồi thì mọi thứ trông như bị cắt — kể cả thanh điều hướng
@@ -469,7 +538,7 @@ html { background: var(--sheet); }
 }
 .c-btn:hover { text-decoration: none; }
 .c-btn:disabled, .c-btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
-.c-btn-primary { background: var(--color-primary); color: var(--color-on-primary); box-shadow: 0 10px 20px -12px rgba(84, 42, 8, .8); }
+.c-btn-primary { background: var(--color-primary); color: var(--color-on-primary); box-shadow: 0 10px 20px -12px rgba(26, 36, 43, .55); }
 .c-btn-primary:hover { background: var(--color-primary-hover); color: var(--color-on-primary); }
 .c-btn-primary:active { background: var(--color-primary-active); }
 
@@ -580,7 +649,7 @@ html { background: var(--sheet); }
 /* Rãnh tab LÕM; tab đang chọn là viên `--action`. */
 .c-seg { display: inline-flex; gap: 4px; background: var(--sheet); border: 0; border-radius: 18px; padding: 5px; box-shadow: var(--neu-inset); }
 .c-seg-opt { display: inline-flex; align-items: center; gap: 7px; font: 500 15px/1 var(--font-body); color: var(--color-text-muted); padding: 10px 16px; border-radius: 14px; border: none; background: none; cursor: pointer; white-space: nowrap; transition: background var(--dur) var(--ease), color var(--dur) var(--ease); }
-.c-seg-opt.active { background: var(--action); color: var(--on-action); box-shadow: 0 6px 14px -8px rgba(84, 42, 8, .7); }
+.c-seg-opt.active { background: var(--action); color: var(--on-action); box-shadow: 0 6px 14px -8px rgba(26, 36, 43, .5); }
 
 /* Alerts */
 .c-alert {
@@ -608,9 +677,9 @@ html { background: var(--sheet); }
 .c-table tr:hover td { background: var(--color-surface-2); }
 .c-table .num { text-align: right; font-variant-numeric: lining-nums tabular-nums; }
 
-/* Progress — rãnh lõm, thanh mật ong. */
+/* Progress — rãnh lõm, thanh nắng (`--color-accent`: sun-700 ở sáng, sun-300 ở tối — đủ 3:1 với rãnh). */
 .c-progress { height: 10px; border-radius: var(--radius-full); background: var(--sheet); box-shadow: var(--neu-inset); overflow: hidden; }
-.c-progress > span { display: block; height: 100%; border-radius: var(--radius-full); background: var(--honey-300); transition: width .4s var(--ease); }
+.c-progress > span { display: block; height: 100%; border-radius: var(--radius-full); background: var(--color-accent); transition: width .4s var(--ease); }
 .c-progress.thick { height: 14px; }
 
 /* Stat */
@@ -627,13 +696,15 @@ html { background: var(--sheet); }
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
   background: var(--glass);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  box-shadow: inset 0 1px 0 var(--glass-edge), 0 20px 40px -24px rgba(40, 20, 10, .5);
+  box-shadow: inset 0 0 0 1px var(--glass-edge), 0 20px 40px -24px rgba(26, 36, 43, .5);
 }
 .c-glass.alt::before { background: var(--glass-2); }
-/* Viên delta trên kính: nền trắng/xanh/đỏ mờ, chữ trắng. */
-.c-pill { display: inline-flex; align-items: center; gap: 4px; font: 650 12.5px/1 var(--font-body); padding: 4px 9px; border-radius: 999px; background: rgba(255, 255, 255, .2); color: #fff; white-space: nowrap; }
-.c-pill.good { background: rgba(170, 230, 170, .28); }
-.c-pill.bad { background: rgba(255, 150, 140, .3); }
+/* Viên delta trên kính — kiểu RIÊNG, không dùng `.c-delta` của tấm nền: tint
+   12% của `--good-bg` trên kính chỉ đạt ~1.7:1 khi sau kính là lũy tre tối.
+   Nền `--pill-bg` gần đặc, tint tốt/xấu chồng lên, chữ `--good`/`--bad`. */
+.c-pill { display: inline-flex; align-items: center; gap: 4px; font: 650 12.5px/1 var(--font-body); padding: 4px 9px; border-radius: 999px; background: var(--pill-bg); color: var(--on-glass); white-space: nowrap; }
+.c-pill.good { color: var(--good); background: linear-gradient(var(--good-bg), var(--good-bg)), var(--pill-bg); }
+.c-pill.bad { color: var(--bad); background: linear-gradient(var(--bad-bg), var(--bad-bg)), var(--pill-bg); }
 
 /* Ô pastel theo mảng. Mỗi hàng đúng MỘT ô tối. */
 .c-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
@@ -643,6 +714,7 @@ html { background: var(--sheet); }
 .c-tile-health { background: var(--peach); }
 .c-tile-learn { background: var(--pista); }
 .c-tile-habit { background: var(--euca); }
+.c-tile-know { background: var(--tile-knowledge); }
 .c-tile.dark { background: var(--action); color: var(--on-action); }
 @media (max-width: 560px) { .c-tile { min-height: 132px; } }
 
@@ -687,12 +759,14 @@ html { background: var(--sheet); }
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
   background: var(--side-glass);
   -webkit-backdrop-filter: blur(28px) saturate(1.4); backdrop-filter: blur(28px) saturate(1.4);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 0 0 1px rgba(255, 255, 255, .28), 0 24px 48px -28px rgba(60, 30, 10, .55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 0 0 1px rgba(255, 255, 255, .28), 0 24px 48px -28px rgba(26, 36, 43, .55);
 }
 .c-side:hover, .c-side:focus-within, .c-side.pinned { width: var(--side-w-open); }
-.c-side:hover:not(.pinned), .c-side:focus-within:not(.pinned) { box-shadow: 0 30px 60px -20px rgba(40, 20, 10, .45); }
-:root { --side-glass: rgba(255, 250, 244, .62); }
-[data-theme="dark"] { --side-glass: rgba(34, 26, 21, .66); }
+.c-side:hover:not(.pinned), .c-side:focus-within:not(.pinned) { box-shadow: 0 30px 60px -20px rgba(26, 36, 43, .45); }
+/* chỉnh 17/11: skill/v3 .62 — sidebar nằm trên lũy tre tối bên trái ảnh, chữ
+   `--ink-2` cần kính .80 mới đạt 4.5:1. */
+:root { --side-glass: rgba(247, 245, 240, .80); }
+[data-theme="dark"] { --side-glass: rgba(22, 29, 33, .72); }
 
 /* Chữ của mọi mục: ẩn khi thu gọn, hiện khi bung. */
 .c-side-text { white-space: nowrap; opacity: 0; transition: opacity .16s var(--ease); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -701,17 +775,18 @@ html { background: var(--sheet); }
 .c-side-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 2px 0 8px; }
 .c-side-brand { display: flex; align-items: center; gap: 12px; min-width: 0; padding-left: 4px; color: var(--ink); text-decoration: none; }
 .c-side-brand:hover { color: var(--ink); text-decoration: none; }
-.c-side-brand .c-logo-mark { width: 40px; height: 40px; border-radius: 13px; flex: none; box-shadow: 0 6px 14px -8px rgba(60, 30, 10, .6); }
+.c-side-brand .c-logo-mark { width: 40px; height: 40px; border-radius: 13px; flex: none; box-shadow: 0 6px 14px -8px rgba(26, 36, 43, .6); }
 .c-side-brand-text { display: flex; flex-direction: column; line-height: 1.15; }
 .c-side-brand-text b { font: 700 15px/1.2 var(--font-display); font-stretch: 85%; text-transform: uppercase; letter-spacing: .02em; }
-.c-side-brand-text small { font: 450 12px/1.3 var(--font-body); color: var(--ink-3); }
+/* Chữ nhỏ trên kính sidebar dùng `--ink-2`: `--ink-3` chỉ đạt 3.5:1 sau lũy tre tối. */
+.c-side-brand-text small { font: 450 12px/1.3 var(--font-body); color: var(--ink-2); }
 .c-side-pin {
   flex: none; width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer;
   display: grid; place-content: center; color: var(--ink-2);
-  background: rgba(255, 255, 255, .7); box-shadow: 0 4px 10px -6px rgba(60, 30, 10, .6);
+  background: rgba(255, 255, 255, .7); box-shadow: 0 4px 10px -6px rgba(26, 36, 43, .6);
   opacity: 0; transition: opacity .16s var(--ease);
 }
-[data-theme="dark"] .c-side-pin { background: rgba(255, 244, 230, .14); }
+[data-theme="dark"] .c-side-pin { background: rgba(244, 241, 234, .14); }
 .c-side:hover .c-side-pin, .c-side:focus-within .c-side-pin, .c-side.pinned .c-side-pin { opacity: 1; }
 
 .c-side-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; display: flex; flex-direction: column; gap: 2px; }
@@ -720,7 +795,7 @@ html { background: var(--sheet); }
 .c-side-foot { display: flex; flex-direction: column; gap: 2px; padding-top: 6px; border-top: 1px solid var(--line); }
 
 /* Nhãn nhóm: chữ VIẾT HOA giãn rộng khi bung; thu gọn thì chỉ còn khoảng cách. */
-.c-side-label { height: 26px; display: flex; align-items: flex-end; padding: 0 0 4px 15px; font: 600 10.5px/1 var(--font-display); letter-spacing: .2em; text-transform: uppercase; color: var(--ink-3); }
+.c-side-label { height: 26px; display: flex; align-items: flex-end; padding: 0 0 4px 15px; font: 600 10.5px/1 var(--font-display); letter-spacing: .2em; text-transform: uppercase; color: var(--ink-2); }
 
 .c-side-item {
   position: relative; flex: none;
@@ -732,16 +807,16 @@ html { background: var(--sheet); }
 }
 .c-side-item svg { flex: none; }
 .c-side-item:hover { background: rgba(255, 255, 255, .45); color: var(--ink); text-decoration: none; }
-[data-theme="dark"] .c-side-item:hover { background: rgba(255, 244, 230, .08); }
-/* Đang chọn: viên trắng 92% chữ nâu — như mẫu. */
-.c-side-item.active, .c-side-item.active:hover { background: rgba(255, 255, 255, .92); color: #2b1f14; box-shadow: 0 6px 16px -10px rgba(60, 30, 10, .55); }
-.c-side-meta { margin-left: auto; font: 600 11px/1 var(--font-display); letter-spacing: .12em; color: var(--ink-3); }
+[data-theme="dark"] .c-side-item:hover { background: rgba(244, 241, 234, .08); }
+/* Đang chọn: viên trắng 92% chữ mực — như mẫu. */
+.c-side-item.active, .c-side-item.active:hover { background: rgba(255, 255, 255, .92); color: var(--night-950); box-shadow: 0 6px 16px -10px rgba(26, 36, 43, .55); }
+.c-side-meta { margin-left: auto; font: 600 11px/1 var(--font-display); letter-spacing: .12em; color: var(--ink-2); }
 
 /* Số đếm: viên tròn đất nung bên phải khi bung; thu gọn thì thành chấm số nhỏ góc icon. */
 .c-side-badge {
   margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
   display: grid; place-content: center;
-  font: 650 11px/1 var(--font-body); color: #fff9e2; background: #b0281f;
+  font: 650 11px/1 var(--font-body); color: var(--mist-50); background: #b0281f;
   transition: all .2s var(--ease);
 }
 .c-side:not(:hover):not(:focus-within):not(.pinned) .c-side-badge {
@@ -754,13 +829,13 @@ html { background: var(--sheet); }
 .c-side-avatar {
   flex: none; width: 40px; height: 40px; border-radius: 50%;
   display: grid; place-content: center;
-  font: 700 15px/1 var(--font-display); color: #2b1f14;
-  background: radial-gradient(circle at 35% 30%, #ffe9c9, #e7b78a 70%);
-  box-shadow: 0 6px 14px -8px rgba(60, 30, 10, .6);
+  font: 700 15px/1 var(--font-display); color: var(--night-950);
+  background: radial-gradient(circle at 35% 30%, var(--mist-50), var(--sun-300) 70%);
+  box-shadow: 0 6px 14px -8px rgba(26, 36, 43, .6);
 }
 .c-side-user-text { display: flex; flex-direction: column; line-height: 1.2; }
 .c-side-user-text b { font: 600 14px/1.25 var(--font-body); color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
-.c-side-user-text small { font: 450 12px/1.3 var(--font-body); color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; }
+.c-side-user-text small { font: 450 12px/1.3 var(--font-body); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
 
 /* Nội dung nhường chỗ cho sidebar: luôn chừa cột thu gọn; ghim mở thì chừa
    cả panel. Hover KHÔNG đẩy nội dung — panel bung ra đè lên. */
@@ -781,7 +856,7 @@ html { background: var(--sheet); }
   content: ""; position: absolute; inset: 10px 0 0; z-index: -1; border-radius: inherit;
   background: var(--glass-nav);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  box-shadow: inset 0 1px 0 var(--glass-edge), 0 24px 48px -20px rgba(40, 20, 10, .6);
+  box-shadow: inset 0 1px 0 var(--glass-edge), 0 24px 48px -20px rgba(26, 36, 43, .6);
 }
 .c-fnmenu-item {
   display: flex; align-items: center; gap: 12px;
@@ -790,14 +865,14 @@ html { background: var(--sheet); }
 }
 .c-fnmenu-item svg { opacity: .85; }
 .c-fnmenu-item:hover { background: rgba(255, 255, 255, .14); color: var(--on-glass); text-decoration: none; }
-.c-fnmenu-item.active, .c-fnmenu-item.active:hover { background: rgba(255, 255, 255, .92); color: #2b1f14; }
+.c-fnmenu-item.active, .c-fnmenu-item.active:hover { background: rgba(255, 255, 255, .92); color: var(--night-950); }
 
 /* Logo: ô vuông trắng, chữ grotesk. */
 .c-logo-mark {
   display: inline-grid; place-content: center; flex: none;
   border-radius: 12px;
   background: rgba(255, 255, 255, .9);
-  color: var(--honey-900); font: 800 15px/1 var(--font-display);
+  color: var(--slate-900); font: 800 15px/1 var(--font-display);
 }
 .c-logo-word { font: 700 15px/1 var(--font-display); font-stretch: 85%; text-transform: uppercase; letter-spacing: .02em; color: var(--on-glass); }
 
@@ -831,7 +906,7 @@ html { background: var(--sheet); }
 }
 .c-mtab span { display: none; }
 .c-mtab:hover { color: var(--on-glass); text-decoration: none; }
-.c-mtab.active, .c-mtab.active:hover { background: rgba(255, 255, 255, .92); color: #2b1f14; padding: 0 12px; }
+.c-mtab.active, .c-mtab.active:hover { background: rgba(255, 255, 255, .92); color: var(--night-950); padding: 0 12px; }
 .c-mtab.active span { display: inline; }
 .c-mtopbar::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
@@ -876,9 +951,11 @@ html { background: var(--sheet); }
   color: var(--scene-ink);
 }
 .c-scene::before, .c-scene::after { content: ""; position: absolute; z-index: -1; filter: blur(30px); border-radius: 50%; pointer-events: none; }
-.c-scene::before { left: -10%; right: 30%; bottom: -60px; height: 220px; background: rgba(90, 58, 44, .75); }
-.c-scene::after { left: 35%; right: -15%; bottom: -40px; height: 180px; background: rgba(120, 80, 60, .6); }
-.c-scene-sun { position: absolute; z-index: -1; width: 220px; height: 220px; border-radius: 50%; right: 8%; top: 150px; pointer-events: none; background: radial-gradient(circle, rgba(255, 236, 214, .9), rgba(255, 214, 190, 0) 70%); }
+/* Hai quầng mờ ở đáy phông: v3 là dải nâu đậm; v4 là lớp SƯƠNG mềm cùng tông
+   tấm nền (`--scene-haze*`) để chỗ nối phông–tấm nền không thành vạch cứng. */
+.c-scene::before { left: -10%; right: 30%; bottom: -60px; height: 220px; background: var(--scene-haze); }
+.c-scene::after { left: 35%; right: -15%; bottom: -40px; height: 180px; background: var(--scene-haze-2); }
+.c-scene-sun { position: absolute; z-index: -1; width: 220px; height: 220px; border-radius: 50%; right: 8%; top: 150px; pointer-events: none; background: radial-gradient(circle, var(--scene-sun), transparent 70%); }
 .c-scene-inner { max-width: var(--page-max); margin: 0 auto; }
 /* Trang không đặt gì vào phông cảnh thì phông chỉ còn một dải mỏng sau thanh. */
 .c-scene:has(.c-scene-inner:empty) { padding-bottom: 96px; }
@@ -959,8 +1036,8 @@ html { background: var(--sheet); }
 /* Lớp phủ sau modal: JSX viết `bg-black/50` — đen lạnh trên nền kem ấm. Đổi
    sang nâu mực của hệ. Chỉ đổi MÀU; `backdrop-blur-sm` trên lớp phủ giữ
    nguyên (lớp phủ đã là `fixed inset-0`, không co con nào lại). */
-.fixed.inset-0[class*="bg-black/50"] { background-color: rgba(43, 31, 20, .5); }
-[data-theme="dark"] .fixed.inset-0[class*="bg-black/50"] { background-color: rgba(8, 5, 3, .62); }
+.fixed.inset-0[class*="bg-black/50"] { background-color: rgba(26, 36, 43, .5); }
+[data-theme="dark"] .fixed.inset-0[class*="bg-black/50"] { background-color: rgba(6, 9, 11, .62); }
 
 /* Những thứ nổi ĐÈ lên nội dung khác — lịch chọn ngày, chọn tháng, menu thả
    của ô gợi ý, tấm modal, mặt thẻ lật, cột dính khi cuộn ngang bảng. Lớp nào
@@ -1000,7 +1077,7 @@ html { background: var(--sheet); }
 .c-main .rounded-full.p-1[class*="border"] > [class*="bg-[var(--color-primary)]"] {
   background: var(--action);
   color: var(--on-action);
-  box-shadow: 0 6px 14px -8px rgba(84, 42, 8, .7);
+  box-shadow: 0 6px 14px -8px rgba(26, 36, 43, .5);
 }
 
 /* Khung icon nhỏ trong thẻ -> ô bo 14px. */
@@ -1218,7 +1295,8 @@ html { background: var(--sheet); }
  * (kiểu visionOS weather). Dùng trong `<SceneHero>`.
  * ------------------------------------------------------------------------ */
 .c-hero { display: grid; grid-template-columns: 1.25fr 1fr; gap: 14px; }
-.c-hello { grid-column: 1 / -1; color: var(--scene-ink); margin-bottom: 6px; }
+/* Chữ sáng trên ẢNH: bóng mờ `--scene-shadow` đỡ những đốm sáng lọt qua veil. */
+.c-hello { grid-column: 1 / -1; color: var(--scene-ink); text-shadow: var(--scene-shadow); margin-bottom: 6px; }
 .c-hello .c-display { max-width: 16ch; margin-bottom: 22px; }
 .c-hello .c-kicker { color: var(--scene-ink-2); margin-bottom: 10px; }
 /* Câu kết luận: cùng giọng với tên function nhưng đúng NỬA cỡ. */
@@ -1231,7 +1309,7 @@ html { background: var(--sheet); }
 .c-w-main { padding: 24px 26px; display: grid; grid-template-columns: 1fr auto; gap: 18px 24px; min-height: 260px; }
 .c-w-t { font: 600 19px/1.3 var(--font-body); }
 .c-w-s { font: 450 14px/1.4 var(--font-body); color: var(--on-glass-2); margin-top: 2px; }
-.c-coin { width: 64px; height: 64px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe9c9, #e7b78a 70%); opacity: .9; justify-self: end; }
+.c-coin { width: 64px; height: 64px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--mist-50), var(--sun-300) 70%); opacity: .9; justify-self: end; }
 .c-minis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 28px; align-self: end; margin: 0; }
 .c-minis dt { font: 500 13px/1.3 var(--font-body); color: var(--on-glass-2); }
 .c-minis dd { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font: 600 16px/1.3 var(--font-body); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
