@@ -682,6 +682,101 @@ html { background: var(--sheet); }
 .c-progress > span { display: block; height: 100%; border-radius: var(--radius-full); background: var(--color-accent); transition: width .4s var(--ease); }
 .c-progress.thick { height: 14px; }
 
+/* ---------------------------------------------------------------------------
+ * P11/P12 (skill 7.4–7.6, demo pins-17-11.html, 17/11/2026).
+ * ------------------------------------------------------------------------ */
+:root {
+  /* Rãnh nét đứt của đồng hồ điểm khi chưa đủ dữ liệu (đậm hơn `--viz-ghost`). */
+  --gauge-dash: rgba(37, 48, 53, .22);
+  /* Toggle kính lỏng 7.5 — giá trị bản chỉnh tương phản 17/11: viền rãnh
+     ≥ 3.34:1 so với kính quanh nó. */
+  --switch-track: rgba(26, 36, 43, .18);
+  --switch-edge: rgba(26, 36, 43, .62);
+  --switch-icon: var(--sun-700);
+  /* Mặt đồng hồ bấm giờ 7.6 — nằm trên KÍNH ở phông cảnh. */
+  --dial-track: rgba(26, 36, 43, .14);
+  --dial-core: rgba(37, 48, 53, .82);
+  --dial-tick: rgba(244, 241, 234, .55);
+  --dial-ink: var(--mist-50);
+  --dial-ink-2: rgba(244, 241, 234, .8);
+}
+[data-theme="dark"] {
+  --gauge-dash: rgba(238, 240, 234, .22);
+  --switch-track: rgba(244, 241, 234, .16);
+  --switch-edge: rgba(244, 241, 234, .45);
+  --switch-icon: var(--slate-900);
+  --dial-track: rgba(244, 241, 234, .16);
+}
+
+/* Đồng hồ điểm (ScoreGauge) — trên tấm nền, trong thẻ soft UI. */
+.c-gauge { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; container-type: inline-size; }
+.c-gauge-top { align-self: stretch; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; min-width: 0; }
+.c-gauge-label { min-width: 0; text-align: left; color: var(--color-text-muted); }
+/* Vòng + số trong cùng một khung: số neo đáy lòng nửa vòng, cỡ chữ theo bề
+   ngang thẻ (thẻ chỉ ~126px ở lưới 2 cột của 375px). */
+.c-gauge-dial { position: relative; width: 100%; max-width: 210px; }
+.c-gauge-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.c-gauge-track { stroke: var(--viz-ghost); }
+.c-gauge-track.dashed { stroke: var(--gauge-dash); }
+.c-gauge-fill { stroke: var(--viz-accent); }
+.c-gauge-tick { stroke: var(--bad); }
+/* Số đè lên lòng nửa vòng (như demo: kéo lên ~58px trên vòng 210px). */
+.c-gauge-value {
+  position: absolute; left: 0; right: 0; bottom: -2px;
+  font: 600 min(40px, 19cqi)/1 var(--font-body); letter-spacing: -.02em;
+  font-variant-numeric: lining-nums tabular-nums; color: var(--color-text);
+}
+.c-gauge.is-empty .c-gauge-value { color: var(--color-text-muted); }
+.c-gauge-state { margin-top: 8px; font: 700 16px/1.3 var(--font-body); color: var(--color-text); }
+.c-gauge-hint { margin-top: 4px; font: var(--text-caption); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.c-gauge-hint a, .c-gauge-hint button { font: inherit; font-weight: 600; color: var(--action); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 639px) { .c-gauge-state { font-size: 15px; } }
+
+/* Toggle kính lỏng (ThemeSwitch) — CHỈ cho nút sáng/tối. Bản nhỏ 44×26 để
+   vừa cột sidebar thu gọn (48px) và thanh trên điện thoại; vùng chạm là cả
+   nút bọc ngoài. Núm trượt bằng `transform` + transition (không keyframe,
+   không chứa modal nào). */
+.c-switch { display: inline-grid; place-content: center; border: 0; background: none; padding: 0; cursor: pointer; color: var(--on-glass); flex: none; }
+.c-switch-track {
+  position: relative; display: block; width: 44px; height: 26px; border-radius: 999px;
+  background: var(--switch-track); border: 1px solid var(--switch-edge);
+  box-shadow: inset 2px 2px 5px rgba(26, 36, 43, .25), inset -2px -2px 4px rgba(255, 255, 255, .35);
+}
+.c-switch-knob {
+  position: absolute; left: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%;
+  display: grid; place-content: center; color: var(--switch-icon);
+  background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, .95), rgba(255, 255, 255, .55) 38%, rgba(244, 241, 234, .35) 70%);
+  border: 1px solid rgba(255, 255, 255, .85);
+  box-shadow: 0 4px 9px rgba(26, 36, 43, .35), inset -2px -3px 5px rgba(26, 36, 43, .18), inset 2px 2px 4px rgba(255, 255, 255, .6);
+  transition: transform .24s var(--ease);
+}
+.c-switch[aria-checked="true"] .c-switch-knob { transform: translateX(18px); }
+.c-switch:focus-visible { outline: none; }
+.c-switch:focus-visible .c-switch-track { box-shadow: var(--focus-ring); }
+@media (prefers-reduced-motion: reduce) { .c-switch-knob { transition: none; } }
+
+/* Mặt đồng hồ bấm giờ (FocusDial) — trong widget kính trên phông cảnh. */
+.c-dial-w { padding: 20px 24px; display: flex; flex-direction: column; gap: 10px; }
+.c-dial-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.c-dial-body { display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap; }
+.c-dial { width: 196px; height: 196px; flex: none; }
+.c-dial-track { stroke: var(--dial-track); }
+.c-dial-fill { stroke: var(--action); }
+.c-dial-core { fill: var(--dial-core); }
+.c-dial-ticks { stroke: var(--dial-tick); }
+.c-dial-time { font: 600 30px var(--font-body); fill: var(--dial-ink); font-variant-numeric: lining-nums tabular-nums; }
+.c-dial-cap { font: 500 11px var(--font-display); letter-spacing: .14em; fill: var(--dial-ink-2); text-transform: uppercase; }
+.c-dial-ctrl { display: flex; flex-direction: column; gap: 12px; }
+.c-dial-btn {
+  width: 56px; height: 56px; border-radius: 50%; border: 0; cursor: pointer;
+  display: grid; place-content: center;
+  background: var(--action); color: var(--on-action);
+  box-shadow: 0 8px 18px -10px rgba(26, 36, 43, .6);
+}
+.c-dial-btn.alt { background: var(--pill-bg); color: var(--on-glass); }
+.c-dial-btn:disabled { opacity: .45; cursor: not-allowed; }
+.c-dial-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
 /* Stat */
 .c-delta-up { color: var(--good); font: 600 13px/1 var(--font-body); }
 .c-delta-down { color: var(--bad); font: 600 13px/1 var(--font-body); }
@@ -875,6 +970,8 @@ html { background: var(--sheet); }
 .c-side:is(:hover, :focus-within, .pinned) .c-side-sys .c-side-item { width: auto; padding: 0 12px; }
 .c-side:is(:hover, :focus-within, .pinned) .c-side-sys .c-sys-settings { flex: 1; min-width: 0; padding-left: 15px; }
 .c-sys-lang .c-side-meta { margin-left: 0; }
+/* Toggle sáng/tối (ThemeSwitch 44px) vừa khít cột thu gọn 48px: bỏ đệm 15px. */
+.c-side .c-side-sys .c-sys-theme { justify-content: center; padding: 0 2px; }
 
 /* Widget ngữ cảnh (skill 7.2) — trên thẻ người dùng. */
 .c-ctx { flex: none; margin: 4px 0 6px; }
@@ -1009,6 +1106,8 @@ html { background: var(--sheet); }
 .c-mtopbar[data-scrolled="true"]::before { background: var(--glass-nav); }
 .c-mtopbar-btn { width: 36px; height: 36px; display: grid; place-content: center; border-radius: 12px; color: var(--on-glass); background: none; border: 0; cursor: pointer; }
 .c-mtopbar-btn:hover { background: rgba(255, 255, 255, .14); color: var(--on-glass); }
+/* Toggle sáng/tối (ThemeSwitch) — cùng chiều cao 36px với hai nút bên cạnh. */
+.c-mtopbar-switch { height: 36px; padding: 0 4px 0 6px; }
 
 /* Badge */
 .c-badge { display: inline-grid; place-content: center; min-width: 20px; height: 20px; padding: 0 7px; border-radius: var(--radius-full); background: var(--color-primary); color: var(--color-on-primary); font: 600 11px/1 var(--font-body); }
