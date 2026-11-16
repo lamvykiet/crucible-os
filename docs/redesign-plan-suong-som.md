@@ -34,6 +34,13 @@ demo → chủ dự án duyệt → agent sửa code → đánh dấu `[x]` và 
 
 ## P0 · Nền móng: token + phông cảnh — `[ ]`
 
+**Trạng thái 17/11/2026:** bước 1 xong — **demo chờ duyệt** (`afd9477`, nhánh
+`ui/suong-som-p0`), kèm ảnh chụp `tokens-{1280,375}-{sang,toi}.png` cạnh file
+demo. Bước 2–4 chưa làm. Demo chạy gradient dự phòng (Q1 chưa có ảnh) và có hai
+phương án số A/B trên widget kính (Q3). Tính tương phản thấy 24/112 cặp chưa
+đạt, phần lớn là chữ và delta trên phông/kính ở theme sáng — cần chủ dự án
+quyết trước khi chép token sang `globals.css`.
+
 **Việc:**
 1. Demo `1991-new-design/demo/suong-som/tokens.html`: bảng màu, 4 ô pastel,
    nút, tab, switch, thẻ soft UI, widget kính trên phông, delta tốt/xấu, một
