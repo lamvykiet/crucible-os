@@ -7,24 +7,35 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { moduleFor } from "@/lib/modules";
 
 /**
- * Phần tóm tắt đầu trang trên phông cảnh (hệ v3), dùng chung cho mọi
- * function: TÊN FUNCTION cỡ lớn, rồi nhãn ngày và CÂU KẾT LUẬN tính từ số
- * liệu (nửa cỡ tên), một widget kính chính (4 chỉ số nhỏ + số lớn) và tối đa
- * hai widget phụ. Tên function lấy từ `src/lib/modules.tsx` theo đường dẫn.
+ * Phần tóm tắt đầu trang trên phông cảnh, dùng chung cho mọi function: TÊN
+ * FUNCTION, nhãn ngày, CÂU KẾT LUẬN tính từ số liệu, một widget kính chính
+ * (tối đa 4 chỉ số nhỏ + số lớn) và tối đa hai widget phụ. Tên function lấy
+ * từ `src/lib/modules.tsx` theo đường dẫn.
  *
- * Component này chỉ VẼ — số do trang tự tính từ nguồn dữ liệu của nó. Số nào
- * chưa có thì truyền `null`, widget hiện "—"; không bao giờ bịa số.
+ * Hệ v4 "Sương sớm" (skill `suong-som-design` mục 5–6, P1 17/11/2026):
+ *   - Phông gọn — tên function và câu kết luận không còn chiếm 1/3 màn đầu;
+ *     ở 1280×800 thẻ đầu tiên của tấm nền phải lọt màn đầu.
+ *   - Đơn vị viết CÙNG DÒNG với số, nhỏ hơn một bậc (`530,8 tr ₫`) — không
+ *     còn kiểu chỉ số trên (`530.8ᵐ`), serif nhỏ trên kính khó đọc.
+ *   - Không phần tử trang trí không mang nghĩa (quả cầu vàng cũ đã gỡ).
+ *   - Số chưa có thì KHÔNG vẽ "—": `big: null` để trống chỗ số lớn, chỉ số
+ *     nhỏ có `value: null` (hoặc "—" của bản cũ) thì ẩn hẳn. Câu chữ của
+ *     widget (tiêu đề, dòng phụ) là thứ nói chuyện khi chưa có số.
+ *
+ * Component này chỉ VẼ — số do trang tự tính từ nguồn dữ liệu của nó. Không
+ * bao giờ bịa số.
  */
 
 export interface SceneBig {
   value: string;
-  /** Đơn vị viết nhỏ (`sup`) sau số: "tr", "kg", "%", "thẻ"… */
+  /** Đơn vị viết cùng dòng, nhỏ hơn số một bậc: "tr ₫", "kg", "%", "thẻ"… */
   unit?: string;
 }
 
 export interface SceneMini {
   label: string;
-  value: string;
+  /** `null` = chưa có số → chỉ số này ẩn đi, không vẽ "—". */
+  value: string | null;
   icon: LucideIcon;
 }
 
@@ -55,7 +66,12 @@ export interface SceneSummaryProps {
   rows?: SceneRow[];
 }
 
-/** Số tiền lớn: phần số + đơn vị rút gọn. */
+/**
+ * Số tiền lớn theo vi-VN: `15.000 ₫`, `530,8 tr ₫`, `1,6 tỷ ₫` (skill mục 5).
+ * Dưới một triệu viết đủ số — "15k" là tiếng lóng của trục biểu đồ, không
+ * phải cách đọc một số tiền. Bản tiếng Anh: `15,000 ₫`, `530.8M ₫`, `1.6bn ₫`.
+ * Dấu âm là "−" (U+2212).
+ */
 export function moneyBig(n: number | null | undefined, vi: boolean): SceneBig | null {
   if (n === null || n === undefined) return null;
   const a = Math.abs(n);
@@ -63,8 +79,7 @@ export function moneyBig(n: number | null | undefined, vi: boolean): SceneBig | 
   const f = (v: number, d: number) =>
     v.toLocaleString(vi ? "vi-VN" : "en-US", { maximumFractionDigits: d });
   if (a >= 1e9) return { value: sign + f(a / 1e9, 2), unit: vi ? "tỷ ₫" : "bn ₫" };
-  if (a >= 1e6) return { value: sign + f(a / 1e6, 1), unit: vi ? "tr" : "m" };
-  if (a >= 1e3) return { value: sign + f(a / 1e3, 0), unit: "k" };
+  if (a >= 1e6) return { value: sign + f(a / 1e6, 1), unit: vi ? "tr ₫" : "M ₫" };
   return { value: sign + f(a, 0), unit: "₫" };
 }
 
@@ -84,12 +99,13 @@ export function todayKicker(): string {
   return `${String(d.getDate()).padStart(2, "0")} · ${String(d.getMonth() + 1).padStart(2, "0")} · ${d.getFullYear()}`;
 }
 
+/** Chưa có số: giữ chỗ trống (để số hiện ra không xô bố cục), không vẽ "—". */
 function Big({ big, className }: { big: SceneBig | null; className: string }) {
-  if (!big) return <div className={className}>—</div>;
+  if (!big) return <div className={`${className} is-empty`} aria-hidden />;
   return (
     <div className={className}>
       {big.value}
-      {big.unit && <sup>{big.unit}</sup>}
+      {big.unit && <span className="c-unit">{big.unit}</span>}
     </div>
   );
 }
@@ -102,6 +118,8 @@ function Pill({ pill }: { pill?: ScenePill | null }) {
 export default function SceneSummary({ title, kicker, main, rows = [] }: SceneSummaryProps) {
   const { t } = useLanguage();
   const mod = moduleFor(usePathname());
+  // "—" là cách các trang bản cũ báo "chưa có số" — coi như null.
+  const minis = main.minis.filter((m) => m.value !== null && m.value !== "—" && m.value !== "");
   return (
     <SceneHero>
       <div className={`c-hero ${rows.length === 0 ? "c-hero-solo" : ""}`}>
@@ -112,18 +130,17 @@ export default function SceneSummary({ title, kicker, main, rows = [] }: SceneSu
         </div>
 
         <section className="c-glass c-w-main" aria-label={main.title}>
-          <div>
+          <div className="c-w-head">
             <p className="c-w-t">{main.title}</p>
             {main.subtitle && <p className="c-w-s">{main.subtitle}</p>}
             <Pill pill={main.pill} />
           </div>
-          <span className="c-coin" aria-hidden />
-          {main.minis.length > 0 && (
+          {minis.length > 0 && (
             <dl className="c-minis">
-              {main.minis.map(({ label, value, icon: Icon }) => (
+              {minis.map(({ label, value, icon: Icon }) => (
                 <div key={label}>
                   <dt>{label}</dt>
-                  <dd><Icon size={15} />{value}</dd>
+                  <dd><Icon size={15} aria-hidden />{value}</dd>
                 </div>
               ))}
             </dl>

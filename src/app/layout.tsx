@@ -52,9 +52,13 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // Màu thanh trạng thái = màu đỉnh phông Sương sớm (veil slate đậm ở đỉnh
+  // ảnh): `--slate-900` / `--night-950` trong globals.css. Metadata không đọc
+  // được biến CSS nên chép giá trị — đổi token đỉnh phông là đổi cả ở đây.
+  // (Bản v3 là `#cfc9d6`, màu trời tím nhạt — lệch hẳn phông mới, P1.)
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#cfc9d6" },
-    { media: "(prefers-color-scheme: dark)", color: "#cfc9d6" },
+    { media: "(prefers-color-scheme: light)", color: "#253035" },
+    { media: "(prefers-color-scheme: dark)", color: "#1A242B" },
   ],
 };
 
