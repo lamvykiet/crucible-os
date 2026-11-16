@@ -60,7 +60,21 @@ nào. Còn lại cho các mục sau: `themeColor` `#cfc9d6` (màu trời v3) tro
 skill đạt ở sáng/tối; `git diff --stat` chỉ có `globals.css`, `public/scene/`,
 tài liệu.
 
-## P1 · Vỏ giao diện: SceneHero, Sidebar, MobileTopBar — `[ ]`
+## P1 · Vỏ giao diện: SceneHero, Sidebar, MobileTopBar — `[x]` (`a4e85a7`)
+
+**Trạng thái 17/11/2026:** xong, làm thẳng vào code không qua demo (chủ dự án
+duyệt làm thâu đêm); ảnh "trước" là `p0-shell-*.png`, ảnh "sau" là
+`1991-new-design/demo/suong-som/p1-*.png` (render trang thật trên server cục
+bộ, API thay bằng JSON mẫu — chữ "mock: …" trên tấm nền là của bản chụp, không
+phải của app). Đã làm: tên function + nhãn ngày chung một hàng, câu kết luận
+24px ngay dưới; widget chính gọn (không min-height 260px); tấm nền bắt đầu ở
+249–303px trên 1280×800 (≤ 368px = 46vh); đơn vị cùng dòng `.c-unit`
+(`moneyBig`: `15.000 ₫`, `530,8 tr ₫`, `1,6 tỷ ₫`); gỡ `.c-coin`; `big: null`
+để trống, chỉ số nhỏ `null`/`"—"` ẩn hẳn (không còn vạch ngang); mép phông là
+dải sương `.c-main::before`; avatar lấy chữ cái tên/email, không có thì icon
+người, nền `--earth-300`; `themeColor` `#253035` / `#1A242B`. Còn lại cho trang:
+mỗi trang vẫn tự truyền `"—"` cho số chưa có (SceneSummary đã nuốt) — P2–P8
+nên đổi sang `null` và phân biệt "đang tải" với "chưa có dữ liệu".
 
 File: `src/components/Scene.tsx`, `SceneSummary.tsx`, `Sidebar.tsx`,
 `MobileTopBar.tsx`, `MainLayoutWrapper.tsx`, `globals.css` (phần `.c-scene`, `.c-side`).
@@ -80,7 +94,21 @@ Vấn đề thấy trên ảnh:
 1280×800; không còn đơn vị chỉ số trên; widget kính không còn phần tử trang trí
 không nghĩa; demo được duyệt.
 
-## P1b · Sidebar: cây tab con + widget ngữ cảnh — `[ ]` (demo đã duyệt)
+## P1b · Sidebar: cây tab con + widget ngữ cảnh — `[x]` (`c03e062`) (demo đã duyệt)
+
+**Trạng thái 17/11/2026:** xong. Cây tab con dưới function đang mở (ẩn khi
+thu gọn), badge hoá đơn nền ô Tài chính khi bung / chấm đất đỏ 8px khi thu
+gọn, hàng hệ thống thành một hàng ngang khi bung. `SidebarContextWidget`:
+Tài chính (`/api/drive/pending-count`, mở `ReviewQueueModal` qua portal vào
+`<body>` bọc `.c-fin`) — **dùng icon thay vòng** vì API không có mẫu số (tổng
+hoá đơn của kỳ), dòng phụ "Chưa vào sổ cho tới khi duyệt" thay "Số liệu tháng
+M đang thiếu" (bản nháp có thể thuộc tháng khác); Học tập
+(`/api/learning/overview`: vòng = đã ôn / (đã ôn + đến hạn), dòng phụ "Đã ôn N
+thẻ hôm nay" thay "Ước tính X phút" — API không có thời gian/thẻ); Thói quen
+(`/api/habits`: vòng xong/tổng, việc kế tiếp theo giờ bắt đầu). Không viết API
+mới. Ở 1280×800, Tài chính bung (8 tab) thì danh sách function cuộn ~90px.
+Chưa làm: duyệt xong từ widget thì số liệu của trang Tài chính đang mở chưa tự
+tải lại (sidebar chỉ đếm lại hàng chờ).
 
 File: `Sidebar.tsx`, `ModuleTabs.tsx` (side), component mới `SidebarContextWidget.tsx`.
 Đặc tả: skill 7.1, 7.2.
@@ -88,7 +116,13 @@ File: `Sidebar.tsx`, `ModuleTabs.tsx` (side), component mới `SidebarContextWid
 mở được hàng duyệt hoá đơn; function chưa có API thì widget ẩn và có ghi chú
 trong báo cáo; lint/tsc sạch.
 
-## P1c · Dải tab nở chip theo màu mảng — `[ ]` (demo đã duyệt)
+## P1c · Dải tab nở chip theo màu mảng — `[x]` (`0056472`) (demo đã duyệt)
+
+**Trạng thái 17/11/2026:** xong. `ModuleTabs` rail gắn `data-mod`, màu chip lấy
+từ token ô (`--honey-200`, `--pista`, `--euca`, `--peach`, `--tile-knowledge`)
+nên tự đổi theo theme; rãnh lõm cuộn ngang khi nhiều tab, 375px không tràn.
+Rail của sidebar thu gọn KHÔNG có dải tab (theo demo 7.1 — cây chỉ hiện khi
+bung).
 
 File: `ModuleTabs.tsx` (rail), `MobileTopBar.tsx`, `globals.css` (thêm token
 màu ô của Knowledge nếu chưa có). Đặc tả: skill 7.3.
