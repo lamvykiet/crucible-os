@@ -32,14 +32,18 @@ demo → chủ dự án duyệt → agent sửa code → đánh dấu `[x]` và 
 
 ---
 
-## P0 · Nền móng: token + phông cảnh — `[ ]`
+## P0 · Nền móng: token + phông cảnh — `[x]` (`d7129f6`)
 
-**Trạng thái 17/11/2026:** bước 1 xong — **demo chờ duyệt** (`afd9477`, nhánh
-`ui/suong-som-p0`), kèm ảnh chụp `tokens-{1280,375}-{sang,toi}.png` cạnh file
-demo. Bước 2–4 chưa làm. Demo chạy gradient dự phòng (Q1 chưa có ảnh) và có hai
-phương án số A/B trên widget kính (Q3). Tính tương phản thấy 24/112 cặp chưa
-đạt, phần lớn là chữ và delta trên phông/kính ở theme sáng — cần chủ dự án
-quyết trước khi chép token sang `globals.css`.
+**Trạng thái 17/11/2026:** xong. Demo token `afd9477` được duyệt ("duyệt, sửa
+code"); ảnh phông `373989e`; token vào `globals.css` ở `d7129f6` (nhánh
+`ui/suong-som-p0`). Câu hỏi mở đã quyết: Q1 dùng `public/scene/suong-som.jpg`,
+Q2 giữ ngôn ngữ như cũ, Q3 số trên widget kính là Playfair (A), Q4 giữ
+Bricolage + Playfair, Q5/Q7/Q8 được chỉnh token để đạt tương phản (đo trên pixel
+thật của ảnh — mọi giá trị lệch ghi trong skill, "chỉnh 17/11/2026"), Q6 nhận
+giá trị SUY RA của theme tối với `--glass-edge` tối `.22`. Không sửa file JSX
+nào. Còn lại cho các mục sau: `themeColor` `#cfc9d6` (màu trời v3) trong
+`src/app/layout.tsx` — P1; delta tốt trên ô Tài chính/Thói quen 3.98–4.26:1
+(`.c-tile` chưa dùng trong JSX) — P2; trang đăng nhập — P9.
 
 **Việc:**
 1. Demo `1991-new-design/demo/suong-som/tokens.html`: bảng màu, 4 ô pastel,
