@@ -767,6 +767,21 @@ html { background: var(--sheet); }
    `--ink-2` cần kính .80 mới đạt 4.5:1. */
 :root { --side-glass: rgba(247, 245, 240, .80); }
 [data-theme="dark"] { --side-glass: rgba(22, 29, 33, .72); }
+/* Sidebar v4 (skill 7.1–7.2, demo pins-17-11): dòng function đang mở, đường
+   dọc của cây tab con, nền widget ngữ cảnh. Theme tối suy ra cùng lối với
+   `--line` tối (sáng → sương 8–16%), vì trắng .55/.62 trên kính tối là chói. */
+:root {
+  --side-open-bg: rgba(255, 255, 255, .55);
+  --side-tree-line: rgba(26, 36, 43, .16);
+  --side-ctx-bg: rgba(255, 255, 255, .62);
+  --side-ctx-edge: rgba(255, 255, 255, .80);
+}
+[data-theme="dark"] {
+  --side-open-bg: rgba(244, 241, 234, .10);
+  --side-tree-line: rgba(238, 240, 234, .16);
+  --side-ctx-bg: rgba(244, 241, 234, .07);
+  --side-ctx-edge: rgba(244, 241, 234, .14);
+}
 
 /* Chữ của mọi mục: ẩn khi thu gọn, hiện khi bung. */
 .c-side-text { white-space: nowrap; opacity: 0; transition: opacity .16s var(--ease); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -791,11 +806,23 @@ html { background: var(--sheet); }
 
 .c-side-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; display: flex; flex-direction: column; gap: 2px; }
 .c-side-scroll::-webkit-scrollbar { display: none; }
-.c-side-tabs { display: flex; flex-direction: column; gap: 2px; }
+/* Cây tab con ngay dưới function đang mở: thụt 22px + 16px, nối bằng đường
+   dọc 1.5px; chỉ hiện khi sidebar bung (thu gọn thì cột 68px chỉ còn icon). */
+.c-side-tree { position: relative; flex: none; display: flex; flex-direction: column; gap: 2px; margin: 2px 0 4px 22px; padding-left: 16px; }
+.c-side-tree::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 1.5px; border-radius: 2px; background: var(--side-tree-line); }
+.c-side:not(:hover):not(:focus-within):not(.pinned) .c-side-tree { display: none; }
+.c-side-sub {
+  display: flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 12px;
+  font: 500 14px/1.2 var(--font-body); color: var(--ink-2); text-decoration: none; white-space: nowrap;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.c-side-sub span { overflow: hidden; text-overflow: ellipsis; }
+.c-side-sub:hover { color: var(--ink); background: var(--side-open-bg); text-decoration: none; }
+.c-side-sub.active, .c-side-sub.active:hover { background: var(--action); color: var(--on-action); }
 .c-side-foot { display: flex; flex-direction: column; gap: 2px; padding-top: 6px; border-top: 1px solid var(--line); }
 
 /* Nhãn nhóm: chữ VIẾT HOA giãn rộng khi bung; thu gọn thì chỉ còn khoảng cách. */
-.c-side-label { height: 26px; display: flex; align-items: flex-end; padding: 0 0 4px 15px; font: 600 10.5px/1 var(--font-display); letter-spacing: .2em; text-transform: uppercase; color: var(--ink-2); }
+.c-side-label { height: 26px; display: flex; align-items: flex-end; padding: 0 0 4px 15px; font: 600 11px/1 var(--font-display); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
 
 .c-side-item {
   position: relative; flex: none;
@@ -808,20 +835,27 @@ html { background: var(--sheet); }
 .c-side-item svg { flex: none; }
 .c-side-item:hover { background: rgba(255, 255, 255, .45); color: var(--ink); text-decoration: none; }
 [data-theme="dark"] .c-side-item:hover { background: rgba(244, 241, 234, .08); }
-/* Đang chọn: viên trắng 92% chữ mực — như mẫu. */
-.c-side-item.active, .c-side-item.active:hover { background: rgba(255, 255, 255, .92); color: var(--night-950); box-shadow: 0 6px 16px -10px rgba(26, 36, 43, .55); }
+/* Trang đang xem (function không có tab con, Cài đặt): viên `--action`.
+   Function đang mở CÓ tab con (`open`): nền sương, viên `--action` dành cho
+   tab con bên dưới. Thu gọn thì cây ẩn, nên function đang mở cũng là viên
+   `--action` — như rail của demo. */
+.c-side-item.active, .c-side-item.active:hover,
+.c-side:not(:hover):not(:focus-within):not(.pinned) .c-side-item.open { background: var(--action); color: var(--on-action); box-shadow: 0 6px 16px -10px rgba(26, 36, 43, .55); }
+.c-side-item.open, .c-side-item.open:hover { background: var(--side-open-bg); color: var(--ink); }
 .c-side-meta { margin-left: auto; font: 600 11px/1 var(--font-display); letter-spacing: .12em; color: var(--ink-2); }
 
-/* Số đếm: viên tròn đất nung bên phải khi bung; thu gọn thì thành chấm số nhỏ góc icon. */
+/* Số đếm (skill 7.1): viên nền ô Tài chính, số Playfair 12px khi bung — đây
+   là việc chờ, không phải lỗi, nên không dùng đỏ `--bad`. Thu gọn thì chỉ còn
+   chấm 8px đất đỏ viền sáng ở góc icon (7.2); số nằm ở widget đáy rail. */
 .c-side-badge {
-  margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+  margin-left: auto; min-width: 22px; height: 20px; padding: 1px 8px; border-radius: 999px;
   display: grid; place-content: center;
-  font: 650 11px/1 var(--font-body); color: var(--mist-50); background: #b0281f;
-  transition: all .2s var(--ease);
+  font: 600 12px/18px var(--font-body); font-variant-numeric: lining-nums tabular-nums;
+  color: var(--ink); background: var(--honey-200);
 }
 .c-side:not(:hover):not(:focus-within):not(.pinned) .c-side-badge {
-  position: absolute; left: 26px; top: 5px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 9.5px;
-  box-shadow: 0 0 0 2px var(--sheet);
+  position: absolute; left: 30px; top: 8px; min-width: 0; width: 8px; height: 8px; padding: 0;
+  font-size: 0; background: var(--earth-500); box-shadow: 0 0 0 2px var(--glass-solid);
 }
 
 /* Thẻ người dùng ở đáy. */
@@ -830,9 +864,42 @@ html { background: var(--sheet); }
   flex: none; width: 40px; height: 40px; border-radius: 50%;
   display: grid; place-content: center;
   font: 700 15px/1 var(--font-display); color: var(--night-950);
-  background: radial-gradient(circle at 35% 30%, var(--mist-50), var(--sun-300) 70%);
-  box-shadow: 0 6px 14px -8px rgba(26, 36, 43, .6);
+  /* Đất đỏ phẳng như demo — gradient tròn cũ là "quả cầu" thứ hai. */
+  background: var(--earth-300);
 }
+
+/* Hàng hệ thống: thu gọn thì ba icon xếp dọc; bung ra thì một hàng ngang
+   (Cài đặt · ngôn ngữ · sáng/tối) để cây tab con và widget có chỗ. */
+.c-side-sys { display: flex; flex-direction: column; gap: 2px; }
+.c-side:is(:hover, :focus-within, .pinned) .c-side-sys { flex-direction: row; }
+.c-side:is(:hover, :focus-within, .pinned) .c-side-sys .c-side-item { width: auto; padding: 0 12px; }
+.c-side:is(:hover, :focus-within, .pinned) .c-side-sys .c-sys-settings { flex: 1; min-width: 0; padding-left: 15px; }
+.c-sys-lang .c-side-meta { margin-left: 0; }
+
+/* Widget ngữ cảnh (skill 7.2) — trên thẻ người dùng. */
+.c-ctx { flex: none; margin: 4px 0 6px; }
+.c-ctx-full {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px;
+  border-radius: 20px; background: var(--side-ctx-bg); border: 1px solid var(--side-ctx-edge);
+}
+.c-ctx-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.c-ctx-line { font: 600 15px/1.3 var(--font-body); color: var(--ink); font-variant-numeric: lining-nums; }
+.c-ctx-sub { font: 450 13px/1.35 var(--font-body); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-ctx-btn { width: 100%; justify-content: center; }
+.c-ctx-icon { flex: none; display: grid; place-content: center; border-radius: 50%; background: var(--honey-200); color: var(--ink); }
+.c-ring { flex: none; }
+.c-ring-track { stroke: var(--viz-ghost); }
+/* Vòng nằm trên kính sidebar: `--accent-on-glass` (≥ 3:1 cả khi sau kính tối). */
+.c-ring-value { stroke: var(--accent-on-glass); }
+.c-ctx-mini {
+  display: none; flex-direction: column; align-items: center; gap: 2px;
+  width: 48px; padding: 8px 0; border: 0; border-radius: 16px; cursor: pointer;
+  background: var(--side-ctx-bg); color: var(--ink); text-decoration: none;
+  font: 600 14px/1 var(--font-body); font-variant-numeric: lining-nums tabular-nums;
+}
+.c-ctx-mini:hover { color: var(--ink); text-decoration: none; }
+.c-side:not(:hover):not(:focus-within):not(.pinned) .c-ctx-full { display: none; }
+.c-side:not(:hover):not(:focus-within):not(.pinned) .c-ctx-mini { display: flex; }
 .c-side-user-text { display: flex; flex-direction: column; line-height: 1.2; }
 .c-side-user-text b { font: 600 14px/1.25 var(--font-body); color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
 .c-side-user-text small { font: 450 12px/1.3 var(--font-body); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
