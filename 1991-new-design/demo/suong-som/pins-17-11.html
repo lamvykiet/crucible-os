@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sương sớm — demo pattern đã duyệt 17/11/2026</title>
+<!-- Demo tĩnh đã được chủ dự án DUYỆT ngày 17/11/2026. Là bản mẫu thị giác cho P1b, P1c, P11, P12.
+     Ảnh phông: đặt --scene-photo: url("/scene/suong-som.jpg") khi đã có ảnh; chưa có thì gradient dự phòng hiện.
+     Dữ liệu trong demo là dữ liệu mẫu. -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600&amp;display=swap">
+<style>
+body{margin:0;background:#253035}
+.b{position:relative;width:1440px;height:1120px;overflow:hidden;font-family:"Be Vietnam Pro",system-ui,sans-serif;color:#1a242b;font-size:15px;line-height:22px}
+.photo{position:absolute;inset:0;background:var(--scene-photo, none) center 40%/cover no-repeat, linear-gradient(180deg,#D9D6CC 0%,#B9BCB1 35%,#7E8279 60%,#3F4A48 85%,#253035 100%)}
+.veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(26,36,43,.12),rgba(26,36,43,.42))}
+.glass{position:relative;isolation:isolate}
+.glass::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:rgba(244,241,234,.58);-webkit-backdrop-filter:blur(26px) saturate(1.3);backdrop-filter:blur(26px) saturate(1.3);border:1px solid rgba(255,255,255,.6);box-shadow:0 14px 36px rgba(26,36,43,.22)}
+.num{font-family:"Space Grotesk",sans-serif;font-variant-numeric:tabular-nums}
+.ov{font-size:11px;line-height:14px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#43504e}
+.cap{font-size:13px;line-height:18px;color:#5f6863}
+.tag{position:absolute;font-size:12px;font-weight:600;letter-spacing:.6px;color:#f4f1ea;background:rgba(26,36,43,.55);padding:4px 10px;border-radius:999px}
+svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* Sidebar */
+.side{position:absolute;left:24px;top:24px;bottom:24px;width:264px;border-radius:30px;padding:18px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:2px}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 8px 14px}
+.logo{width:38px;height:38px;border-radius:12px;background:#253035;color:#f4f1ea;display:grid;place-items:center;font-weight:700}
+.side .ov{padding:12px 10px 6px}
+.it{display:flex;align-items:center;gap:12px;min-height:42px;padding:0 12px;border-radius:14px;color:#1a242b;text-decoration:none;font-weight:500}
+.it:hover{background:rgba(255,255,255,.45);color:#1a242b}
+.it .bd{margin-left:auto;font:600 12px/18px "Space Grotesk",sans-serif;padding:1px 8px;border-radius:999px;background:#efe2c4;color:#4a3a14}
+.it.open{background:rgba(255,255,255,.55)}
+.tree{position:relative;margin:2px 0 4px 22px;padding-left:16px;display:flex;flex-direction:column;gap:2px}
+.tree::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:1.5px;background:rgba(26,36,43,.16);border-radius:2px}
+.tree a{display:flex;align-items:center;min-height:36px;padding:0 12px;border-radius:12px;color:#43504e;text-decoration:none;font-size:14px;font-weight:500}
+.tree a.on{background:#253035;color:#f4f1ea}
+.tree a:hover{color:#1a242b}
+.ctx{margin-top:auto;border-radius:20px;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.8);padding:14px;display:flex;flex-direction:column;gap:10px}
+.ctx .row{display:flex;align-items:center;gap:12px}
+.btn{appearance:none;border:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:999px;font:600 14px/18px "Be Vietnam Pro",sans-serif;background:#253035;color:#f4f1ea}
+.user{display:flex;align-items:center;gap:10px;padding:12px 8px 2px}
+.av{width:36px;height:36px;border-radius:50%;background:#d7b49b;display:grid;place-items:center;font-weight:600;color:#1a242b}
+/* Rail */
+.rail{position:absolute;left:304px;top:24px;bottom:24px;width:72px;border-radius:30px;padding:16px 0;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:6px}
+.ri{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:#1a242b;position:relative}
+.ri.on{background:#253035;color:#f4f1ea}
+.ri .dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:#b98260;box-shadow:0 0 0 2px rgba(244,241,234,.9)}
+.rmini{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0;border-radius:16px;background:rgba(255,255,255,.62);width:56px}
+/* Scene row */
+.scene{position:absolute;left:408px;top:24px;right:24px;height:300px;display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:20px}
+.w{border-radius:28px;padding:20px;box-sizing:border-box;display:flex;flex-direction:column}
+/* Toggle */
+.lg{position:relative;width:132px;height:56px;border-radius:999px;background:rgba(26,36,43,.18);box-shadow:inset 3px 3px 8px rgba(26,36,43,.25),inset -2px -2px 6px rgba(255,255,255,.35);display:flex;align-items:center;justify-content:flex-end;padding:0 18px;box-sizing:border-box;color:#f4f1ea;font-weight:600;cursor:pointer;border:0;font-family:inherit;font-size:15px}
+.knob{position:absolute;left:5px;top:5px;width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.95),rgba(255,255,255,.35) 38%,rgba(244,241,234,.18) 70%);border:1px solid rgba(255,255,255,.85);box-shadow:0 8px 18px rgba(26,36,43,.35),inset -4px -6px 10px rgba(26,36,43,.18),inset 3px 4px 8px rgba(255,255,255,.6);display:grid;place-items:center;color:#7d5f27}
+/* Sheet */
+.sheet{position:absolute;left:408px;top:350px;right:24px;bottom:24px;border-radius:36px;background:#f1eee7;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px}
+.sh{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.sh h2{margin:0;font-size:19px;line-height:26px;font-weight:600}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.card{border-radius:26px;background:#f1eee7;box-shadow:9px 9px 20px #d4cfc4,-9px -9px 20px #ffffff;padding:20px 22px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.card .top{align-self:stretch;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.gv{font:600 40px/44px "Space Grotesk",sans-serif;letter-spacing:-1px;margin-top:-58px}
+.state{font-weight:700;font-size:16px;margin-top:8px}
+.delta{display:inline-flex;align-items:center;gap:4px;font:600 12px/16px "Space Grotesk",sans-serif;padding:3px 9px;border-radius:999px}
+.good{color:#2f6b34;background:rgba(47,107,52,.12)}
+.bad{color:#b0281f;background:rgba(176,40,31,.10)}
+.flat{color:#43504e;background:rgba(37,48,53,.08)}
+/* Tab rail chip */
+.phones{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.bar{border-radius:22px;background:#e9e5dc;box-shadow:inset 3px 3px 7px #d4cfc4,inset -3px -3px 7px #ffffff;padding:6px;display:flex;align-items:center;justify-content:space-between;gap:2px}
+.tb{height:42px;min-width:42px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;gap:6px;color:#43504e;padding:0 10px;box-sizing:border-box;font-weight:600;font-size:13px}
+.tb.on{padding:0 14px;color:#1a242b}
+.pl{margin-top:8px;text-align:center}
+</style>
+
+</head>
+<body>
+
+<div class="b">
+<div class="photo" aria-hidden="true"></div>
+<div class="veil" aria-hidden="true"></div>
+
+<nav class="side glass" aria-label="Sidebar mở rộng">
+<div class="brand"><div class="logo" aria-hidden="true">C</div><div><div style="font-weight: 700; letter-spacing: .5px">CRUCIBLE</div><div class="cap">Life OS</div></div></div>
+<div class="ov">Chức năng</div>
+<a class="it" href="#"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Tổng quan</a>
+<a class="it open" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 7h18v12H3zM3 11h18M16 15h2"></path></svg>Tài chính<span class="bd num">28</span></a>
+<div class="tree">
+<a class="on" href="#">Tổng quan</a>
+<a href="#">Thu nhập</a>
+<a href="#">Chi tiêu</a>
+<a href="#">Nợ</a>
+<a href="#">Tài sản</a>
+</div>
+<a class="it" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"></path><path d="M6 11v5c3 2 9 2 12 0v-5"></path></svg>Học tập</a>
+<a class="it" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"></path></svg>Thói quen</a>
+<a class="it" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 12h4l2-5 4 10 2-5h6"></path></svg>Sức khoẻ</a>
+<a class="it" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"></path></svg>Knowledge</a>
+<div class="ctx" aria-label="Việc cần làm của Tài chính">
+<div class="row">
+<svg viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="28 trên 31 hoá đơn chưa duyệt"><circle cx="24" cy="24" r="19" fill="none" stroke="rgba(37,48,53,.12)" stroke-width="6"></circle><circle cx="24" cy="24" r="19" fill="none" stroke="#b08a48" stroke-width="6" stroke-linecap="round" pathLength="100" stroke-dasharray="90 100" transform="rotate(-90 24 24)"></circle></svg>
+<div><div style="font-weight: 600"><span class="num">28</span> hoá đơn chờ duyệt</div><div class="cap">Số liệu tháng 11 đang thiếu</div></div>
+</div>
+<button class="btn" type="button">Duyệt ngay</button>
+</div>
+<div class="user"><div class="av" aria-hidden="true">K</div><div><div style="font-weight: 600; font-size: 14px">Kiet</div><div class="cap">Đồng bộ 00:48</div></div></div>
+</nav>
+
+<nav class="rail glass" aria-label="Sidebar thu gọn">
+<div class="logo" aria-hidden="true" style="margin-bottom: 10px">C</div>
+<a class="ri" href="#" aria-label="Tổng quan"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg></a>
+<a class="ri on" href="#" aria-label="Tài chính"><svg class="i" viewBox="0 0 24 24"><path d="M3 7h18v12H3zM3 11h18M16 15h2"></path></svg><span class="dot"></span></a>
+<a class="ri" href="#" aria-label="Học tập"><svg class="i" viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"></path><path d="M6 11v5c3 2 9 2 12 0v-5"></path></svg></a>
+<a class="ri" href="#" aria-label="Thói quen"><svg class="i" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"></path></svg></a>
+<a class="ri" href="#" aria-label="Sức khoẻ"><svg class="i" viewBox="0 0 24 24"><path d="M3 12h4l2-5 4 10 2-5h6"></path></svg></a>
+<a class="ri" href="#" aria-label="Knowledge"><svg class="i" viewBox="0 0 24 24"><path d="M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"></path></svg></a>
+<div class="rmini" aria-label="28 hoá đơn chờ duyệt">
+<svg viewBox="0 0 40 40" width="36" height="36" aria-hidden="true"><circle cx="20" cy="20" r="15" fill="none" stroke="rgba(37,48,53,.12)" stroke-width="5"></circle><circle cx="20" cy="20" r="15" fill="none" stroke="#b08a48" stroke-width="5" stroke-linecap="round" pathLength="100" stroke-dasharray="90 100" transform="rotate(-90 20 20)"></circle></svg>
+<span class="num" style="font-weight: 600; font-size: 14px">28</span>
+</div>
+</nav>
+
+<section class="scene" aria-label="Thử nghiệm trên phông cảnh">
+<article class="w glass" aria-label="Đồng hồ bấm giờ">
+<div style="display: flex; justify-content: space-between; align-items: center"><div><div class="ov">Tập trung · CFA</div><div class="cap">Tuần này: <b class="num">9g 40p</b></div></div><span class="delta flat">Thử demo</span></div>
+<div style="display: flex; align-items: center; gap: 22px; margin-top: 8px">
+<svg viewBox="0 0 200 200" width="196" height="196" role="img" aria-label="Đã tập trung 32 trên 50 phút">
+<circle cx="100" cy="100" r="82" fill="none" stroke="rgba(26,36,43,.14)" stroke-width="8"></circle>
+<circle cx="100" cy="100" r="82" fill="none" stroke="#253035" stroke-width="8" stroke-linecap="round" pathLength="100" stroke-dasharray="64 100" transform="rotate(-90 100 100)"></circle>
+<circle cx="100" cy="100" r="62" fill="rgba(37,48,53,.82)"></circle>
+<g stroke="rgba(244,241,234,.55)" stroke-width="2" stroke-linecap="round"><path d="M100 46v6M154 100h-6M100 154v-6M46 100h6M138 62l-4 4M138 138l-4-4M62 138l4-4M62 62l4 4"></path></g>
+<text x="100" y="104" text-anchor="middle" font-family="Space Grotesk" font-size="30" font-weight="600" fill="#f4f1ea">32:08</text>
+<text x="100" y="126" text-anchor="middle" font-family="Be Vietnam Pro" font-size="11" letter-spacing="1.5" fill="rgba(244,241,234,.8)">/ 50 PHÚT</text>
+</svg>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<button class="btn" type="button" style="min-height: 56px; min-width: 56px" aria-label="Tạm dừng"><svg class="i" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"></path></svg></button>
+<button class="btn" type="button" style="min-height: 56px; min-width: 56px; background: rgba(255,255,255,.7); color: #1a242b" aria-label="Kết thúc phiên"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg></button>
+</div>
+</div>
+</article>
+
+<article class="w glass" aria-label="Vòng đoạn tiến độ thói quen">
+<div style="display: flex; justify-content: space-between; align-items: center"><div class="ov">Thói quen tuần này</div><span class="delta flat">Thử demo</span></div>
+<div style="display: flex; justify-content: center; margin-top: 4px">
+<svg viewBox="0 0 200 200" width="190" height="190" role="img" aria-label="Hoàn thành 5 trên 7 ngày">
+<g fill="none" stroke-width="20" stroke-linecap="round" transform="rotate(-90 100 100)">
+<circle cx="100" cy="100" r="72" pathLength="700" stroke="#253035" stroke-dasharray="70 630" stroke-dashoffset="-15"></circle>
+<circle cx="100" cy="100" r="72" pathLength="700" stroke="#253035" stroke-dasharray="70 630" stroke-dashoffset="-115"></circle>
+<circle cx="100" cy="100" r="72" pathLength="700" stroke="#253035" stroke-dasharray="70 630" stroke-dashoffset="-215"></circle>
+<circle cx="100" cy="100" r="72" pathLength="700" stroke="#253035" stroke-dasharray="70 630" stroke-dashoffset="-315"></circle>
+<circle cx="100" cy="100" r="72" pathLength="700" stroke="#253035" stroke-dasharray="70 630" stroke-dashoffset="-415"></circle>
+<circle cx="100" cy="100" r="72" pathLength="700" stroke="rgba(37,48,53,.18)" stroke-dasharray="70 630" stroke-dashoffset="-515"></circle>
+<circle cx="100" cy="100" r="72" pathLength="700" stroke="rgba(37,48,53,.18)" stroke-dasharray="70 630" stroke-dashoffset="-615"></circle>
+</g>
+<text x="100" y="104" text-anchor="middle" font-family="Space Grotesk" font-size="34" font-weight="600" fill="#1a242b">5/7</text>
+<text x="100" y="126" text-anchor="middle" font-family="Be Vietnam Pro" font-size="12" fill="#43504e">ngày hoàn thành</text>
+</svg>
+</div>
+<div class="cap" style="text-align: center">Mỗi đoạn = 1 ngày (T2 → CN) · còn T7, CN</div>
+</article>
+
+<article class="w glass" aria-label="Toggle kính lỏng">
+<div style="display: flex; justify-content: space-between; align-items: center"><div class="ov">Giao diện</div><span class="delta flat">Thử demo</span></div>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px">
+<button class="lg" type="button" role="switch" aria-checked="false" aria-label="Chế độ sáng đang bật"><span class="knob" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></span>Sáng</button>
+<button class="lg" type="button" role="switch" aria-checked="true" aria-label="Chế độ tối đang bật" style="justify-content: flex-start; background: rgba(26,36,43,.55)"><span class="knob" aria-hidden="true" style="left: auto; right: 5px; color: #253035"><svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path></svg></span>Tối</button>
+</div>
+<div class="cap" style="text-align: center">Chỉ dùng cho 1–2 control nổi bật</div>
+</article>
+</section>
+
+<section class="sheet" aria-label="Tấm nền kem">
+<div class="sh"><h2>Đồng hồ điểm có câu trạng thái</h2><span class="cap">Dữ liệu mẫu · component dùng chung ScoreGauge</span></div>
+<div class="cards">
+<article class="card">
+<div class="top"><span class="ov" style="color: #7d5f27">Ngân sách tháng 11</span><span class="delta bad">▲ +9%</span></div>
+<svg viewBox="0 0 200 110" width="210" height="116" role="img" aria-label="Đã dùng 82% ngân sách"><path d="M18 100a82 82 0 0 1 164 0" fill="none" stroke="rgba(37,48,53,.10)" stroke-width="16" stroke-linecap="round"></path><path d="M18 100a82 82 0 0 1 164 0" fill="none" stroke="#253035" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="82 100"></path><path d="M168 54l10-6" stroke="#b0281f" stroke-width="3" stroke-linecap="round"></path></svg>
+<div class="gv num">82%</div>
+<div class="state">Sắp vượt ngân sách</div>
+<div class="cap">Còn 10,3 tr ₫ cho 14 ngày · nhanh hơn kế hoạch 9%</div>
+</article>
+<article class="card">
+<div class="top"><span class="ov" style="color: #7a4529">Phục hồi hôm nay</span><span class="delta good">▲ +4</span></div>
+<svg viewBox="0 0 200 110" width="210" height="116" role="img" aria-label="Điểm phục hồi 78"><path d="M18 100a82 82 0 0 1 164 0" fill="none" stroke="rgba(37,48,53,.10)" stroke-width="16" stroke-linecap="round"></path><path d="M18 100a82 82 0 0 1 164 0" fill="none" stroke="#253035" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="78 100"></path></svg>
+<div class="gv num">78</div>
+<div class="state">Ổn định</div>
+<div class="cap">Cao hơn baseline 30 ngày 4 điểm · ngủ 7g12p</div>
+</article>
+<article class="card">
+<div class="top"><span class="ov" style="color: #3f4a48">Tiến độ ôn CFA</span><span class="delta flat">—</span></div>
+<svg viewBox="0 0 200 110" width="210" height="116" role="img" aria-label="Chưa đủ dữ liệu"><path d="M18 100a82 82 0 0 1 164 0" fill="none" stroke="rgba(37,48,53,.22)" stroke-width="16" stroke-linecap="round" stroke-dasharray="2 10"></path></svg>
+<div class="gv num" style="color: #5f6863">?</div>
+<div class="state">Chưa đủ dữ liệu</div>
+<div class="cap">Ghi thêm 3 phiên học để có dự báo · <a href="#" style="color: #253035; font-weight: 600">Bắt đầu phiên</a></div>
+</article>
+</div>
+
+<div class="sh"><h2>Dải tab nở chip theo màu mảng</h2><span class="cap">Thanh trên điện thoại · không có dock đáy</span></div>
+<div class="phones">
+<div><div class="bar"><span class="tb on" style="background: #efe2c4"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Tổng quan</span><span class="tb"><svg class="i" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"></path></svg></span><span class="tb"><svg class="i" viewBox="0 0 24 24"><path d="M3 7h18v12H3zM3 11h18"></path></svg></span><span class="tb"><svg class="i" viewBox="0 0 24 24"><path d="M4 10h16M6 10v8M10 10v8M14 10v8M18 10v8M3 20h18M12 3l9 5H3z"></path></svg></span></div><div class="pl cap">Tài chính · nắng</div></div>
+<div><div class="bar"><span class="tb"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg></span><span class="tb on" style="background: #e3e5dc"><svg class="i" viewBox="0 0 24 24"><path d="M5 8h14M5 12h10M5 16h7"></path></svg>Kho thẻ</span><span class="tb"><svg class="i" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7"></path></svg></span><span class="tb"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2M10 2h4"></path></svg></span></div><div class="pl cap">Học tập · sương rêu</div></div>
+<div><div class="bar"><span class="tb"><svg class="i" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"></path></svg></span><span class="tb"><svg class="i" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7"></path></svg></span><span class="tb on" style="background: #dcdccd"><svg class="i" viewBox="0 0 24 24"><path d="M8 3v3M16 3v3M4 8h16M5 5h14v15H5z"></path></svg>Lịch tuần</span><span class="tb"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12H4zM8 12h8M8 16h5"></path></svg></span></div><div class="pl cap">Thói quen · khaki</div></div>
+<div><div class="bar"><span class="tb"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg></span><span class="tb"><svg class="i" viewBox="0 0 24 24"><path d="M12 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM6 21v-4a6 6 0 0 1 12 0v4"></path></svg></span><span class="tb on" style="background: #f0dfd2"><svg class="i" viewBox="0 0 24 24"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"></path></svg>Buổi tập</span></div><div class="pl cap">Sức khoẻ · đất</div></div>
+</div>
+</section>
+
+<span class="tag" style="left: 36px; top: 1097px">#5 + #6 · Sidebar hai tầng + widget ngữ cảnh</span>
+<span class="tag" style="left: 420px; top: 330px">#2 · #1 · #3 — thử trên phông cảnh</span>
+</div>
+
+</body>
+</html>
