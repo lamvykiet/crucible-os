@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Pause, Play, Square } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { colorVar } from "@/lib/habits";
+import SceneSummary from "@/components/SceneSummary";
+import FocusDial from "@/components/FocusDial";
 import type { HabitRow, SessionItem, TodayResponse } from "@/components/habits/types";
 
 const PRESETS = [15, 25, 30, 45, 60];
@@ -149,19 +151,61 @@ export default function FocusTimer() {
 
   const remaining = mode === "countdown" ? Math.max(0, targetMinutes * 60 - elapsed) : elapsed;
   const fraction = mode === "countdown" ? Math.min(1, elapsed / (targetMinutes * 60)) : (elapsed % 3600) / 3600;
-  const r = 78;
-  const circumference = 2 * Math.PI * r;
   const activeHabit = habits.find((h) => h.id === habitId);
+
+  // Câu trên phông: số phút hôm nay nói MỘT lần ở đây; thẻ danh sách bên dưới
+  // không lặp lại nó.
+  const sceneTitle =
+    todayMinutes > 0
+      ? t(`${todayMinutes} min focused today`, `Hôm nay đã tập trung ${todayMinutes} phút`)
+      : t("No focus session yet today", "Hôm nay chưa có phiên tập trung");
+  const dialTitle = mode === "countdown" ? t("Countdown", "Đếm ngược") : t("Stopwatch", "Bấm giờ");
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 pb-28">
-      <header className="pt-2">
-        <h1 className="c-h2">{t("Focus timer", "Bấm giờ tập trung")}</h1>
-        <p className="c-card-body">
-          {t("Minutes logged here feed the habits that count them.", "Số phút ở đây chảy thẳng vào thói quen đếm phút.")}
-        </p>
-      </header>
-
+      <SceneSummary title={sceneTitle}>
+        <FocusDial
+          title={activeHabit ? `${dialTitle} · ${activeHabit.name}` : dialTitle}
+          subtitle={t(
+            "Minutes logged here feed the habits that count them.",
+            "Số phút ở đây chảy thẳng vào thói quen đếm phút."
+          )}
+          status={message}
+          fraction={fraction}
+          time={mmss(remaining)}
+          caption={mode === "countdown" ? t(`/ ${targetMinutes} min`, `/ ${targetMinutes} phút`) : t("elapsed", "đã chạy")}
+          ariaLabel={mmss(remaining)}
+          controls={
+            <>
+              {running ? (
+                <button type="button" onClick={pause} className="c-dial-btn" aria-label={t("Pause", "Tạm dừng")} title={t("Pause", "Tạm dừng")}>
+                  <Pause size={20} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={start}
+                  className="c-dial-btn"
+                  aria-label={elapsed > 0 ? t("Resume", "Chạy tiếp") : t("Start", "Bắt đầu")}
+                  title={elapsed > 0 ? t("Resume", "Chạy tiếp") : t("Start", "Bắt đầu")}
+                >
+                  <Play size={20} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={stop}
+                disabled={elapsed === 0 && !running}
+                className="c-dial-btn alt"
+                aria-label={t("Stop & log", "Dừng & ghi")}
+                title={t("Stop & log", "Dừng & ghi")}
+              >
+                {saving ? <Loader2 size={20} className="animate-spin" /> : <Square size={20} />}
+              </button>
+            </>
+          }
+        />
+      </SceneSummary>
 
       <section className="c-card space-y-5">
         <div className="c-seg w-full">
@@ -227,65 +271,10 @@ export default function FocusTimer() {
           </div>
         )}
 
-        {/* Vòng đếm */}
-        <div className="flex justify-center">
-          <svg width="200" height="200" viewBox="0 0 200 200" role="timer" aria-label={mmss(remaining)}>
-            <circle cx="100" cy="100" r={r} fill="none" stroke="var(--color-surface-2)" strokeWidth="10" />
-            <circle
-              cx="100" cy="100" r={r} fill="none"
-              stroke={activeHabit ? colorVar(activeHabit.color) : "var(--color-accent)"}
-              strokeWidth="10" strokeLinecap="round"
-              strokeDasharray={`${circumference * fraction} ${circumference}`}
-              transform="rotate(-90 100 100)"
-            />
-            <text
-              x="100" y="104" textAnchor="middle"
-              style={{ font: "700 34px var(--font-body)", fill: "var(--color-text)" }}
-            >
-              {mmss(remaining)}
-            </text>
-            <text
-              x="100" y="130" textAnchor="middle"
-              style={{ font: "600 12px var(--font-body)", fill: "var(--color-text-muted)" }}
-            >
-              {mode === "countdown" ? `${targetMinutes}m` : t("elapsed", "đã chạy")}
-            </text>
-          </svg>
-        </div>
-
-        <div className="flex gap-2">
-          {running ? (
-            <button onClick={pause} className="c-btn c-btn-secondary flex-1">
-              <Pause size={16} />
-              {t("Pause", "Tạm dừng")}
-            </button>
-          ) : (
-            <button onClick={start} className="c-btn c-btn-primary flex-1">
-              <Play size={16} />
-              {elapsed > 0 ? t("Resume", "Chạy tiếp") : t("Start", "Bắt đầu")}
-            </button>
-          )}
-          <button
-            onClick={stop}
-            disabled={elapsed === 0 && !running}
-            className="c-btn c-btn-secondary flex-1"
-          >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <Square size={16} />}
-            {t("Stop & log", "Dừng & ghi")}
-          </button>
-        </div>
-
-        {message && <p className="c-help">{message}</p>}
       </section>
 
       <section className="c-card space-y-3">
-        <div className="flex items-baseline justify-between">
-          <p className="c-card-kicker">{t("Focused today", "Tập trung hôm nay")}</p>
-          <p className="c-stat-value">
-            {todayMinutes}
-            <span className="c-stat-label"> {t("min", "phút")}</span>
-          </p>
-        </div>
+        <p className="c-card-kicker">{t("Sessions, last 7 days", "Các phiên 7 ngày qua")}</p>
 
         {sessions.length === 0 ? (
           <p className="c-card-body">{t("No sessions in the last week.", "Tuần qua chưa có phiên nào.")}</p>

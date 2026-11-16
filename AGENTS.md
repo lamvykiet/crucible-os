@@ -193,6 +193,11 @@ không hai trục Y, không `<Legend>` dưới đáy, lưới chỉ ngang và n�
 `.c-chart-multi` / `.c-series-*` đã gỡ; mỗi `<Bar>/<Line>/<Area>` phải tự đặt
 `fill`/`stroke` bằng token `--viz-*`. Bảng `--viz-cat-1..4` đã qua kiểm mù màu,
 đừng tự thêm màu thứ năm — gộp vào "Khác".
+Ngoại lệ duy nhất của luật "không tròn/donut" (17/11/2026): **vòng chia đoạn,
+nửa vòng `ScoreGauge` và mặt đồng hồ `FocusDial` CHỈ cho tiến độ của MỘT đại
+lượng đếm được** (7 đoạn = 7 ngày, phút đã chạy / phút của phiên, % ngân sách
+đã dùng) — không bao giờ cho cơ cấu "phần trong tổng". Chi tiết ở
+`docs/bieu-do.md` §2.
 
 **Trục thời gian theo tháng** → `<XAxis dataKey="name" {...monthAxis(series.map((d) => d.name))} />`
 (`src/components/finance/MonthAxisTick.tsx`). Nhãn `YYYY-MM` viết đủ thì không

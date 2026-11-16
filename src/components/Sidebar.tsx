@@ -3,12 +3,12 @@
 import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, Languages, Moon, Settings, Sun, UserRound } from "lucide-react";
+import { ChevronLeft, ChevronRight, Languages, Settings, UserRound } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
-import { useTheme } from "@/lib/ThemeContext";
 import { MODULES, moduleFor } from "@/lib/modules";
 import ModuleTabs from "@/components/ModuleTabs";
 import SidebarContextWidget from "@/components/SidebarContextWidget";
+import ThemeSwitch from "@/components/ThemeSwitch";
 
 /**
  * Sidebar kính bên trái cho màn hình từ 768px (thay thanh trên `TopNav` từ
@@ -54,7 +54,6 @@ function subscribePinned(cb: () => void) {
 export default function Sidebar() {
   const pathname = usePathname();
   const { language, setLanguage, t } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
   const pinned = useSyncExternalStore(subscribePinned, readPinned, () => false);
   const current = moduleFor(pathname);
 
@@ -192,15 +191,7 @@ export default function Sidebar() {
             <Languages size={18} strokeWidth={1.8} />
             <span className="c-side-text c-side-meta">{language.toUpperCase()}</span>
           </button>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            title={theme === "dark" ? t("Light mode", "Giao diện sáng") : t("Dark mode", "Giao diện tối")}
-            aria-label={t("Toggle theme", "Đổi giao diện sáng/tối")}
-            className="c-side-item c-sys-theme"
-          >
-            {theme === "dark" ? <Sun size={18} strokeWidth={1.8} /> : <Moon size={18} strokeWidth={1.8} />}
-          </button>
+          <ThemeSwitch className="c-side-item c-sys-theme" />
         </div>
 
         <div className="c-side-user" title={me?.email ?? undefined}>

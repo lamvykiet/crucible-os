@@ -3,9 +3,9 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Languages, Moon, Settings, Sun } from "lucide-react";
+import { ChevronDown, Languages, Settings } from "lucide-react";
+import ThemeSwitch from "@/components/ThemeSwitch";
 import { useLanguage } from "@/lib/LanguageContext";
-import { useTheme } from "@/lib/ThemeContext";
 import { useSheetUnderNav } from "@/components/Scene";
 import { MODULES, moduleFor } from "@/lib/modules";
 import ModuleTabs from "@/components/ModuleTabs";
@@ -26,7 +26,6 @@ import ModuleTabs from "@/components/ModuleTabs";
 export default function MobileTopBar() {
   const pathname = usePathname();
   const { language, setLanguage, t } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
   const scrolled = useSheetUnderNav();
   const [open, setOpen] = useState(false);
 
@@ -84,14 +83,7 @@ export default function MobileTopBar() {
           >
             <Languages size={20} strokeWidth={1.8} />
           </button>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={t("Toggle theme", "Đổi giao diện sáng/tối")}
-            className="c-mtopbar-btn"
-          >
-            {theme === "dark" ? <Sun size={20} strokeWidth={1.8} /> : <Moon size={20} strokeWidth={1.8} />}
-          </button>
+          <ThemeSwitch className="c-mtopbar-switch" />
         </div>
       </div>
 

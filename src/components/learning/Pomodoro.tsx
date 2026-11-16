@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Play, Pause, RotateCcw, Plus, Trash2, Loader2, StickyNote } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import SceneSummary from "@/components/SceneSummary";
+import FocusDial from "@/components/FocusDial";
 
 interface Note {
   id: string;
@@ -125,59 +127,70 @@ export default function Pomodoro() {
 
   const mm = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
   const ss = String(secondsLeft % 60).padStart(2, "0");
-  const total = (onBreak ? BREAK_MIN : FOCUS_MIN) * 60;
-  const percent = ((total - secondsLeft) / total) * 100;
+  const totalMin = onBreak ? BREAK_MIN : FOCUS_MIN;
+  const total = totalMin * 60;
+  const fraction = (total - secondsLeft) / total;
+
+  const toggle = () => {
+    if (running) {
+      setRunning(false);
+      setEndsAt(null);
+    } else {
+      setEndsAt(Date.now() + secondsLeft * 1000);
+      setRunning(true);
+    }
+  };
+  const reset = () => {
+    setRunning(false);
+    setEndsAt(null);
+    setOnBreak(false);
+    setSecondsLeft(FOCUS_MIN * 60);
+  };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Đồng hồ */}
-      <div className="c-card c-elev-md p-8 flex flex-col items-center gap-5">
-        <p className="c-card-kicker">
-          {onBreak ? t("Break", "Nghỉ ngơi") : t("Focus", "Tập trung")}
-        </p>
-
-        <p className="font-mono tabular-nums leading-none" style={{ font: "var(--text-display)" }}>
-          {mm}:{ss}
-        </p>
-
-        <div className="c-progress w-full">
-          <span style={{ width: `${percent}%` }} />
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            onClick={() => {
-              if (running) {
-                setRunning(false);
-                setEndsAt(null);
-              } else {
-                setEndsAt(Date.now() + secondsLeft * 1000);
-                setRunning(true);
-              }
-            }}
-            className="c-btn c-btn-primary c-btn-lg min-w-[140px] justify-center"
-          >
-            {running ? <Pause size={18} /> : <Play size={18} />}
-            {running ? t("Pause", "Tạm dừng") : t("Start", "Bắt đầu")}
-          </button>
-          <button
-            onClick={() => {
-              setRunning(false);
-              setEndsAt(null);
-              setOnBreak(false);
-              setSecondsLeft(FOCUS_MIN * 60);
-            }}
-            className="c-btn c-btn-secondary c-btn-lg"
-            title={t("Reset", "Đặt lại")}
-          >
-            <RotateCcw size={18} />
-          </button>
-        </div>
-
-        <p className="c-stat-label">
-          {t(`${done} sessions today`, `Đã xong ${done} phiên hôm nay`)}
-        </p>
-      </div>
+    <div className="flex flex-col gap-6">
+      {/* Đồng hồ nằm trên phông cảnh (skill 7.6); tấm nền chỉ còn giấy nhớ. */}
+      <SceneSummary
+        title={
+          done > 0
+            ? t(`${done} sessions done today`, `Đã xong ${done} phiên hôm nay`)
+            : t(`Ready for a ${FOCUS_MIN}-minute session`, `Sẵn sàng cho một phiên ${FOCUS_MIN} phút`)
+        }
+      >
+        <FocusDial
+          title={onBreak ? t("Break", "Nghỉ ngơi") : t("Focus", "Tập trung")}
+          subtitle={t(
+            `${FOCUS_MIN} min focus · ${BREAK_MIN} min break`,
+            `${FOCUS_MIN} phút tập trung · ${BREAK_MIN} phút nghỉ`
+          )}
+          fraction={fraction}
+          time={`${mm}:${ss}`}
+          caption={t(`/ ${totalMin} min`, `/ ${totalMin} phút`)}
+          ariaLabel={`${mm}:${ss}`}
+          controls={
+            <>
+              <button
+                type="button"
+                onClick={toggle}
+                className="c-dial-btn"
+                aria-label={running ? t("Pause", "Tạm dừng") : t("Start", "Bắt đầu")}
+                title={running ? t("Pause", "Tạm dừng") : t("Start", "Bắt đầu")}
+              >
+                {running ? <Pause size={20} /> : <Play size={20} />}
+              </button>
+              <button
+                type="button"
+                onClick={reset}
+                className="c-dial-btn alt"
+                aria-label={t("Reset", "Đặt lại")}
+                title={t("Reset", "Đặt lại")}
+              >
+                <RotateCcw size={20} />
+              </button>
+            </>
+          }
+        />
+      </SceneSummary>
 
       {/* Giấy nhớ */}
       <div className="c-card p-6 flex flex-col gap-4">

@@ -31,6 +31,23 @@ bình thường, đừng bịa.
 
 Không bao giờ: biểu đồ hai trục Y, 3D, pie/donut, đổ bóng trong biểu đồ.
 
+**Ngoại lệ có chủ ý (hệ "Sương sớm", 17/11/2026 — skill `suong-som-design`
+7.4, 7.6, 7.7).** Vòng chỉ được dùng cho **tiến độ của MỘT đại lượng đếm được**
+so với đích của chính nó — không bao giờ cho cơ cấu "phần trong tổng":
+
+- **Vòng chia đoạn**: mỗi đoạn là một đơn vị đếm được (7 đoạn = 7 ngày,
+  4 đoạn = 4 kỹ năng); đoạn xong `--action`, đoạn chưa xong xám. Không dùng
+  khi các đoạn có nhiều hơn hai trạng thái (ví dụ ô thói quen "làm dở / nghỉ /
+  ngoài lịch") — đó vẫn là lưới ô.
+- **Nửa vòng `ScoreGauge`** (`src/components/charts/ScoreGauge.tsx`): một con
+  số trên thang 0–max, kèm câu trạng thái tính từ dữ liệu, vạch ngưỡng `--bad`
+  nếu có; ít dữ liệu thì trạng thái "Chưa đủ dữ liệu", không vẽ 0.
+- **Mặt đồng hồ bấm giờ** (`src/components/FocusDial.tsx`): thời gian đã chạy
+  trên tổng phiên.
+
+Chi tiêu theo danh mục, cơ cấu tài sản, tỷ trọng bất kỳ: vẫn là cột ngang xếp
+hạng / cột chồng ngang. Vòng không thay được biểu đồ.
+
 ## 3. Dọn rác — mọi thứ không phải dữ liệu đều phải tự chứng minh
 
 - Lưới: chỉ ngang, `GRID` (nét mảnh, LIỀN). Nhiều biểu đồ không cần lưới vì

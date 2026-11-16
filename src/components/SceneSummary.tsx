@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { SceneHero } from "@/components/Scene";
@@ -56,7 +57,7 @@ export interface SceneSummaryProps {
   title: string;
   /** Mặc định là ngày hôm nay "19 · 10 · 2026". */
   kicker?: string;
-  main: {
+  main?: {
     title: string;
     subtitle?: string;
     pill?: ScenePill | null;
@@ -64,6 +65,8 @@ export interface SceneSummaryProps {
     big: SceneBig | null;
   };
   rows?: SceneRow[];
+  /** Widget kính tự vẽ thay cho `main` (vd. mặt đồng hồ `FocusDial`). */
+  children?: ReactNode;
 }
 
 /**
@@ -115,11 +118,11 @@ function Pill({ pill }: { pill?: ScenePill | null }) {
   return <span className={`c-pill ${pill.tone === "flat" ? "" : pill.tone}`}>{pill.text}</span>;
 }
 
-export default function SceneSummary({ title, kicker, main, rows = [] }: SceneSummaryProps) {
+export default function SceneSummary({ title, kicker, main, rows = [], children }: SceneSummaryProps) {
   const { t } = useLanguage();
   const mod = moduleFor(usePathname());
   // "—" là cách các trang bản cũ báo "chưa có số" — coi như null.
-  const minis = main.minis.filter((m) => m.value !== null && m.value !== "—" && m.value !== "");
+  const minis = (main?.minis ?? []).filter((m) => m.value !== null && m.value !== "—" && m.value !== "");
   return (
     <SceneHero>
       <div className={`c-hero ${rows.length === 0 ? "c-hero-solo" : ""}`}>
@@ -129,6 +132,8 @@ export default function SceneSummary({ title, kicker, main, rows = [] }: SceneSu
           <h2 className="c-hello-title">{title}</h2>
         </div>
 
+        {children}
+        {main && (
         <section className="c-glass c-w-main" aria-label={main.title}>
           <div className="c-w-head">
             <p className="c-w-t">{main.title}</p>
@@ -147,6 +152,7 @@ export default function SceneSummary({ title, kicker, main, rows = [] }: SceneSu
           )}
           <Big big={main.big} className="c-big" />
         </section>
+        )}
 
         {rows.length > 0 && (
           <div className="c-stack">
