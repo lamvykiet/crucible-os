@@ -282,8 +282,8 @@ export default function PathView({ languageId }: { languageId: string }) {
               <li key={p.key}>
                 <Link
                   href={href}
-                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 transition-colors ${
-                    isNext ? "bg-[var(--glass-pill)] shadow-sm" : "hover:bg-[var(--color-surface-2)]"
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 transition-colors text-[var(--color-text)] hover:no-underline ${
+                    isNext ? "bg-[var(--glass-on)] shadow-[0_0_0_1px_var(--glass-hair)]" : "hover:bg-[var(--color-surface-2)]"
                   }`}
                 >
                   <span className={`w-7 h-7 rounded-full grid place-content-center flex-none ${
@@ -320,8 +320,8 @@ export default function PathView({ languageId }: { languageId: string }) {
                 <button
                   key={c.id}
                   onClick={() => setChapter(c.index)}
-                  className={`w-full text-left rounded-2xl px-4 py-3 transition-colors ${
-                    active ? "bg-[var(--glass-pill)] shadow-sm" : "hover:bg-[var(--color-surface-2)]"
+                  className={`w-full text-left rounded-2xl px-4 py-3 transition-colors text-[var(--color-text)] ${
+                    active ? "bg-[var(--glass-on)] shadow-[0_0_0_1px_var(--glass-hair)]" : "hover:bg-[var(--color-surface-2)]"
                   }`}
                 >
                   <span className="flex items-center justify-between gap-2">
@@ -349,8 +349,8 @@ export default function PathView({ languageId }: { languageId: string }) {
                 <li key={l.key}>
                   <Link
                     href={lessonHref(languageId, l.kind, l.pointId)}
-                    className={`flex items-center gap-3 rounded-2xl px-4 py-3 transition-colors ${
-                      isNext ? "bg-[var(--glass-pill)] shadow-sm" : "hover:bg-[var(--color-surface-2)]"
+                    className={`flex items-center gap-3 rounded-2xl px-4 py-3 transition-colors text-[var(--color-text)] hover:no-underline ${
+                      isNext ? "bg-[var(--glass-on)] shadow-[0_0_0_1px_var(--glass-hair)]" : "hover:bg-[var(--color-surface-2)]"
                     }`}
                   >
                     <span className={`w-7 h-7 rounded-full grid place-content-center flex-none ${

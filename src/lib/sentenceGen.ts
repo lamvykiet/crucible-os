@@ -89,7 +89,7 @@ TRỌNG TÂM NGỮ PHÁP: mọi câu PHẢI dùng "${args.grammar.title}" — đ
 ${bandBrief(level)}
 ${focus}
 Yêu cầu cho từng câu:
-- Câu tự nhiên, người bản xứ thật sự nói/viết như vậy.
+- Câu tự nhiên, người bản xứ thật sự nói/viết như vậy, VÀ đúng ngữ pháp chuẩn mực dùng được trong bài thi IELTS — không dùng lối nói lỏng sai chuẩn (vd. "didn't ... yet" thay cho hiện tại hoàn thành, "gonna", bỏ trợ động từ).
 - "vi" là bản dịch tiếng Việt tự nhiên, không dịch word-by-word.
 - "chunks": cắt câu thành 2–4 cụm theo nhịp ngữ nghĩa. Nối các cụm bằng một dấu cách phải ra ĐÚNG câu "en", giữ nguyên dấu câu. Mỗi cụm kèm nghĩa tiếng Việt.
 - "keys": 1–2 từ hoặc cụm từ đáng học nhất trong câu, chép NGUYÊN VĂN (cùng dạng chia) từ câu "en", kèm nghĩa ngắn.

@@ -17,7 +17,7 @@ interface Counts {
 }
 
 /** Trang Đọc & dịch và Video dựng sau; bật lên khi trang đã có. */
-const READY = { read: true, video: false };
+const READY = { read: true, video: true };
 
 /**
  * Hàng "Hôm nay học gì?" — bố cục theo trang chủ aioenglish.com: mỗi chức năng
@@ -112,7 +112,7 @@ export default function TodayHub({ languageId }: { languageId: string }) {
             <Link
               key={c.key}
               href={c.href}
-              className={`c-card p-4 flex flex-col gap-3 min-h-[180px] hover:border-[var(--color-primary)] transition-colors ${
+              className={`c-card p-4 flex flex-col gap-3 min-h-[180px] text-[var(--color-text)] hover:no-underline transition-colors ${
                 c.key === "path" ? "c-elev-md" : ""
               }`}
             >

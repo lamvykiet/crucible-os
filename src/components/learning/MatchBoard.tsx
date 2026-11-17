@@ -80,7 +80,7 @@ export default function MatchBoard({
             : wrong
               ? "border-[var(--color-error)] bg-[var(--color-error-tint)]"
               : picked
-                ? "border-[var(--color-primary)] bg-[var(--glass-pill)] font-medium"
+                ? "border-[var(--color-primary)] bg-[var(--glass-on)] font-medium"
                 : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]"
         }`}
       >
