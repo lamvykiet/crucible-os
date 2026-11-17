@@ -5,7 +5,9 @@ import {
   Plus, Wallet, CreditCard, Landmark, Banknote, AlertCircle, Pencil, Archive,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
-import { formatVND } from "@/lib/formatMoney";
+import { compactMoney, formatVND } from "@/lib/formatMoney";
+import PageIntro from "@/components/PageIntro";
+import { PageActions } from "@/components/Scene";
 import { VIZ } from "@/lib/viz";
 import { todayLocalIso } from "@/lib/localDate";
 import AccountModal, { emptyAccount, type AccountDraft } from "./AccountModal";
@@ -56,7 +58,7 @@ const KIND_ICON: Record<string, typeof Wallet> = {
 };
 
 export default function AccountsTab() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [accounts, setAccounts] = useState<AccountBalance[]>([]);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [unlinked, setUnlinked] = useState(0);
@@ -130,27 +132,35 @@ export default function AccountsTab() {
   const cards = open.filter((a) => a.kind === "credit_card");
   const others = open.filter((a) => a.kind !== "credit_card");
 
+  // Câu kết luận: thực có = tiền có − dư nợ thẻ. Tải hỏng/chưa có tài khoản thì
+  // không khẳng định gì.
+  const signed = (n: number) => `${n < 0 ? "−" : ""}${compactMoney(Math.abs(n), language === "vi")}`;
+  const lede =
+    isLoading || errorText
+      ? ""
+      : accounts.length === 0
+        ? t("No accounts yet — add the ones you use and balances keep themselves up to date.", "Chưa có tài khoản nào — thêm các tài khoản bạn dùng, số dư sẽ tự cập nhật theo giao dịch.")
+        : totals
+          ? t(
+              `${signed(totals.net)} is really yours: ${signed(totals.cash)} in cash and bank, minus ${signed(totals.cardDebt)} of card debt.`,
+              `Thực có ${signed(totals.net)}: ${signed(totals.cash)} tiền mặt và ngân hàng, trừ ${signed(totals.cardDebt)} dư nợ thẻ.`
+            )
+          : "";
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h2 className="c-h2 c-page-title text-[var(--color-text)]">
-            {t("Accounts", "Tài khoản")}
-          </h2>
-          <p className="text-[var(--color-text-muted)] text-sm mt-1">
-            {t("Balances as of", "Số dư tính tới")} {todayLocalIso()}
-          </p>
-        </div>
+      <PageIntro title={t("Accounts", "Tài khoản")} kicker={`${t("As of", "Tính tới")} ${todayLocalIso()}`} lede={lede} />
+      <PageActions>
         <button
+          type="button"
           onClick={openNew}
           aria-label={t("Add account", "Thêm tài khoản")}
-          title={t("Add account", "Thêm tài khoản")}
-          className="c-btn c-btn-primary w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
+          className="c-btn c-btn-primary"
         >
-          <Plus size={16} />
-          <span className="hidden md:inline">{t("Add account", "Thêm tài khoản")}</span>
+          <Plus size={18} />
+          <span className="c-tl">{t("Add account", "Thêm tài khoản")}</span>
         </button>
-      </div>
+      </PageActions>
 
       {errorText && (
         <p className="text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] rounded-xl p-4">
@@ -162,7 +172,7 @@ export default function AccountsTab() {
         <p className="text-sm text-[var(--color-text-faint)]">{t("Loading...", "Đang tải...")}</p>
       ) : errorText ? null : accounts.length === 0 ? ( // Tải hỏng thì KHÔNG nói "chưa có tài khoản nào":
         // đó là một khẳng định mà lúc này không ai biết đúng hay sai.
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 md:p-8 flex flex-col items-center gap-2 text-center">
+        <div className="c-glass c-gcard flex flex-col items-center gap-2 text-center">
           <h3 className="c-h5 text-[var(--color-text)]">
             {t("No accounts yet", "Chưa có tài khoản nào")}
           </h3>
@@ -237,7 +247,7 @@ export default function AccountsTab() {
                   return (
                     <div
                       key={a.id}
-                      className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] flex flex-col min-w-0"
+                      className="c-glass c-gcard flex flex-col min-w-0"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
@@ -305,7 +315,7 @@ export default function AccountsTab() {
                 {cards.map((a) => (
                   <div
                     key={a.id}
-                    className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] flex flex-col min-w-0"
+                    className="c-glass c-gcard flex flex-col min-w-0"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">

@@ -9,7 +9,10 @@ import DebtScheduleModal from "./DebtScheduleModal";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import PeriodComparison from "./PeriodComparison";
 import DebtOverview from "./DebtOverview";
-import { formatVND } from "@/lib/formatMoney";
+import { compactMoney, formatVND } from "@/lib/formatMoney";
+import { en } from "@/lib/plural";
+import PageIntro from "@/components/PageIntro";
+import { PageActions } from "@/components/Scene";
 import { VIZ } from "@/lib/viz";
 import SectionHeader from "@/components/charts/SectionHeader";
 
@@ -57,7 +60,7 @@ const EMPTY: DebtsData = {
 };
 
 export default function DebtsTab() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [selectedMonth, setSelectedMonth] = useState(() => thisMonthLocalIso());
   const [refreshKey, setRefreshKey] = useState(0);
   const [scheduleFor, setScheduleFor] = useState<{ id: string; name: string; filter: "all" | "projected" } | null>(null);
@@ -95,26 +98,39 @@ export default function DebtsTab() {
   // lẫn tiền lãi còn phải trả — hai thứ bốn ô kia không có.
   const { dueThisMonth, debtsList, hasData } = data;
 
+  // Câu kết luận đầu trang: dư nợ còn lại + kỳ trả gần nhất. Tháng đang chạy thì
+  // chỉ tính các kỳ từ hôm nay trở đi; tháng khác thì kỳ sớm nhất của tháng đó.
+  const vi = language === "vi";
+  const monthNo = Number(selectedMonth.slice(5, 7));
+  const kicker = vi ? `Tháng ${monthNo}/${selectedMonth.slice(0, 4)}` : `${selectedMonth.slice(5, 7)}/${selectedMonth.slice(0, 4)}`;
+  const isThisMonth = selectedMonth === thisMonthLocalIso();
+  const todayDay = new Date().getDate();
+  const nextDue = [...dueThisMonth].sort((a, b) => a.day - b.day).find((d) => !isThisMonth || d.day >= todayDay);
+  const lede = isLoading
+    ? ""
+    : !hasData
+      ? t("No loans recorded yet — add one to see the payoff date and the interest still to pay.", "Chưa ghi khoản nợ nào — thêm một khoản vay để thấy ngày hết nợ và tiền lãi còn phải trả.")
+      : data.active === 0
+        ? t(`All ${en(data.settled, "loan")} settled — nothing outstanding.`, `Đã tất toán ${data.settled} khoản — không còn dư nợ.`)
+        : t(
+            `${compactMoney(data.totalOutstanding, false)} still owed across ${en(data.active, "loan")}${nextDue ? `; next payment ${compactMoney(nextDue.amount, false)} on day ${nextDue.day}` : "; nothing due in this month"}.`,
+            `Dư nợ còn ${compactMoney(data.totalOutstanding, true)} trên ${data.active} khoản${nextDue ? `; kỳ tới ${compactMoney(nextDue.amount, true)}, ngày ${nextDue.day}` : "; tháng này không có kỳ nào đến hạn"}.`
+          );
+
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h2 className="c-h2 c-page-title text-[var(--color-text)]">{t("Debts & Loans", "Nợ & Khoản vay")}</h2>
-          <p className="text-[var(--color-text-muted)] text-sm mt-1">{t("Mortgage, auto loan, and other debts", "Vay mua nhà, mua xe và các khoản nợ khác")}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-          <button 
-            onClick={() => setIsDebtModalOpen(true)}
-            aria-label={t("Add Debt", "Thêm khoản nợ")}
-            title={t("Add Debt", "Thêm khoản nợ")}
-            className="c-btn c-btn-primary w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
-          >
-            <Plus size={16} /> <span className="hidden md:inline">{t("Add Debt", "Thêm khoản nợ")}</span>
-          </button>
-        </div>
-      </div>
+      <PageIntro title={t("Debts & Loans", "Nợ & Khoản vay")} kicker={kicker} lede={lede} aside={<CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />} />
+      <PageActions>
+        <button
+          type="button"
+          onClick={() => setIsDebtModalOpen(true)}
+          aria-label={t("Add Debt", "Thêm khoản nợ")}
+          className="c-btn c-btn-primary"
+        >
+          <Plus size={18} />
+          <span className="c-tl">{t("Add Debt", "Thêm khoản nợ")}</span>
+        </button>
+      </PageActions>
 
       <DebtModal 
         isOpen={isDebtModalOpen} 
@@ -124,7 +140,7 @@ export default function DebtsTab() {
 
       {/* Main Cards Row */}
       {!hasData && !isLoading ? (
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 md:p-8 flex flex-col items-center gap-2 text-center">
+        <div className="c-glass c-gcard flex flex-col items-center gap-2 text-center">
           <div className="mb-2 w-12 h-12 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center" aria-hidden>
             <CalendarX size={22} />
           </div>

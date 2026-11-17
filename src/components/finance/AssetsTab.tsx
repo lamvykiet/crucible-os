@@ -5,7 +5,10 @@ import { Building2, Link2, Package, Pencil, Plus, Trash2, TrendingDown, Wallet }
 import { useLanguage } from "@/lib/LanguageContext";
 import AssetModal, { type AssetDraft } from "./AssetModal";
 import { todayLocalIso } from "@/lib/localDate";
-import { formatVND } from "@/lib/formatMoney";
+import { compactMoney, formatVND } from "@/lib/formatMoney";
+import { en } from "@/lib/plural";
+import PageIntro from "@/components/PageIntro";
+import { PageActions } from "@/components/Scene";
 import { VIZ } from "@/lib/viz";
 import MetricCard from "@/components/charts/MetricCard";
 
@@ -57,7 +60,7 @@ const CATEGORY_ICON: Record<string, typeof Package> = {
 };
 
 export default function AssetsTab() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [assets, setAssets] = useState<AssetRow[] | null>(null);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
@@ -138,27 +141,31 @@ export default function AssetsTab() {
     if (res.ok) setReloadTick((n) => n + 1);
   };
 
+  // Câu kết luận: giá trị, vốn chủ sở hữu (có thể âm) và dư nợ gắn với tài sản.
+  const signed = (n: number) => `${n < 0 ? "−" : ""}${compactMoney(Math.abs(n), language === "vi")}`;
+  const lede = !totals
+    ? ""
+    : totals.count === 0
+      ? t("No assets recorded yet — add what you own to see how much of it is really yours.", "Chưa ghi tài sản nào — thêm thứ bạn sở hữu để thấy bao nhiêu thực sự là của bạn.")
+      : t(
+          `${en(totals.count, "asset")} worth ${signed(totals.worth)}; ${signed(totals.equity)} is really yours after ${signed(totals.debt)} of linked loans.`,
+          `${totals.count} tài sản đáng ${signed(totals.worth)}; sau ${signed(totals.debt)} dư nợ gắn kèm, phần thực sự của bạn là ${signed(totals.equity)}.`
+        );
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="c-h2 c-page-title text-[var(--color-text)]">{t("Assets", "Tài sản")}</h2>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">
-            {t(
-              "What you own, what it is worth today, and how much of it is really yours",
-              "Bạn đang sở hữu gì, hôm nay đáng bao nhiêu, và bao nhiêu thực sự là của bạn"
-            )}
-          </p>
-        </div>
+      <PageIntro title={t("Assets", "Tài sản")} kicker={todayLocalIso()} lede={lede} />
+      <PageActions>
         <button
+          type="button"
           onClick={() => openNew()}
           aria-label={t("Add asset", "Thêm tài sản")}
-          title={t("Add asset", "Thêm tài sản")}
-          className="c-btn c-btn-primary w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
+          className="c-btn c-btn-primary"
         >
-          <Plus size={16} /> <span className="hidden md:inline">{t("Add asset", "Thêm tài sản")}</span>
+          <Plus size={18} />
+          <span className="c-tl">{t("Add asset", "Thêm tài sản")}</span>
         </button>
-      </div>
+      </PageActions>
 
       {errorText && (
         <div className="text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] p-4 rounded-xl">
@@ -228,7 +235,7 @@ export default function AssetsTab() {
       )}
 
       {assets && assets.length === 0 && (
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 md:p-8 flex flex-col items-center gap-2 text-center">
+        <div className="c-glass c-gcard flex flex-col items-center gap-2 text-center">
           <h3 className="c-h5 text-[var(--color-text)]">
             {t("No assets recorded yet", "Chưa ghi tài sản nào")}
           </h3>
@@ -254,7 +261,7 @@ export default function AssetsTab() {
           return (
             <div
               key={a.id}
-              className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col min-w-0"
+              className="c-glass c-gcard flex flex-col min-w-0"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0">

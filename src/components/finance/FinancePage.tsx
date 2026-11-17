@@ -9,7 +9,6 @@ import HistoryTab from "@/components/finance/HistoryTab";
 import AssetsTab from "@/components/finance/AssetsTab";
 import AccountsTab from "@/components/finance/AccountsTab";
 import ProjectsTab from "@/components/finance/ProjectsTab";
-import FinanceScene from "@/components/finance/FinanceScene";
 
 const TAB_IDS = ["dashboard", "income", "expense", "debts", "assets", "accounts", "projects", "history"];
 
@@ -31,8 +30,7 @@ export default function FinancePage() {
     // ".c-fin" ở globals.css. Modal render bên trong các tab nên cũng nằm trong
     // phạm vi này. Đệm đáy do `.c-main` lo, không chồng `pb-*` ở đây.
     <div className="c-fin max-w-7xl mx-auto space-y-6">
-      {/* Tổng quan, Thu nhập, Chi tiêu tự vẽ đầu trang (PageIntro); các tab còn lại tạm dùng bản cũ. */}
-      {!["dashboard", "income", "expense"].includes(activeTab) && <FinanceScene />}
+      {/* Mỗi tab tự vẽ đầu trang bằng PageIntro (+ PageActions). */}
 
       {/* Tab Content */}
       <div className="animate-in fade-in duration-300">

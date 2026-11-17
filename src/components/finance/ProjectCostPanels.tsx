@@ -87,7 +87,7 @@ export function CostPanel({
     // `flex gap` chứ không `space-y-6`: globals.css gán nhịp KHỐI LỚN của trang
     // (`--block-gap`) cho mọi `.space-y-6` trong `.c-main`, kể cả khi nó nằm
     // trong một thẻ — các mục trong thẻ cách nhau cả gang tay.
-    <section className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-6 min-w-0">
+    <section className="c-glass c-gcard flex flex-col gap-6 min-w-0">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h4 className="c-h5 text-[var(--color-text)] text-balance">{title}</h4>
@@ -277,7 +277,7 @@ export function LedgerPanel({ ledger, count }: { ledger: LedgerView[]; count: nu
   const BUCKET: Record<string, string> = { WIP: "WIP", COGS: t("COGS", "Giá vốn"), REVENUE: t("Revenue", "Doanh thu") };
 
   return (
-    <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] min-w-0">
+    <div className="c-glass c-gcard min-w-0">
       <button
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}

@@ -11,6 +11,8 @@ import { normalizeSupplier, PAYMENT_METHOD_LABELS } from "@/lib/invoice";
 import TransactionCalendar from "./TransactionCalendar";
 import GroupCoverage from "./GroupCoverage";
 import { formatVND } from "@/lib/formatMoney";
+import { en } from "@/lib/plural";
+import PageIntro from "@/components/PageIntro";
 
 interface Transaction {
   id: string;
@@ -250,22 +252,29 @@ export default function HistoryTab() {
     </div>
   );
 
+  // Câu kết luận: đếm theo danh sách đang tải (tháng đang chọn hoặc khoảng ngày).
+  const nExpense = transactions.filter((x) => x.type.toLowerCase() === "expense").length;
+  const nIncome = transactions.filter((x) => x.type.toLowerCase() === "income").length;
+  const lede = isLoading
+    ? ""
+    : transactions.length === 0
+      ? t("No transactions in this period — scan a receipt or add one by hand and they appear here.", "Kỳ này chưa có giao dịch nào — quét hoá đơn hoặc ghi tay một khoản, chúng sẽ hiện ở đây.")
+      : t(
+          `${en(transactions.length, "transaction")} in this period: ${en(nExpense, "expense")}, ${en(nIncome, "income entry", "income entries")}.`,
+          `${transactions.length} giao dịch trong kỳ: ${nExpense} chi, ${nIncome} thu.`
+        );
+
   return (
     <div className="space-y-8 animate-in fade-in">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h2 className="c-h2 c-page-title text-[var(--color-text)]">
-            {t("Transaction History", "Lịch sử Giao dịch")}
-          </h2>
-          <p className="text-[var(--color-text-muted)] text-sm mt-1">
-            {t("View all your recorded transactions", "Xem tất cả giao dịch đã ghi nhận")}
-          </p>
-        </div>
-        {/* Đầu trang chỉ còn chọn tháng — nó quyết định DỮ LIỆU NÀO được tải
-            về. Mọi thứ chỉ thu hẹp danh sách đã có đều nằm trong bảng lọc bên
-            dưới, để không lẫn hai loại điều khiển vào nhau. */}
-        <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-      </div>
+      {/* Đầu trang chỉ còn chọn tháng — nó quyết định DỮ LIỆU NÀO được tải
+          về. Mọi thứ chỉ thu hẹp danh sách đã có đều nằm trong bảng lọc bên
+          dưới, để không lẫn hai loại điều khiển vào nhau. */}
+      <PageIntro
+        title={t("Transaction History", "Lịch sử giao dịch")}
+        kicker={rangeActive ? t("Date range", "Khoảng ngày") : `${selectedMonth.slice(5, 7)}/${selectedMonth.slice(0, 4)}`}
+        lede={lede}
+        aside={<CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />}
+      />
 
       {/* Soi kỳ thiếu trước, rồi mới xuống chi tiết từng ngày: danh sách phẳng
           chỉ hiện thứ đã nhập, không bao giờ cho thấy chỗ còn trống. */}
@@ -275,7 +284,7 @@ export default function HistoryTab() {
           theo khoảng ngày mà vẫn vẽ lịch tháng thì các ô hiện số của một quãng
           khác với quãng đang xem — sai mà không có gì báo. */}
       {rangeActive ? (
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] px-5 py-2 text-sm text-[var(--color-text-muted)] flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="c-glass px-5 py-2 text-sm text-[var(--color-text-muted)] flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>
             {t("Filtering by date range", "Đang lọc theo khoảng ngày")}:{" "}
             <b className="font-semibold tabular-nums text-[var(--color-text)]">
@@ -298,7 +307,7 @@ export default function HistoryTab() {
         />
       )}
 
-      <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden">
+      <div className="c-glass overflow-hidden">
         <div className="p-4 border-b border-[var(--color-border)] flex items-center gap-2">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" size={16} />

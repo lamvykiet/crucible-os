@@ -20,6 +20,8 @@ import AttachTransactionsModal from "./AttachTransactionsModal";
 import { CostPanel, LedgerPanel, CogsTransferModal, type CogsData, type LedgerView } from "./ProjectCostPanels";
 import { costCategoryOf } from "@/lib/projectCost";
 import { en } from "@/lib/plural";
+import PageIntro from "@/components/PageIntro";
+import { PageActions } from "@/components/Scene";
 
 // Hiệu quả dự án: đã bỏ vào bao nhiêu, thu về bao nhiêu, bao giờ hoà vốn.
 //
@@ -253,31 +255,38 @@ export default function ProjectsTab() {
       notes: project.notes ?? "",
     });
 
+  // Câu kết luận cho dự án đang chọn: vốn bỏ vào, doanh thu, lời/lỗ. Âm là "−".
+  const sel = projects?.find((x) => x.id === selectedId) ?? null;
+  const mny = (n: number) => `${n < 0 ? "−" : ""}${compactMoney(Math.abs(n), vi)}`;
+  const lede =
+    projects === null
+      ? ""
+      : projects.length === 0
+        ? t("No projects yet — create one, then tag spending and income to it.", "Chưa có dự án nào — tạo một dự án rồi gắn chi phí và doanh thu vào.")
+        : !sel
+          ? t(`${en(projects.length, "project")} on record.`, `Có ${projects.length} dự án.`)
+          : sel.totals.costCount + sel.totals.revenueCount === 0
+            ? t(`${sel.name} has no spending or income tagged yet.`, `${sel.name} chưa gắn khoản chi hay thu nào.`)
+            : t(
+                `${sel.name}: ${mny(sel.totals.cost)} in, ${mny(sel.totals.revenue)} back — ${sel.totals.profit >= 0 ? "profit" : "loss"} ${mny(Math.abs(sel.totals.profit))}${sel.totals.recoveryPct !== null && sel.totals.profit < 0 ? `, ${Math.round(sel.totals.recoveryPct)}% recovered` : ""}.`,
+                `${sel.name}: bỏ vào ${mny(sel.totals.cost)}, thu về ${mny(sel.totals.revenue)} — ${sel.totals.profit >= 0 ? "lãi" : "lỗ"} ${mny(Math.abs(sel.totals.profit))}${sel.totals.recoveryPct !== null && sel.totals.profit < 0 ? `, đã hoàn ${Math.round(sel.totals.recoveryPct)}% vốn` : ""}.`
+              );
+
   // ------------------------------------------------------------------------
   return (
     <div className="space-y-8">
-      {/* Header */}
-      {/* Nút "+" đứng cùng hàng tiêu đề kể cả trên điện thoại — xếp dọc thì nó
-          rơi xuống một dòng riêng, chừa một khoảng trống lớn trước thẻ dự án. */}
-      <div className="flex flex-row items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="c-h2 c-page-title text-[var(--color-text)]">{t("Projects", "Dự án")}</h2>
-          <p className="text-[var(--color-text-muted)] text-sm mt-1">
-            {t(
-              "Money put in, money earned back, and when it breaks even",
-              "Vốn đã bỏ vào, doanh thu thu về, và bao giờ hoà vốn"
-            )}
-          </p>
-        </div>
+      <PageIntro title={t("Projects", "Dự án")} kicker={t("Money in, money back, break-even", "Vốn bỏ vào · doanh thu · hoà vốn")} lede={lede} />
+      <PageActions>
         <button
+          type="button"
           onClick={() => setProjectDraft(emptyProject())}
           aria-label={t("New project", "Dự án mới")}
-          title={t("New project", "Dự án mới")}
-          className="c-btn c-btn-primary w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5! shrink-0"
+          className="c-btn c-btn-primary"
         >
-          <Plus size={16} /> <span className="hidden md:inline">{t("New project", "Dự án mới")}</span>
+          <Plus size={18} />
+          <span className="c-tl">{t("New project", "Dự án mới")}</span>
         </button>
-      </div>
+      </PageActions>
 
       {error && (
         <p className="text-sm text-[var(--color-error)] bg-[var(--color-error-tint)] rounded-xl p-3">{error}</p>
@@ -306,7 +315,7 @@ export default function ProjectsTab() {
       )}
 
       {listFailed && !projects ? (
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 md:p-8 flex flex-col items-center gap-2 text-center">
+        <div className="c-glass c-gcard flex flex-col items-center gap-2 text-center">
           <h3 className="c-h5 text-[var(--color-text)]">
             {t("Could not load your projects", "Không tải được danh sách dự án")}
           </h3>
@@ -322,7 +331,7 @@ export default function ProjectsTab() {
           <Loader2 size={16} className="animate-spin" aria-hidden /> {t("Loading...", "Đang tải...")}
         </p>
       ) : projects.length === 0 ? (
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 md:p-8 flex flex-col items-center gap-2 text-center">
+        <div className="c-glass c-gcard flex flex-col items-center gap-2 text-center">
           <div className="mb-2 w-12 h-12 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-faint)] flex items-center justify-center" aria-hidden>
             <Hammer size={22} />
           </div>
@@ -544,7 +553,7 @@ function ProjectBody({
   return (
     <div className="space-y-6">
       {/* --- Tên dự án và thao tác --- */}
-      <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-5 min-w-0">
+      <div className="c-glass c-gcard flex flex-col gap-5 min-w-0">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -661,7 +670,7 @@ function ProjectBody({
       </ChartCard>
 
       {!hasMoney ? (
-        <div className="bg-[var(--color-surface)] rounded-2xl p-6 md:p-8 border border-[var(--color-border)] flex flex-col items-center gap-2 text-center">
+        <div className="c-glass c-gcard flex flex-col items-center gap-2 text-center">
           <h3 className="c-h5 text-[var(--color-text)]">
             {t("Nothing tagged to this project yet", "Chưa có khoản nào thuộc dự án này")}
           </h3>
@@ -831,7 +840,7 @@ function ProjectBody({
       )}
       {/* --- Sổ của dự án --- */}
       {transactions.length > 0 && (
-        <div className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-4 min-w-0">
+        <div className="c-glass c-gcard flex flex-col gap-4 min-w-0">
           <header>
             <h4 className="c-h5 text-[var(--color-text)]">{t("Project transactions", "Giao dịch của dự án")}</h4>
           <p className="text-xs text-[var(--color-text-faint)] mt-1">
