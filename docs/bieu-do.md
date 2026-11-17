@@ -24,12 +24,14 @@ bình thường, đừng bịa.
 |---|---|---|
 | 1–4 con số chính | `StatTile` (số + so sánh có mũi tên + kỳ so) | biểu đồ một cột |
 | Xu hướng theo thời gian | đường (1–3 chuỗi) hoặc cột cho từng tháng | vùng tô đậm, nhiều đường chồng |
-| So sánh nhiều mục (nơi chi, nhóm) | **cột ngang xếp hạng**, nhãn số ở đầu cột | cột đứng với nhãn xoay, tròn/donut |
-| Phần trong tổng | cột chồng ngang, ≤ 5 khúc + "Khác" | **pie/donut** (cấm) |
+| So sánh nhiều mục (nơi chi, nhóm) | **cột ngang xếp hạng**, nhãn số ở đầu cột | cột đứng với nhãn xoay |
+| Phần trong tổng (chi theo nhóm theo tuần/tháng/năm) | **vòng cung rời**: cung dày đầu bo tròn, màu theo nhóm, bong bóng icon ở mỗi cung, tổng lớn ở giữa, ≤ 5 nhóm + "Khác", kèm danh sách số tiền và % cạnh vòng | pie đặc, 3D |
 | Hai kỳ cho từng mục | cột kỳ này + **vạch mốc** kỳ trước (kiểu bullet) | hai thanh dài song song |
 | Một mục là trọng tâm | **nhấn**: mục đó màu nhấn, còn lại xám | mỗi mục một màu |
 
-Không bao giờ: biểu đồ hai trục Y, 3D, pie/donut, đổ bóng trong biểu đồ.
+Không bao giờ: biểu đồ hai trục Y, 3D, pie đặc, đổ bóng trong biểu đồ.
+
+Ngày 17/11/2026 chủ dự án bỏ luật cấm biểu đồ tròn: cơ cấu theo nhóm vẽ bằng vòng cung rời như bảng trên; tiến độ một đại lượng (đã chi / ngân sách) dùng vòng nhỏ có %.
 
 ## 3. Dọn rác — mọi thứ không phải dữ liệu đều phải tự chứng minh
 
@@ -79,7 +81,7 @@ Không bao giờ: biểu đồ hai trục Y, 3D, pie/donut, đổ bóng trong bi
 ## 6. Kiểm trước khi xong
 
 - Không còn `strokeDasharray="3 3"` trên lưới, không `<Legend>`, không
-  `PieChart`, không `.c-chart-multi`/`.c-series-*` (đã gỡ khỏi globals.css).
+  `.c-chart-multi`/`.c-series-*` (đã gỡ khỏi globals.css).
 - Mọi `<Bar>`, `<Line>`, `<Area>` có `fill`/`stroke` bằng token `VIZ.*` —
   quên là recharts tô xanh tím mặc định (globals.css có lưới an toàn kéo về
   xám, nhưng đừng dựa vào nó).
