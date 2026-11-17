@@ -127,6 +127,12 @@ diện: làm demo cho chủ dự án duyệt TRƯỚC.
 render bên trong sẽ co vào nó. Đừng gắn `backdrop-filter` thẳng lên thẻ hay tấm
 modal.
 
+**Cũng vì lớp `::before` đó, đừng cho chính `.c-card` cuộn** (`overflow-auto`,
+`overflow-y-auto`). `::before` là `absolute; inset: 0`, trong khung cuộn nó trôi
+theo nội dung: kéo xuống là nền chạy mất, chữ bên dưới lộ ra không có nền (18/11:
+cột mục lục Ngữ pháp). Cần cuộn thì thẻ làm khung `flex flex-col` + `max-h`, phần
+cuộn bọc trong một `div` con `flex-1 min-h-0 overflow-y-auto`.
+
 **`.c-main` KHÔNG được có `z-index`.** Tạo stacking context là mọi modal `z-50`
 bên trong rơi xuống DƯỚI sidebar `z-45` và dock `z-32`. `position: relative` +
 đứng sau trong DOM là đủ. Cũng đừng gắn `position: relative` lên phần tử
