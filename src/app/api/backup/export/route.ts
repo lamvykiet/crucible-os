@@ -14,6 +14,7 @@ export async function GET() {
       transactions,
       budgets,
       categories,
+      netWorthSnapshots,
       materials,
       dictionaryItems,
       flashcards
@@ -21,6 +22,7 @@ export async function GET() {
       prisma.transaction.findMany({ where: { userId }, include: { items: true } }),
       prisma.budget.findMany({ where: { userId } }),
       prisma.category.findMany({ where: { userId } }),
+      prisma.netWorthSnapshot.findMany({ where: { userId }, orderBy: { month: "asc" } }),
       prisma.material.findMany({ where: { userId }, include: { annotations: true } }),
       prisma.dictionaryItem.findMany({ where: { userId } }),
       prisma.flashcard.findMany({ where: { userId } })
@@ -32,7 +34,15 @@ export async function GET() {
       finance: {
         transactions,
         budgets,
-        categories
+        categories,
+        // Cột BigInt không đi qua JSON.stringify được; tiền VND còn xa mới chạm 2^53.
+        netWorthSnapshots: netWorthSnapshots.map((s) => ({
+          ...s,
+          assets: Number(s.assets),
+          debts: Number(s.debts),
+          cash: Number(s.cash),
+          netWorth: Number(s.netWorth),
+        })),
       },
       knowledge: {
         materials,
