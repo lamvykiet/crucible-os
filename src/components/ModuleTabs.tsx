@@ -10,13 +10,10 @@ import { isTabActive, moduleFor } from "@/lib/modules";
  * Dải tab con của function đang mở, lấy từ `src/lib/modules.tsx`.
  *
  * Dùng ở HAI nơi với cùng một danh sách, để web và điện thoại không lệch nhau:
- *   - `side` — CÂY tab con ngay dưới dòng function đang mở trong `Sidebar`
- *              (từ 768px): chữ, thụt vào, nối bằng đường dọc; tab đang chọn
- *              là viên `--action`. Ẩn khi sidebar thu gọn (skill 7.1).
- *   - `rail` — hàng dưới của `MobileTopBar` (điện thoại): rãnh lõm, tab
- *              thường chỉ icon 42×42, tab đang chọn NỞ thành viên icon + chữ
- *              nền màu ô của mảng (skill suong-som-design 7.3). Không có
- *              dock đáy.
+ *   - `side` — nhóm tab trong `Sidebar` (từ 768px): icon + chữ, chữ ẩn khi
+ *              sidebar thu gọn.
+ *   - `rail` — hàng dưới của `MobileTopBar` (điện thoại): chỉ icon, tab đang
+ *              chọn hiện thêm chữ (SKILL.md mục 5).
  *
  * Đọc `useSearchParams()` nên nơi dùng phải bọc `<Suspense>`.
  */
@@ -44,10 +41,7 @@ export default function ModuleTabs({ variant }: { variant: "side" | "rail" }) {
   return (
     <nav
       ref={navRef}
-      className={variant === "side" ? "c-side-tree" : "c-mtabs"}
-      // `data-mod`: tab đang chọn nở thành viên mang màu ô của mảng (skill 7.3)
-      // — màu đặt trong globals.css theo khoá function, không viết hex ở đây.
-      data-mod={current?.key}
+      className={variant === "side" ? "c-side-tabs" : "c-mtabs"}
       aria-label={current ? t(current.en, current.vi) : undefined}
     >
       {tabs.map((tab, i) => {
@@ -62,12 +56,10 @@ export default function ModuleTabs({ variant }: { variant: "side" | "rail" }) {
             aria-current={active ? "page" : undefined}
             aria-label={label}
             title={label}
-            className={`${variant === "side" ? "c-side-sub" : "c-mtab"} ${active ? "active" : ""}`}
+            className={`${variant === "side" ? "c-side-item" : "c-mtab"} ${active ? "active" : ""}`}
           >
-            {/* Cây tab con trong sidebar chỉ có chữ (demo pins-17-11) — icon
-                đã nằm ở dòng function ngay phía trên. */}
-            {variant === "rail" && <Icon size={20} strokeWidth={1.8} aria-hidden />}
-            <span>{label}</span>
+            <Icon size={18} strokeWidth={1.8} />
+            <span className={variant === "side" ? "c-side-text" : undefined}>{label}</span>
           </Link>
         );
       })}

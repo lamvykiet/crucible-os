@@ -1,22 +1,5 @@
 # Hướng thiết kế — rà soát 26/09/2026
 
-> **Màu và phông cảnh đã thay bằng v4 "Sương sớm" — quyết định của chủ dự án
-> ngày 16–17/11/2026.** Nguồn sự thật: skill
-> `.claude/skills/suong-som-design/SKILL.md`, kế hoạch theo màn
-> `docs/redesign-plan-suong-som.md`, demo token đã duyệt
-> `1991-new-design/demo/suong-som/tokens.html` và demo 6 pattern
-> `1991-new-design/demo/suong-som/pins-17-11.html`. Cấu trúc hai tầng, soft UI,
-> font và mọi luật kỹ thuật của v3 (bảng dưới) vẫn giữ.
->
-> | v3 | v4 Sương sớm |
-> |---|---|
-> | Phông cảnh gradient hoàng hôn | Ảnh làng quê `public/scene/suong-som.jpg` dưới lớp veil slate (đậm ở vùng chữ), gradient sương làm dự phòng |
-> | Kính ám nâu 30%, chữ trắng | Kính sương sáng đục (70% ở sáng — chỉnh 17/11 để đạt tương phản trên ảnh thật), chữ tối `--on-glass` |
-> | Hành động nâu mật ong `#542a08` | Slate `#253035` (theme tối: nắng `#D4B27A`) |
-> | Ô pastel mật ong · đào · pistachio · bạch đàn | Nắng nhạt · đất nhạt · sương rêu · khaki nhạt, thêm Knowledge = sương `--mist-100` |
-> | Chữ mực nâu `#2b1f14`, tấm nền kem `#f4efe6` | Chữ mực đêm `#1A242B`, tấm nền sương `#F1EEE7` |
-> | Bricolage + Playfair, tốt xanh / xấu đỏ | **Giữ nguyên** |
->
 > **Đã thay bằng v3 "Mật ong & Bạch đàn" — quyết định của chủ dự án ngày
 > 19/10/2026**, sau 3 vòng demo. Nguồn sự thật: skill `1991-new-design/SKILL.md`
 > (demo `1991-new-design/demo/index.html`, công thức `crucible-v3.css`).

@@ -3,9 +3,9 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Languages, Settings } from "lucide-react";
-import ThemeSwitch from "@/components/ThemeSwitch";
+import { ChevronDown, Languages, Moon, Settings, Sun } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useTheme } from "@/lib/ThemeContext";
 import { useSheetUnderNav } from "@/components/Scene";
 import { MODULES, moduleFor } from "@/lib/modules";
 import ModuleTabs from "@/components/ModuleTabs";
@@ -14,8 +14,7 @@ import ModuleTabs from "@/components/ModuleTabs";
  * Thanh trên cho điện thoại — cùng cấu trúc với `TopNav` của web:
  *
  *   hàng 1: [logo ▾] TÊN FUNCTION                [cài đặt · ngôn ngữ · sáng/tối]
- *   hàng 2: tab con của function đang mở — rãnh lõm, tab chọn nở thành viên
- *           icon + chữ màu ô của mảng (skill suong-som 7.3, `ModuleTabs` rail)
+ *   hàng 2: tab con của function đang mở (chỉ icon, tab chọn hiện chữ)
  *
  * Chạm logo là xổ danh sách MỌI function — đây là lối đổi function DUY NHẤT
  * trên điện thoại (dock dưới đã gỡ 23/10/2026 vì chỉ lặp lại menu này).
@@ -26,6 +25,7 @@ import ModuleTabs from "@/components/ModuleTabs";
 export default function MobileTopBar() {
   const pathname = usePathname();
   const { language, setLanguage, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   const scrolled = useSheetUnderNav();
   const [open, setOpen] = useState(false);
 
@@ -83,7 +83,14 @@ export default function MobileTopBar() {
           >
             <Languages size={20} strokeWidth={1.8} />
           </button>
-          <ThemeSwitch className="c-mtopbar-switch" />
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={t("Toggle theme", "Đổi giao diện sáng/tối")}
+            className="c-mtopbar-btn"
+          >
+            {theme === "dark" ? <Sun size={20} strokeWidth={1.8} /> : <Moon size={20} strokeWidth={1.8} />}
+          </button>
         </div>
       </div>
 

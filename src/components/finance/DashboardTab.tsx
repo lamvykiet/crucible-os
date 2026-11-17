@@ -31,7 +31,6 @@ import ChartCard from "@/components/charts/ChartCard";
 import MetricCard, { type MetricTone } from "@/components/charts/MetricCard";
 import SectionHeader from "@/components/charts/SectionHeader";
 import RankBar, { RankList } from "@/components/charts/RankBar";
-import ScoreGauge from "@/components/charts/ScoreGauge";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,
@@ -554,7 +553,6 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
   // dùng chưa tới một nửa hạn mức.
   const budgetUsedPct =
     totalBudget > 0 ? Math.round((cashOut / totalBudget) * 100) : null;
-
   const maxCategory = categoryBreakdown[0]?.amount || 1;
 
   // Heatmap theo thứ trong tuần, dựng từ chính dailySeries (dữ liệu thật).
@@ -589,78 +587,6 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
   // --- Biểu đồ: câu kết luận tính từ dữ liệu (docs/bieu-do.md §1) -----------
   const vi = language === "vi";
   const money = (n: number) => compactMoney(n, vi);
-
-  // --- Đồng hồ "Ngân sách đã dùng" (P11, skill 7.4) ------------------------
-  // So phần đã dùng với NHỊP NGÀY của tháng: đi được 16/30 ngày thì "đúng
-  // nhịp" là đã dùng ~53%. Tháng đã trọn thì nhịp là 100%.
-  //   BUDGET_PACE_TOLERANCE — lệch nhịp trong ±5 điểm % vẫn gọi là đúng nhịp.
-  //   BUDGET_MIN_TX / BUDGET_MIN_DAYS — tháng đang chạy mà mới ghi dưới 3 khoản
-  //   hoặc mới qua dưới 3 ngày thì chưa đủ để nói nhanh/chậm → `insufficient`.
-  const BUDGET_PACE_TOLERANCE = 5;
-  const BUDGET_MIN_TX = 3;
-  const BUDGET_MIN_DAYS = 3;
-  const budgetPace =
-    isCurrentMonth && daysInMonth > 0 ? Math.round((elapsedDays / daysInMonth) * 100) : 100;
-  const budgetTooEarly =
-    isCurrentMonth &&
-    (data.transactionCount < BUDGET_MIN_TX || elapsedDays < BUDGET_MIN_DAYS) &&
-    (budgetUsedPct ?? 0) <= 100;
-  const budgetGauge = (() => {
-    if (budgetUsedPct === null) {
-      return {
-        insufficient: true,
-        state: "",
-        hint: t("No budget set for this month", "Chưa đặt ngân sách cho tháng này"),
-        delta: null,
-      };
-    }
-    if (budgetTooEarly) {
-      const n = data.transactionCount;
-      return {
-        insufficient: true,
-        state: "",
-        hint:
-          n < BUDGET_MIN_TX
-            ? t(
-                `${n} ${n === 1 ? "entry" : "entries"} so far — need ${BUDGET_MIN_TX} to compare with the month's pace`,
-                `Mới ghi ${n} khoản — cần ít nhất ${BUDGET_MIN_TX} khoản để so với nhịp tháng`
-              )
-            : t(
-                `Only ${elapsedDays} ${elapsedDays === 1 ? "day" : "days"} into the month — too early to judge the pace`,
-                `Tháng mới qua ${elapsedDays} ngày — còn sớm để so nhịp`
-              ),
-        delta: null,
-      };
-    }
-    const gap = budgetUsedPct - budgetPace; // điểm %: dương = tiêu nhanh hơn nhịp
-    const left = totalBudget - cashOut;
-    const daysLeft = Math.max(0, daysInMonth - elapsedDays);
-    let state: string;
-    if (budgetUsedPct > 100) state = t("Over budget", "Đã vượt ngân sách");
-    else if (!isCurrentMonth) state = t("Within budget", "Trong ngân sách");
-    // Dùng nhanh hơn nhịp ⇒ giữ tốc độ này thì cuối tháng vượt hạn mức.
-    else if (gap > BUDGET_PACE_TOLERANCE) state = t("Heading over budget", "Sắp vượt ngân sách");
-    else if (gap < -BUDGET_PACE_TOLERANCE) state = t("Under pace", "Chậm hơn nhịp");
-    else state = t("On pace", "Đúng nhịp");
-
-    const hint =
-      left < 0
-        ? t(`${money(-left)} over the ${money(totalBudget)} budget`, `Vượt ${money(-left)} so với ${money(totalBudget)}`)
-        : isCurrentMonth
-          ? t(`${money(left)} left for ${daysLeft} days`, `Còn ${money(left)} cho ${daysLeft} ngày`)
-          : t(`${money(cashOut)} of ${money(totalBudget)}`, `${money(cashOut)} / ${money(totalBudget)}`);
-
-    // Lệch nhịp: chỉ tháng đang chạy mới có nghĩa. Nhanh hơn nhịp là tin xấu.
-    const delta =
-      isCurrentMonth && budgetUsedPct <= 100
-        ? Math.abs(gap) <= BUDGET_PACE_TOLERANCE
-          ? { text: `${gap > 0 ? "+" : gap < 0 ? "−" : "±"}${Math.abs(gap)}%`, tone: "flat" as const, title: t("vs the month's pace", "so với nhịp ngày") }
-          : gap > 0
-            ? { text: `▲ +${gap}%`, tone: "bad" as const, title: t("faster than the month's pace", "nhanh hơn nhịp ngày") }
-            : { text: `▼ −${-gap}%`, tone: "good" as const, title: t("slower than the month's pace", "chậm hơn nhịp ngày") }
-        : null;
-    return { insufficient: false, state, hint, delta };
-  })();
 
   // Tháng có tự trả nổi không: chỉ xét tháng đã trọn (xem completedMonths).
   const overspentSet = new Set(completedMonths.filter((m) => m.cashOut > m.income).map((m) => m.name));
@@ -905,33 +831,31 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
               </span>
             }
           />
-          {/* Đồng hồ điểm (P11): số đã dùng + vạch nhịp ngày + câu trạng thái.
-              Ít dữ liệu thì "?" kèm việc cần làm, không vẽ 0% hay "—". */}
-          <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] min-w-0">
-            <ScoreGauge
-              value={budgetUsedPct ?? 0}
-              display={budgetUsedPct === null ? undefined : `${budgetUsedPct}%`}
-              label={t("Budget used", "Ngân sách đã dùng")}
-              threshold={isCurrentMonth && budgetUsedPct !== null ? budgetPace : null}
-              insufficient={budgetGauge.insufficient}
-              state={budgetGauge.state}
-              hint={budgetGauge.hint}
-              delta={budgetGauge.delta}
-              action={
-                budgetTooEarly && data.transactionCount < BUDGET_MIN_TX
-                  ? { label: t("Add an entry", "Ghi một khoản"), onClick: () => openAdd("Expense") }
-                  : null
-              }
-              ariaLabel={
-                budgetGauge.insufficient
-                  ? t("Budget used: not enough data", "Ngân sách đã dùng: chưa đủ dữ liệu")
-                  : t(
-                      `Budget used ${budgetUsedPct}% — ${budgetGauge.state}`,
-                      `Đã dùng ${budgetUsedPct}% ngân sách — ${budgetGauge.state}`
-                    )
-              }
-            />
-          </div>
+          <MetricCard
+            className="@container"
+            icon={<Target size={18} />}
+            label={t("Budget used", "Ngân sách đã dùng")}
+            tone={budgetUsedPct === null ? "faint" : badIf(budgetUsedPct > 100)}
+            value={budgetUsedPct === null ? "—" : `${budgetUsedPct}%`}
+            note={
+              budgetUsedPct === null ? (
+                t("no budget set for this month", "chưa đặt ngân sách tháng")
+              ) : (
+                <span className="tabular-nums">
+                  {money(cashOut)} / {money(totalBudget)}
+                </span>
+              )
+            }
+          >
+            {budgetUsedPct !== null && (
+              <RankBar
+                value={cashOut}
+                scale={Math.max(cashOut, totalBudget)}
+                mark={totalBudget}
+                color={budgetUsedPct > 100 ? VIZ.accent : VIZ.muted}
+              />
+            )}
+          </MetricCard>
           {/* Không kẹp về 0 — tháng bội chi phải nhìn thấy được. Chưa ghi đồng
               thu nhập nào thì tỷ lệ không tính được: hiện "0%" đọc như "tiêu
               sạch những gì kiếm được", trong khi sự thật là chưa có gì để chia. */}

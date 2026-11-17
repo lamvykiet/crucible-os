@@ -1,5 +1,7 @@
 # Kế hoạch thiết kế lại Crucible OS — "Sương sớm" (v4)
 
+> **Đã huỷ 17/11/2026.** Chủ dự án thấy hướng này không đẹp; giao diện đã hoàn nguyên về 2a9e37c (v3 Mật ong & Bạch đàn). File này chỉ còn là lịch sử, đừng làm tiếp các mục bên dưới.
+
 Lập ngày 16/11/2026 từ: ảnh chụp màn Home và Tài chính (bản deploy
 `crucible-os-zeta.vercel.app`, chế độ EN), mã nguồn nhánh `main` (`2a9e37c`, 14/11/2026),
 các gợi ý xu hướng đã bàn với chủ dự án, và bảng màu "Sương sớm" chủ dự án

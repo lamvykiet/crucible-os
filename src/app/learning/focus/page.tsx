@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import Pomodoro from "@/components/learning/Pomodoro";
 import { useLanguage } from "@/lib/LanguageContext";
 
-/** Đồng hồ tập trung (trên phông cảnh, xem `Pomodoro`) và giấy nhớ. */
+/** Đồng hồ tập trung và giấy nhớ. */
 export default function Page() {
   const { t } = useLanguage();
 
@@ -15,6 +15,7 @@ export default function Page() {
         <ArrowLeft size={16} />
         {t("Learning Hub", "Learning Hub")}
       </Link>
+      <h1 className="c-h1">{t("Focus", "Tập trung")}</h1>
       <Pomodoro />
     </div>
   );
