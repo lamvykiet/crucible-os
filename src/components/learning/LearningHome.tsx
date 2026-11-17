@@ -5,9 +5,10 @@ import Link from "next/link";
 import {
   FolderOpen, Loader2, AlertCircle, CheckCircle2, ArrowRight,
   CalendarDays, Timer, Palette, Boxes, BarChart3,
-  Layers, Sparkles, BookA,
 } from "lucide-react";
-import SceneSummary from "@/components/SceneSummary";
+import PageIntro from "@/components/PageIntro";
+import { GlassCard } from "@/components/charts/GlassCard";
+import { en } from "@/lib/plural";
 import { useLanguage } from "@/lib/LanguageContext";
 import SubjectGrid from "@/components/learning/SubjectGrid";
 import DailyTasks from "@/components/learning/DailyTasks";
@@ -180,61 +181,25 @@ export default function LearningHome() {
 
   // Tóm tắt trên phông cảnh: việc học cần làm hôm nay, tính từ /overview.
   const tot = data?.totals;
-  const lastExam = data?.attempts?.[0];
-  let sceneTitle = "Learning Hub";
+  // Câu kết luận đầu trang: việc học cần làm hôm nay, tính từ /overview.
+  let lede: string | undefined;
   if (tot) {
-    if (tot.dueCount > 0) sceneTitle = t(`${tot.dueCount} cards due today`, `${tot.dueCount} thẻ cần ôn hôm nay`);
-    else if (tot.reviewedToday > 0) sceneTitle = t(`${tot.reviewedToday} cards reviewed today`, `Đã ôn ${tot.reviewedToday} thẻ hôm nay`);
-    else if (tot.cardCount === 0) sceneTitle = t("No flashcards yet", "Chưa có thẻ ôn nào");
-    else sceneTitle = t("Nothing due today", "Hôm nay không có thẻ tới hạn");
+    const streakTail = tot.streak > 1 ? t(` Streak: ${tot.streak} days.`, ` Chuỗi ${tot.streak} ngày liền.`) : "";
+    if (tot.dueCount > 0) lede = t(`${en(tot.dueCount, "card")} due today${tot.newCount ? `, ${tot.newCount} new` : ""}.`, `${tot.dueCount} thẻ cần ôn hôm nay${tot.newCount ? `, ${tot.newCount} thẻ mới` : ""}.`) + streakTail;
+    else if (tot.reviewedToday > 0) lede = t(`${en(tot.reviewedToday, "card")} reviewed today — nothing left due.`, `Đã ôn ${tot.reviewedToday} thẻ hôm nay — không còn thẻ tới hạn.`) + streakTail;
+    else if (tot.cardCount === 0) lede = t("No flashcards yet — create some in a subject desk.", "Chưa có thẻ ôn nào — tạo thẻ trong bàn học của một môn.");
+    else lede = t("Nothing due today.", "Hôm nay không có thẻ tới hạn.") + streakTail;
   }
-  const v = (n: number | undefined) => (n === undefined ? "—" : String(n));
 
   return (
     <StudySpace>
     <div className="max-w-7xl mx-auto space-y-10 pb-24">
-      <SceneSummary
-        title={sceneTitle}
-        main={{
-          title: t("Review", "Ôn tập"),
-          subtitle: tot ? t(`${tot.reviewedToday} reviewed today`, `${tot.reviewedToday} thẻ đã ôn hôm nay`) : undefined,
-          minis: [
-            { label: t("All cards", "Tổng thẻ"), value: v(tot?.cardCount), icon: Layers },
-            { label: t("New cards", "Thẻ mới"), value: v(tot?.newCount), icon: Sparkles },
-            { label: t("Terms", "Thuật ngữ"), value: v(tot?.termCount), icon: BookA },
-            { label: t("Fields", "Lĩnh vực"), value: v(data?.domains.length), icon: Boxes },
-          ],
-          big: tot ? { value: String(tot.dueCount), unit: t("due", "thẻ") } : null,
-        }}
-        rows={[
-          {
-            title: t("Study streak", "Chuỗi ngày học"),
-            subtitle: t("Days in a row with a review", "Số ngày liền có ôn thẻ"),
-            big: tot ? { value: String(tot.streak), unit: t("days", "ngày") } : null,
-          },
-          {
-            title: t("Latest mock exam", "Bài thi gần nhất"),
-            subtitle: lastExam
-              ? `${lastExam.sourceName} · ${lastExam.correctCount}/${lastExam.questionCount}`
-              : t("No mock exam yet", "Chưa làm bài thi thử nào"),
-            big:
-              lastExam && lastExam.questionCount > 0
-                ? { value: String(Math.round((lastExam.correctCount / lastExam.questionCount) * 100)), unit: "%" }
-                : null,
-          },
-        ]}
+      <PageIntro
+        title={t("Learning", "Học tập")}
+        kicker={<>{greeting}{timeChip ? ` · ${timeChip}` : ""}</>}
+        lede={lede}
+        aside={<div data-tour="bell"><NotificationBell /></div>}
       />
-
-      {/* Lời chào — tên người đang mở, không phải tên màn hình */}
-      <header className="pt-2">
-        <div className="flex items-center gap-2.5 min-h-[22px]">
-          <p className="c-overline">{greeting}</p>
-          {timeChip && <span className="c-chip c-chip-outline">{timeChip}</span>}
-          <div className="ml-auto" data-tour="bell">
-            <NotificationBell />
-          </div>
-        </div>
-      </header>
 
       {error && (
         <div className="c-alert c-alert-error">
@@ -245,7 +210,8 @@ export default function LearningHome() {
 
       {/* Hôm nay */}
       <section data-tour="today" className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="c-card c-elev-md lg:col-span-2 p-6 flex flex-col sm:flex-row sm:items-center gap-6">
+        <GlassCard className="lg:col-span-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-6">
           <div className="flex-1">
             <p className="c-card-kicker">{t("Today", "Hôm nay")}</p>
             {loading ? (
@@ -289,6 +255,7 @@ export default function LearningHome() {
             <ArrowRight size={18} />
           </Link>
         </div>
+        </GlassCard>
 
         <div className="lg:col-span-1" data-tour="challenge">
           <DailyChallenge streak={totals?.streak ?? 0} />
