@@ -92,7 +92,6 @@ svg{display:block}
 :root{--main-l:100px}
 body.pinned{--main-l:284px}
 .main{padding:24px 32px 64px var(--main-l);min-width:0;max-width:1600px}
-body.has-dock .main{padding-bottom:112px}
 /* Thanh trên: ngữ cảnh trái · ô hỏi giữa · nút tròn phải */
 .top{display:grid;grid-template-columns:1fr minmax(280px,440px) 1fr;align-items:center;gap:16px;height:40px;margin-bottom:40px}
 .ctx{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);white-space:nowrap}
@@ -105,15 +104,44 @@ body.has-dock .main{padding-bottom:112px}
 .search input::placeholder{color:var(--muted)}
 .round{width:40px;height:40px;border-radius:50%;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
 .round.btn{padding:0;justify-content:center;background:var(--btn);box-shadow:none}
-/* Dải tab con của function: viên nổi ở đáy khung nội dung */
-.dock{position:fixed;bottom:24px;left:calc(50% + var(--main-l)/2 - 16px);transform:translateX(-50%);z-index:15;display:none;align-items:center;gap:4px;padding:4px;border-radius:24px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line),0 8px 24px rgba(0,0,0,.08)}
-.dock.on{display:flex}
-.dock a{height:36px;padding:0 16px;border-radius:18px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--ink2);white-space:nowrap;transition:background-color 150ms var(--ease),color 150ms var(--ease)}
-.dock a:hover{color:var(--ink)}
-.dock a.on{background:var(--raised);color:var(--ink);box-shadow:var(--shadow)}
-.dock a .cnt{font-size:13px;line-height:16px;font-weight:400;color:var(--muted)}
-.dock .round{width:36px;height:36px;display:grid;place-items:center}
-.dock .round svg{width:16px;height:16px}
+/* Dải tab con của function: nằm ngang ở ĐẦU vùng nội dung (thay dải viên đáy).
+   Trái: tab (icon nét 16px + chữ); tab chọn là viên đặc màu mực. Phải: nút hành động của trang.
+   Nền dải = đúng công thức kính trắng đục của nút Kiệt/Vợ màn Sức khoẻ (--glass, xem TAB KÍNH). */
+.fbar{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+.ftabs{position:relative;z-index:0;flex:0 1 auto;min-width:0;border-radius:14px;padding:4px}
+.ftrack{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;border-radius:10px}
+.ftrack::-webkit-scrollbar{display:none}
+.ftab{height:36px;padding:0 14px;border-radius:10px;display:flex;align-items:center;gap:8px;flex:none;font-size:13px;font-weight:500;color:var(--ink2);white-space:nowrap;transition:background-color 150ms var(--ease),color 150ms var(--ease)}
+.ftab svg{width:16px;height:16px;flex:none}
+.ftab .cnt{font-size:12px;line-height:16px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:grid;place-items:center;background:var(--glass-hair);color:var(--ink)}
+.ftab.on{background:var(--btn);color:var(--btn-ink);box-shadow:0 2px 6px rgba(28,27,25,.18)}
+.ftab.on .cnt{background:rgba(255,255,255,.2);color:var(--btn-ink)}
+html[data-theme="dark"] .ftab.on .cnt{background:rgba(0,0,0,.14)}
+.facts{display:flex;gap:8px;margin-left:auto;flex:none}
+.facts .btn{height:44px;border-radius:14px;padding:0 18px}
+/* ===== Icon "kính nhiều lớp": khối màu sau-phải · tấm kính trắng mờ trước · icon nét màu đậm của khối =====
+   Làm mờ nằm ở ::after (lớp giả), không ở chính phần tử — đúng luật kính của dự án.
+   Mỗi MẢNG một màu đất trầm, không neon/tím/xanh dương: .fin Tài chính · .spend Ăn uống/chi tiêu ·
+   .learn Học tập · .habit Thói quen · .health Sức khoẻ. 40px trong hàng danh sách, 44px trong ô KPI. */
+.gi{--s:40px;position:relative;width:var(--s);height:var(--s);flex:none;display:grid;place-items:center;color:var(--gk);isolation:isolate}
+.gi.k44{--s:44px}
+.gi::before{content:"";position:absolute;z-index:-2;width:68%;height:68%;right:0;top:0;border-radius:10px;background:linear-gradient(135deg,var(--g1),var(--g2))}
+.gi::after{content:"";position:absolute;z-index:-1;inset:14% 14% 0 0;border-radius:12px;background:rgba(255,255,255,.42);
+  -webkit-backdrop-filter:blur(6px) saturate(1.2);backdrop-filter:blur(6px) saturate(1.2);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.55),inset 0 1px 0 rgba(255,255,255,.8),0 6px 14px -8px rgba(60,40,25,.5)}
+.gi svg{width:18px;height:18px;transform:translate(-3px,3px);stroke-width:1.75}
+.gi.k44 svg{width:20px;height:20px;transform:translate(-3px,3px)}
+.gi.fin{--g1:#F1D9A0;--g2:#B98C2E;--gk:#6A4A0E}
+.gi.spend{--g1:#EFBC9E;--g2:#B25E38;--gk:#7A3518}
+.gi.learn{--g1:#E3E8CD;--g2:#98A47A;--gk:#465230}
+.gi.habit{--g1:#E8DDCC;--g2:#A8977D;--gk:#55483A}
+.gi.health{--g1:#F0C6C2;--g2:#A86A6C;--gk:#7A3338}
+html[data-theme="dark"] .gi{--gk:#F3E8D8}
+html[data-theme="dark"] .gi::after{background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),inset 0 1px 0 rgba(255,255,255,.18),0 6px 14px -8px rgba(0,0,0,.6)}
+.stat{position:relative}
+.stat .gi{position:absolute;top:18px;right:20px}
+.stat .l,.stat .v{margin-right:56px}
+.hd .gi{margin-top:2px}
 kbd{margin-left:auto;font-size:12px;line-height:16px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted)}
 .grow{flex:1}
 .iconbtn{width:36px;height:36px;border-radius:var(--radius-ctl);display:grid;place-items:center;position:relative;color:var(--ink2);transition:background-color 150ms var(--ease)}
@@ -223,8 +251,6 @@ th.r,td.r{text-align:right}
 td .p{font-weight:500}
 td .s{color:var(--muted);font-size:13px}
 .who{display:flex;align-items:center;gap:12px}
-.mono{width:36px;height:36px;border-radius:var(--radius-ctl);background:var(--soft);box-shadow:inset 0 0 0 1px var(--line);display:grid;place-items:center;color:var(--ink2);flex:none}
-.mono svg{width:16px;height:16px}
 .amt{font-weight:500}
 .amt.pos{color:var(--good)}
 .stx{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);white-space:nowrap}
@@ -240,10 +266,6 @@ td .s{color:var(--muted);font-size:13px}
 .li .p{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li .s{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .li .r{text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap}
-/* Ô ngày kiểu lịch bloc */
-.cal{width:40px;height:44px;border-radius:var(--radius-row);background:var(--soft);box-shadow:inset 0 0 0 1px var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none;line-height:16px}
-.cal b{font-size:16px;font-weight:500;line-height:20px}
-.cal small{font-size:12px;color:var(--muted)}
 
 /* Nhóm cơ */
 .mrow{display:grid;grid-template-columns:56px 1fr 56px;align-items:center;gap:12px;height:48px;border-bottom:1px solid var(--line)}
@@ -279,7 +301,7 @@ td .s{color:var(--muted);font-size:13px}
 
 /* =====================================================================
    NỀN KÍNH (mặc định duy nhất): cả ứng dụng là MỘT cửa sổ kính mờ trên gradient ấm trung tính.
-   backdrop-filter chỉ ở ::before (cửa sổ, rail, dock). Thẻ là kính sáng ĐỤC,
+   backdrop-filter chỉ ở ::before (cửa sổ, rail, dải tab). Thẻ là kính sáng ĐỤC,
    không tự làm mờ — đủ để chữ ≥ 4.5:1 cả khi phông sáng nhất phía sau.
    ===================================================================== */
 html{--rail-x:32px;--rail-y:104px;--muted:#635E57}
@@ -355,17 +377,11 @@ html[data-theme="dark"]{
 .side .pin{color:var(--glass-muted)}.side .pin:hover{background:var(--glass-hover)}
 .side .sep,.side .foot{border-color:var(--glass-hair)}.side .sep{background:var(--glass-hair)}
 .side .avatar{background:var(--glass-on)}
-/* Dải viên đáy */
-.dock{background:transparent;box-shadow:var(--glass-shadow)}
-.dock::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;background:var(--glass);
-  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:inset 0 0 0 1px var(--glass-edge)}
-.dock a{color:var(--ink2)}
-.dock a:hover{background:var(--glass-hover)}
-.dock a.on{background:var(--glass-on);box-shadow:0 0 0 1px var(--glass-hair),0 1px 2px rgba(60,40,25,.06)}
-.dock a .cnt{color:var(--glass-muted)}
+/* Dải tab đầu trang: CÙNG công thức trắng đục với .seg Kiệt/Vợ ở màn Sức khoẻ */
+.ftab:not(.on):hover{background:var(--glass-hover);color:var(--ink)}
 /* Segmented + chip: kính nhỏ; viền tối 1px để vẫn thấy hình khi nằm trên thẻ trắng */
 .seg,.chip,.mnav{position:relative;z-index:0;background:transparent}
-.seg::before,.chip::before,.mnav::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;background:var(--glass);
+.ftabs::before,.seg::before,.chip::before,.mnav::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;background:var(--glass);
   -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
   box-shadow:inset 0 0 0 1px var(--glass-edge),0 0 0 1px var(--glass-hair)}
 .chip{box-shadow:none;color:var(--ink2)}
@@ -377,10 +393,17 @@ html[data-theme="dark"]{
 @media (max-width:760px){
   .sidewrap{display:none}
   html .win{margin:8px;border-radius:20px;overflow:hidden}
-  .dock,.dock.on{position:static;transform:none;display:none;margin:12px 16px 0;overflow-x:auto;width:calc(100% - 32px);justify-content:flex-start;scrollbar-width:none}
-  .dock.on{display:flex}
-  .dock .round{display:none}
-  body.has-dock .main{padding-bottom:48px}
+  /* Dải tab: cuộn ngang; tab chọn hiện chữ, tab khác chỉ icon; nút hành động thành ô vuông icon */
+  .fbar{gap:8px;margin-bottom:20px}
+  .ftabs{flex:1 1 auto}
+  .ftab{height:40px;padding:0 12px}
+  .ftab:not(.on){width:40px;padding:0;justify-content:center;position:relative}
+  .ftab:not(.on) .tl{display:none}
+  .ftab:not(.on) .cnt{position:absolute;top:2px;right:0;min-width:16px;height:16px;font-size:12px;padding:0 4px}
+  .facts{gap:6px}
+  .facts .btn{width:48px;height:48px;padding:0;justify-content:center}
+  .facts .btn .tl{display:none}
+  .who>div{min-width:0}.who .p,.who .s{max-width:108px;overflow:hidden;text-overflow:ellipsis}
   .main,body.pinned .main{padding:20px 16px 48px}
   .mtop{display:flex;flex-direction:column;gap:12px;background:transparent;padding:12px 16px;border-bottom:1px solid var(--glass-hair);position:sticky;top:0;z-index:4}
   .mtop::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:inset 0 -1px 0 var(--glass-edge)}
@@ -452,9 +475,6 @@ html[data-theme="dark"]{
     </nav>
   </header>
 
-  <!-- Tab con của function: dải viên nổi ở đáy (máy tính) / dải dưới thanh trên (điện thoại) -->
-  <nav class="dock" id="dock" aria-label="Tab con"></nav>
-
   <main class="main">
     <div class="top">
       <div class="ctx"><span class="avatar">K</span><span><b>Kiệt</b> · Hộ gia đình</span></div>
@@ -476,14 +496,14 @@ html[data-theme="dark"]{
       </div>
 
       <div class="grid" style="margin-bottom:16px">
-        <div class="card stat c4 moment"><div class="l">Dòng tiền tháng 11</div><div class="v num">+6.200.000 <span class="u">₫</span></div><div class="n num">Thu 18,6 tr − chi 12,4 tr</div></div>
-        <div class="card stat c4"><div class="l">Việc hôm nay</div><div class="v num">4 <span class="u">/ 7 việc</span></div><div class="n">Còn ôn thẻ, nghe, đọc</div></div>
-        <div class="card stat c4"><div class="l">Thẻ ôn đến hạn</div><div class="v num">24 <span class="u">thẻ</span></div><div class="n">Khoảng 12 phút · 3 bộ thẻ</div></div>
+        <div class="card stat c4 moment"><span class="gi k44 fin"><svg data-i="wallet"></svg></span><div class="l">Dòng tiền tháng 11</div><div class="v num">+6.200.000 <span class="u">₫</span></div><div class="n num">Thu 18,6 tr − chi 12,4 tr</div></div>
+        <div class="card stat c4"><span class="gi k44 habit"><svg data-i="check"></svg></span><div class="l">Việc hôm nay</div><div class="v num">4 <span class="u">/ 7 việc</span></div><div class="n">Còn ôn thẻ, nghe, đọc</div></div>
+        <div class="card stat c4"><span class="gi k44 learn"><svg data-i="cards"></svg></span><div class="l">Thẻ ôn đến hạn</div><div class="v num">24 <span class="u">thẻ</span></div><div class="n">Khoảng 12 phút · 3 bộ thẻ</div></div>
       </div>
 
       <div class="grid">
         <a class="card c8" href="#">
-          <div class="hd"><div class="grow"><div class="t">Tài sản ròng tăng đều 12 tháng<svg data-i="chev"></svg></div><div class="s">Tài sản − nợ, cuối mỗi tháng</div></div></div>
+          <div class="hd"><span class="gi fin"><svg data-i="trend"></svg></span><div class="grow"><div class="t">Tài sản ròng tăng đều 12 tháng<svg data-i="chev"></svg></div><div class="s">Tài sản − nợ, cuối mỗi tháng</div></div></div>
           <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
             <div class="big num">1,62<span class="u">tỷ ₫</span></div>
             <span class="chg"><b class="good">▲ +140 triệu (+9,5%)</b> so với T11/2025</span>
@@ -493,7 +513,7 @@ html[data-theme="dark"]{
         </a>
 
         <a class="card c4 fillcol" href="#">
-          <div class="hd"><div class="grow"><div class="t">Ngân sách tháng 11<svg data-i="chev"></svg></div><div class="s">Đã chi so với nhịp tháng</div></div></div>
+          <div class="hd"><span class="gi spend"><svg data-i="target"></svg></span><div class="grow"><div class="t">Ngân sách tháng 11<svg data-i="chev"></svg></div><div class="s">Đã chi so với nhịp tháng</div></div></div>
           <div style="display:flex;align-items:baseline;gap:8px"><span class="num" style="font-size:28px;line-height:36px;font-weight:500;letter-spacing:-.02em">12,4</span><span class="u">/ 20 triệu ₫</span></div>
           <div class="pace" style="margin-top:12px"><div class="fill" style="width:62%"></div><div class="tick" style="left:57%"></div></div>
           <div class="pace-cap"><span>Đã chi <b class="num">62%</b></span><span>Hôm nay: ngày 17/30</span></div>
@@ -512,10 +532,10 @@ html[data-theme="dark"]{
         <a class="card c5" href="#">
           <div class="hd"><div class="grow"><div class="t">Sắp đến hạn<svg data-i="chev"></svg></div><div class="s">Kỳ trả nợ và hạn thẻ tín dụng</div></div></div>
           <div class="list">
-            <div class="li"><div class="cal"><b>15</b><small>Th11</small></div><div class="grow"><div class="p">Hạn thẻ VIB</div><div class="s num">2.140.000 ₫ · dư nợ kỳ 10</div></div><span class="stx late"><i></i>Quá hạn 2 ngày</span></div>
-            <div class="li"><div class="cal"><b>20</b><small>Th11</small></div><div class="grow"><div class="p">Trả góp vay mua xe</div><div class="s num">4.850.000 ₫ · kỳ 14/36</div></div><span class="stx"><i></i>Còn 3 ngày</span></div>
-            <div class="li"><div class="cal"><b>25</b><small>Th11</small></div><div class="grow"><div class="p">Hạn thẻ Timo</div><div class="s num">6.320.000 ₫ · sao kê 05/11</div></div><span class="stx"><i></i>Còn 8 ngày</span></div>
-            <div class="li"><div class="cal"><b>28</b><small>Th11</small></div><div class="grow"><div class="p">Trả góp điện thoại</div><div class="s num">1.250.000 ₫ · kỳ 5/12</div></div><span class="stx"><i></i>Còn 11 ngày</span></div>
+            <div class="li"><span class="gi fin"><svg data-i="card"></svg></span><div class="grow"><div class="p">Hạn thẻ VIB</div><div class="s num">15/11 · 2.140.000 ₫ · dư nợ kỳ 10</div></div><span class="stx late"><i></i>Quá hạn 2 ngày</span></div>
+            <div class="li"><span class="gi fin"><svg data-i="car"></svg></span><div class="grow"><div class="p">Trả góp vay mua xe</div><div class="s num">20/11 · 4.850.000 ₫ · kỳ 14/36</div></div><span class="stx"><i></i>Còn 3 ngày</span></div>
+            <div class="li"><span class="gi fin"><svg data-i="card"></svg></span><div class="grow"><div class="p">Hạn thẻ Timo</div><div class="s num">25/11 · 6.320.000 ₫ · sao kê 05/11</div></div><span class="stx"><i></i>Còn 8 ngày</span></div>
+            <div class="li"><span class="gi fin"><svg data-i="phone"></svg></span><div class="grow"><div class="p">Trả góp điện thoại</div><div class="s num">28/11 · 1.250.000 ₫ · kỳ 5/12</div></div><span class="stx"><i></i>Còn 11 ngày</span></div>
           </div>
         </a>
       </div>
@@ -523,18 +543,18 @@ html[data-theme="dark"]{
 
     <!-- ================= 2. TÀI CHÍNH ================= -->
     <section class="view" id="taichinh">
+      <div class="fbar" data-f="taichinh"></div>
       <div class="hello">
         <div>
           <div class="eyebrow num">Tháng 11/2026 · tính tới 17/11</div>
           <h1>Tài chính</h1>
           <p class="lede">Chi <b>12,4 triệu</b> trong 17 ngày đầu tháng, nhiều hơn cùng kỳ tháng 10 khoảng <b>8%</b>. Ăn uống chiếm một phần ba.</p>
         </div>
-        <button class="btn ghost"><svg data-i="scan"></svg>Quét hoá đơn</button>
       </div>
 
       <div class="grid">
         <a class="card c5" href="#">
-          <div class="hd"><div class="grow"><div class="t">Chi tiêu tháng 11<svg data-i="chev"></svg></div><div class="s num">1/11 – 17/11</div></div></div>
+          <div class="hd"><span class="gi spend"><svg data-i="wallet"></svg></span><div class="grow"><div class="t">Chi tiêu tháng 11<svg data-i="chev"></svg></div><div class="s num">1/11 – 17/11</div></div></div>
           <div class="big num">12.400.000<span class="u">₫</span></div>
           <div class="chg" style="margin-top:12px;white-space:normal"><b class="bad">▲ +8%</b> so với cùng kỳ tháng 10 (11.480.000 ₫)</div>
           <div class="mini">
@@ -546,21 +566,21 @@ html[data-theme="dark"]{
         </a>
 
         <a class="card c7" href="#">
-          <div class="hd"><div class="grow"><div class="t">Tháng 9 chi nhiều nhất 6 tháng: 16,4 triệu<svg data-i="chev"></svg></div><div class="s">Cao hơn trung bình 5 tháng đủ (14,6 tr) khoảng 1,8 triệu</div></div></div>
+          <div class="hd"><span class="gi spend"><svg data-i="bars"></svg></span><div class="grow"><div class="t">Tháng 9 chi nhiều nhất 6 tháng: 16,4 triệu<svg data-i="chev"></svg></div><div class="s">Cao hơn trung bình 5 tháng đủ (14,6 tr) khoảng 1,8 triệu</div></div></div>
           <div id="sixM" style="margin-top:32px"></div>
         </a>
 
         <a class="card c5" href="#">
-          <div class="hd"><div class="grow"><div class="t">Ăn uống dẫn đầu: 34% chi tháng này<svg data-i="chev"></svg></div><div class="s">Theo nhóm chi, 1/11 – 17/11</div></div></div>
+          <div class="hd"><span class="gi spend"><svg data-i="cup"></svg></span><div class="grow"><div class="t">Ăn uống dẫn đầu: 34% chi tháng này<svg data-i="chev"></svg></div><div class="s">Theo nhóm chi, 1/11 – 17/11</div></div></div>
           <div class="rank" id="rank"></div>
         </a>
 
         <div class="card c7">
           <div class="hd"><div class="grow"><div class="t">3 hoá đơn đang chờ duyệt</div><div class="s">Đã quét và lưu nháp, chưa vào sổ</div></div><button class="btn">Duyệt 3 hoá đơn</button></div>
           <div class="list">
-            <div class="li"><span class="mono"><svg data-i="receipt"></svg></span><div class="grow"><div class="p">Co.opmart Xa Lộ Hà Nội</div><div class="s">Quét lúc 08:12 · gợi ý nhóm Ăn uống</div></div><div class="r num">684.000 ₫</div></div>
-            <div class="li"><span class="mono"><svg data-i="receipt"></svg></span><div class="grow"><div class="p">Pharmacity</div><div class="s">Telegram · hôm qua · gợi ý nhóm Sức khoẻ</div></div><div class="r num">236.000 ₫</div></div>
-            <div class="li"><span class="mono"><svg data-i="receipt"></svg></span><div class="grow"><div class="p">Phúc Long</div><div class="s">Shortcut · 15/11 · có thể trùng 1 giao dịch</div></div><div class="r num">325.000 ₫</div></div>
+            <div class="li"><span class="gi spend"><svg data-i="cart"></svg></span><div class="grow"><div class="p">Co.opmart Xa Lộ Hà Nội</div><div class="s">Quét lúc 08:12 · gợi ý nhóm Ăn uống</div></div><div class="r num">684.000 ₫</div></div>
+            <div class="li"><span class="gi health"><svg data-i="receipt"></svg></span><div class="grow"><div class="p">Pharmacity</div><div class="s">Telegram · hôm qua · gợi ý nhóm Sức khoẻ</div></div><div class="r num">236.000 ₫</div></div>
+            <div class="li"><span class="gi spend"><svg data-i="cup"></svg></span><div class="grow"><div class="p">Phúc Long</div><div class="s">Shortcut · 15/11 · có thể trùng 1 giao dịch</div></div><div class="r num">325.000 ₫</div></div>
           </div>
         </div>
 
@@ -576,6 +596,7 @@ html[data-theme="dark"]{
 
     <!-- ================= 3. SỨC KHOẺ ================= -->
     <section class="view" id="suckhoe">
+      <div class="fbar" data-f="suckhoe"></div>
       <div class="hello">
         <div>
           <div class="eyebrow num">Lần đo gần nhất 14/11/2026 · CiviPay</div>
@@ -586,24 +607,24 @@ html[data-theme="dark"]{
       </div>
 
       <div class="grid" style="margin-bottom:16px">
-        <div class="card stat c4"><div class="l">Cân nặng</div><div class="v num">72,4 <span class="u">kg</span></div><div class="n num"><b style="color:var(--good);font-weight:500">▼ −0,6 kg</b> so với 24/10 · mục tiêu 70 kg</div></div>
-        <div class="card stat c4"><div class="l">Tỷ lệ mỡ (PBF)</div><div class="v num">18,2 <span class="u">%</span></div><div class="n num">−0,3 điểm so với 24/10 · trong sai số máy</div></div>
-        <div class="card stat c4"><div class="l">Buổi tập tuần này</div><div class="v num">1 <span class="u">/ 4 buổi</span></div>
+        <div class="card stat c4"><span class="gi k44 health"><svg data-i="scale"></svg></span><div class="l">Cân nặng</div><div class="v num">72,4 <span class="u">kg</span></div><div class="n num"><b style="color:var(--good);font-weight:500">▼ −0,6 kg</b> so với 24/10 · mục tiêu 70 kg</div></div>
+        <div class="card stat c4"><span class="gi k44 health"><svg data-i="drop"></svg></span><div class="l">Tỷ lệ mỡ (PBF)</div><div class="v num">18,2 <span class="u">%</span></div><div class="n num">−0,3 điểm so với 24/10 · trong sai số máy</div></div>
+        <div class="card stat c4"><span class="gi k44 health"><svg data-i="dumbbell"></svg></span><div class="l">Buổi tập tuần này</div><div class="v num">1 <span class="u">/ 4 buổi</span></div>
           <div class="pace" style="margin-top:12px"><div class="fill" style="width:25%"></div><div class="tick" style="left:28.6%"></div></div>
           <div class="n">Hôm nay: ngày 2/7 · tuần trước 4/4</div></div>
       </div>
 
       <div class="grid">
         <a class="card c8" href="#">
-          <div class="hd"><div class="grow"><div class="t">Tuần trước tập 170 phút, vượt mốc 150<svg data-i="chev"></svg></div><div class="s">Phút tập mỗi tuần, 8 tuần gần nhất</div></div></div>
+          <div class="hd"><span class="gi health"><svg data-i="bars"></svg></span><div class="grow"><div class="t">Tuần trước tập 170 phút, vượt mốc 150<svg data-i="chev"></svg></div><div class="s">Phút tập mỗi tuần, 8 tuần gần nhất</div></div></div>
           <div id="weekBars" style="margin-top:32px"></div>
         </a>
         <div class="card c4">
-          <div class="hd"><div class="grow"><div class="t">Chân thiếu 4 hiệp tuần này</div><div class="s">Hiệp mỗi nhóm cơ, 7 ngày qua · mốc 10</div></div></div>
+          <div class="hd"><span class="gi health"><svg data-i="dumbbell"></svg></span><div class="grow"><div class="t">Chân thiếu 4 hiệp tuần này</div><div class="s">Hiệp mỗi nhóm cơ, 7 ngày qua · mốc 10</div></div></div>
           <div id="muscles"></div>
         </div>
         <div class="card c12">
-          <div class="hd"><div class="grow"><div class="t">Buổi tập gần đây</div><div class="s">Nhập tay và từ ảnh Hevy</div></div><button class="btn ghost"><svg data-i="plus"></svg>Thêm buổi tập</button></div>
+          <div class="hd"><div class="grow"><div class="t">Buổi tập gần đây</div><div class="s">Nhập tay và từ ảnh Hevy</div></div></div>
           <table>
             <thead><tr><th>Buổi tập</th><th class="hide-m r">Thời lượng</th><th class="hide-m r">Bài · hiệp</th><th class="hide-m r">Khối lượng</th><th class="r">Kỷ lục mới</th></tr></thead>
             <tbody id="wkRows"></tbody>
@@ -642,7 +663,19 @@ const I={
  car:'<path d="M5 16V12l2-5h10l2 5v4zM5 16v2M19 16v2M5 12h14"/>',
  bag:'<path d="M6 8h12l-1 12H7zM9 8V6a3 3 0 0 1 6 0v2"/>',
  cash:'<rect x="3" y="6" width="18" height="12" rx="3"/><circle cx="12" cy="12" r="2.5"/>',
- bolt:'<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>'
+ bolt:'<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
+ grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>',
+ list:'<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
+ target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/>',
+ folder:'<path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
+ scale:'<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 10a5 5 0 0 1 7 0M12 10l1.2-1.6"/>',
+ trophy:'<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.5a2.5 2.5 0 0 0 2.8 3.9M16 6h2.5a2.5 2.5 0 0 1-2.8 3.9M12 13v4M8.5 20h7M10 17h4"/>',
+ drop:'<path d="M12 3.5s6 6.4 6 10.5a6 6 0 0 1-12 0c0-4.1 6-10.5 6-10.5z"/>',
+ trend:'<path d="M4 17l5-5 4 3 7-8"/><path d="M15 7h5v5"/>',
+ bars:'<path d="M5 20v-8M10 20V6M15 20v-9M20 20V9"/>',
+ card:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/>',
+ phone:'<rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/>',
+ image:'<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.5"/><path d="m20.5 16-5-5-8.5 8.5"/>'
 };
 const paint=s=>{s.setAttribute('viewBox','0 0 24 24');s.setAttribute('fill','none');s.setAttribute('stroke','currentColor');s.setAttribute('stroke-width','1.5');s.setAttribute('stroke-linecap','round');s.setAttribute('stroke-linejoin','round');s.innerHTML=I[s.dataset.i]||'';};
 const ic=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${I[n]}</svg>`;
@@ -659,7 +692,9 @@ const recent=[
  {sup:'Shopee',grp:'Mua sắm',sub:'Đồ gia dụng',acc:'VIB',d:'14/11',a:-349000,i:'bag'},
  {sup:'Lương tháng 11',grp:'Thu nhập',sub:'Lương',acc:'Vietcombank',d:'05/11',a:18600000,i:'cash'},
 ];
-const rowTx=(t,status)=>`<tr><td><div class="who"><span class="mono">${ic(t.i)}</span><div><div class="p">${t.sup}</div><div class="s only-m">${t.grp} · ${t.d}${t.st==='wait'?' · chờ duyệt':''}</div></div></div></td>
+/* Mảng → màu khối của icon kính */
+const dom=g=>g==='Thu nhập'?'fin':g==='Sức khoẻ'?'health':'spend';
+const rowTx=(t,status)=>`<tr><td><div class="who"><span class="gi ${dom(t.grp)}">${ic(t.i)}</span><div><div class="p">${t.sup}</div><div class="s only-m">${t.grp} · ${t.d}${t.st==='wait'?' · chờ duyệt':''}</div></div></div></td>
  <td class="hide-m">${t.grp}<div class="s">${t.sub}</div></td>${status!==undefined?`<td class="hide-m">${t.acc}</td>`:''}<td class="hide-m num">${t.d}</td>
  ${status!==undefined?`<td class="hide-m">${status}</td>`:''}<td class="r num amt ${t.a>0?'pos':''}">${vnd(t.a,true)} ₫</td></tr>`;
 document.getElementById('recentRows').innerHTML=recent.map(t=>rowTx(t)).join('');
@@ -740,7 +775,7 @@ const wk=[
  {t:'Pull A',d:'Thứ Tư 11/11',min:46,ex:6,sets:19,vol:'7.150',pr:'Bent Over Row · 1RM 74 kg'},
  {t:'Push B',d:'Thứ Hai 9/11',min:42,ex:5,sets:16,vol:'5.960',pr:''},
 ];
-document.getElementById('wkRows').innerHTML=wk.map(w=>`<tr><td><div class="who"><span class="mono">${ic('dumbbell')}</span><div><div class="p">${w.t}</div><div class="s">${w.d}</div></div></div></td>
+document.getElementById('wkRows').innerHTML=wk.map(w=>`<tr><td><div class="who"><span class="gi health">${ic('dumbbell')}</span><div><div class="p">${w.t}</div><div class="s">${w.d}</div></div></div></td>
  <td class="hide-m r num">${w.min} phút</td><td class="hide-m r num">${w.ex} · ${w.sets}</td><td class="hide-m r num">${w.vol} kg</td>
  <td class="r num">${w.pr?`<span style="font-weight:500">${w.pr}</span>`:'<span class="u" style="font-size:13px">Không</span>'}</td></tr>`).join('');
 
@@ -754,12 +789,16 @@ let show=function(v){document.querySelectorAll('.view').forEach(s=>s.classList.t
 function theme(t){root.dataset.theme=t;const s=document.querySelector('#themeBtn svg');s.dataset.i=t==='dark'?'sun':'moon';paint(s);}
 function pin(on){side.classList.toggle('pinned',on);document.body.classList.toggle('pinned',on);
  document.getElementById('pinBtn').setAttribute('aria-label',on?'Bỏ ghim thanh bên':'Ghim thanh bên');try{localStorage.setItem('crucible-pin',on?'1':'')}catch(e){}}
-const DOCK={
- taichinh:{tabs:[['Bảng điều khiển'],['Sổ giao dịch'],['Ngân sách'],['Dự án'],['Hoá đơn chờ duyệt','3']],add:'Ghi giao dịch'},
- suckhoe:{tabs:[['Tổng quan'],['Số đo cơ thể'],['Buổi tập'],['Kỷ lục']],add:'Thêm buổi tập'}};
-function dock(v){const d=document.getElementById('dock'),c=DOCK[v];d.classList.toggle('on',!!c);document.body.classList.toggle('has-dock',!!c);if(!c)return;
- d.innerHTML=c.tabs.map(([t,n],i)=>`<a href="#" class="${i?'':'on'}">${t}${n?`<span class="cnt">${n}</span>`:''}</a>`).join('')+`<button class="btn round" aria-label="${c.add}" title="${c.add}">${ic('plus')}</button>`;}
-const _show=show;show=v=>{_show(v);dock(v);};
+/* Dải tab con đầu trang: [icon, chữ, số đếm] · nút hành động [icon, chữ, kiểu] */
+const FBAR={
+ taichinh:{tabs:[['grid','Bảng điều khiển'],['list','Sổ giao dịch'],['target','Ngân sách'],['folder','Dự án'],['receipt','Hoá đơn chờ duyệt','3']],
+  acts:[['scan','Quét hoá đơn','ghost'],['plus','Thêm giao dịch','']]},
+ suckhoe:{tabs:[['grid','Tổng quan'],['scale','Số đo cơ thể'],['dumbbell','Buổi tập'],['trophy','Kỷ lục']],
+  acts:[['image','Nhập ảnh Hevy','ghost'],['plus','Thêm buổi tập','']]}};
+document.querySelectorAll('.fbar[data-f]').forEach(el=>{const c=FBAR[el.dataset.f];
+ el.innerHTML=`<nav class="ftabs" aria-label="Tab con"><div class="ftrack">${c.tabs.map(([i,t,n],k)=>`<a href="#" class="ftab${k?'':' on'}"${k?'':' aria-current="page"'} title="${t}" aria-label="${t}${n?`, ${n}`:''}">${ic(i)}<span class="tl">${t}</span>${n?`<span class="cnt">${n}</span>`:''}</a>`).join('')}</div></nav>`
+  +`<div class="facts">${c.acts.map(([i,t,k])=>`<button class="btn ${k}" title="${t}" aria-label="${t}">${ic(i)}<span class="tl">${t}</span></button>`).join('')}</div>`;});
+document.querySelectorAll('.ftab').forEach(a=>a.onclick=e=>{e.preventDefault();const tr=a.parentElement;tr.querySelectorAll('.ftab').forEach(x=>{x.classList.toggle('on',x===a);x===a?x.setAttribute('aria-current','page'):x.removeAttribute('aria-current')});});
 /* Rail: rê nhanh → tooltip; dừng 300ms → bung */
 const tip=document.getElementById('ntip');let tOpen,tClose;
 side.addEventListener('mouseenter',()=>{clearTimeout(tClose);tOpen=setTimeout(()=>{side.classList.add('open');tip.classList.remove('on')},300)});
