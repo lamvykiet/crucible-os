@@ -6,8 +6,18 @@
 <title>Crucible OS — demo giao diện sạch, bản unslop (dữ liệu mẫu)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap&subset=vietnamese" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+/* =====================================================================
+   Chữ: MỘT family giao diện (Be Vietnam Pro — dấu tiếng Việt vẽ riêng, không
+   ghép). Bản trên Google Fonts KHÔNG có tabular-nums, nên "Số" là một
+   @font-face chỉ phủ CHỮ SỐ (unicode-range U+0030-0039) lấy từ Inter. Chỉ
+   các chỗ .num / cột tiền / nhãn trục dùng --fig: số mượn Inter (có tnum),
+   chữ Việt đi kèm vẫn rơi về Be Vietnam Pro. Không còn serif, không mono.
+   ===================================================================== */
+@font-face{font-family:"So";font-style:normal;font-weight:100 900;font-display:swap;
+  src:url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2) format("woff2");
+  unicode-range:U+0030-0039}
 /* =====================================================================
    Token — một thang trung tính hơi ấm (giấy sổ), MỘT màu nhấn lá cây.
    Màu nhấn ≠ --good: nhấn là lá ô-liu (hue ~105°), tốt là xanh rêu
@@ -26,7 +36,7 @@
   --shadow:0 1px 2px rgba(0,0,0,.05);
   --float:drop-shadow(0 1px 2px rgba(0,0,0,.05)) drop-shadow(0 8px 24px rgba(0,0,0,.07));
   --ease:cubic-bezier(.22,1,.36,1);
-  --sans:Inter,system-ui,sans-serif; --serif:Newsreader,Georgia,serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+  --sans:"Be Vietnam Pro",system-ui,sans-serif; --fig:"So","Be Vietnam Pro",system-ui,sans-serif;
 }
 html[data-theme="dark"]{
   --bg:#121110; --card:#1A1917; --soft:#1F1E1B; --raised:#272522;
@@ -41,8 +51,8 @@ html[data-theme="dark"]{
 
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg)}
-body{font-family:var(--sans);color:var(--ink);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased;font-feature-settings:"cv11"}
-.num{font-variant-numeric:tabular-nums}
+body{font-family:var(--sans);color:var(--ink);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.num,.vlab,.yl,.reflab,.days .val,.rank .amt,.li .r,.mrow .r,.area .tip,td.r,.cnt,kbd{font-family:var(--fig);font-variant-numeric:tabular-nums}
 button,a{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-decoration:none}
 svg{display:block}
 .u{color:var(--muted);font-weight:400}
@@ -52,10 +62,9 @@ svg{display:block}
    Bung bằng clip-path (không đổi width), bóng nằm ở lớp bọc để không bị cắt. */
 /* Rail chỉ cao bằng phần nội dung của nó, không chạy hết màn. Rê nhanh qua icon → tooltip;
    dừng ~300ms → bung danh sách đầy đủ (JS gắn .open). */
-.sidewrap{position:fixed;left:var(--rail-x,12px);top:var(--rail-y,88px);width:248px;z-index:20;pointer-events:none;filter:var(--float)}
-.side{position:relative;pointer-events:auto;background:var(--card);border-radius:var(--radius-panel);padding:12px;display:flex;flex-direction:column;
+.sidewrap{position:fixed;left:var(--rail-x,12px);top:var(--rail-y,88px);width:248px;z-index:20;pointer-events:none}
+.side{position:relative;z-index:3;pointer-events:auto;border-radius:var(--radius-panel);padding:12px;display:flex;flex-direction:column;
   clip-path:inset(0 184px 0 0 round 32px);transition:clip-path 220ms var(--ease)}
-html[data-theme="dark"] .side{box-shadow:inset 0 0 0 1px var(--line)}
 .side:is(.open,:focus-within,.pinned){clip-path:inset(0 0 0 0 round var(--radius-panel))}
 .side .lbl{opacity:0;transition:opacity 160ms var(--ease)}
 .side:is(.open,:focus-within,.pinned) .lbl{opacity:1}
@@ -73,14 +82,7 @@ html[data-theme="dark"] .side{box-shadow:inset 0 0 0 1px var(--line)}
 .nav:hover{background:var(--soft);color:var(--ink)}
 .nav.on{background:var(--raised);color:var(--ink)}
 .nav.on svg{color:var(--acc)}
-.nav .cnt{margin-left:auto;font:400 12px/16px var(--mono);color:var(--muted)}
-/* Tab con: đường cây chạy đúng cột icon — ở rail vẫn thấy đường và chấm mục đang chọn */
-.sub{display:none;flex-direction:column;gap:2px;margin:2px 0 4px 20px;border-left:1px solid var(--line)}
-.sub.open{display:flex}
-.sub a{position:relative;height:32px;display:flex;align-items:center;padding-left:24px;color:var(--muted);font-size:13px;white-space:nowrap;border-radius:var(--radius-row)}
-.sub a:hover{color:var(--ink)}
-.sub a.on{color:var(--ink);font-weight:500}
-.sub a.on::before{content:"";position:absolute;left:-3px;top:13px;width:5px;height:5px;border-radius:50%;background:var(--acc)}
+.nav .cnt{margin-left:auto;font-size:13px;line-height:16px;color:var(--muted)}
 .sep{height:1px;background:var(--line);margin:12px 4px}
 .side .foot{display:flex;align-items:center;gap:12px;padding:12px 4px 0;margin-top:12px;border-top:1px solid var(--line);white-space:nowrap}
 .avatar{width:32px;height:32px;border-radius:50%;background:var(--raised);display:grid;place-items:center;font-weight:500;font-size:13px;flex:none}
@@ -105,15 +107,14 @@ body.has-dock .main{padding-bottom:112px}
 .round.btn{padding:0;justify-content:center;background:var(--btn);box-shadow:none}
 /* Dải tab con của function: viên nổi ở đáy khung nội dung */
 .dock{position:fixed;bottom:24px;left:calc(50% + var(--main-l)/2 - 16px);transform:translateX(-50%);z-index:15;display:none;align-items:center;gap:4px;padding:4px;border-radius:24px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line),0 8px 24px rgba(0,0,0,.08)}
-html[data-theme="dark"] .dock{box-shadow:inset 0 0 0 1px var(--line)}
 .dock.on{display:flex}
 .dock a{height:36px;padding:0 16px;border-radius:18px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--ink2);white-space:nowrap;transition:background-color 150ms var(--ease),color 150ms var(--ease)}
 .dock a:hover{color:var(--ink)}
 .dock a.on{background:var(--raised);color:var(--ink);box-shadow:var(--shadow)}
-.dock a .cnt{font:400 12px/16px var(--mono);color:var(--muted)}
+.dock a .cnt{font-size:13px;line-height:16px;font-weight:400;color:var(--muted)}
 .dock .round{width:36px;height:36px;display:grid;place-items:center}
 .dock .round svg{width:16px;height:16px}
-kbd{margin-left:auto;font:400 12px/16px var(--mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted)}
+kbd{margin-left:auto;font-size:12px;line-height:16px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted)}
 .grow{flex:1}
 .iconbtn{width:36px;height:36px;border-radius:var(--radius-ctl);display:grid;place-items:center;position:relative;color:var(--ink2);transition:background-color 150ms var(--ease)}
 .iconbtn:hover{background:var(--card)}
@@ -129,7 +130,7 @@ kbd{margin-left:auto;font:400 12px/16px var(--mono);border:1px solid var(--line)
 
 /* ===== Đầu màn ===== */
 .hello{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:32px}
-h1{font-family:var(--serif);font-size:44px;font-weight:400;letter-spacing:-.02em;line-height:48px}
+h1{font-size:40px;font-weight:500;letter-spacing:-.025em;line-height:48px}
 .lede{margin-top:12px;color:var(--ink2);font-size:16px;line-height:24px;max-width:640px}
 .lede b{font-weight:500;color:var(--ink)}
 .eyebrow{color:var(--muted);font-size:13px;margin-bottom:8px}
@@ -275,77 +276,125 @@ td .s{color:var(--muted);font-size:13px}
 @keyframes enter{from{opacity:0;transform:translateY(8px)}}
 @media (prefers-reduced-motion:reduce){.view.on{animation:none}.side{transition:none}a.card:hover{transform:none}}
 
-/* Nút chuyển phương án nền — chỉ có trong demo */
-.demo-ctl{position:fixed;left:16px;bottom:12px;z-index:30;display:flex;align-items:center;gap:8px}
-.demo-ctl .mock{position:static}
-.demo-ctl .seg{height:32px;box-shadow:inset 0 0 0 1px var(--line)}
-.demo-ctl .seg button{height:28px;font-size:12px;padding:0 8px}
 
 /* =====================================================================
-   PHƯƠNG ÁN NỀN "KÍNH": cả ứng dụng là MỘT cửa sổ kính mờ trên phông nội thất ấm.
+   NỀN KÍNH (mặc định duy nhất): cả ứng dụng là MỘT cửa sổ kính mờ trên gradient ấm trung tính.
    backdrop-filter chỉ ở ::before (cửa sổ, rail, dock). Thẻ là kính sáng ĐỤC,
    không tự làm mờ — đủ để chữ ≥ 4.5:1 cả khi phông sáng nhất phía sau.
    ===================================================================== */
-.scene,.win-bg{display:none}
-html[data-bg="kinh"]{--rail-x:32px;--rail-y:104px;--muted:#635E57}
-html[data-bg="kinh"] body{--main-l:104px}
-html[data-bg="kinh"] body.pinned{--main-l:288px}
-html[data-bg="kinh"],html[data-bg="kinh"] body{background:#CDBBA6}
+html{--rail-x:32px;--rail-y:104px;--muted:#635E57}
+html body{--main-l:104px}
+html body.pinned{--main-l:288px}
+html,html body{background:#CDBBA6}
 /* Chỗ đặt ảnh nội thất thật (chủ dự án cung cấp): .scene{background:url(/scene/noi-that.jpg) center/cover}
    Tạm dựng bằng gradient ấm trung tính, làm mờ — không tím, không xanh. */
-html[data-bg="kinh"] .scene{display:block;position:fixed;inset:-80px;z-index:0;filter:blur(36px);
+html .scene{display:block;position:fixed;inset:-80px;z-index:0;filter:blur(36px);
   background:
    radial-gradient(40% 55% at 82% 18%,#F6EEE3 0%,transparent 70%),
    radial-gradient(30% 70% at 8% 40%,#7A5C45 0%,transparent 72%),
    radial-gradient(35% 40% at 30% 92%,#5E4636 0%,transparent 70%),
    radial-gradient(45% 45% at 70% 88%,#B4977A 0%,transparent 70%),
    linear-gradient(180deg,#D8C7B3,#C4AE96)}
-html[data-bg="kinh"] .win{position:relative;z-index:1;margin:16px;min-height:calc(100vh - 32px);border-radius:28px}
-html[data-bg="kinh"] .win::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;
+html .win{position:relative;z-index:1;margin:16px;min-height:calc(100vh - 32px);border-radius:28px}
+html .win::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;
   background:rgba(250,246,240,.46);-webkit-backdrop-filter:blur(28px) saturate(1.05);backdrop-filter:blur(28px) saturate(1.05);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.55),0 24px 64px rgba(60,40,25,.18)}
-html[data-bg="kinh"] .card{background:rgba(255,255,255,.72);box-shadow:inset 0 0 0 1px rgba(255,255,255,.7),0 1px 2px rgba(60,40,25,.06)}
-html[data-bg="kinh"] a.card:hover{background:rgba(255,255,255,.84)}
-html[data-bg="kinh"] .search,html[data-bg="kinh"] .round:not(.btn){background:rgba(255,255,255,.62);box-shadow:inset 0 0 0 1px rgba(255,255,255,.7)}
-html[data-bg="kinh"] .sidewrap{filter:drop-shadow(0 8px 24px rgba(60,40,25,.14))}
-html[data-bg="kinh"] .side{background:rgba(255,255,255,.78)}
-html[data-bg="kinh"] .dock{background:transparent;box-shadow:0 8px 24px rgba(60,40,25,.16)}
-html[data-bg="kinh"] .dock::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;background:rgba(255,255,255,.6);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.7)}
-html[data-bg="kinh"] .dock a.on{background:#FFFFFF}
+html .card{background:rgba(255,255,255,.72);box-shadow:inset 0 0 0 1px rgba(255,255,255,.7),0 1px 2px rgba(60,40,25,.06)}
+html a.card:hover{background:rgba(255,255,255,.84)}
+html .search,html .round:not(.btn){background:rgba(255,255,255,.62);box-shadow:inset 0 0 0 1px rgba(255,255,255,.7)}
 /* Khoảnh khắc duy nhất: một thẻ đặc màu nhấn */
-html[data-bg="kinh"] .card.moment{background:var(--acc);box-shadow:0 8px 24px rgba(40,60,30,.18)}
-html[data-bg="kinh"] .card.moment .l,html[data-bg="kinh"] .card.moment .n,html[data-bg="kinh"] .card.moment .u{color:rgba(255,255,255,.82)}
-html[data-bg="kinh"] .card.moment .v{color:#FFFFFF}
-html[data-bg="kinh"][data-theme="dark"],html[data-bg="kinh"][data-theme="dark"] body{background:#2A221C}
-html[data-bg="kinh"][data-theme="dark"]{--muted:#9A948A}
-html[data-bg="kinh"][data-theme="dark"] .scene{opacity:.45}
-html[data-bg="kinh"][data-theme="dark"] .win::before{background:rgba(22,20,18,.62);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
-html[data-bg="kinh"][data-theme="dark"] .card,html[data-bg="kinh"][data-theme="dark"] .side{background:rgba(30,28,25,.78);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
-html[data-bg="kinh"][data-theme="dark"] .search,html[data-bg="kinh"][data-theme="dark"] .round:not(.btn){background:rgba(30,28,25,.7);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
-html[data-bg="kinh"][data-theme="dark"] .dock::before{background:rgba(30,28,25,.7)}
-html[data-bg="kinh"][data-theme="dark"] .dock a.on{background:var(--raised)}
-html[data-bg="kinh"][data-theme="dark"] .card.moment{background:#2F5424}
+html .card.moment{background:var(--acc);box-shadow:0 8px 24px rgba(40,60,30,.18)}
+html .card.moment .l,html .card.moment .n,html .card.moment .u{color:rgba(255,255,255,.82)}
+html .card.moment .v{color:#FFFFFF}
+html[data-theme="dark"],html[data-theme="dark"] body{background:#2A221C}
+html[data-theme="dark"]{--muted:#9A948A}
+html[data-theme="dark"] .scene{opacity:.45}
+html[data-theme="dark"] .win::before{background:rgba(22,20,18,.62);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+html[data-theme="dark"] .card{background:rgba(30,28,25,.78);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+html[data-theme="dark"] .search,html[data-theme="dark"] .round:not(.btn){background:rgba(30,28,25,.7);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+html[data-theme="dark"] .card.moment{background:#2F5424}
+
+/* =====================================================================
+   TAB KÍNH: panel sidebar, rail, dải viên đáy, segmented, chip, thanh trên
+   điện thoại. Nền trắng mờ 62%, làm mờ ở ::before (KHÔNG ở chính phần tử,
+   và tổ tiên không được có filter/clip-path/opacity — chúng chặn backdrop),
+   viền sáng 1px, bóng mềm. Chữ trên kính dùng --ink2/--glass-muted, đo
+   ≥ 4.5:1 cả khi đè thẻ trắng lẫn vệt tối nhất của gradient.
+   ===================================================================== */
+:root{
+  --glass:rgba(255,255,255,.62); --glass-blur:blur(24px) saturate(1.5);
+  --glass-edge:rgba(255,255,255,.8); --glass-hair:rgba(60,40,25,.10);
+  --glass-shadow:0 0 0 1px var(--glass-hair),0 10px 30px rgba(60,40,25,.14);
+  --glass-on:rgba(255,255,255,.92); --glass-hover:rgba(255,255,255,.55);
+  --glass-muted:#524D46;
+}
+html[data-theme="dark"]{
+  --glass:rgba(34,31,28,.6); --glass-edge:rgba(255,255,255,.12); --glass-hair:rgba(0,0,0,.3);
+  --glass-shadow:0 0 0 1px var(--glass-hair),0 10px 30px rgba(0,0,0,.3);
+  --glass-on:rgba(255,255,255,.12); --glass-hover:rgba(255,255,255,.06);
+  --glass-muted:#B8B2A8;
+}
+/* Sidebar: kính là ::before của .sidewrap (anh em của .side), vì .side cần
+   clip-path để thu thành rail mà clip-path ở tổ tiên thì tắt backdrop.
+   ::before = kính, cắt theo hình rail/panel; ::after = viền sáng + bóng, co giãn bề ngang. */
+.sidewrap::before,.sidewrap::after{content:"";position:absolute;left:0;top:0;bottom:0;pointer-events:none}
+.sidewrap::before{z-index:1;width:248px;border-radius:var(--radius-panel);background:var(--glass);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+  clip-path:inset(0 184px 0 0 round 32px);transition:clip-path 220ms var(--ease)}
+.sidewrap::after{z-index:2;width:64px;border-radius:32px;box-shadow:inset 0 0 0 1px var(--glass-edge),var(--glass-shadow);
+  transition:width 220ms var(--ease),border-radius 220ms var(--ease)}
+.sidewrap:has(.side:is(.open,:focus-within,.pinned))::before{clip-path:inset(0 0 0 0 round var(--radius-panel))}
+.sidewrap:has(.side:is(.open,:focus-within,.pinned))::after{width:248px;border-radius:var(--radius-panel)}
+.side .nav{color:var(--ink2)}
+/* Rail: viên mục đang chọn gọn trong cột icon, không bị cắt ở mép */
+.side:not(.open,:focus-within,.pinned) .nav{width:40px}
+.side .nav:hover{background:var(--glass-hover)}
+.side .nav.on{background:var(--glass-on);box-shadow:0 0 0 1px var(--glass-hair),0 1px 2px rgba(60,40,25,.06)}
+.side .nav svg,.side .nav .cnt,.side .foot small{color:var(--glass-muted)}
+.side .nav.on svg{color:var(--acc)}
+.side .pin{color:var(--glass-muted)}.side .pin:hover{background:var(--glass-hover)}
+.side .sep,.side .foot{border-color:var(--glass-hair)}.side .sep{background:var(--glass-hair)}
+.side .avatar{background:var(--glass-on)}
+/* Dải viên đáy */
+.dock{background:transparent;box-shadow:var(--glass-shadow)}
+.dock::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;background:var(--glass);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:inset 0 0 0 1px var(--glass-edge)}
+.dock a{color:var(--ink2)}
+.dock a:hover{background:var(--glass-hover)}
+.dock a.on{background:var(--glass-on);box-shadow:0 0 0 1px var(--glass-hair),0 1px 2px rgba(60,40,25,.06)}
+.dock a .cnt{color:var(--glass-muted)}
+/* Segmented + chip: kính nhỏ; viền tối 1px để vẫn thấy hình khi nằm trên thẻ trắng */
+.seg,.chip,.mnav{position:relative;z-index:0;background:transparent}
+.seg::before,.chip::before,.mnav::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;background:var(--glass);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+  box-shadow:inset 0 0 0 1px var(--glass-edge),0 0 0 1px var(--glass-hair)}
+.chip{box-shadow:none;color:var(--ink2)}
+.seg button{color:var(--glass-muted)}
+.seg button.on{background:var(--glass-on);color:var(--ink);box-shadow:0 0 0 1px var(--glass-hair),0 1px 2px rgba(60,40,25,.06)}
 
 /* ===== Điện thoại: thanh trên, không rail ===== */
 .mtop{display:none}
 @media (max-width:760px){
   .sidewrap{display:none}
-  html[data-bg="kinh"] .win{margin:8px;border-radius:20px;overflow:hidden}
+  html .win{margin:8px;border-radius:20px;overflow:hidden}
   .dock,.dock.on{position:static;transform:none;display:none;margin:12px 16px 0;overflow-x:auto;width:calc(100% - 32px);justify-content:flex-start;scrollbar-width:none}
   .dock.on{display:flex}
   .dock .round{display:none}
   body.has-dock .main{padding-bottom:48px}
   .main,body.pinned .main{padding:20px 16px 48px}
-  .mtop{display:flex;flex-direction:column;gap:12px;background:var(--card);padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:4}
+  .mtop{display:flex;flex-direction:column;gap:12px;background:transparent;padding:12px 16px;border-bottom:1px solid var(--glass-hair);position:sticky;top:0;z-index:4}
+  .mtop::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:inset 0 -1px 0 var(--glass-edge)}
   .mtop .r1{display:flex;align-items:center;gap:4px;height:40px}
   .mtop .brand{margin:0;padding:0;gap:8px}
   .mtop .logo{width:28px;height:28px}
   .mtop .iconbtn{width:40px;height:40px}
   .mtop .btn{height:40px;width:40px;padding:0;justify-content:center;margin-left:4px}
-  .mnav{display:flex;gap:4px;background:var(--raised);border-radius:var(--radius-ctl);padding:2px}
+  .mnav{display:flex;gap:4px;border-radius:var(--radius-ctl);padding:2px}
   .mnav .nav{height:36px;flex:1;justify-content:center;padding:0 8px;font-size:13px}
   .mnav .nav svg{display:none}
-  .mnav .nav.on{background:var(--card);box-shadow:var(--shadow)}
+  .mnav .nav{color:var(--glass-muted)}
+  .mnav .nav:hover{background:var(--glass-hover)}
+  .mnav .nav.on{background:var(--glass-on);color:var(--ink);box-shadow:0 0 0 1px var(--glass-hair),0 1px 2px rgba(60,40,25,.06)}
   .mx span:nth-child(odd):not(.on){visibility:hidden}
   .top{display:none}
   h1{font-size:36px;line-height:40px}
@@ -360,8 +409,7 @@ html[data-bg="kinh"][data-theme="dark"] .card.moment{background:#2F5424}
   .hide-m{display:none}
   .only-m{display:block}
   .bars,.xl{--gap:8px}
-  .demo-ctl .mock{display:none}
-  .demo-ctl{left:auto;right:8px;bottom:8px}
+  .mock{left:auto;right:8px;bottom:8px}
 }
 </style>
 </head>
@@ -375,16 +423,10 @@ html[data-bg="kinh"][data-theme="dark"] .card.moment{background:#2F5424}
     <nav class="navs">
       <button class="nav" data-view="tongquan"><svg data-i="home"></svg><span class="lbl">Tổng quan</span></button>
       <button class="nav" data-view="taichinh"><svg data-i="wallet"></svg><span class="lbl">Tài chính</span><span class="cnt lbl" title="3 hoá đơn chờ duyệt">3</span></button>
-      <div class="sub" data-sub="taichinh">
-        <a class="on"><span class="lbl">Bảng điều khiển</span></a><a><span class="lbl">Sổ giao dịch</span></a><a><span class="lbl">Ngân sách</span></a><a><span class="lbl">Dự án</span></a><a><span class="lbl">Hoá đơn chờ duyệt</span></a>
-      </div>
       <button class="nav"><svg data-i="book"></svg><span class="lbl">Kiến thức</span></button>
       <button class="nav"><svg data-i="cards"></svg><span class="lbl">Học tập</span></button>
       <button class="nav"><svg data-i="check"></svg><span class="lbl">Thói quen</span></button>
       <button class="nav" data-view="suckhoe"><svg data-i="heart"></svg><span class="lbl">Sức khoẻ</span></button>
-      <div class="sub" data-sub="suckhoe">
-        <a class="on"><span class="lbl">Tổng quan</span></a><a><span class="lbl">Số đo cơ thể</span></a><a><span class="lbl">Buổi tập</span></a><a><span class="lbl">Kỷ lục</span></a>
-      </div>
       <div class="sep"></div>
       <button class="nav"><svg data-i="gear"></svg><span class="lbl">Cài đặt</span></button>
     </nav>
@@ -572,7 +614,7 @@ html[data-bg="kinh"][data-theme="dark"] .card.moment{background:#2F5424}
   </main>
 </div>
 </div>
-<div class="demo-ctl"><div class="seg" title="Phương án nền (chỉ có trong demo)"><button data-bg="phang">Nền: Phẳng</button><button data-bg="kinh">Kính</button></div><div class="mock">Dữ liệu mẫu, không phải số thật</div></div>
+<div class="mock">Dữ liệu mẫu, không phải số thật</div>
 
 <script>
 /* ===== Icon nét mảnh 1,5 ===== */
@@ -708,8 +750,7 @@ document.querySelectorAll('svg[data-i]').forEach(paint);
 const q=new URLSearchParams(location.search);
 const root=document.documentElement, side=document.getElementById('side');
 let show=function(v){document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id===v));
- document.querySelectorAll('.nav[data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
- document.querySelectorAll('.sub').forEach(s=>s.classList.toggle('open',s.dataset.sub===v));};
+ document.querySelectorAll('.nav[data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===v));};
 function theme(t){root.dataset.theme=t;const s=document.querySelector('#themeBtn svg');s.dataset.i=t==='dark'?'sun':'moon';paint(s);}
 function pin(on){side.classList.toggle('pinned',on);document.body.classList.toggle('pinned',on);
  document.getElementById('pinBtn').setAttribute('aria-label',on?'Bỏ ghim thanh bên':'Ghim thanh bên');try{localStorage.setItem('crucible-pin',on?'1':'')}catch(e){}}
@@ -719,8 +760,6 @@ const DOCK={
 function dock(v){const d=document.getElementById('dock'),c=DOCK[v];d.classList.toggle('on',!!c);document.body.classList.toggle('has-dock',!!c);if(!c)return;
  d.innerHTML=c.tabs.map(([t,n],i)=>`<a href="#" class="${i?'':'on'}">${t}${n?`<span class="cnt">${n}</span>`:''}</a>`).join('')+`<button class="btn round" aria-label="${c.add}" title="${c.add}">${ic('plus')}</button>`;}
 const _show=show;show=v=>{_show(v);dock(v);};
-function bg(b){root.dataset.bg=b;document.querySelectorAll('.demo-ctl [data-bg]').forEach(x=>x.classList.toggle('on',x.dataset.bg===b));}
-document.querySelectorAll('.demo-ctl [data-bg]').forEach(x=>x.onclick=()=>bg(x.dataset.bg));
 /* Rail: rê nhanh → tooltip; dừng 300ms → bung */
 const tip=document.getElementById('ntip');let tOpen,tClose;
 side.addEventListener('mouseenter',()=>{clearTimeout(tClose);tOpen=setTimeout(()=>{side.classList.add('open');tip.classList.remove('on')},300)});
@@ -731,7 +770,7 @@ document.querySelectorAll('.nav[data-view]').forEach(b=>b.onclick=()=>show(b.dat
 document.getElementById('themeBtn').onclick=()=>theme(root.dataset.theme==='dark'?'light':'dark');
 document.getElementById('pinBtn').onclick=()=>pin(!side.classList.contains('pinned'));
 document.querySelectorAll('a.card').forEach(a=>a.onclick=e=>e.preventDefault());
-bg(q.get('bg')||'phang');show(q.get('v')||'tongquan');theme(q.get('theme')||'light');
+show(q.get('v')||'tongquan');theme(q.get('theme')||'light');
 let saved='';try{saved=localStorage.getItem('crucible-pin')||''}catch(e){}
 pin(q.get('side')==='pin'||(!q.get('side')&&!!saved));
 if(q.get('side')==='open') side.classList.add('open');
