@@ -16,6 +16,7 @@ import PillBars, { type PillBar } from "@/components/charts/PillBars";
 import SegRing from "@/components/charts/SegRing";
 import PetalChart, { type Petal } from "@/components/charts/PetalChart";
 import ProgressRing, { type RingTone } from "@/components/charts/ProgressRing";
+import NetWorthCard from "@/components/finance/NetWorthCard";
 
 /**
  * Phần đầu của Tài chính › Tổng quan theo demo `demo/clean/demo.html`:
@@ -578,6 +579,9 @@ export default function FinanceOverview({
             </div>
           )}
         </GlassCard>
+
+        {/* Tài sản ròng 12 tháng (đọc api/finance/networth) */}
+        <NetWorthCard className="c-s12" refreshKey={refreshKey} />
 
         {/* Hoá đơn chờ duyệt */}
         {drafts.length > 0 && (

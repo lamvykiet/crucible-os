@@ -9,9 +9,10 @@ import HistoryTab from "@/components/finance/HistoryTab";
 import AssetsTab from "@/components/finance/AssetsTab";
 import AccountsTab from "@/components/finance/AccountsTab";
 import ProjectsTab from "@/components/finance/ProjectsTab";
+import BudgetTab from "@/components/finance/BudgetTab";
 import FinanceScene from "@/components/finance/FinanceScene";
 
-const TAB_IDS = ["dashboard", "income", "expense", "debts", "assets", "accounts", "projects", "history"];
+const TAB_IDS = ["dashboard", "income", "expense", "budget", "debts", "assets", "accounts", "projects", "history"];
 
 /**
  * Sổ chi tiêu. Tab đang mở nằm trên URL (`/finance?tab=income`) chứ không
@@ -31,14 +32,15 @@ export default function FinancePage() {
     // ".c-fin" ở globals.css. Modal render bên trong các tab nên cũng nằm trong
     // phạm vi này. Đệm đáy do `.c-main` lo, không chồng `pb-*` ở đây.
     <div className="c-fin max-w-7xl mx-auto space-y-6">
-      {/* Tổng quan tự vẽ đầu trang của nó (PageIntro); các tab con còn dùng bản cũ. */}
-      {activeTab !== "dashboard" && <FinanceScene />}
+      {/* Tổng quan và Ngân sách tự vẽ đầu trang của chúng (PageIntro); các tab con còn dùng bản cũ. */}
+      {activeTab !== "dashboard" && activeTab !== "budget" && <FinanceScene />}
 
       {/* Tab Content */}
       <div className="animate-in fade-in duration-300">
         {activeTab === "dashboard" && <DashboardTab onNavigate={setActiveTab} />}
         {activeTab === "income" && <IncomeTab />}
         {activeTab === "expense" && <ExpenseTab />}
+        {activeTab === "budget" && <BudgetTab />}
         {activeTab === "debts" && <DebtsTab />}
         {activeTab === "assets" && <AssetsTab />}
         {activeTab === "accounts" && <AccountsTab />}
