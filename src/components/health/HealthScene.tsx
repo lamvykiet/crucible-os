@@ -23,8 +23,7 @@ export default function HealthScene({
   now: number;
   loading: boolean;
 }) {
-  const { t, language } = useLanguage();
-  const vi = language === "vi";
+  const { t } = useLanguage();
 
   const weight = change("weightKg", prev, latest);
   const sinceDays = latest ? daysBetween(latest.measuredAt, new Date(now)) : null;
