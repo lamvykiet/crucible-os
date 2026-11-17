@@ -13,9 +13,19 @@ import { isTabActive, moduleFor } from "@/lib/modules";
  * là kính trắng đục, tab có icon kèm chữ, tab đang chọn là viên mực. Bên phải là
  * khe `.c-facts` cho `<PageActions>` của trang (ref được `MainLayoutWrapper` giữ).
  *
- * Điện thoại: dải cuộn ngang, chỉ tab đang chọn hiện chữ (CSS `.c-tl`).
+ * Máy tính: dải đang ẨN (`SHOW_TOP_TABS`), tab con ở sidebar. Điện thoại: dải
+ * cuộn ngang, chỉ tab đang chọn hiện chữ (CSS `.c-tl`).
  * Đọc `useSearchParams()` nên nơi dùng phải bọc `<Suspense>`.
  */
+/**
+ * Hiện dải tab ngang trên MÁY TÍNH hay không. `false`: ẩn theo yêu cầu chủ dự án
+ * 17/11/2026 (tab con đã nằm thành cây trong `Sidebar`), giữ để dùng lại — đặt
+ * `true` là dải hiện lại. Điện thoại (< 768px) KHÔNG có sidebar nên dải luôn hiện
+ * ở đó, nếu không sẽ hết đường chuyển tab con. Khe `.c-facts` (nút hành động của
+ * trang) luôn hiện, căn phải, dù cờ này bật hay tắt.
+ */
+export const SHOW_TOP_TABS = false;
+
 export default function ModuleTabs({ actionsRef }: { actionsRef?: (el: HTMLDivElement | null) => void }) {
   const pathname = usePathname();
   const tabParam = useSearchParams().get("tab");
@@ -23,7 +33,7 @@ export default function ModuleTabs({ actionsRef }: { actionsRef?: (el: HTMLDivEl
   const tabs = moduleFor(pathname)?.tabs ?? [];
 
   return (
-    <div className="c-fbar">
+    <div className={`c-fbar ${SHOW_TOP_TABS ? "" : "tabs-mobile-only"}`}>
       {tabs.length > 0 && (
         <nav className="c-ftabs" aria-label={t("Sections", "Mục con")}>
           <div className="c-ftrack">

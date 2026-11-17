@@ -807,6 +807,12 @@ html { background: var(--bg); }
 .c-ftab.on .c-cnt { background: rgba(255, 255, 255, .2); color: var(--btn-ink); }
 [data-theme="dark"] .c-ftab.on .c-cnt { background: rgba(0, 0, 0, .14); }
 .c-facts { display: flex; gap: 8px; margin-left: auto; flex: none; }
+/* `SHOW_TOP_TABS = false` (ModuleTabs): từ 768px ẩn dải tab, giữ khe nút hành động bên phải;
+   không có nút nào thì cả dải ẩn. Điện thoại không bị ảnh hưởng. */
+@media (min-width: 768px) {
+  .c-fbar.tabs-mobile-only .c-ftabs { display: none; }
+  .c-fbar.tabs-mobile-only:not(:has(.c-facts > *)) { display: none; }
+}
 .c-facts .c-btn { height: 44px; border-radius: 14px; padding: 0 18px; }
 
 /* Phần tóm tắt đầu trang (`<SceneHero>`): nay nằm TRONG luồng, trên nền, chữ mực.
@@ -902,20 +908,22 @@ html { background: var(--bg); }
 .c-side-foot small { display: block; color: var(--glass-muted); font-size: 12px; line-height: 16px; overflow: hidden; text-overflow: ellipsis; }
 .c-side-foot > span:last-child { min-width: 0; }
 
-/* Cây trạng thái hoá đơn dưới Tài chính (mặc định ĐÓNG; chỉ hiện khi bung). */
-.c-navrow { display: flex; align-items: center; flex: none; }
-.c-navrow .c-side-item { flex: 1; padding-right: 36px; }
-.c-tg { width: 28px; height: 28px; margin-left: -32px; border-radius: 9px; display: grid; place-items: center; flex: none; color: var(--glass-muted); position: relative; z-index: 1; border: 0; background: none; cursor: pointer; transition: background-color 150ms var(--ease); }
-.c-tg:hover { background: rgba(60, 40, 25, .09); }
-.c-tg svg { width: 14px; height: 14px; fill: currentColor; stroke-width: 1.5; transition: transform 180ms var(--ease); }
-.c-grp.exp .c-tg svg { transform: rotate(90deg); }
-.c-side:not(:is(.open, .pinned, :has(:focus-visible))) .c-tg { display: none; }
+/* Hàng function + cây tab con. Badge "chờ duyệt" là nút nổi đè lên mép phải hàng Tài chính. */
+.c-navrow { position: relative; display: flex; align-items: center; flex: none; }
+.c-navrow .c-side-item { flex: 1; }
+.c-side:is(.open, .pinned, :has(:focus-visible)) .c-navrow .c-side-item.has-badge { padding-right: 44px; }
+.c-pendbtn { position: absolute; right: 8px; top: 6px; min-width: 24px; height: 24px; padding: 0 7px; border: 0; border-radius: 12px; display: grid; place-items: center; cursor: pointer; font: 500 13px/16px var(--font-fig); color: var(--ink); background: color-mix(in srgb, var(--warn) 20%, transparent); transition: background-color 150ms var(--ease); }
+.c-pendbtn:hover { background: color-mix(in srgb, var(--warn) 32%, transparent); }
+.c-side:not(:is(.open, .pinned, :has(:focus-visible))) .c-pendbtn { display: none; }
 .c-tree { display: none; position: relative; margin: 2px 0 4px 20px; }
 .c-side:is(.open, .pinned, :has(:focus-visible)) .c-grp.exp .c-tree { display: block; }
-.c-tree::before { content: ""; position: absolute; left: 0; top: 0; bottom: 19px; border-left: 1px solid rgba(60, 40, 25, .2); }
-.c-sub { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; margin: 0; padding: 0 10px 0 24px; border: 0; background: none; cursor: pointer; border-radius: 10px; font: 500 14px/20px var(--font-sans); color: var(--ink-2); text-align: left; white-space: nowrap; transition: background-color 150ms var(--ease), color 150ms var(--ease); }
+.c-tree::before { content: ""; position: absolute; left: 0; top: 0; bottom: 17px; border-left: 1px solid rgba(60, 40, 25, .2); }
+.c-sub { text-decoration: none; position: relative; display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; margin: 0; padding: 0 10px 0 24px; border: 0; background: none; cursor: pointer; border-radius: 10px; font: 500 14px/20px var(--font-sans); color: var(--ink-2); text-align: left; white-space: nowrap; transition: background-color 150ms var(--ease), color 150ms var(--ease); }
 .c-sub::before { content: ""; position: absolute; left: 0; top: 50%; width: 14px; height: 0; border-top: 1px solid rgba(60, 40, 25, .2); }
-.c-sub:hover { background: rgba(60, 40, 25, .07); color: var(--ink); }
+.c-sub:hover { background: rgba(60, 40, 25, .07); color: var(--ink); text-decoration: none; }
+.c-sub svg { color: var(--glass-muted); }
+.c-sub.on, .c-sub.on:hover { background: var(--btn); color: var(--btn-ink); }
+.c-sub.on svg { color: var(--btn-ink); }
 .c-sub svg { width: 16px; height: 16px; flex: none; }
 .c-sub.w svg { color: var(--warn); }
 .c-sub.g svg { color: var(--good); }
@@ -923,7 +931,7 @@ html { background: var(--bg); }
 .c-sub .c-side-cnt { color: var(--glass-muted); }
 [data-theme="dark"] .c-side-search { background: rgba(255, 255, 255, .07); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
 [data-theme="dark"] .c-side-search:focus-within { background: rgba(255, 255, 255, .12); }
-[data-theme="dark"] .c-side-item:hover, [data-theme="dark"] .c-sub:hover, [data-theme="dark"] .c-tg:hover { background: rgba(255, 255, 255, .08); }
+[data-theme="dark"] .c-side-item:hover, [data-theme="dark"] .c-sub:hover { background: rgba(255, 255, 255, .08); }
 [data-theme="dark"] .c-tree::before, [data-theme="dark"] .c-sub::before { border-color: rgba(255, 255, 255, .2); }
 
 /* ---- Điện thoại: thanh trên kính dính đỉnh (logo ▾ chọn function · tên · nút) ---- */
@@ -1364,7 +1372,6 @@ html { background: var(--bg); }
 
 /* Rail thu gọn: nút ghim không chiếm chỗ (còn 40px cho logo). */
 .c-side:not(:is(.open, .pinned, :has(:focus-visible))) .c-side-pin { display: none; }
-.c-side:not(:is(.open, .pinned, :has(:focus-visible))) .c-navrow .c-side-item { padding-right: 11px; }
 
 /* ===========================================================================
  * Biểu đồ và thẻ của hệ Kính (đợt B, demo `demo/clean/demo.html`).

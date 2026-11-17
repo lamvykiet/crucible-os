@@ -179,19 +179,28 @@ lần cuối. Đừng bỏ hai thứ đó.
 - **`Sidebar` nổi** (từ 768px): rail 64px bo tròn, cách mép 24px, chỉ cao bằng nội
   dung. Rê chuột nhanh → tooltip; DỪNG ~300ms → bung 248px ĐÈ lên nội dung; nút
   ghim giữ mở và đẩy nội dung (`.c-shell:has(.c-side.pinned)`, nhớ trong
-  localStorage `crucible.sidebar.pinned`). Ô tìm trang ở đầu; mục Tài chính có cây
-  trạng thái hoá đơn (hiện chỉ "Chờ duyệt N" — số từ `/api/drive/pending-count`,
-  bấm mở `ReviewQueueModal`; "Đã ghi sổ"/"Trùng lặp" chờ có API trả số). KHÔNG còn
-  tab con trong sidebar. Bung bằng `width` và `overflow: hidden` Ở TỪNG HÀNG chứ
-  không ở `<aside>`, để bóng của `::before` không bị cắt.
+  localStorage `crucible.sidebar.pinned`). Ô tìm trang ở đầu. **Tab con là CÂY ngay
+  dưới function** (đọc `tabs` của `modules.tsx`, URL = `tab.href` y như
+  `ModuleTabs`, `isTabActive` cho tab đang chọn — viên mực `--btn`): function đang
+  mở tự bung, mỗi lúc chỉ bung MỘT, bấm lại function đang bung thì thu cây. Rail
+  thu gọn không hiện cây. `Sidebar` đọc `useSearchParams()` nên bọc `<Suspense>` ở
+  `MainLayoutWrapper`. Số hoá đơn chờ duyệt (`/api/drive/pending-count`) là badge
+  trên hàng Tài chính, bấm badge mở `ReviewQueueModal`; không còn dòng cây "Chờ
+  duyệt". Bung bằng `width` và `overflow: hidden` Ở TỪNG HÀNG chứ không ở
+  `<aside>`, để bóng của `::before` không bị cắt.
 - **`TopBar`** (máy tính): ngữ cảnh trái, ô "Hỏi Crucible…" giữa (chỉ là ô nhập —
   dự án chưa có trợ lý chung), nút sáng/tối + chuông phải. **`MobileTopBar`**
   (điện thoại): logo ▾ chọn function (+ đổi ngôn ngữ), chuông, sáng/tối, Cài đặt —
   đường DUY NHẤT tới `/settings` trên điện thoại, đừng gỡ.
-- **`ModuleTabs`** = dải tab con ở ĐẦU nội dung: kính trắng đục, icon + chữ, tab
-  chọn là viên mực; bên phải là khe `.c-facts` cho nút hành động của trang —
-  trang đặt nút vào đó bằng `<PageActions>` (`Scene.tsx`). Điện thoại: cuộn ngang,
-  chỉ tab chọn hiện chữ. Đừng viết lại dải tab trong từng trang.
+- **`ModuleTabs`** = dải tab con ở ĐẦU nội dung + khe `.c-facts` bên phải cho nút
+  hành động của trang (`<PageActions>`, `Scene.tsx`). **Trên máy tính dải tab đang
+  ẨN** (cờ `SHOW_TOP_TABS = false` trong `ModuleTabs.tsx`, chủ dự án 17/11/2026 —
+  tab con đã ở cây sidebar; đặt `true` để hiện lại); khe `.c-facts` vẫn hiện, căn
+  phải, và cả dải ẩn nếu trang không có nút. **Điện thoại (< 768px) vẫn giữ dải
+  tab cuộn ngang** (kính, chỉ tab chọn hiện chữ) vì không có sidebar — bỏ nó là
+  hết đường chuyển tab con. Đừng viết lại dải tab trong từng trang. Dock đáy đã có
+  "Quét hoá đơn"/"Thêm chi/thu", nên Tổng quan, Chi tiêu, Thu nhập của Tài chính
+  KHÔNG đặt lại các nút đó ở `PageActions`; trang không có dock thì giữ nút riêng.
 - **`QuickDock`** (thay quyết định "không dock đáy" 23/10/2026): dock kính giữa
   đáy, nút "+" mở menu ghi nhanh (popover có keycap trên máy tính, sheet từ đáy
   trên điện thoại). Điện thoại: dock thu gọn, TỰ ẨN khi lướt xuống. Hành động nối
@@ -207,7 +216,7 @@ lần cuối. Đừng bỏ hai thứ đó.
   `.c-shell::before` là nền cố định — `<body>` PHẢI trong suốt.
 
 **Danh sách function và tab con chỉ nằm ở `src/lib/modules.tsx`** — menu logo và
-Sidebar (function), dải tab `ModuleTabs`, `MobileTopBar` và tên function trong
+Sidebar (function + cây tab con), dải tab `ModuleTabs` (điện thoại), `MobileTopBar` và tên function trong
 `SceneSummary` đều đọc từ đó. Tab trong cùng một trang (Tài chính, Knowledge) đi
 bằng `?tab=` trên URL, không bằng state: trang đọc `useSearchParams()`, nên
 `page.tsx` của nó phải bọc `<Suspense>` (thiếu là Next bắt cả trang render phía

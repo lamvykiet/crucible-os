@@ -4,7 +4,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import {
   Calendar, Receipt, DollarSign, CreditCard, ArrowLeftRight, Target,
   PiggyBank, AlertCircle, TrendingUp, CalendarX, ListChecks, CalendarDays,
-  Banknote, CalendarClock, Scale, RefreshCw, CheckCircle2, Plus, ScanLine,
+  Banknote, CalendarClock, Scale, RefreshCw, CheckCircle2,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -17,7 +17,6 @@ import ScanInvoiceModal from "./ScanInvoiceModal";
 import ReviewQueueModal from "./ReviewQueueModal";
 import FinanceOverview from "./FinanceOverview";
 import PageIntro from "@/components/PageIntro";
-import { PageActions } from "@/components/Scene";
 import DayTransactionsCard from "./DayTransactionsCard";
 import TodaySpendingShare from "./TodaySpendingShare";
 import IncompleteDataModal from "./IncompleteDataModal";
@@ -415,25 +414,9 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
   const bump = () => setRefreshKey((prev) => prev + 1);
   const monthTag = mLabel(selectedMonth || data.month);
 
-  // Nút hành động của trang nằm ở khe `<PageActions>` bên phải dải tab (và dock
-  // ở đáy màn hình lo phần còn lại); chọn tháng nằm cạnh tiêu đề. Từ 768px trở
-  // xuống `.c-facts` thu nút về icon 48px — chữ bọc trong `.c-tl` để CSS ẩn đi.
-  // "Thêm thu nhập" không còn nút riêng: hộp thoại có sẵn công tắc loại giao dịch
-  // và dock có hàng "Thêm thu nhập".
+  // Nút Quét hoá đơn / Thêm giao dịch đã bỏ khỏi khe `<PageActions>` (chủ dự án
+  // 17/11/2026): dock ở đáy màn hình có đủ; modal vẫn mở bằng state của trang.
   const monthPicker = <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />;
-  const actions = (
-    <PageActions>
-      <button type="button" onClick={() => setIsScanModalOpen(true)} className="c-btn c-btn-secondary" aria-label={t("Scan a receipt", "Quét hoá đơn")}>
-        <ScanLine size={18} />
-        {/* Chỉ icon dưới 1500px: dải tab có 8 mục, hai nút chữ đầy đủ sẽ cắt mất tab cuối. */}
-        <span className="c-tl hidden min-[1500px]:inline">{t("Scan a receipt", "Quét hoá đơn")}</span>
-      </button>
-      <button type="button" onClick={() => openAdd("Expense")} className="c-btn c-btn-primary" aria-label={t("Add transaction", "Thêm giao dịch")}>
-        <Plus size={18} />
-        <span className="c-tl">{t("Add transaction", "Thêm giao dịch")}</span>
-      </button>
-    </PageActions>
-  );
   const introMonth = mLabel(selectedMonth || data.month);
 
   const modals = (
@@ -511,7 +494,6 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
     return (
       <div className="space-y-8 animate-in fade-in">
         {intro(t("Nothing recorded yet. Add the first entry or scan a receipt.", "Chưa có giao dịch nào. Ghi khoản đầu tiên hoặc quét một hoá đơn."))}
-        {actions}
         {modals}
 
         <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] flex flex-col items-center gap-4 py-12! text-center">
@@ -686,7 +668,6 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
 
   return (
     <div className="space-y-8 animate-in fade-in">
-      {actions}
       {modals}
       <IncompleteDataModal
         isOpen={isIncompleteOpen}

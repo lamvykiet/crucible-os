@@ -2,10 +2,10 @@
 
 import { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Clock, Languages, Pin, PinOff, Play, Search, Settings } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Languages, Pin, PinOff, Search, Settings } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
-import { MODULES, moduleFor } from "@/lib/modules";
+import { MODULES, isTabActive, moduleFor } from "@/lib/modules";
 import { useMe } from "@/lib/useMe";
 import { useQuickActions } from "@/components/QuickActions";
 import Logo from "@/components/Logo";
@@ -18,13 +18,18 @@ import Logo from "@/components/Logo";
  * nút ghim giữ mở (lúc đó nội dung dịch sang phải, trạng thái nhớ trong máy).
  *
  * Nội dung: thương hiệu + ghim · ô tìm trang · các function (từ
- * `src/lib/modules.tsx`; KHÔNG còn tab con — tab con nằm ở dải `ModuleTabs` đầu
- * nội dung) · Cài đặt · ngôn ngữ · người dùng.
+ * `src/lib/modules.tsx`) · Cài đặt · ngôn ngữ · người dùng.
  *
- * Mục Tài chính có cây trạng thái hoá đơn (mặc định đóng, mở bằng mũi tên). Chỉ
- * có dòng "Chờ duyệt N" — số lấy từ `/api/drive/pending-count` như
- * `PendingReviewButton`, bấm thì mở `ReviewQueueModal`. Demo còn "Đã ghi sổ" và
- * "Trùng lặp" nhưng chưa có API nào trả hai số đó, nên bỏ — không bịa số.
+ * Tab con là CÂY ngay dưới function (chủ dự án 17/11/2026; dải tab ngang ở đầu
+ * nội dung đã ẩn trên máy tính, xem `SHOW_TOP_TABS` ở `ModuleTabs`). Danh sách
+ * đọc từ `tabs` của `modules.tsx`, URL và cách tính tab đang chọn y hệt
+ * `ModuleTabs` (`tab.href` + `isTabActive`). Function đang mở tự bung; mỗi lúc
+ * chỉ bung MỘT; bấm lại function đang bung thì thu cây, bấm lúc đang thu thì bung
+ * lại. Rail thu gọn không hiện cây (CSS `.c-grp.exp .c-tree`).
+ *
+ * Số hoá đơn chờ duyệt (`/api/drive/pending-count`, như `PendingReviewButton`) là
+ * badge trên hàng Tài chính; bấm badge mở `ReviewQueueModal`. Không còn dòng cây
+ * "Chờ duyệt" — "Đã ghi sổ"/"Trùng lặp" chưa có API trả số nên không bịa.
  *
  * Kính ở `::before` (không làm khối chứa cho `position: fixed`).
  */
@@ -63,13 +68,17 @@ export default function Sidebar() {
 
   const [hover, setHover] = useState(false);
   const [tip, setTip] = useState<{ label: string; top: number } | null>(null);
-  const [tree, setTree] = useState(false);
+  // Người dùng bấm thu/bung cây của function `from`; sang function khác thì hết hiệu lực
+  // và cây tự bung theo function đang mở.
+  const [folded, setFold] = useState<{ from: string; open: boolean } | null>(null);
+  const tabParam = useSearchParams().get("tab");
   const [query, setQuery] = useState("");
   const wrapRef = useRef<HTMLDivElement>(null);
   const openTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const expanded = hover || pinned;
+  const treeKey = current && current.tabs.length > 0 && !(folded?.from === current.key && !folded.open) ? current.key : null;
 
   const togglePin = () => {
     try {
@@ -170,62 +179,72 @@ export default function Sidebar() {
               <p className="c-side-text px-3 py-2 text-[13px] text-[var(--glass-muted)]">{t("No page matches", "Không có trang khớp")}</p>
             )
           ) : (
-            MODULES.map(({ key, href, icon: Icon, en, vi }) => {
+            MODULES.map(({ key, href, icon: Icon, en, vi, tabs }) => {
               const label = t(en, vi);
               const active = current?.key === key;
-              if (key !== "finance") {
-                return (
-                  <Link
-                    key={key}
-                    href={href}
-                    aria-label={label}
-                    aria-current={active ? "page" : undefined}
-                    className={`c-side-item ${active ? "active" : ""}`}
-                    onMouseEnter={showTip(label)}
-                  >
-                    <Icon />
-                    <span className="c-side-text">{label}</span>
-                  </Link>
-                );
-              }
+              const hasTree = tabs.length > 0;
+              const exp = treeKey === key;
+              const badge = key === "finance" ? pending : 0;
+              const onRow = (e: React.MouseEvent) => {
+                if (!hasTree) return;
+                if (!active) {
+                  setFold(null); // sang function khác: điều hướng + tự bung
+                  return;
+                }
+                // Đang ở function này: bấm chỉ thu/bung cây, không tải lại trang (khỏi mất ?tab=).
+                e.preventDefault();
+                setFold({ from: key, open: !exp });
+              };
               return (
-                <div key={key} className={`c-grp ${tree ? "exp" : ""}`}>
+                <div key={key} className={`c-grp ${exp ? "exp" : ""}`}>
                   <div className="c-navrow">
                     <Link
                       href={href}
-                      aria-label={pending > 0 ? `${label} (${pending})` : label}
+                      aria-label={badge > 0 ? `${label} (${badge})` : label}
                       aria-current={active ? "page" : undefined}
-                      className={`c-side-item ${active ? "active" : ""}`}
+                      aria-expanded={hasTree ? exp : undefined}
+                      aria-controls={hasTree ? `c-tree-${key}` : undefined}
+                      className={`c-side-item ${active ? "active" : ""} ${badge > 0 ? "has-badge" : ""}`}
                       onMouseEnter={showTip(label)}
+                      onClick={onRow}
                     >
                       <Icon />
                       <span className="c-side-text">{label}</span>
-                      {pending > 0 && (
-                        <span className="c-side-cnt c-side-text" title={t(`${pending} receipts to review`, `${pending} hoá đơn chờ duyệt`)}>
-                          {pending > 99 ? "99+" : pending}
-                        </span>
-                      )}
-                      {pending > 0 && <span className="c-side-dot" aria-hidden />}
+                      {badge > 0 && <span className="c-side-dot" aria-hidden />}
                     </Link>
-                    <button
-                      type="button"
-                      className="c-tg c-side-text"
-                      aria-expanded={tree}
-                      aria-controls="c-fin-tree"
-                      aria-label={t("Show receipt status", "Mở trạng thái hoá đơn")}
-                      title={t("Receipt status", "Trạng thái hoá đơn")}
-                      onClick={() => setTree((v) => !v)}
-                    >
-                      <Play />
-                    </button>
+                    {badge > 0 && (
+                      <button
+                        type="button"
+                        className="c-pendbtn c-side-text"
+                        title={t(`${badge} receipts to review — open`, `${badge} hoá đơn chờ duyệt — mở`)}
+                        aria-label={t(`${badge} receipts to review`, `${badge} hoá đơn chờ duyệt`)}
+                        onClick={() => openOverlay("review")}
+                      >
+                        {badge > 99 ? "99+" : badge}
+                      </button>
+                    )}
                   </div>
-                  <div className="c-tree" id="c-fin-tree" role="group" aria-label={t("Receipt status", "Trạng thái hoá đơn")}>
-                    <button type="button" className="c-sub w" onClick={() => openOverlay("review")}>
-                      <Clock />
-                      <span>{t("Pending review", "Chờ duyệt")}</span>
-                      {pending > 0 && <span className="c-side-cnt">{pending}</span>}
-                    </button>
-                  </div>
+                  {hasTree && (
+                    <div className="c-tree" id={`c-tree-${key}`} role="group" aria-label={label}>
+                      {tabs.map((tab, i) => {
+                        const TabIcon = tab.icon;
+                        const on = isTabActive(tab, pathname, tabParam, i === 0);
+                        const tl = t(tab.en, tab.vi);
+                        return (
+                          <Link
+                            key={tab.href}
+                            href={tab.href}
+                            scroll={false}
+                            aria-current={on ? "page" : undefined}
+                            className={`c-sub ${on ? "on" : ""}`}
+                          >
+                            <TabIcon />
+                            <span>{tl}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })

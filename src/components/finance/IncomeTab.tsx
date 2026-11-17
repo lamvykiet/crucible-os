@@ -22,7 +22,6 @@ import { monthAxis } from "./MonthAxisTick";
 import IncomeCareer from "./IncomeCareer";
 import { en } from "@/lib/plural";
 import PageIntro from "@/components/PageIntro";
-import { PageActions } from "@/components/Scene";
 import PillBars from "@/components/charts/PillBars";
 import { pillSeries } from "@/components/charts/pillSeries";
 import { CardHead, GlassCard } from "@/components/charts/GlassCard";
@@ -232,17 +231,7 @@ export default function IncomeTab() {
           </>
         }
       />
-      <PageActions>
-        <button
-          type="button"
-          onClick={() => setIsIncomeModalOpen(true)}
-          aria-label={t("Add Income", "Thêm thu nhập")}
-          className="c-btn c-btn-primary"
-        >
-          <ArrowDownLeft size={18} />
-          <span className="c-tl">{t("Add Income", "Thêm thu nhập")}</span>
-        </button>
-      </PageActions>
+      {/* Nút Thêm thu nhập đã bỏ khỏi khe hành động (chủ dự án 17/11/2026): dock đáy lo. */}
 
       <TransactionModal
         isOpen={isIncomeModalOpen}

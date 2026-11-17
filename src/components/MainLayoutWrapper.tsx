@@ -63,7 +63,9 @@ function Shell({ children }: { children: React.ReactNode }) {
     <ActionsSlotProvider value={actions}>
       <SceneSlotProvider value={scene}>
         <div className={dock ? "c-shell" : "c-shell no-dock"}>
-          <Sidebar />
+          <Suspense>
+            <Sidebar />
+          </Suspense>
           <MobileTopBar />
           <TopBar />
           <Suspense>

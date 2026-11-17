@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid, Plus, Calendar, Receipt, ChevronDown, AlertCircle, ListChecks } from "lucide-react";
+import { LayoutGrid, Calendar, Receipt, ChevronDown, AlertCircle, ListChecks } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
@@ -32,7 +32,6 @@ import PillBars from "@/components/charts/PillBars";
 import { pillSeries } from "@/components/charts/pillSeries";
 import { moneyBig } from "@/components/SceneSummary";
 import { groupIcon, rankGroups } from "@/lib/groupViz";
-import { PageActions } from "@/components/Scene";
 
 // Biểu đồ trong tab này theo docs/bieu-do.md: tiêu đề là câu kết luận tính từ
 // dữ liệu, cột xám, chỉ điểm mà câu đó nói tới mang màu nhấn, ghi số ở MỘT chỗ.
@@ -357,17 +356,7 @@ export default function ExpenseTab() {
           </>
         }
       />
-      {/* Nút hành động ở khe bên phải dải tab (cùng chỗ với Tổng quan). */}
-      <PageActions>
-        <button type="button" onClick={() => setIsScanModalOpen(true)} className="c-btn c-btn-secondary" aria-label={t("Scan a receipt", "Quét hoá đơn")}>
-          <Receipt size={18} />
-          <span className="c-tl hidden min-[1500px]:inline">{t("Scan a receipt", "Quét hoá đơn")}</span>
-        </button>
-        <button type="button" onClick={() => setIsModalOpen(true)} className="c-btn c-btn-primary" aria-label={t("Add expense", "Thêm chi phí")}>
-          <Plus size={18} />
-          <span className="c-tl">{t("Add expense", "Thêm chi phí")}</span>
-        </button>
-      </PageActions>
+      {/* Nút Quét hoá đơn / Thêm chi phí đã bỏ khỏi khe hành động (chủ dự án 17/11/2026): dock đáy lo. */}
 
       <TransactionModal
         isOpen={isModalOpen}
