@@ -1,51 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import TopBar from "@/components/TopBar";
 import MobileTopBar from "@/components/MobileTopBar";
-import { SceneSlotProvider } from "@/components/Scene";
+import ModuleTabs from "@/components/ModuleTabs";
+import QuickDock from "@/components/QuickDock";
+import { QuickActionsProvider, useQuickActions } from "@/components/QuickActions";
+import { ActionsSlotProvider, SceneSlotProvider } from "@/components/Scene";
 
 /**
- * Khung ngoài của ứng dụng — hai tầng của hệ v3:
+ * Khung ngoài của ứng dụng — hệ Kính (quyết định 17/11/2026, nguồn:
+ * `1991-new-design/demo/clean/demo.html`). MỘT lớp: không phông cảnh, không tấm
+ * nền kem; mọi thứ nằm thẳng trên nền gradient ấm cố định (`.c-shell::before`).
  *
- *   1. Điều hướng: từ 768px là `Sidebar` kính cố định bên trái (thu gọn thành
- *      cột icon, rê chuột thì bung ra); dưới 768px là `MobileTopBar` dính
- *      đỉnh, đứng TRƯỚC phông cảnh với margin-bottom âm.
- *   2. Phông cảnh `.c-scene` — trang đặt tiêu đề + widget kính vào bằng
- *      `<SceneHero>` (src/components/Scene.tsx).
- *   3. Tấm nền kem `.c-main` trườn lên 80px che đáy phông; mọi nội dung chi
- *      tiết nằm ở đây.
+ *   máy tính  : `Sidebar` nổi bên trái (rail 64px, rê chuột bung đè lên) ·
+ *               `TopBar` (ngữ cảnh · hỏi · sáng/tối · chuông) · dải tab con
+ *   điện thoại: `MobileTopBar` dính đỉnh · dải tab con cuộn ngang
+ *   cả hai    : `.c-scene` (phần tóm tắt, trang tự đặt qua `<SceneHero>`) ·
+ *               `<main class="c-main">` · `QuickDock` thao tác nhanh ở đáy
  *
- * Không có sidebar và KHÔNG có dock dưới (gỡ 23/10/2026): menu function nằm ở
- * logo của thanh trên, ở cả web lẫn điện thoại, và thanh đó dính đỉnh nên luôn
- * chạm được — dock năm mục chỉ lặp lại nó và chiếm thêm một dải màn hình.
+ * Đệm, bề rộng khung và nhịp dọc do `.c-top/.c-fbar/.c-scene/.c-main` trong
+ * globals.css quy định, không đặt bằng utility ở đây — để mọi trang cùng nhịp.
+ * Không có `z-index` trên `.c-main` (xem globals.css).
  *
- * Đệm, bề rộng khung và nhịp dọc của `<main>` do `.c-main` trong globals.css
- * quy định, không đặt bằng utility ở đây — để mọi trang có cùng một nhịp.
+ * `<main key={version}>`: sau khi dock/hàng đợi ghi xong một giao dịch, trang
+ * đang mở được dựng lại để tải số liệu mới.
  */
 export default function MainLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [slot, setSlot] = useState<HTMLDivElement | null>(null);
 
   // `/video-share` là form mở từ nút Chia sẻ của TikTok, hiện trong khung web
   // nhỏ của Shortcut — không có chỗ, cũng không có phiên đăng nhập, cho thanh
   // điều hướng.
   if (pathname === "/login" || pathname === "/video-share") {
-    return <main className="min-h-screen w-full bg-[var(--color-bg)]">{children}</main>;
+    return <main className="c-bg min-h-screen w-full">{children}</main>;
   }
 
   return (
-    <SceneSlotProvider value={slot}>
-      <div className="c-shell">
-        <Sidebar />
-        <MobileTopBar />
-        <div className="c-scene">
-          <span className="c-scene-sun" aria-hidden />
-          <div className="c-scene-inner" ref={setSlot} />
+    <QuickActionsProvider>
+      <Shell>{children}</Shell>
+    </QuickActionsProvider>
+  );
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  const { version } = useQuickActions();
+  const [scene, setScene] = useState<HTMLDivElement | null>(null);
+  const [actions, setActions] = useState<HTMLDivElement | null>(null);
+
+  return (
+    <ActionsSlotProvider value={actions}>
+      <SceneSlotProvider value={scene}>
+        <div className="c-shell">
+          <Sidebar />
+          <MobileTopBar />
+          <TopBar />
+          <Suspense>
+            <ModuleTabs actionsRef={setActions} />
+          </Suspense>
+          <div className="c-scene">
+            <div className="c-scene-inner" ref={setScene} />
+          </div>
+          <main className="c-main" key={version}>
+            {children}
+          </main>
+          <QuickDock />
         </div>
-        <main className="c-main">{children}</main>
-      </div>
-    </SceneSlotProvider>
+      </SceneSlotProvider>
+    </ActionsSlotProvider>
   );
 }

@@ -1,50 +1,35 @@
 "use client";
 
-import { createContext, useContext, useSyncExternalStore } from "react";
+import { createContext, useContext } from "react";
 import { createPortal } from "react-dom";
 
 /**
- * Phông cảnh hoàng hôn đầu trang (hệ v3 — xem `1991-new-design/SKILL.md`).
+ * Hai khe "portal" của vỏ giao diện (`MainLayoutWrapper`).
  *
- * `MainLayoutWrapper` dựng phông cảnh NGOÀI `<main>` (tấm nền kem trườn lên
- * che đáy phông), nên trang không thể tự đặt nội dung vào đó bằng JSX thường.
- * Trang nào muốn có tiêu đề + widget kính trên phông thì bọc chúng trong
- * `<SceneHero>` — nó portal vào khe `.c-scene-inner`. Trang không dùng thì
- * phông chỉ còn một dải mỏng sau thanh điều hướng.
+ * `MainLayoutWrapper` dựng phần đầu trang NGOÀI `<main>`, nên trang không thể tự
+ * đặt nội dung vào đó bằng JSX thường. Hai khe:
  *
- * Nội dung trong `<SceneHero>` vẫn thuộc cây React của trang (state, context,
- * modal đều bình thường) — chỉ vị trí DOM là nằm trên phông.
+ *   - `<SceneHero>`   — phần tóm tắt dưới dải tab (tên function, câu kết luận,
+ *                       widget). Trang không dùng thì khe rỗng và ẩn hẳn.
+ *   - `<PageActions>` — nút hành động của trang, nằm BÊN PHẢI dải tab con
+ *                       (`.c-facts`): thường là một nút chính (`c-btn-primary`) và
+ *                       một nút phụ (`c-btn-secondary`).
+ *
+ * Nội dung trong khe vẫn thuộc cây React của trang (state, context, modal đều
+ * bình thường) — chỉ vị trí DOM khác.
  */
 const SceneSlotContext = createContext<HTMLElement | null>(null);
+const ActionsSlotContext = createContext<HTMLElement | null>(null);
 
 export const SceneSlotProvider = SceneSlotContext.Provider;
+export const ActionsSlotProvider = ActionsSlotContext.Provider;
 
 export function SceneHero({ children }: { children: React.ReactNode }) {
   const slot = useContext(SceneSlotContext);
   return slot ? createPortal(children, slot) : null;
 }
 
-const subscribe = (cb: () => void) => {
-  window.addEventListener("scroll", cb, { passive: true });
-  window.addEventListener("resize", cb);
-  return () => {
-    window.removeEventListener("scroll", cb);
-    window.removeEventListener("resize", cb);
-  };
-};
-
-/**
- * Tấm nền kem đã cuộn lên tới thanh điều hướng chưa. Thanh kính 30% đẹp trên
- * phông cảnh nhưng trên nền kem thì chữ trắng chìm — CSS đậm kính lên khi
- * `data-scrolled="true"`.
- */
-export function useSheetUnderNav(): boolean {
-  return useSyncExternalStore(
-    subscribe,
-    () => {
-      const sheet = document.querySelector(".c-main");
-      return sheet ? sheet.getBoundingClientRect().top < 76 : false;
-    },
-    () => false,
-  );
+export function PageActions({ children }: { children: React.ReactNode }) {
+  const slot = useContext(ActionsSlotContext);
+  return slot ? createPortal(children, slot) : null;
 }
