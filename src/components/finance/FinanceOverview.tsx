@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { Receipt, Target, Wallet, BarChart3, LayoutGrid } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
@@ -17,6 +18,7 @@ import SegRing from "@/components/charts/SegRing";
 import PetalChart, { type Petal } from "@/components/charts/PetalChart";
 import ProgressRing, { type RingTone } from "@/components/charts/ProgressRing";
 import { en } from "@/lib/plural";
+import { INCOME_CATEGORIES } from "@/lib/financeCategories";
 import NetWorthCard from "@/components/finance/NetWorthCard";
 
 /**
@@ -41,6 +43,9 @@ export interface OverviewDash {
   categoryBreakdown: { group: string; amount: number }[];
   budgetVsActual: { group: string; budget: number; actual: number; remaining: number }[];
   totalBudget: number;
+  /** Mục tiêu thu theo nhóm (`remaining` âm = vượt mục tiêu). Thiếu = chưa có. */
+  incomeBudgetVsActual?: { group: string; budget: number; actual: number; remaining: number }[];
+  totalIncomeBudget?: number;
 }
 
 interface Bucket {
@@ -117,6 +122,7 @@ export default function FinanceOverview({
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [period, setPeriod] = useState<Period>("month");
+  const [bmode, setBmode] = useState<"cost" | "revenue">("cost");
 
   const anchor = focusDate ?? `${month}-${String(dim).padStart(2, "0")}`;
   // Kết quả lưu theo khoá (kỳ · ngày soi · lần tải) — đổi tháng hay ghi sổ xong
@@ -296,8 +302,14 @@ export default function FinanceOverview({
   const monthRank = rankGroups(data.categoryBreakdown.map((c) => ({ name: c.group, value: c.amount })), 5);
   const petalColor = (group: string, i: number) =>
     monthRank.find((g) => g.name === group)?.color ?? BUDGET_PALETTE[(i + 3) % BUDGET_PALETTE.length];
+  // Công tắc Chi phí / Doanh thu: nguồn cánh hoa và danh sách vòng đổi theo.
+  const rev = bmode === "revenue";
+  const pRows = (rev ? data.incomeBudgetVsActual ?? [] : data.budgetVsActual).filter((b) => b.budget > 0);
+  const pHas = pRows.length > 0 && (rev ? data.totalIncomeBudget ?? 0 : data.totalBudget) > 0;
+  const pSpent = pRows.reduce((s, b) => s + b.actual, 0);
+  const pTotal = pRows.reduce((s, b) => s + b.budget, 0);
   const petals: Petal[] = (() => {
-    const sorted = [...budgetRows].sort((a, b) => b.budget - a.budget);
+    const sorted = [...pRows].sort((a, b) => b.budget - a.budget);
     const head = sorted.slice(0, sorted.length > MAX_PETALS ? MAX_PETALS - 1 : MAX_PETALS);
     const tail = sorted.slice(head.length);
     const out: Petal[] = head.map((b, i) => ({
@@ -313,13 +325,29 @@ export default function FinanceOverview({
   })();
 
   // Chưa có ngân sách: cánh mờ từ các nhóm đã chi trong tháng, KHÔNG kèm số.
-  const ghost: Petal[] = rankGroups(data.categoryBreakdown.map((c) => ({ name: c.group, value: c.amount })), 5)
-    .slice(0, 6)
-    .map((g) => ({ key: g.key, name: g.name, spent: 0, budget: 0, color: g.color }));
+  // Chế độ Doanh thu: chưa có số thu theo nhóm trong dashboard, nên cánh mờ lấy
+  // tên các nhóm thu chuẩn — chỉ là khung, không số.
+  const ghost: Petal[] = rev
+    ? INCOME_CATEGORIES.map((name, i) => ({ key: name, name, spent: 0, budget: 0, color: [1, 2, 3, 4, 6][i % 5] }))
+    : rankGroups(data.categoryBreakdown.map((c) => ({ name: c.group, value: c.amount })), 5)
+        .slice(0, 6)
+        .map((g) => ({ key: g.key, name: g.name, spent: 0, budget: 0, color: g.color }));
   const frac = (p: Petal) => (p.budget > 0 ? p.spent / p.budget : 0);
   const overs = petals.filter((p) => frac(p) > 1).sort((a, b) => frac(b) - frac(a));
-  const quick = pace === null ? [] : petals.filter((p) => frac(p) <= 1 && frac(p) > pace);
-  const budgetTitle = !hasBudget
+  const quick = rev || pace === null ? [] : petals.filter((p) => frac(p) <= 1 && frac(p) > pace);
+  const budgetTitle = rev
+    ? !pHas
+      ? t(`No income target set for month ${mNo}`, `Tháng ${mNo} chưa có mục tiêu thu`)
+      : overs.length > 0
+        ? t(
+            `${catLabel(overs[0].name)} is ${Math.round((frac(overs[0]) - 1) * 100)}% above its income target`,
+            `${catLabel(overs[0].name)} vượt mục tiêu thu ${Math.round((frac(overs[0]) - 1) * 100)}%`
+          )
+        : t(
+            `Income so far: ${Math.round((pSpent / pTotal) * 100)}% of the month's target`,
+            `Đã thu ${Math.round((pSpent / pTotal) * 100)}% mục tiêu thu của tháng`
+          )
+    : !hasBudget
     ? t(`No budget set for month ${mNo}`, `Tháng ${mNo} chưa có ngân sách`)
     : overs.length > 0
       ? t(
@@ -329,7 +357,14 @@ export default function FinanceOverview({
       : quick.length > 0
         ? t(`${quick.length} group${quick.length > 1 ? "s are" : " is"} ahead of budget pace`, `${quick.length} nhóm đang quá nhịp ngân sách`)
         : t(`All ${petals.length} budgeted groups are within limits`, `Cả ${petals.length} nhóm có ngân sách đều trong hạn mức`);
-  const budgetSub = hasBudget
+  const budgetSub = rev
+    ? pHas
+      ? t(
+          `Received / target, month ${mNo} · ${tr(pSpent)} / ${tr(pTotal)}m`,
+          `Đã thu / mục tiêu tháng ${mNo} · ${tr(pSpent)} / ${tr(pTotal)} triệu ₫`
+        )
+      : t("Income target per group will show here", "Mục tiêu thu theo nhóm sẽ hiện ở đây")
+    : hasBudget
     ? t(
         `Spent / budget, month ${mNo} · ${tr(budgetSpent)} / ${tr(budgetTotal)}m`,
         `Đã chi / ngân sách tháng ${mNo} · ${tr(budgetSpent)} / ${tr(budgetTotal)} triệu ₫`
@@ -339,6 +374,11 @@ export default function FinanceOverview({
 
   const statusOf = (p: Petal): { tone: RingTone; cls: string; text: string } => {
     const f = frac(p);
+    if (rev) {
+      if (f > 1) return { tone: "good", cls: "g", text: t(`▲ +${Math.round((f - 1) * 100)}% over target`, `▲ Vượt ${Math.round((f - 1) * 100)}%`) };
+      if (f === 1) return { tone: "good", cls: "g", text: t("Target met", "Đạt mục tiêu") };
+      return { tone: "ok", cls: "", text: t("Below target", "Chưa đạt") };
+    }
     if (f > 1) return { tone: "over", cls: "x", text: t(`Over ${Math.round((f - 1) * 100)}%`, `Vượt ${Math.round((f - 1) * 100)}%`) };
     if (pace !== null && f > pace) return { tone: "warn", cls: "w", text: t("Ahead of pace", "Quá nhịp") };
     return { tone: "ok", cls: "", text: pace !== null ? t("On pace", "Trong nhịp") : t("Within budget", "Trong hạn mức") };
@@ -510,13 +550,31 @@ export default function FinanceOverview({
 
         {/* So với ngân sách */}
         <GlassCard className="c-s12">
-          <CardHead icon={Target} tone="spend" title={budgetTitle} subtitle={budgetSub} wrap />
-          {hasBudget ? (
+          <CardHead
+            icon={Target}
+            tone={rev ? "fin" : "spend"}
+            title={budgetTitle}
+            subtitle={budgetSub}
+            wrap
+            actions={
+              <Segmented<"cost" | "revenue">
+                value={bmode}
+                onChange={setBmode}
+                label={t("Budget view", "Chế độ xem")}
+                options={[
+                  { value: "cost", label: t("Cost", "Chi phí") },
+                  { value: "revenue", label: t("Revenue", "Doanh thu") },
+                ]}
+              />
+            }
+          />
+          {pHas ? (
             <div className="c-psplit">
               <PetalChart
                 rows={petals}
+                mode={rev ? "revenue" : "cost"}
                 ariaLabel={
-                  t("Spent against budget by group: ", "Đã chi so với ngân sách theo nhóm: ") +
+                  (rev ? t("Received against target by group: ", "Đã thu so với mục tiêu theo nhóm: ") : t("Spent against budget by group: ", "Đã chi so với ngân sách theo nhóm: ")) +
                   petals.map((p) => `${catLabel(p.name)} ${Math.round(frac(p) * 100)}%`).join(", ")
                 }
                 label={(p) => catLabel(p.name)}
@@ -529,7 +587,7 @@ export default function FinanceOverview({
                   const Icon = p.key === OTHER_KEY ? LayoutGrid : groupIcon(p.name);
                   return (
                     <div key={p.key} className="c-bud-row">
-                      <GlassIcon icon={Icon} tone="spend" />
+                      <GlassIcon icon={Icon} tone={rev ? "fin" : "spend"} />
                       <div>
                         <div className="c-bud-nm">{catLabel(p.name)}</div>
                         <div className="c-bud-am">{tr(p.spent)} / {tr(p.budget)} {t("m ₫", "tr ₫")}</div>
@@ -539,7 +597,7 @@ export default function FinanceOverview({
                           fraction={frac(p)}
                           pace={pace}
                           tone={st.tone}
-                          ariaLabel={t(`${catLabel(p.name)}: ${pc}% of budget`, `${catLabel(p.name)}: ${pc}% ngân sách`)}
+                          ariaLabel={rev ? t(`${catLabel(p.name)}: ${pc}% of target`, `${catLabel(p.name)}: ${pc}% mục tiêu`) : t(`${catLabel(p.name)}: ${pc}% of budget`, `${catLabel(p.name)}: ${pc}% ngân sách`)}
                         />
                         <div>
                           <span className="pc">{pc}%</span>
@@ -552,6 +610,7 @@ export default function FinanceOverview({
                 <p className="c-pace-cap" style={{ marginTop: 4 }}>
                   {pace !== null && t(`The black tick on each ring is the day pace (${el}/${dim}). `, `Vạch đen trên vòng là nhịp ngày ${el}/${dim}. `)}
                   {t("Petal area of the solid layer follows the %, the pale layer is 100%.", "Cánh hoa: diện tích lớp đậm tỷ lệ với %, lớp mờ là 100%.")}
+                  {rev && t(" Green means above target.", " Màu xanh là vượt mục tiêu.")}
                 </p>
               </div>
             </div>
@@ -561,7 +620,7 @@ export default function FinanceOverview({
                 <PetalChart
                   rows={ghost}
                   empty
-                  ariaLabel={t("No budget yet. Groups this month: ", "Chưa có ngân sách. Các nhóm tháng này: ") + ghost.map((p) => catLabel(p.name)).join(", ")}
+                  ariaLabel={(rev ? t("No income target yet. Income groups: ", "Chưa có mục tiêu thu. Các nhóm thu: ") : t("No budget yet. Groups this month: ", "Chưa có ngân sách. Các nhóm tháng này: ")) + ghost.map((p) => catLabel(p.name)).join(", ")}
                   label={(p) => catLabel(p.name)}
                   money={short}
                 />
@@ -569,13 +628,23 @@ export default function FinanceOverview({
                 <div />
               )}
               <div className="c-empty-box">
-                <div className="eh">{t(`No budget for month ${mNo} yet`, `Tháng ${mNo} chưa có ngân sách`)}</div>
-                <div className="ed">
-                  {t(
-                    "Once a month has a budget per group, each petal fills in as you spend. The petals shown here are only this month's spending groups, without numbers.",
-                    "Khi tháng có ngân sách theo từng nhóm, mỗi cánh hoa sẽ đậm dần theo phần đã chi. Các cánh ở đây chỉ là những nhóm bạn đã chi trong tháng, chưa mang số nào."
-                  )}
+                <div className="eh">
+                  {rev ? t(`No income target for month ${mNo} yet`, `Tháng ${mNo} chưa có mục tiêu thu`) : t(`No budget for month ${mNo} yet`, `Tháng ${mNo} chưa có ngân sách`)}
                 </div>
+                <div className="ed">
+                  {rev
+                    ? t(
+                        "Set a monthly income target per group in the Budget tab (switch it to Revenue). Each petal then fills as money comes in, and turns green once you pass the target.",
+                        "Đặt mục tiêu thu theo từng nhóm ở tab Ngân sách (chuyển sang Doanh thu). Khi tiền về, mỗi cánh hoa đậm dần và chuyển xanh khi vượt mục tiêu. Các cánh ở đây chỉ là khung, chưa mang số nào."
+                      )
+                    : t(
+                        "Once a month has a budget per group, each petal fills in as you spend. The petals shown here are only this month's spending groups, without numbers.",
+                        "Khi tháng có ngân sách theo từng nhóm, mỗi cánh hoa sẽ đậm dần theo phần đã chi. Các cánh ở đây chỉ là những nhóm bạn đã chi trong tháng, chưa mang số nào."
+                      )}
+                </div>
+                <Link href="/finance?tab=budget" className="c-btn c-btn-primary">
+                  {rev ? t("Set income target", "Đặt mục tiêu thu") : t("Set a budget", "Đặt ngân sách")}
+                </Link>
               </div>
             </div>
           )}

@@ -356,22 +356,32 @@ export default function BudgetTab() {
                           <div className="min-w-0">
                             <div className="c-bud-nm truncate">{catLabel(r.group)}{r.inactive ? ` · ${t("hidden", "đã ẩn")}` : ""}</div>
                             <div className="c-bud-am">
-                              {r.actual.toLocaleString(vi ? "vi-VN" : "en-US")} / {r.budget > 0 ? r.budget.toLocaleString(vi ? "vi-VN" : "en-US") : "—"} ₫
+                              {r.budget > 0
+                                ? `${r.actual.toLocaleString(vi ? "vi-VN" : "en-US")} / ${r.budget.toLocaleString(vi ? "vi-VN" : "en-US")} ₫`
+                                : r.actual > 0
+                                  ? income
+                                    ? t(`Received ${r.actual.toLocaleString("en-US")} ₫ · no target set`, `Đã thu ${r.actual.toLocaleString("vi-VN")} ₫ · chưa đặt mục tiêu`)
+                                    : t(`Spent ${r.actual.toLocaleString("en-US")} ₫ · no budget set`, `Đã chi ${r.actual.toLocaleString("vi-VN")} ₫ · chưa đặt ngân sách`)
+                                  : t("Not set", "Chưa đặt")}
                             </div>
                           </div>
                         </div>
-                        <div className="c-rg">
-                          <ProgressRing
-                            fraction={frac}
-                            pace={r.budget > 0 ? pace : null}
-                            tone={RING_TONE[r.level]}
-                            ariaLabel={t(`${catLabel(r.group)}: ${r.pct ?? 0}% of ${income ? "target" : "budget"}`, `${catLabel(r.group)}: ${r.pct ?? 0}% ${income ? "mục tiêu" : "ngân sách"}`)}
-                          />
-                          <div>
-                            <span className="pc">{r.pct === null ? "—" : `${r.pct}%`}</span>
-                            <span className={`st ${st.cls}`}><i />{st.text}</span>
+                        {r.budget > 0 ? (
+                          <div className="c-rg">
+                            <ProgressRing
+                              fraction={frac}
+                              pace={pace}
+                              tone={RING_TONE[r.level]}
+                              ariaLabel={t(`${catLabel(r.group)}: ${r.pct ?? 0}% of ${income ? "target" : "budget"}`, `${catLabel(r.group)}: ${r.pct ?? 0}% ${income ? "mục tiêu" : "ngân sách"}`)}
+                            />
+                            <div>
+                              <span className="pc">{r.pct === null ? "—" : `${r.pct}%`}</span>
+                              <span className={`st ${st.cls}`}><i />{st.text}</span>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="hidden md:block" aria-hidden />
+                        )}
                         <div className="col-span-2 md:col-span-1 flex items-center gap-2">
                           <AmountInput
                             className="c-input w-full text-right num"

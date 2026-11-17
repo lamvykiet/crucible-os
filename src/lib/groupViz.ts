@@ -1,32 +1,53 @@
 import {
-  Banknote, Briefcase, Car, Coffee, Film, Gift, Heart, Home, LayoutGrid, Package,
-  ShoppingBag, ShoppingCart, TrendingUp, User, Zap, type LucideIcon,
+  Award, Baby, Banknote, BookOpen, Briefcase, Car, Coffee, CreditCard, Ellipsis, Film, Gift,
+  Heart, HeartHandshake, HeartPulse, Home, LayoutGrid, Package, Plane, CirclePlus, ShoppingBag,
+  ShoppingCart, SprayCan, TrendingUp, User, Users, Wallet, Zap, type LucideIcon,
 } from "lucide-react";
 
 /**
- * Icon và màu của nhóm danh mục cho biểu đồ hệ Kính (SegRing, PetalChart, hàng
- * "So với ngân sách"). Tên nhóm là tên CHUẨN tiếng Anh (`Transaction.categoryGroup`);
- * nhóm do người dùng tự tạo không có trong bảng thì lấy icon "Khác".
+ * Icon của nhóm danh mục cho biểu đồ hệ Kính (SegRing, PetalChart, hàng "So với
+ * ngân sách", BudgetTab). Tên nhóm là tên CHUẨN tiếng Anh
+ * (`Transaction.categoryGroup`). Khớp KHÔNG phân biệt hoa thường và khoảng trắng
+ * thừa; nhóm lạ (do người dùng tự tạo) lấy icon mặc định `LayoutGrid`.
  */
-const ICONS: Record<string, LucideIcon> = {
-  "Food & Dining": Coffee,
-  Groceries: ShoppingCart,
-  Housing: Home,
-  Transportation: Car,
-  "Bills & Utilities": Zap,
-  Shopping: ShoppingBag,
-  Personal: User,
-  Entertainment: Film,
-  "Health & Fitness": Heart,
-  "Assets & Equipment": Package,
-  "Main Income": Banknote,
-  Investment: TrendingUp,
-  Business: Briefcase,
-  Gift: Gift,
-};
+const ICON_LIST: [string, LucideIcon][] = [
+  // Chi
+  ["Food & Dining", Coffee],
+  ["Groceries", ShoppingCart],
+  ["Housing", Home],
+  ["Transportation", Car],
+  ["Bills & Utilities", Zap],
+  ["Shopping", ShoppingBag],
+  ["Personal", User],
+  ["Entertainment", Film],
+  ["Entertainment & Subscriptions", Film],
+  ["Health", HeartPulse],
+  ["Health & Fitness", Heart],
+  ["Assets & Equipment", Package],
+  ["Debt & Installments", CreditCard],
+  ["Books & Courses", BookOpen],
+  ["Business", Briefcase],
+  ["Children", Baby],
+  ["Friends", Users],
+  ["Grandparents", HeartHandshake],
+  ["Household Supplies", SprayCan],
+  ["Travel", Plane],
+  ["Other", Ellipsis],
+  // Thu
+  ["Main Income", Banknote],
+  ["Salary", Wallet],
+  ["Bonus", Award],
+  ["Allowance", Wallet],
+  ["Investment", TrendingUp],
+  ["Gift", Gift],
+  ["Other Income", CirclePlus],
+];
+
+const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+const ICONS = new Map(ICON_LIST.map(([k, v]) => [norm(k), v]));
 
 export function groupIcon(name: string): LucideIcon {
-  return ICONS[name] ?? LayoutGrid;
+  return ICONS.get(norm(name)) ?? LayoutGrid;
 }
 
 export const OTHER_KEY = "__other";
