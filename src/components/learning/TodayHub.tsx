@@ -17,7 +17,7 @@ interface Counts {
 }
 
 /** Trang Đọc & dịch và Video dựng sau; bật lên khi trang đã có. */
-const READY = { read: false, video: false };
+const READY = { read: true, video: false };
 
 /**
  * Hàng "Hôm nay học gì?" — bố cục theo trang chủ aioenglish.com: mỗi chức năng
