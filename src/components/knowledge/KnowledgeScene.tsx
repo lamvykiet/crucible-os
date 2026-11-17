@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock, FileText, Lightbulb, Moon } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
-import SceneSummary, { ddmm } from "@/components/SceneSummary";
+import { ddmm } from "@/components/SceneSummary";
+import PageIntro from "@/components/PageIntro";
+import { en } from "@/lib/plural";
 
 /**
  * Tóm tắt Knowledge trên phông cảnh, từ `/api/knowledge/summary` — cùng
@@ -36,46 +37,23 @@ export default function KnowledgeScene() {
   const days = data?.staleDays ?? 30;
   const newest = data?.recent?.[0];
 
-  let title = "Knowledge Hub";
+  // Câu kết luận tính từ số liệu thật; Drive lỗi thì nói thẳng là chưa đọc được.
+  let lede = "";
   if (data) {
-    if (data.driveError) title = t("Drive could not be read", "Chưa đọc được Drive");
-    else if (data.totalDocuments === 0) title = t("No documents yet", "Chưa có tài liệu nào");
-    else if (data.staleDocuments > 0) title = t(`${data.staleDocuments} documents forgotten`, `${data.staleDocuments} tài liệu bỏ quên`);
-    else if (data.staleIdeas > 0) title = t(`${data.staleIdeas} ideas gone quiet`, `${data.staleIdeas} ý tưởng chưa động tới`);
-    else title = t("Library is up to date", "Kho kiến thức còn mới");
+    if (data.driveError) lede = t("Drive could not be read, so the library is not counted yet.", "Chưa đọc được Drive nên chưa đếm được kho kiến thức.");
+    else if (data.totalDocuments === 0) lede = t("No documents yet — add a file to the Knowledge folder on Drive.", "Chưa có tài liệu nào — thêm một tệp vào thư mục Knowledge trên Drive.");
+    else if (data.staleDocuments > 0)
+      lede = t(
+        `${en(data.totalDocuments, "document")}, ${data.staleDocuments} untouched for ${days}+ days${newest?.modifiedTime ? `; newest edit ${ddmm(newest.modifiedTime)}` : ""}.`,
+        `${data.totalDocuments} tài liệu, ${data.staleDocuments} cái trên ${days} ngày chưa sửa${newest?.modifiedTime ? `; sửa gần nhất ${ddmm(newest.modifiedTime)}` : ""}.`
+      );
+    else if (data.staleIdeas > 0)
+      lede = t(
+        `${en(data.totalDocuments, "document")} up to date; ${en(data.staleIdeas, "idea")} of ${data.totalIdeas} gone quiet for ${days}+ days.`,
+        `${data.totalDocuments} tài liệu còn mới; ${data.staleIdeas}/${data.totalIdeas} ý tưởng trên ${days} ngày chưa động tới.`
+      );
+    else lede = t(`${en(data.totalDocuments, "document")} and ${en(data.totalIdeas, "idea")}, all fresh.`, `${data.totalDocuments} tài liệu và ${data.totalIdeas} ý tưởng, đều còn mới.`);
   }
-  const v = (n: number | undefined) => (n === undefined ? "—" : String(n));
 
-  return (
-    <SceneSummary
-      title={title}
-      main={{
-        title: t("Library", "Thư viện"),
-        subtitle: data?.driveError ?? t("Knowledge folder on Drive", "Thư mục Knowledge trên Drive"),
-        minis: [
-          { label: t(`Untouched ${days}+ days`, `Trên ${days} ngày chưa sửa`), value: v(data?.staleDocuments), icon: Moon },
-          { label: t("Ideas", "Ý tưởng"), value: v(data?.totalIdeas), icon: Lightbulb },
-          { label: t("Quiet ideas", "Ý tưởng chưa động tới"), value: v(data?.staleIdeas), icon: Clock },
-          {
-            label: t("Last updated", "Sửa gần nhất"),
-            value: newest?.modifiedTime ? ddmm(newest.modifiedTime) : "—",
-            icon: FileText,
-          },
-        ],
-        big: data && !data.driveError ? { value: String(data.totalDocuments), unit: t("docs", "tài liệu") } : null,
-      }}
-      rows={[
-        {
-          title: t("Ideas", "Ý tưởng"),
-          subtitle: data ? t(`${data.staleIdeas} quiet for ${days}+ days`, `${data.staleIdeas} ý tưởng trên ${days} ngày chưa động tới`) : undefined,
-          big: data ? { value: String(data.totalIdeas) } : null,
-        },
-        {
-          title: t("Newest document", "Tài liệu mới nhất"),
-          subtitle: newest?.name ?? t("No document yet", "Chưa có tài liệu nào"),
-          big: newest?.modifiedTime ? { value: ddmm(newest.modifiedTime) } : null,
-        },
-      ]}
-    />
-  );
+  return <PageIntro title={t("Knowledge", "Kiến thức")} kicker={t("Library on Drive", "Thư viện trên Drive")} lede={lede} />;
 }

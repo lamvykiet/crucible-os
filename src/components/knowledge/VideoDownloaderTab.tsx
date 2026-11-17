@@ -918,7 +918,7 @@ function PlayerModal({
       aria-modal="true"
     >
       <div
-        className="w-full max-w-3xl bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden"
+        className="c-glass c-gcard w-full max-w-3xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 p-4">

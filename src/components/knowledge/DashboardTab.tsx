@@ -262,7 +262,7 @@ export default function DashboardTab({
       </div>
 
       {blueprintResult && (
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden mt-6">
+        <div className="c-glass c-gcard shadow-sm overflow-hidden mt-6">
           <div className="bg-[var(--color-surface-2)] px-6 py-4 border-b border-[var(--color-border)] flex justify-between items-center">
             <h3 className="c-h3 text-[var(--color-text)] flex items-center gap-2"><Zap size={18} className="text-[var(--color-warning)]" /> Generated Blueprint</h3>
             <button onClick={() => setBlueprintResult("")} className="text-[var(--color-text-faint)] hover:text-[var(--color-text-muted)] text-sm font-bold px-3 py-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg">Close</button>
@@ -285,7 +285,7 @@ export default function DashboardTab({
           </span>
         </div>
         
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden shadow-sm">
+        <div className="c-glass c-gcard overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               {/* Cột "Thẻ" và "Lượt xem" đã bỏ: hệ thống không lưu thẻ hay số

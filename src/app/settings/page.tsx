@@ -7,6 +7,7 @@ import FinanceSettings from "@/components/settings/FinanceSettings";
 import OcrRulesSettings from "@/components/settings/OcrRulesSettings";
 import KnowledgeSettings from "@/components/settings/KnowledgeSettings";
 import LearningSettings from "@/components/settings/LearningSettings";
+import PageIntro from "@/components/PageIntro";
 
 export default function SettingsPage() {
   const { t } = useLanguage();
@@ -22,22 +23,25 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20">
-      {/* Top Header with Tabs */}
-      <div className="flex flex-col items-center">
-        <h1 className="c-h1 mb-6">
-          {t("Settings", "Cài Đặt Hệ Thống")}
-        </h1>
-        
-        {/* Tabs Navigation */}
-        <div className="flex bg-[var(--color-surface)] rounded-full p-1 border border-[var(--color-border)] mb-8 shadow-sm overflow-x-auto max-w-full hide-scrollbar">
+      <PageIntro
+        title={t("Settings", "Cài đặt hệ thống")}
+        kicker={tabs.find((x) => x.id === activeTab)?.label}
+        lede={t("Language, theme, categories, OCR rules and per-module options.", "Ngôn ngữ, giao diện, danh mục, quy tắc OCR và tuỳ chọn từng phân hệ.")}
+      />
+
+      {/* Chuyển nhóm cài đặt: viên kính, mục đang chọn là viên trắng đục */}
+      <div className="flex justify-center">
+        <div role="tablist" className="c-glass flex rounded-full p-1 overflow-x-auto max-w-full hide-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 md:px-8 py-2.5 rounded-full text-sm font-bold transition-all uppercase tracking-wider whitespace-nowrap ${
+              className={`px-5 md:px-7 min-h-11 rounded-full text-sm font-semibold transition-colors whitespace-nowrap ${
                 activeTab === tab.id
-                  ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md"
-                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+                  ? "bg-[var(--glass-pill)] text-[var(--glass-pill-ink)] shadow-sm"
+                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
               }`}
             >
               {tab.label}

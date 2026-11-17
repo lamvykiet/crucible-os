@@ -113,7 +113,7 @@ export default function DocumentsTab() {
       </div>
 
       {/* Breadcrumb Navigation */}
-      <div className="flex items-center gap-2 overflow-x-auto py-3 px-4 bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm text-sm font-medium whitespace-nowrap">
+      <div className="c-glass c-gcard flex items-center gap-2 overflow-x-auto shadow-sm text-sm font-medium whitespace-nowrap">
         {breadcrumbs.map((crumb, index) => (
           <div key={crumb.id || 'root'} className="flex items-center">
             <button 
