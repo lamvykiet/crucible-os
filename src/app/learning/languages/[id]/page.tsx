@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, Music2, PenLine, ClipboardCheck, ArrowRight } from "lucide-react";
 import DeckManager from "@/components/learning/DeckManager";
 import SkillsBoard from "@/components/learning/SkillsBoard";
+import TodayHub from "@/components/learning/TodayHub";
 import MistakeBookLink from "@/components/learning/MistakeBookLink";
 import { useLanguage } from "@/lib/LanguageContext";
 import {
@@ -110,6 +111,10 @@ export default function LanguagePage({ params }: { params: Promise<{ id: string 
 
       {/* Kỹ năng đứng trước bộ thẻ: bộ thẻ là một phần của kỹ năng từ vựng,
           không phải toàn bộ việc học một thứ tiếng. */}
+      {/* Hàng chức năng kiểu trang chủ AIO đứng đầu: Lộ trình là lối vào chính,
+          bảng kỹ năng bên dưới để thấy kỹ năng nào đang bị bỏ quên. */}
+      <TodayHub languageId={lang.id} />
+
       <SkillsBoard languageId={lang.id} />
 
       {/* Thi thử đứng riêng, không nằm trong bảng kỹ năng: nó không phải một kỹ

@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { modelsWithFallback } from "@/lib/gemini";
-import { generateWithRetry, aiErrorMessage, isTransientAiError } from "@/lib/aiRetry";
-import { bandBrief, cefrOf } from "@/lib/bookBand";
-import { resolveLang, parseDeckSentences } from "@/lib/sentenceSources";
+import { aiErrorMessage, isTransientAiError } from "@/lib/aiRetry";
+import { resolveLang } from "@/lib/sentenceSources";
+import { generateSentenceDeck, DeckTooSmallError } from "@/lib/sentenceGen";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -22,49 +20,6 @@ const COUNT = 10;
  * thì bị loại (`parseDeckSentences`) — màn Gõ câu dựa hẳn vào hai thứ đó.
  */
 
-const PIECE: Schema = {
-  type: SchemaType.OBJECT,
-  properties: {
-    en: { type: SchemaType.STRING },
-    vi: { type: SchemaType.STRING },
-  },
-  required: ["en", "vi"],
-};
-
-const DECK_SCHEMA: Schema = {
-  type: SchemaType.OBJECT,
-  properties: {
-    title: { type: SchemaType.STRING, description: "Tên bộ ngắn bằng tiếng Việt, dưới 60 ký tự" },
-    sentences: {
-      type: SchemaType.ARRAY,
-      items: {
-        type: SchemaType.OBJECT,
-        properties: {
-          en: { type: SchemaType.STRING, description: "Câu hoàn chỉnh bằng thứ tiếng đang học" },
-          vi: { type: SchemaType.STRING, description: "Bản dịch tiếng Việt tự nhiên" },
-          chunks: {
-            type: SchemaType.ARRAY,
-            items: PIECE,
-            description: "2–4 cụm liên tiếp, nối lại bằng dấu cách phải ra ĐÚNG nguyên câu en, kể cả dấu câu",
-          },
-          keys: {
-            type: SchemaType.ARRAY,
-            items: PIECE,
-            description: "1–2 từ hoặc cụm từ đáng học, chép NGUYÊN VĂN từ câu en",
-          },
-        },
-        required: ["en", "vi", "chunks", "keys"],
-      },
-    },
-  },
-  required: ["title", "sentences"],
-};
-
-const LANG_NAMES: Record<string, string> = {
-  en: "tiếng Anh", fr: "tiếng Pháp", de: "tiếng Đức", cmn: "tiếng Trung (Quan Thoại)",
-  yue: "tiếng Quảng Đông", ko: "tiếng Hàn",
-};
-
 export async function POST(req: Request) {
   const { user, response } = await requireUser();
   if (!user) return response;
@@ -72,65 +27,18 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const topic = String(body.topic ?? "").trim();
-    const level = cefrOf(String(body.level ?? "B1"));
     if (!topic) return NextResponse.json({ success: false, error: "Chưa nhập chủ đề" }, { status: 400 });
     if (topic.length > 120) return NextResponse.json({ success: false, error: "Chủ đề quá dài" }, { status: 400 });
 
     const { code, id } = await resolveLang(user.id, body.languageId);
-    const langName = LANG_NAMES[code] ?? code;
-
-    const recent = await prisma.sentenceDeck.findMany({
-      where: { userId: user.id, langCode: code },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: { sentences: true },
+    const deck = await generateSentenceDeck({
+      userId: user.id, languageId: id, code, topic, level: String(body.level ?? "B1"), count: COUNT,
     });
-    const avoid = recent
-      .flatMap((d) => parseDeckSentences(d.sentences).map((s) => s.en))
-      .slice(0, 30);
-
-    const model = modelsWithFallback({
-      generationConfig: { responseMimeType: "application/json", responseSchema: DECK_SCHEMA, temperature: 0.8 },
-      systemInstruction: `Bạn soạn câu luyện dịch Việt → ${langName} và luyện gõ câu cho người Việt.
-
-${bandBrief(level)}
-
-Yêu cầu cho từng câu:
-- Câu tự nhiên, người bản xứ thật sự nói/viết như vậy trong bối cảnh chủ đề.
-- "vi" là bản dịch tiếng Việt tự nhiên, không dịch word-by-word.
-- "chunks": cắt câu thành 2–4 cụm theo nhịp ngữ nghĩa (chủ ngữ + động từ, tân ngữ, trạng ngữ…). Nối các cụm bằng một dấu cách phải ra ĐÚNG câu "en", giữ nguyên dấu câu. Mỗi cụm kèm nghĩa tiếng Việt.
-- "keys": 1–2 từ hoặc cụm từ đáng học nhất trong câu, chép NGUYÊN VĂN (cùng dạng chia) từ câu "en", kèm nghĩa ngắn.
-- Mười câu phải khác nhau về cấu trúc, không lặp một khuôn.`,
-    });
-
-    const prompt = `Chủ đề: ${topic}
-Soạn đúng ${COUNT} câu.${avoid.length ? `\nĐừng lặp lại các câu đã có:\n${avoid.map((s) => `- ${s}`).join("\n")}` : ""}`;
-
-    const result = await generateWithRetry(model, prompt, { timeoutMs: 45_000, totalBudgetMs: 55_000 });
-    const parsed = JSON.parse(result.response.text()) as { title?: string; sentences?: unknown[] };
-    const sentences = parseDeckSentences(JSON.stringify(parsed.sentences ?? []));
-
-    if (sentences.length < 4) {
-      return NextResponse.json(
-        { success: false, error: "AI trả về quá ít câu dùng được. Thử lại hoặc đổi chủ đề." },
-        { status: 422 }
-      );
-    }
-
-    const deck = await prisma.sentenceDeck.create({
-      data: {
-        userId: user.id,
-        languageId: id,
-        langCode: code,
-        title: (parsed.title?.trim() || topic).slice(0, 80),
-        level,
-        topic: topic.slice(0, 120),
-        sentences: JSON.stringify(sentences),
-      },
-    });
-
-    return NextResponse.json({ success: true, setId: `ai:${deck.id}`, count: sentences.length });
+    return NextResponse.json({ success: true, setId: `ai:${deck.id}` });
   } catch (error) {
+    if (error instanceof DeckTooSmallError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 422 });
+    }
     console.error("Sentence deck generate error:", error);
     const transient = isTransientAiError(error);
     return NextResponse.json(

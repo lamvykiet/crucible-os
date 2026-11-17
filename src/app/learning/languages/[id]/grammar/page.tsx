@@ -1,6 +1,7 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { Suspense, use, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import GrammarBrowser from "@/components/learning/GrammarBrowser";
@@ -21,7 +22,22 @@ interface LanguageRow {
  */
 export default function GrammarPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  return (
+    <Suspense>
+      <GrammarPageInner id={id} />
+    </Suspense>
+  );
+}
+
+/**
+ * `?point=` mở thẳng một điểm; `?from=path` đổi nút quay lại thành "Về lộ
+ * trình" — Lộ trình dẫn người học sang đây cho bài ngữ pháp của một chương.
+ */
+function GrammarPageInner({ id }: { id: string }) {
   const { t } = useLanguage();
+  const search = useSearchParams();
+  const pointParam = search.get("point");
+  const fromPath = search.get("from") === "path";
 
   const [lang, setLang] = useState<LanguageRow | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -43,9 +59,12 @@ export default function GrammarPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div className="max-w-7xl mx-auto pb-24 space-y-6">
-      <Link href={`/learning/languages/${id}`} className="c-btn c-btn-tertiary c-btn-sm -ml-3">
+      <Link
+        href={fromPath ? `/learning/languages/${id}/path` : `/learning/languages/${id}`}
+        className="c-btn c-btn-tertiary c-btn-sm -ml-3"
+      >
         <ArrowLeft size={16} />
-        {t("Back to skills", "Về bảng kỹ năng")}
+        {fromPath ? t("Back to the path", "Về lộ trình") : t("Back to skills", "Về bảng kỹ năng")}
       </Link>
 
       <h1 className="c-h1">
@@ -60,7 +79,7 @@ export default function GrammarPage({ params }: { params: Promise<{ id: string }
       ) : !lang ? (
         <p className="c-help">{t("Language not found.", "Không tìm thấy thứ tiếng này.")}</p>
       ) : (
-        <GrammarBrowser langCode={lang.code} />
+        <GrammarBrowser langCode={lang.code} initialPointId={pointParam} />
       )}
     </div>
   );

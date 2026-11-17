@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   BookOpen, Dumbbell, Loader2, AlertCircle, Check, X, ChevronDown, Search,
   RefreshCw, CircleCheck, BookMarked,
@@ -108,7 +108,14 @@ function LevelBadge({ level, levels }: { level: string; levels: string[] }) {
  * khung và thang riêng, nên component nhận `langCode` và mọi lượt gọi máy chủ
  * đều mang theo nó.
  */
-export default function GrammarBrowser({ langCode }: { langCode: string }) {
+export default function GrammarBrowser({
+  langCode,
+  initialPointId,
+}: {
+  langCode: string;
+  /** Mở thẳng điểm này khi vào trang (Lộ trình dẫn sang bằng `?point=`). */
+  initialPointId?: string | null;
+}) {
   const { t } = useLanguage();
 
   const [families, setFamilies] = useState<GrammarFamily[]>([]);
@@ -142,6 +149,39 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [graded, setGraded] = useState<Graded | null>(null);
 
+  const openPoint = useCallback(async (id: string) => {
+    setPointId(id);
+    setTab("knowledge");
+    setLesson(null);
+    setSupplements([]);
+    setQuestions(null);
+    setQIndex(0);
+    setPicked(null);
+    setGraded(null);
+    setError(null);
+    setLoadingLesson(true);
+
+    try {
+      const res = await fetch("/api/learning/grammar/lesson", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pointId: id, langCode }),
+      });
+      const json = await res.json();
+      if (!json?.success) throw new Error(json?.error || "Không soạn được bài");
+      setLesson(json.lesson);
+      setSupplements(json.supplements ?? []);
+      setProgress((prev) => ({
+        ...prev,
+        [id]: { viewed: true, practiceCount: json.lesson.practiceCount, correctCount: json.lesson.correctCount },
+      }));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoadingLesson(false);
+    }
+  }, [langCode]);
+
   // Khung chương trình: một lần, ngay khi mở.
   useEffect(() => {
     const controller = new AbortController();
@@ -159,14 +199,19 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
         setSupplemented(new Set(Object.keys(json.supplements ?? {})));
         setBookFamilies(new Set(json.bookFamilyIds ?? []));
         setLevel("all");
-        setOpenFamilies(new Set([json.families?.[0]?.id].filter(Boolean)));
+        const fams = (json.families ?? []) as GrammarFamily[];
+        const target = initialPointId
+          ? fams.find((f) => f.groups.some((g) => g.points.some((p) => p.id === initialPointId)))
+          : null;
+        setOpenFamilies(new Set([target?.id ?? fams[0]?.id].filter(Boolean) as string[]));
+        if (target && initialPointId) void openPoint(initialPointId);
       })
       .catch(() => {})
       .finally(() => {
         if (!controller.signal.aborted) setLoadedSyllabus(true);
       });
     return () => controller.abort();
-  }, [langCode]);
+  }, [langCode, initialPointId, openPoint]);
 
   /** Lọc cây theo cấp độ và từ khoá, bỏ hẳn nhóm và họ không còn bài nào. */
   const visible = useMemo(() => {
@@ -199,39 +244,6 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
         .find((entry) => entry.point.id === pointId) ?? null,
     [families, pointId]
   );
-
-  const openPoint = async (id: string) => {
-    setPointId(id);
-    setTab("knowledge");
-    setLesson(null);
-    setSupplements([]);
-    setQuestions(null);
-    setQIndex(0);
-    setPicked(null);
-    setGraded(null);
-    setError(null);
-    setLoadingLesson(true);
-
-    try {
-      const res = await fetch("/api/learning/grammar/lesson", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pointId: id, langCode }),
-      });
-      const json = await res.json();
-      if (!json?.success) throw new Error(json?.error || "Không soạn được bài");
-      setLesson(json.lesson);
-      setSupplements(json.supplements ?? []);
-      setProgress((prev) => ({
-        ...prev,
-        [id]: { viewed: true, practiceCount: json.lesson.practiceCount, correctCount: json.lesson.correctCount },
-      }));
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoadingLesson(false);
-    }
-  };
 
   const startPractice = async (refresh = false) => {
     if (!pointId) return;

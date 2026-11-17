@@ -107,8 +107,9 @@ export async function listSets(userId: string, languageId: string | null, code: 
     refs: s.sentences.map((_, index) => ({ setId: s.id, index })),
   }));
 
+  // Bộ của Lộ trình (gắn điểm ngữ pháp) học ở trang Lộ trình, không lẫn vào đây.
   const decks = await prisma.sentenceDeck.findMany({
-    where: { userId, langCode: code },
+    where: { userId, langCode: code, pointId: null },
     orderBy: { createdAt: "desc" },
   });
   const ai: SetSummary[] = decks.map((d) => {
