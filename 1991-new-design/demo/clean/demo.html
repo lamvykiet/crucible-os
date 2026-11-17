@@ -595,6 +595,162 @@ html[data-theme="dark"]{--pt-mix:64%;--pt-tint:.2;--on-bad:#16100B;--on-good:#16
 .bud .rg .st.g{color:var(--good-t);font-weight:500}.bud .rg .st.g i{background:var(--good)}
 @media (max-width:760px){.psplit{grid-template-columns:1fr;gap:20px}.hd.hs .segs{order:3;width:100%}.hd.hs .segs .seg{flex:1 1 auto}.hd.hs .segs .seg button{flex:1}
  .petal .pl .n{font-size:22px;line-height:24px}}
+
+/* =====================================================================
+   LIQUID GLASS cho điều khiển nhỏ (pin o2, o3): nút sáng/tối, chuông, công tắc, chip, nút tròn phụ.
+   Kính trong (trắng 30%), làm mờ CHỈ ở ::before. ::after là viền khúc xạ 1px: gradient hình nón
+   pastel (hồng đất, lavender nhạt, mật ong) ≤ 50% alpha, cắt bằng mask thành sợi mảnh — không neon.
+   Mục đang chọn của công tắc = viên trắng nổi. Chữ vẫn dùng --ink / --glass-muted (≥ 4.5:1).
+   ===================================================================== */
+:root{--lg-fill:rgba(255,255,255,.30);
+  --lg-edge:inset 0 1px 1px rgba(255,255,255,.95),inset 0 -6px 12px -6px rgba(255,255,255,.55),inset 0 0 0 1px rgba(255,255,255,.55),0 0 0 1px rgba(60,40,25,.07),0 8px 18px -6px rgba(60,40,25,.20);
+  --lg-ring:conic-gradient(from 200deg,rgba(255,150,185,.55),rgba(255,255,255,0) 17%,rgba(255,255,255,0) 40%,rgba(140,180,255,.45) 54%,rgba(255,255,255,0) 70%,rgba(255,200,140,.5) 90%,rgba(255,150,185,.55));
+  --lg-on:rgba(255,255,255,.97);
+  --lg-on-sh:0 0 0 1px rgba(255,255,255,.9),0 3px 8px -1px rgba(60,40,25,.22),0 1px 2px rgba(60,40,25,.10)}
+html[data-theme="dark"]{--lg-fill:rgba(255,255,255,.07);
+  --lg-edge:inset 0 1px 1px rgba(255,255,255,.22),inset 0 -6px 12px -6px rgba(255,255,255,.08),inset 0 0 0 1px rgba(255,255,255,.12),0 0 0 1px rgba(0,0,0,.25),0 8px 18px -6px rgba(0,0,0,.5);
+  --lg-ring:conic-gradient(from 200deg,rgba(255,150,185,.34),rgba(255,255,255,0) 17%,rgba(255,255,255,0) 40%,rgba(140,180,255,.30) 54%,rgba(255,255,255,0) 70%,rgba(255,200,140,.32) 90%,rgba(255,150,185,.34));
+  --lg-on:rgba(255,255,255,.17);
+  --lg-on-sh:0 0 0 1px rgba(255,255,255,.2),0 3px 8px -1px rgba(0,0,0,.5)}
+html .round:not(.btn),html[data-theme="dark"] .round:not(.btn),html .ringact .rb{background:transparent;box-shadow:none;position:relative;z-index:0;isolation:isolate}
+html .round:not(.btn)::before,html .ringact .rb::before,html .seg::before,html .chip::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;
+  background:var(--lg-fill);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--lg-edge)}
+html .card .chip::before,html .card .seg::before{background:var(--lg-fill);-webkit-backdrop-filter:none;backdrop-filter:none}
+html[data-theme="dark"] .card .chip::before,html[data-theme="dark"] .card .seg::before{background:rgba(255,255,255,.08)}
+html .round:not(.btn)::after,html .ringact .rb::after,html .seg::after,html .chip::after,.dock::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:1;
+  background:var(--lg-ring);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+html .ringact .rb{color:var(--ink)}
+html .seg button.on{background:var(--lg-on);box-shadow:var(--lg-on-sh);color:var(--ink)}
+html .round:not(.btn):hover::before,html .ringact .rb:hover::before{background:rgba(255,255,255,.5)}
+html[data-theme="dark"] .round:not(.btn):hover::before{background:rgba(255,255,255,.12)}
+html .mtop .iconbtn:hover{background:transparent}
+
+/* =====================================================================
+   SIDEBAR bung (pin o5): ô tìm ở đầu · hàng rê = nền xám nhạt bo tròn · cây trạng thái hoá đơn
+   dưới Tài chính (mặc định ĐÓNG; chỉ hiện khi sidebar đã bung). Đường cây mảnh nối các mục con.
+   ===================================================================== */
+.sq{display:flex;align-items:center;gap:10px;height:40px;padding:0 11px;margin-bottom:12px;border-radius:14px;background:rgba(60,40,25,.06);box-shadow:inset 0 0 0 1px rgba(60,40,25,.06);color:var(--glass-muted);white-space:nowrap;cursor:text}
+.sq svg{width:18px;height:18px;flex:none}
+.sq input{flex:1;min-width:0;border:0;background:none;font:inherit;color:var(--ink);outline:none}
+.sq input::placeholder{color:var(--glass-muted)}
+.sq:focus-within{background:rgba(255,255,255,.7)}
+.side:not(.open,:focus-within,.pinned) .sq{width:40px}
+html .side .nav{border-radius:12px}
+html .side .nav:hover{background:rgba(60,40,25,.07)}
+html .side .nav.on:hover{background:var(--glass-on)}
+.navrow{display:flex;align-items:center}
+.navrow .nav{flex:1;padding-right:36px}
+.tg{width:28px;height:28px;margin-left:-32px;border-radius:9px;display:grid;place-items:center;flex:none;color:var(--glass-muted);position:relative;z-index:1;transition:background-color 150ms var(--ease)}
+.tg:hover{background:rgba(60,40,25,.09)}
+.tg svg{width:14px;height:14px;fill:currentColor;stroke-width:1.5;transition:transform 180ms var(--ease)}
+.grp.exp .tg svg{transform:rotate(90deg)}
+.side:not(.open,:focus-within,.pinned) .tg{display:none}
+.tree{display:none;position:relative;margin:2px 0 4px 20px}
+.side:is(.open,:focus-within,.pinned) .grp.exp .tree{display:block}
+.tree::before{content:"";position:absolute;left:0;top:0;bottom:19px;border-left:1px solid rgba(60,40,25,.2)}
+.sub{position:relative;display:flex;align-items:center;gap:10px;width:100%;height:34px;margin:0;padding:0 10px 0 24px;border-radius:10px;font-size:14px;font-weight:500;color:var(--ink2);text-align:left;white-space:nowrap;transition:background-color 150ms var(--ease),color 150ms var(--ease)}
+.sub::before{content:"";position:absolute;left:0;top:50%;width:14px;height:0;border-top:1px solid rgba(60,40,25,.2)}
+.sub:last-child::before{top:50%;border-radius:0 0 0 8px}
+.sub:hover,.sub.cur{background:rgba(60,40,25,.07);color:var(--ink)}
+.sub svg{width:16px;height:16px;flex:none}
+.sub.w svg{color:var(--warn)}.sub.g svg{color:var(--good)}.sub.x svg{color:var(--bad)}
+.sub .cnt{margin-left:auto;font-size:13px;line-height:16px;color:var(--glass-muted)}
+html[data-theme="dark"] .sq{background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+html[data-theme="dark"] .side .nav:hover,html[data-theme="dark"] .sub:hover,html[data-theme="dark"] .sub.cur,html[data-theme="dark"] .tg:hover{background:rgba(255,255,255,.08)}
+html[data-theme="dark"] .tree::before,html[data-theme="dark"] .sub::before{border-color:rgba(255,255,255,.2)}
+html[data-theme="dark"] .sq:focus-within{background:rgba(255,255,255,.12)}
+
+/* =====================================================================
+   DOCK thao tác nhanh + MENU bật lên (pin o4, o1). Dock = kính nổi giữa đáy màn hình (máy tính).
+   Nút + giữa dock là viên mực đặc (o3); bấm → menu kính gần đặc phía trên, caret chỉ xuống nút.
+   Điện thoại: KHÔNG có dock (đã gỡ 23/10/2026); nút + trên thanh trên mở cùng menu dạng sheet đáy.
+   ===================================================================== */
+:root{--q-solid:rgba(253,250,245,.94);--q-row:rgba(60,40,25,.07);--q-kc:rgba(60,40,25,.07);--q-kc-hi:#FFFFFF}
+html[data-theme="dark"]{--q-solid:rgba(42,36,31,.95);--q-row:rgba(255,255,255,.09);--q-kc:rgba(255,255,255,.10);--q-kc-hi:rgba(255,255,255,.2)}
+.main{padding-bottom:120px}
+.dock{position:fixed;left:0;right:0;bottom:20px;margin:0 auto;width:max-content;max-width:calc(100vw - 32px);z-index:32;display:flex;align-items:center;gap:4px;padding:8px;border-radius:36px;isolation:isolate}
+.dock::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;background:rgba(255,255,255,.5);
+  -webkit-backdrop-filter:blur(28px) saturate(1.6);backdrop-filter:blur(28px) saturate(1.6);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.95),inset 0 0 0 1px rgba(255,255,255,.6),0 0 0 1px rgba(60,40,25,.07),0 18px 40px -10px rgba(60,40,25,.32)}
+html[data-theme="dark"] .dock::before{background:rgba(40,34,29,.62);box-shadow:inset 0 1px 1px rgba(255,255,255,.2),inset 0 0 0 1px rgba(255,255,255,.1),0 0 0 1px rgba(0,0,0,.3),0 18px 40px -10px rgba(0,0,0,.6)}
+.dk{position:relative;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:var(--ink);transition:background-color 150ms var(--ease),transform 160ms var(--ease)}
+.dk svg{width:22px;height:22px;transition:transform 200ms var(--ease)}
+.dk:hover{background:rgba(60,40,25,.09)}
+.dk:active{transform:scale(.94)}
+html[data-theme="dark"] .dk:hover{background:rgba(255,255,255,.1)}
+.dk.ctr{width:56px;height:56px;margin:0 6px;background:var(--btn);color:var(--btn-ink);box-shadow:0 6px 14px -4px rgba(28,27,25,.45)}
+.dk.ctr:hover{background:var(--btn);opacity:.9}
+.dk.ctr.open svg{transform:rotate(45deg)}
+.dk-sep{width:1px;height:26px;margin:0 8px;background:rgba(60,40,25,.18)}
+html[data-theme="dark"] .dk-sep{background:rgba(255,255,255,.2)}
+.dk[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 14px);transform:translate(-50%,4px);padding:4px 10px;border-radius:8px;background:var(--btn);color:var(--btn-ink);font-size:13px;line-height:18px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 120ms var(--ease),transform 120ms var(--ease)}
+.dk[data-tip]:is(:hover,:focus-visible)::after{opacity:1;transform:translate(-50%,0)}
+.qscrim{position:fixed;inset:0;z-index:29;display:none}
+.qscrim.on{display:block}
+.qmenu{--mx:50vw;position:fixed;left:var(--mx);bottom:106px;width:320px;margin-left:-160px;z-index:31;padding:8px;border-radius:28px;isolation:isolate;
+  opacity:0;visibility:hidden;transform:translateY(10px) scale(.97);transform-origin:50% 100%;pointer-events:none;
+  transition:opacity 160ms var(--ease),transform 200ms var(--ease),visibility 0s linear 200ms}
+.qmenu.on{opacity:1;visibility:visible;transform:none;pointer-events:auto;transition:opacity 160ms var(--ease),transform 220ms var(--ease),visibility 0s}
+.qmenu::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;background:var(--q-solid);
+  -webkit-backdrop-filter:blur(30px) saturate(1.5);backdrop-filter:blur(30px) saturate(1.5);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.8),0 0 0 1px rgba(60,40,25,.06),0 24px 56px -12px rgba(60,40,25,.35)}
+html[data-theme="dark"] .qmenu::before{box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 0 0 1px rgba(0,0,0,.3),0 24px 56px -12px rgba(0,0,0,.7)}
+.qcaret{position:absolute;left:50%;bottom:-6px;width:16px;height:16px;margin-left:-8px;transform:rotate(45deg);border-radius:0 0 5px 0;background:var(--q-solid);z-index:-2;box-shadow:3px 3px 8px -3px rgba(60,40,25,.2)}
+.qhead,.qgrab{display:none}
+.qrow{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:14px;width:100%;height:48px;padding:0 10px 0 16px;border-radius:20px;text-align:left;font-size:15px;font-weight:500;color:var(--ink);transition:background-color 120ms var(--ease)}
+.qrow svg{width:22px;height:22px}
+.qrow:hover,.qrow:focus-visible{background:var(--q-row)}
+.kcs{display:flex;gap:4px}
+.kc{min-width:28px;height:28px;padding:0 6px;border-radius:9px;display:grid;place-items:center;background:var(--q-kc);color:var(--glass-muted);font-family:var(--fig);font-size:13px;line-height:16px;transition:background-color 120ms var(--ease),color 120ms var(--ease)}
+.qrow:hover .kc,.qrow:focus-visible .kc{background:var(--q-kc-hi);color:var(--ink)}
+
+/* =====================================================================
+   CHỒNG PHIẾU HOÁ ĐƠN (pin o1) ở đầu thẻ "đang chờ duyệt": 3 phiếu kem xếp chồng, hơi nghiêng,
+   mỗi phiếu có ngày lớn + nơi chi; rê chuột vào thẻ thì xoè. Chỉ là trang trí (aria-hidden):
+   thông tin thật nằm ở danh sách bên dưới.
+   ===================================================================== */
+.pend{display:flex;align-items:center;gap:28px;margin-bottom:12px}
+.pend .grow{min-width:0}
+.rstack{position:relative;flex:none;width:216px;height:140px;margin-left:4px}
+.rcp{position:absolute;width:176px;white-space:nowrap;height:68px;padding:6px 14px 0;border-radius:18px;background:#FFFBF4;color:var(--ink);
+  box-shadow:0 0 0 1px rgba(60,40,25,.06),0 10px 22px -10px rgba(60,40,25,.4);transform-origin:20% 90%;
+  transition:transform 320ms var(--ease)}
+.rcp b{display:inline;font-size:20px;line-height:24px;font-weight:600;letter-spacing:-.03em}
+.rcp span{margin-left:8px;font-size:13px;line-height:16px;color:var(--ink2)}
+.rcp i{display:block;margin-top:10px;height:0;border-top:1.5px dashed rgba(60,40,25,.18);width:72%}
+.rcp.r1{left:0;top:70px;transform:rotate(-3deg);z-index:3}
+.rcp.r2{left:14px;top:35px;transform:rotate(1.5deg);z-index:2}
+.rcp.r3{left:28px;top:0;transform:rotate(4.5deg);z-index:1}
+.card:hover .rcp.r1{transform:translate(-4px,6px) rotate(-7deg)}
+.card:hover .rcp.r2{transform:translate(14px,-2px) rotate(3deg)}
+.card:hover .rcp.r3{transform:translate(30px,-6px) rotate(10deg)}
+html[data-theme="dark"] .rcp{background:#3A322B;box-shadow:0 0 0 1px rgba(255,255,255,.1),0 10px 22px -10px rgba(0,0,0,.7)}
+html[data-theme="dark"] .rcp i{border-color:rgba(255,255,255,.2)}
+@media (prefers-reduced-motion:reduce){.rcp,.qmenu,.dk,.dk svg{transition:none}
+  .dock{transition:opacity 200ms linear!important}.dock.hide{transform:none!important}}
+
+@media (max-width:760px){
+  /* Dock điện thoại: 4 icon + nút + (ẩn vạch ngăn và Hỏi Crucible; Tìm kiếm đã ở thanh trên) */
+  .dock{bottom:calc(12px + env(safe-area-inset-bottom));padding:6px;gap:2px;transition:transform 240ms var(--ease),opacity 200ms var(--ease)}
+  .dock.hide{transform:translateY(calc(100% + 24px + env(safe-area-inset-bottom)));opacity:0;pointer-events:none}
+  .dock .dk-sep,.dock .dk[data-tip="Hỏi Crucible"],.dk[data-tip]::after{display:none}
+  .dk{width:48px;height:48px}.dk.ctr{width:54px;height:54px;margin:0 4px}
+  body.qopen .dock{opacity:0;pointer-events:none}
+  .main,body.pinned .main{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+  .mock{bottom:calc(88px + env(safe-area-inset-bottom));right:8px}
+  .pend{flex-wrap:wrap;gap:16px}
+  .pend .btn{width:100%;justify-content:center;height:44px}
+  .rstack{width:100%;max-width:220px}
+  /* sheet đáy thay cho menu nổi */
+  .qscrim.on{background:rgba(40,28,18,.32)}
+  .qmenu{left:0;right:0;bottom:0;width:auto;margin:0;border-radius:28px 28px 0 0;padding:8px 12px calc(16px + env(safe-area-inset-bottom));transform:translateY(100%);transform-origin:50% 100%}
+  .qmenu.on{transform:none}
+  .qmenu::before{border-radius:inherit}
+  .qcaret,.kcs{display:none}
+  .qgrab{display:block;width:40px;height:4px;border-radius:2px;background:rgba(60,40,25,.25);margin:4px auto 10px}
+  .qhead{display:block;padding:0 16px 6px;font-size:13px;line-height:18px;color:var(--glass-muted)}
+  .qrow{grid-template-columns:22px minmax(0,1fr);height:56px;font-size:16px}
+}
 </style>
 </head>
 <body>
@@ -604,9 +760,20 @@ html[data-theme="dark"]{--pt-mix:64%;--pt-tint:.2;--on-bad:#16100B;--on-good:#16
 <div class="sidewrap">
   <aside class="side" id="side" aria-label="Điều hướng">
     <div class="brand"><span class="logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 19 12 5l7 14"/><path d="M8.5 13h7"/></svg></span><span class="lbl">Crucible</span><button class="pin lbl" id="pinBtn" aria-label="Ghim thanh bên" title="Ghim thanh bên"><svg data-i="pin"></svg></button></div>
+    <label class="sq"><svg data-i="search"></svg><input class="lbl" placeholder="Tìm trang, hoá đơn…" aria-label="Tìm trong Crucible"></label>
     <nav class="navs">
       <button class="nav" data-view="tongquan"><svg data-i="home"></svg><span class="lbl">Tổng quan</span></button>
-      <button class="nav" data-view="taichinh"><svg data-i="wallet"></svg><span class="lbl">Tài chính</span><span class="cnt lbl" title="3 hoá đơn chờ duyệt">3</span></button>
+      <div class="grp" id="finGrp">
+        <div class="navrow">
+          <button class="nav" data-view="taichinh"><svg data-i="wallet"></svg><span class="lbl">Tài chính</span><span class="cnt lbl" title="3 hoá đơn chờ duyệt">3</span></button>
+          <button class="tg lbl" id="finTg" aria-expanded="false" aria-controls="finTree" aria-label="Mở trạng thái hoá đơn" title="Trạng thái hoá đơn"><svg data-i="tri"></svg></button>
+        </div>
+        <div class="tree" id="finTree" role="group" aria-label="Trạng thái hoá đơn">
+          <button class="sub w" data-view="taichinh"><svg data-i="clock"></svg><span>Chờ duyệt</span><span class="cnt">3</span></button>
+          <button class="sub g" data-view="taichinh"><svg data-i="check"></svg><span>Đã ghi sổ</span></button>
+          <button class="sub x" data-view="taichinh"><svg data-i="xbox"></svg><span>Trùng lặp</span><span class="cnt">1</span></button>
+        </div>
+      </div>
       <button class="nav"><svg data-i="book"></svg><span class="lbl">Kiến thức</span></button>
       <button class="nav"><svg data-i="cards"></svg><span class="lbl">Học tập</span></button>
       <button class="nav"><svg data-i="check"></svg><span class="lbl">Thói quen</span></button>
@@ -627,8 +794,7 @@ html[data-theme="dark"]{--pt-mix:64%;--pt-tint:.2;--on-bad:#16100B;--on-good:#16
       <span class="grow"></span>
       <button class="iconbtn" aria-label="Tìm kiếm"><svg data-i="search"></svg></button>
       <button class="iconbtn" aria-label="Thông báo"><svg data-i="bell"></svg><span class="dot"></span></button>
-      <button class="btn" aria-label="Ghi nhanh"><svg data-i="plus"></svg></button>
-    </div>
+          </div>
     <nav class="mnav">
       <button class="nav" data-view="tongquan">Tổng quan</button>
       <button class="nav" data-view="taichinh">Tài chính</button>
@@ -643,7 +809,6 @@ html[data-theme="dark"]{--pt-mix:64%;--pt-tint:.2;--on-bad:#16100B;--on-good:#16
       <div class="right">
         <button class="iconbtn round" id="themeBtn" aria-label="Đổi sáng/tối" title="Đổi sáng/tối"><svg data-i="moon"></svg></button>
         <button class="iconbtn round" aria-label="Thông báo" title="Thông báo"><svg data-i="bell"></svg><span class="dot"></span></button>
-        <button class="btn round" aria-label="Ghi nhanh" title="Ghi nhanh"><svg data-i="plus"></svg></button>
       </div>
     </div>
 
@@ -743,7 +908,15 @@ html[data-theme="dark"]{--pt-mix:64%;--pt-tint:.2;--on-bad:#16100B;--on-good:#16
         </div>
 
         <div class="card c12">
-          <div class="hd"><div class="grow"><div class="t">3 hoá đơn đang chờ duyệt</div><div class="s">Đã quét và lưu nháp, chưa vào sổ</div></div><button class="btn">Duyệt 3 hoá đơn</button></div>
+          <div class="pend">
+            <div class="rstack" aria-hidden="true">
+              <div class="rcp r3"><b class="num">15/11</b><span>Phúc Long</span><i></i></div>
+              <div class="rcp r2"><b class="num">16/11</b><span>Pharmacity</span><i></i></div>
+              <div class="rcp r1"><b class="num">17/11</b><span>Co.opmart</span><i></i></div>
+            </div>
+            <div class="grow"><div class="t" style="font-size:20px;line-height:28px;font-weight:500;letter-spacing:-.02em">3 hoá đơn đang chờ duyệt</div><div class="s" style="color:var(--muted);font-size:13px">Đã quét và lưu nháp, chưa vào sổ</div></div>
+            <button class="btn">Duyệt 3 hoá đơn</button>
+          </div>
           <div class="list">
             <div class="li"><span class="gi spend"><svg data-i="cart"></svg></span><div class="grow"><div class="p">Co.opmart Xa Lộ Hà Nội</div><div class="s">Quét lúc 08:12 · gợi ý nhóm Ăn uống</div></div><div class="r num">684.000 ₫</div></div>
             <div class="li"><span class="gi health"><svg data-i="receipt"></svg></span><div class="grow"><div class="p">Pharmacity</div><div class="s">Telegram · hôm qua · gợi ý nhóm Sức khoẻ</div></div><div class="r num">236.000 ₫</div></div>
@@ -802,6 +975,26 @@ html[data-theme="dark"]{--pt-mix:64%;--pt-tint:.2;--on-bad:#16100B;--on-good:#16
   </main>
 </div>
 </div>
+<!-- Dock thao tác nhanh. Máy tính: giữa đáy, luôn hiện. Điện thoại (≤760px): CÓ dock đáy theo quyết định mới của chủ dự án (thay quyết định gỡ dock 23/10/2026), thu gọn 4 icon + nút +, tự ẩn khi lướt xuống. Nút + mở menu; điện thoại thì menu là sheet đáy. -->
+<div class="qscrim" id="qScrim"></div>
+<div class="qmenu" id="qMenu" role="menu" aria-label="Ghi nhanh" aria-hidden="true">
+  <div class="qgrab" aria-hidden="true"></div><div class="qhead">Ghi nhanh</div>
+  <button class="qrow" role="menuitem"><svg data-i="cash"></svg><span>Thêm khoản chi</span><span class="kcs"><span class="kc">⌘</span><span class="kc">N</span></span></button>
+  <button class="qrow" role="menuitem"><svg data-i="income"></svg><span>Thêm thu nhập</span><span class="kcs"><span class="kc">⌘</span><span class="kc">I</span></span></button>
+  <button class="qrow" role="menuitem"><svg data-i="scan"></svg><span>Quét hoá đơn</span><span class="kcs"><span class="kc">⌘</span><span class="kc">U</span></span></button>
+  <button class="qrow" role="menuitem"><svg data-i="check"></svg><span>Ghi thói quen</span><span class="kcs"><span class="kc">⌘</span><span class="kc">H</span></span></button>
+  <button class="qrow" role="menuitem"><svg data-i="scale"></svg><span>Ghi số đo</span><span class="kcs"><span class="kc">⌘</span><span class="kc">M</span></span></button>
+  <i class="qcaret"></i>
+</div>
+<nav class="dock" aria-label="Thao tác nhanh">
+  <button class="dk" data-tip="Thêm khoản chi" aria-label="Thêm khoản chi"><svg data-i="cash"></svg></button>
+  <button class="dk" data-tip="Quét hoá đơn" aria-label="Quét hoá đơn"><svg data-i="scan"></svg></button>
+  <button class="dk ctr" id="qBtn" aria-label="Mở menu ghi nhanh" aria-haspopup="menu" aria-expanded="false"><svg data-i="plus"></svg></button>
+  <button class="dk" data-tip="Ghi thói quen" aria-label="Ghi thói quen"><svg data-i="check"></svg></button>
+  <button class="dk" data-tip="Bấm giờ" aria-label="Bấm giờ"><svg data-i="timer"></svg></button>
+  <span class="dk-sep" aria-hidden="true"></span>
+  <button class="dk" data-tip="Hỏi Crucible" aria-label="Hỏi Crucible"><svg data-i="spark"></svg></button>
+</nav>
 <div class="mock">Dữ liệu mẫu, không phải số thật</div>
 
 <script>
@@ -843,6 +1036,12 @@ const I={
  bars:'<path d="M5 20v-8M10 20V6M15 20v-9M20 20V9"/>',
  card:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/>',
  phone:'<rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/>',
+ tri:'<path d="M8 6.5v11l9-5.5z"/>',
+ clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+ xbox:'<rect x="4" y="4" width="16" height="16" rx="4"/><path d="m9 9 6 6M15 9l-6 6"/>',
+ income:'<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/>',
+ timer:'<circle cx="12" cy="13.5" r="7"/><path d="M12 9.5v4l2.5 1.5M9.5 3.5h5"/>',
+ spark:'<path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7L4.5 10.9 10.1 9z"/><path d="M18.5 3.5v3M17 5h3"/>',
  image:'<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.5"/><path d="m20.5 16-5-5-8.5 8.5"/>'
 };
 const paint=s=>{s.setAttribute('viewBox','0 0 24 24');s.setAttribute('fill','none');s.setAttribute('stroke','currentColor');s.setAttribute('stroke-width','1.5');s.setAttribute('stroke-linecap','round');s.setAttribute('stroke-linejoin','round');s.innerHTML=I[s.dataset.i]||'';};
@@ -1101,6 +1300,32 @@ show(q.get('v')||'tongquan');theme(q.get('theme')||'light');
 let saved='';try{saved=localStorage.getItem('crucible-pin')||''}catch(e){}
 pin(q.get('side')==='pin'||(!q.get('side')&&!!saved));
 if(q.get('side')==='open') side.classList.add('open');
+/* Cây trạng thái hoá đơn: mặc định ĐÓNG */
+const finG=document.getElementById('finGrp'),finTg=document.getElementById('finTg');
+function tree(on){finG.classList.toggle('exp',on);finTg.setAttribute('aria-expanded',on?'true':'false')}
+finTg.onclick=()=>tree(!finG.classList.contains('exp'));
+finG.querySelectorAll('.sub').forEach(b=>b.onclick=()=>{show('taichinh');finG.querySelectorAll('.sub').forEach(x=>x.classList.toggle('cur',x===b))});
+if(q.get('tree')==='1')tree(true);
+/* Menu ghi nhanh: dock (máy tính) và nút + trên thanh trên (điện thoại) mở CÙNG một menu */
+const qm=document.getElementById('qMenu'),qs=document.getElementById('qScrim'),qb=document.getElementById('qBtn'),dock=document.querySelector('.dock');
+function qplace(){const r=qb.getBoundingClientRect();qm.style.setProperty('--mx',(r.left+r.width/2)+'px')}
+function qopen(on){qplace();qm.classList.toggle('on',on);qs.classList.toggle('on',on);qm.setAttribute('aria-hidden',on?'false':'true');
+ document.body.classList.toggle('qopen',on);qb.setAttribute('aria-expanded',on?'true':'false');qb.classList.toggle('open',on)}
+qb.addEventListener('click',e=>{e.stopPropagation();qopen(!qm.classList.contains('on'))});
+qs.onclick=()=>qopen(false);
+qm.querySelectorAll('.qrow').forEach(b=>b.onclick=()=>qopen(false));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')qopen(false)});
+addEventListener('resize',qplace);
+if(q.get('menu')==='1')qopen(true);
+/* Dock điện thoại tự ẩn: lướt XUỐNG (>8px) → trượt khuất; lướt LÊN, dừng 600ms hoặc chạm cuối trang → hiện lại.
+   Một listener scroll passive + rAF; chỉ chạy ở ≤760px. */
+const mm=matchMedia('(max-width:760px)');let lastY=scrollY,ticking=false,idleT,frozen=q.get('dock')==='hide';
+function dockHide(h){dock.classList.toggle('hide',h&&!qm.classList.contains('on'))}
+addEventListener('scroll',()=>{if(ticking||frozen)return;ticking=true;requestAnimationFrame(()=>{ticking=false;if(!mm.matches)return;
+  const y=scrollY,d=y-lastY,end=innerHeight+y>=document.documentElement.scrollHeight-4;
+  if(end||y<=0)dockHide(false);else if(d>8){dockHide(true);lastY=y}else if(d<-8){dockHide(false);lastY=y}
+  clearTimeout(idleT);idleT=setTimeout(()=>dockHide(false),600)})},{passive:true});
+if(frozen)dockHide(true);
 </script>
 </body>
 </html>
