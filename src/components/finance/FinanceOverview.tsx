@@ -289,12 +289,17 @@ export default function FinanceOverview({
       : t(`Spending by group, ${periodWord}`, `Chi theo nhóm, ${periodWord}`);
 
   // ---- So với ngân sách ------------------------------------------------------
+  // Màu cánh theo thứ hạng chi của tháng — cùng nhóm thì cùng màu với vòng cung
+  // "Chi theo nhóm" ở trên; nhóm chưa chi lấy màu còn lại trong bảng sáu màu.
+  const monthRank = rankGroups(data.categoryBreakdown.map((c) => ({ name: c.group, value: c.amount })), 5);
+  const petalColor = (group: string, i: number) =>
+    monthRank.find((g) => g.name === group)?.color ?? BUDGET_PALETTE[(i + 3) % BUDGET_PALETTE.length];
   const petals: Petal[] = (() => {
     const sorted = [...budgetRows].sort((a, b) => b.budget - a.budget);
     const head = sorted.slice(0, sorted.length > MAX_PETALS ? MAX_PETALS - 1 : MAX_PETALS);
     const tail = sorted.slice(head.length);
     const out: Petal[] = head.map((b, i) => ({
-      key: b.group, name: b.group, spent: b.actual, budget: b.budget, color: BUDGET_PALETTE[i % BUDGET_PALETTE.length],
+      key: b.group, name: b.group, spent: b.actual, budget: b.budget, color: petalColor(b.group, i),
     }));
     if (tail.length > 0) {
       out.push({

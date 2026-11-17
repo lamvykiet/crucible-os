@@ -424,7 +424,8 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
     <PageActions>
       <button type="button" onClick={() => setIsScanModalOpen(true)} className="c-btn c-btn-secondary" aria-label={t("Scan a receipt", "Quét hoá đơn")}>
         <ScanLine size={18} />
-        <span className="c-tl">{t("Scan a receipt", "Quét hoá đơn")}</span>
+        {/* Chỉ icon dưới 1500px: dải tab có 8 mục, hai nút chữ đầy đủ sẽ cắt mất tab cuối. */}
+        <span className="c-tl hidden min-[1500px]:inline">{t("Scan a receipt", "Quét hoá đơn")}</span>
       </button>
       <button type="button" onClick={() => openAdd("Expense")} className="c-btn c-btn-primary" aria-label={t("Add transaction", "Thêm giao dịch")}>
         <Plus size={18} />

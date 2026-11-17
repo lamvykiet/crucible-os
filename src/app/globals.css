@@ -1543,11 +1543,11 @@ html { background: var(--bg); }
 /* ---- Hoá đơn chờ duyệt: chồng phiếu ---- */
 .c-pend { display: flex; align-items: center; gap: 32px; margin-bottom: 16px; }
 .c-pend .c-btn { height: 44px; border-radius: 999px; padding: 0 24px; flex: none; }
-.c-rstack { position: relative; width: 188px; height: 112px; flex: none; }
-.c-rcp { position: absolute; width: 160px; height: 64px; padding: 10px 14px; border-radius: var(--radius-tile); background: var(--vp-bg); box-shadow: 0 0 0 1px var(--vp-line), 0 8px 20px -8px rgba(60, 40, 25, .25); color: var(--ink); display: flex; align-items: baseline; gap: 8px; }
-.c-rcp b { font: 500 20px/28px var(--font-fig); letter-spacing: -.02em; }
-.c-rcp span { font: 400 13px/18px var(--font-sans); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.c-rcp.r1 { left: 0; top: 44px; z-index: 3; } .c-rcp.r2 { left: 14px; top: 22px; z-index: 2; } .c-rcp.r3 { left: 28px; top: 0; z-index: 1; }
+.c-rstack { position: relative; width: 188px; height: 100px; flex: none; }
+.c-rcp { position: absolute; width: 160px; height: 44px; padding: 5px 14px; border-radius: var(--radius-tile); background: var(--vp-bg); box-shadow: 0 0 0 1px var(--vp-line), 0 8px 20px -8px rgba(60, 40, 25, .25); color: var(--ink); display: flex; align-items: flex-start; gap: 8px; }
+.c-rcp b { font: 500 18px/22px var(--font-fig); letter-spacing: -.02em; }
+.c-rcp span { font: 400 13px/22px var(--font-sans); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-rcp.r1 { left: 0; top: 56px; z-index: 3; } .c-rcp.r2 { left: 14px; top: 28px; z-index: 2; } .c-rcp.r3 { left: 28px; top: 0; z-index: 1; }
 @media (max-width: 760px) { .c-pend { flex-direction: column; align-items: flex-start; gap: 16px; } .c-pend .c-btn { width: 100%; justify-content: center; } }
 
 /* ---- Đường 12 tháng (Tổng quan) ---- */
@@ -1561,3 +1561,10 @@ html { background: var(--bg); }
 .c-mx { display: flex; justify-content: space-between; margin-top: 8px; }
 .c-mx span { color: var(--muted); font: 400 13px/16px var(--font-sans); flex: 1; text-align: center; }
 .c-mx span.on { color: var(--ink); font-weight: 600; }
+@media (max-width: 760px) { .c-mx span:not(.on):nth-child(even) { visibility: hidden; } }
+/* Bảng giao dịch trên điện thoại: bỏ icon, cắt tên nơi chi sớm để cột Số tiền không rớt khỏi thẻ. */
+@media (max-width: 760px) {
+  .c-tbl td, .c-tbl th { padding-left: 8px; padding-right: 8px; }
+  .c-tbl .p { max-width: 28vw; }
+  .c-who .c-gi { display: none; }
+}
