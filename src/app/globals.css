@@ -822,6 +822,8 @@ html { background: var(--bg); }
    sẽ nằm DƯỚI sidebar `z-45` và dock. `position: relative` + đứng sau trong DOM
    là đủ. Không nền, không bo: nội dung nằm thẳng trên gradient. */
 .c-main { position: relative; flex: 1; padding-top: 0; padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+/* Trang không có dock (ngoài Tổng quan và Tài chính) không cần chừa chỗ cho nó. */
+.c-shell.no-dock .c-main { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
 .c-main > *:not(.fixed) { max-width: var(--page-max); margin-left: auto; margin-right: auto; }
 .c-main > .max-w-7xl,
 .c-main > * > .max-w-7xl { max-width: var(--page-max); }

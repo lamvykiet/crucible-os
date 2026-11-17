@@ -45,15 +45,24 @@ export default function MainLayoutWrapper({ children }: { children: React.ReactN
   );
 }
 
+// Dock thao tác nhanh chỉ hiện ở Tổng quan và Tài chính (quyết định của chủ
+// dự án 17/11/2026): các nút của nó — thêm khoản chi, quét hoá đơn — là việc
+// của hai chỗ đó; ở Học tập, Sức khoẻ… nó chỉ che nội dung.
+const DOCK_PATHS = ["/", "/finance"];
+const showsDock = (path: string) =>
+  DOCK_PATHS.some((p) => (p === "/" ? path === "/" : path === p || path.startsWith(`${p}/`)));
+
 function Shell({ children }: { children: React.ReactNode }) {
   const { version } = useQuickActions();
+  const pathname = usePathname();
+  const dock = showsDock(pathname);
   const [scene, setScene] = useState<HTMLDivElement | null>(null);
   const [actions, setActions] = useState<HTMLDivElement | null>(null);
 
   return (
     <ActionsSlotProvider value={actions}>
       <SceneSlotProvider value={scene}>
-        <div className="c-shell">
+        <div className={dock ? "c-shell" : "c-shell no-dock"}>
           <Sidebar />
           <MobileTopBar />
           <TopBar />
@@ -66,7 +75,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           <main className="c-main" key={version}>
             {children}
           </main>
-          <QuickDock />
+          {dock && <QuickDock />}
         </div>
       </SceneSlotProvider>
     </ActionsSlotProvider>
