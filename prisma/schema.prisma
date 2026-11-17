@@ -47,6 +47,9 @@ model User {
   MockExam           MockExam[]
   DictationLog       DictationLog[]
   CollocationLog     CollocationLog[]
+  SentenceLog        SentenceLog[]
+  SentenceDeck       SentenceDeck[]
+  MistakeItem        MistakeItem[]
   BookStepProgress   BookStepProgress[]
   BookLesson         BookLesson[]
   BookUnitContent    BookUnitContent[]
@@ -1601,6 +1604,88 @@ model CollocationLog {
 
   @@unique([userId, langCode, setId, index])
   @@index([userId, langCode])
+}
+
+/// Tiến độ từng câu của hai màn Gõ câu và Dịch câu.
+///
+/// Câu nằm ở ba nơi: bộ viết sẵn trong code (`src/lib/sentences/`), bộ AI tạo
+/// (`SentenceDeck`), và câu ví dụ trên thẻ của chính người dùng. `setId` cho
+/// biết là nơi nào: "en.b1.travel", "ai:<id>", "card:<id>", "vset:<id>".
+/// Hai màn ghi riêng (`mode`): gõ lại được một câu chưa chắc đã tự dịch được.
+model SentenceLog {
+  id         String  @id @default(uuid())
+  languageId String?
+  langCode   String
+  setId      String
+  index      Int
+  /// typing | translate
+  mode       String
+
+  attempts  Int     @default(0)
+  cleared   Boolean @default(false)
+  /// Số từ phải xin gợi ý ở lần làm gần nhất.
+  lastHints Int     @default(0)
+
+  lastDoneAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, langCode, setId, index, mode])
+  @@index([userId, langCode, mode])
+}
+
+/// Bộ câu do AI soạn theo chủ đề người dùng gõ vào. Lưu lại để học nhiều lần
+/// và ghi được tiến độ — sinh mới mỗi lượt là vừa tốn hạn mức vừa mất lịch sử.
+model SentenceDeck {
+  id         String  @id @default(uuid())
+  languageId String?
+  langCode   String
+  title      String
+  level      String
+  topic      String
+  /// JSON: [{ en, vi, chunks: [{en, vi}], keys: [{en, vi}] }]
+  sentences  String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, langCode])
+}
+
+/// Sổ lỗi sai: mỗi câu/thẻ đã làm sai, gộp theo `refKey` để sai lại thì
+/// tăng đếm chứ không đẻ thêm dòng. Làm đúng liên tiếp đủ lần thì `resolvedAt`
+/// được đặt và câu rời sổ.
+model MistakeItem {
+  id         String  @id @default(uuid())
+  languageId String?
+  langCode   String
+  /// typing | translate | flashcard | dictation | collocation
+  source     String
+  /// Khoá ổn định của câu/thẻ trong nguồn đó, ví dụ "en.b1.travel#3".
+  refKey     String
+  /// Thứ đã hiện cho người học (nghĩa tiếng Việt, câu hỏi…).
+  prompt     String
+  /// Đáp án đúng.
+  answer     String
+  /// Lần sai gần nhất người học đã gõ gì.
+  lastWrong  String?
+
+  wrongCount  Int       @default(1)
+  rightStreak Int       @default(0)
+  resolvedAt  DateTime?
+  lastWrongAt DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, source, refKey])
+  @@index([userId, langCode, resolvedAt])
 }
 
 /// Tiến độ đi trên đường học của một cuốn sách, ghi theo TỪNG BƯỚC.
