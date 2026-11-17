@@ -2,7 +2,7 @@ import {
   BarChart3, Boxes, Briefcase, CalendarDays, CalendarRange, CheckSquare, CreditCard,
   Database, Dumbbell, FileText, GraduationCap, HeartPulse, History, Landmark, Languages,
   LayoutDashboard, Lightbulb, NotebookPen, Package, Palette, Repeat, Scale, Timer,
-  TrendingUp, Video, Wallet, type LucideIcon,
+  Target, TrendingUp, Video, Wallet, type LucideIcon,
 } from "lucide-react";
 
 /**
@@ -40,6 +40,7 @@ export const MODULES: ModuleDef[] = [
       { href: "/finance?tab=dashboard", icon: LayoutDashboard, en: "Overview", vi: "Tổng quan" },
       { href: "/finance?tab=income", icon: TrendingUp, en: "Income", vi: "Thu nhập" },
       { href: "/finance?tab=expense", icon: CreditCard, en: "Expense", vi: "Chi tiêu" },
+      { href: "/finance?tab=budget", icon: Target, en: "Budget", vi: "Ngân sách" },
       { href: "/finance?tab=debts", icon: Landmark, en: "Debts", vi: "Nợ" },
       { href: "/finance?tab=assets", icon: Package, en: "Assets", vi: "Tài sản" },
       { href: "/finance?tab=accounts", icon: Wallet, en: "Accounts", vi: "Tài khoản" },

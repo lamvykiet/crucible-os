@@ -9,8 +9,9 @@ import HistoryTab from "@/components/finance/HistoryTab";
 import AssetsTab from "@/components/finance/AssetsTab";
 import AccountsTab from "@/components/finance/AccountsTab";
 import ProjectsTab from "@/components/finance/ProjectsTab";
+import BudgetTab from "@/components/finance/BudgetTab";
 
-const TAB_IDS = ["dashboard", "income", "expense", "debts", "assets", "accounts", "projects", "history"];
+const TAB_IDS = ["dashboard", "income", "expense", "budget", "debts", "assets", "accounts", "projects", "history"];
 
 /**
  * Sổ chi tiêu. Tab đang mở nằm trên URL (`/finance?tab=income`) chứ không
@@ -37,6 +38,7 @@ export default function FinancePage() {
         {activeTab === "dashboard" && <DashboardTab onNavigate={setActiveTab} />}
         {activeTab === "income" && <IncomeTab />}
         {activeTab === "expense" && <ExpenseTab />}
+        {activeTab === "budget" && <BudgetTab />}
         {activeTab === "debts" && <DebtsTab />}
         {activeTab === "assets" && <AssetsTab />}
         {activeTab === "accounts" && <AccountsTab />}

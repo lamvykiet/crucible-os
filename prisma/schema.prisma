@@ -22,6 +22,7 @@ model User {
   ProjectLedgerEntry ProjectLedgerEntry[]
   Category           Category[]
   Budget             Budget[]
+  NetWorthSnapshot   NetWorthSnapshot[]
   Debt               Debt[]
   Material           Material[]
   DictionaryItem     DictionaryItem[]
@@ -534,16 +535,65 @@ model Category {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+/// Ngân sách của MỘT nhóm trong MỘT tháng — mỗi (tháng, nhóm) là một dòng riêng.
+///
+/// Đó là cách giữ lịch sử: đặt lại ngân sách tháng 12 chỉ sửa dòng của tháng 12,
+/// các tháng trước giữ nguyên số đã đặt để sau này đánh giá "tháng đó đặt bao
+/// nhiêu, chi bao nhiêu". Đừng gom ngân sách thành một số "hiện hành" cho cả năm.
+///
+/// `kind` tách ngân sách CHI (nhóm `expense_group`) khỏi mục tiêu THU (nhóm
+/// `income_group`). `categoryGroup` khớp `Category.name` bằng chuỗi — đổi tên hay
+/// gộp danh mục phải dời cột này, và phải dời theo `kind` (xem AGENTS.md).
 model Budget {
-  id            String  @id @default(uuid())
+  id            String   @id @default(uuid())
   periodType    String // monthly | yearly
   period        String // YYYY-MM | YYYY
+  /// expense | income
+  kind          String   @default("expense")
   categoryGroup String // matches Category.name
   amount        Int
   notes         String?
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periodType, period, kind, categoryGroup])
+}
+
+/// Bản chụp tài sản ròng cuối mỗi tháng.
+///
+/// Dùng BigInt chứ không phải Int: chỉ riêng căn nhà đã là 2,1 tỷ, tổng tài sản
+/// vượt trần 2.147.483.647 của INTEGER chỉ với thêm 47 triệu tiền mặt.
+///
+/// `source`: `computed` = chụp từ số liệu hiện tại (tháng đang mở, cập nhật mỗi
+/// lần mở dashboard); `backfill` = DỰNG LẠI tháng quá khứ từ giao dịch, giá trị
+/// tài sản và lịch trả nợ — là ƯỚC TÍNH, không phải số đã ghi lúc đó (xem
+/// `src/lib/netWorth.ts` về giới hạn).
+model NetWorthSnapshot {
+  id       String @id @default(uuid())
+  /// YYYY-MM
+  month    String
+  /// Tổng tài sản: tiền ở tài khoản không phải thẻ + giá trị tài sản.
+  assets   BigInt
+  /// Tổng nợ: dư nợ khoản vay + dư nợ thẻ tín dụng.
+  debts    BigInt
+  /// Tiền ở các tài khoản không phải thẻ (một phần của `assets`).
+  cash     BigInt
+  /// assets - debts
+  netWorth BigInt
+  /// computed | backfill
+  source   String @default("computed")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
 }
 
 // -----------------------------------------

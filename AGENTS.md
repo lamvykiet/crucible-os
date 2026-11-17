@@ -41,6 +41,7 @@ là thứ duy nhất cả năm phiên cùng đọc. Trước khi sửa bất c�
 | Finance — sổ, dashboard | `src/app/finance/`, `src/components/finance/`, `src/app/api/finance/` |
 | Finance — OCR hoá đơn | `ScanInvoiceModal`, `ReviewQueueModal`, `PendingReviewButton`, `api/ocr/`, `api/finance/transaction/{draft,drafts,process-ocr,resolve-duplicate,check-duplicate}` |
 | Finance — Dự án | `ProjectsTab`, `ProjectCostPanels`, `ProjectSplitEditor`, `src/lib/{projects,projectCost,projectLedger,projectData}.ts`, `api/finance/projects/` |
+| Finance — Ngân sách, Tài sản ròng | `BudgetTab`, `NetWorthCard`, `src/lib/{budgets,budgetsServer,netWorth,netWorthServer}.ts`, `api/finance/{budgets,networth}/` |
 | Danh mục | `api/finance/categories/route.ts`, `src/lib/useCategories.ts`, `settings/FinanceSettings.tsx` |
 | Knowledge / Document | `src/app/knowledge/`, `src/components/knowledge/`, `src/components/workspace/`, `api/knowledge/` |
 | Learning | `src/app/learning/`, `src/components/learning/`, `api/learning/`, `src/lib/fsrs.ts` |
@@ -61,6 +62,22 @@ giao dịch trỏ tới nhóm không tồn tại và dashboard **đếm thiếu 
 gì**. Phải dời trong cùng một `$transaction` — xem
 `api/finance/categories/route.ts` (đổi tên) và
 `api/finance/categories/merge/route.ts` (gộp hai nhóm cùng bản chất).
+
+**Ngân sách (`Budget`)** → mỗi dòng là MỘT nhóm trong MỘT tháng, có `kind`
+(`expense` | `income`) và ràng buộc duy nhất (userId, periodType, period, kind,
+categoryGroup). Sửa ngân sách tháng này chỉ sửa dòng của tháng này — đó là cách
+giữ lịch sử, đừng gom thành một số "hiện hành". "Thực tế" của một nhóm chỉ tính ở
+`src/lib/budgets.ts` (`actualsByGroup`): `api/finance/budgets` và
+`api/finance/dashboard` cùng đọc qua đó, đừng viết công thức thứ hai. Dời
+`Budget.categoryGroup` (đổi tên/gộp danh mục) phải qua `moveBudgets()`
+(`budgetsServer.ts`): nó lọc theo `kind` — nhóm chi và nhóm thu có thể trùng tên —
+và cộng dồn khi tháng đó nhóm đích đã có dòng; `updateMany` trơn sẽ nổ vì ràng buộc.
+
+**Tài sản ròng theo tháng (`NetWorthSnapshot`)** → cột BigInt (căn nhà 2,1 tỷ đã
+sát trần Int). Tháng đang chạy do `refreshCurrentMonth()` chụp mỗi lần mở
+dashboard (`source = computed`); tháng quá khứ do nút "Dựng lại từ dữ liệu"
+(`source = backfill`) là ƯỚC TÍNH — giới hạn ghi ở đầu `src/lib/netWorth.ts`. Công
+thức nằm ở đó, tái dùng `accountBalances` và `lib/assets`; đừng tính lại.
 
 **Thêm/sửa/xoá danh mục** → gọi `invalidateCategories()` (`src/lib/useCategories.ts`).
 Hook cache ở cấp module, không xoá thì mọi modal vẫn hiện danh sách cũ tới khi
