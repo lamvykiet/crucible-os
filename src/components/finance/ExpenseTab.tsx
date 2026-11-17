@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, Receipt, ChevronDown, AlertCircle, ListChecks, ArrowUpRight } from "lucide-react";
+import { LayoutGrid, Plus, Calendar, Receipt, ChevronDown, AlertCircle, ListChecks } from "lucide-react";
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
@@ -24,6 +24,13 @@ import ChartCard, { StatTile } from "@/components/charts/ChartCard";
 import SectionHeader from "@/components/charts/SectionHeader";
 import { RankList, type RankRow } from "@/components/charts/RankBar";
 import { monthAxis } from "./MonthAxisTick";
+import { en } from "@/lib/plural";
+import PageIntro from "@/components/PageIntro";
+import { CardHead, GlassCard } from "@/components/charts/GlassCard";
+import SegRing from "@/components/charts/SegRing";
+import { moneyBig } from "@/components/SceneSummary";
+import { groupIcon, rankGroups } from "@/lib/groupViz";
+import { PageActions } from "@/components/Scene";
 
 // Biểu đồ trong tab này theo docs/bieu-do.md: tiêu đề là câu kết luận tính từ
 // dữ liệu, cột xám, chỉ điểm mà câu đó nói tới mang màu nhấn, ghi số ở MỘT chỗ.
@@ -194,6 +201,10 @@ export default function ExpenseTab() {
         `${label(topSlice.name)} chiếm ${shareOf(topSlice.amount)}% ${rangeText}`
       )
     : t("Nothing spent in this range", "Khoảng này chưa chi gì");
+  const ringRanked = rankGroups(currentCategoryBreakdown.map((c) => ({ name: c.name, value: c.amount })), 5);
+  const ringSum = ringRanked.reduce((x, g) => x + g.value, 0);
+  const ringBig = moneyBig(ringSum, vi);
+  const ringUnit = ringBig ? (ringBig.unit === "tr" || ringBig.unit === "m" ? `${ringBig.unit} ₫` : ringBig.unit) : undefined;
   const shownSlices = currentCategoryBreakdown.slice(0, RANK_SHOW);
   const restSlices = currentCategoryBreakdown.slice(RANK_SHOW);
   const categoryRows: RankRow[] = shownSlices.map((c, i) => ({
@@ -228,11 +239,19 @@ export default function ExpenseTab() {
   const peakCount = argmax(dailySeries.map((d) => d.count));
   const txCount = dailySeries.reduce((s, d) => s + d.count, 0);
   const activeDays = dailySeries.filter((d) => d.count > 0).length;
+  // Câu đầu trang: ít giao dịch thì nói thẳng là chưa đủ để dự báo.
+  const paceLede =
+    isThisMonth && totals.month > 0 && txCount < 5
+      ? t(
+          `${money(totals.month)} spent in ${mm} so far, from ${en(txCount, "entry", "entries")} — too few to forecast the month.`,
+          `${mm} mới ghi ${txCount} khoản, tổng ${money(totals.month)} — chưa đủ để dự báo cả tháng.`
+        )
+      : paceHeadline + ".";
   const countHeadline =
     peakCount < 0
       ? t(`No transactions in ${mm} yet`, `${mm} chưa có giao dịch nào`)
       : t(
-          `${txCount} transactions over ${activeDays} days — the busiest was the ${Number(dailySeries[peakCount].name)}${ordinal(Number(dailySeries[peakCount].name))} with ${dailySeries[peakCount].count}`,
+          `${en(txCount, "transaction")} over ${en(activeDays, "day")} — the busiest was the ${Number(dailySeries[peakCount].name)}${ordinal(Number(dailySeries[peakCount].name))} with ${dailySeries[peakCount].count}`,
           `${txCount} giao dịch trong ${activeDays} ngày — đông nhất là ngày ${Number(dailySeries[peakCount].name)} với ${dailySeries[peakCount].count} khoản`
         );
 
@@ -319,43 +338,28 @@ export default function ExpenseTab() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="c-h2 c-page-title text-[var(--color-text)]">{t("Expense", "Chi tiêu")}</h2>
-          <p className="text-[var(--color-text-muted)] text-sm mt-1">{t("Categories & spending trends", "Danh mục & xu hướng chi tiêu")}</p>
-        </div>
-        {/* Cùng khuôn với hàng nút của Tổng quan: một nút chính (thêm chi),
-            nút còn lại phụ, icon trung tính. Khổ 375px: tháng + nút chờ duyệt
-            ở hàng trên, hai nút hành động chia đôi bề ngang ở hàng dưới, mỗi
-            nút cao 44px và có chữ ngắn thay vì chỉ một icon. */}
-        <div className="grid grid-cols-6 gap-2 md:flex md:flex-wrap md:items-center md:gap-3">
-          <div className="col-span-4 min-w-0">
+      <PageIntro
+        title={t("Expense", "Chi tiêu")}
+        kicker={`${mm} ${year}`}
+        lede={paceLede}
+        aside={
+          <>
             <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-          </div>
-          <div className="col-span-2 flex justify-end md:order-last">
             <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(k => k + 1)} />
-          </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            title={t("Add expense", "Thêm chi phí")}
-            className="col-span-3 c-btn c-btn-primary h-11 min-w-0 px-2! [&>svg]:shrink-0 md:h-auto md:px-5! md:py-2.5!"
-          >
-            <ArrowUpRight size={16} />
-            <span className="md:hidden">{t("Expense", "Chi phí")}</span>
-            <span className="hidden md:inline">{t("Add expense", "Thêm chi phí")}</span>
-          </button>
-          <button
-            onClick={() => setIsScanModalOpen(true)}
-            title={t("Scan a receipt", "Quét hoá đơn")}
-            className="col-span-3 c-btn c-btn-secondary h-11 min-w-0 px-2! [&>svg]:shrink-0 md:h-auto md:px-5! md:py-2.5!"
-          >
-            <Receipt size={16} />
-            <span className="md:hidden">{t("Scan", "Quét")}</span>
-            <span className="hidden md:inline">{t("Scan a receipt", "Quét hoá đơn")}</span>
-          </button>
-        </div>
-      </div>
+          </>
+        }
+      />
+      {/* Nút hành động ở khe bên phải dải tab (cùng chỗ với Tổng quan). */}
+      <PageActions>
+        <button type="button" onClick={() => setIsScanModalOpen(true)} className="c-btn c-btn-secondary" aria-label={t("Scan a receipt", "Quét hoá đơn")}>
+          <Receipt size={18} />
+          <span className="c-tl hidden min-[1500px]:inline">{t("Scan a receipt", "Quét hoá đơn")}</span>
+        </button>
+        <button type="button" onClick={() => setIsModalOpen(true)} className="c-btn c-btn-primary" aria-label={t("Add expense", "Thêm chi phí")}>
+          <Plus size={18} />
+          <span className="c-tl">{t("Add expense", "Thêm chi phí")}</span>
+        </button>
+      </PageActions>
 
       <TransactionModal
         isOpen={isModalOpen}
@@ -388,7 +392,7 @@ export default function ExpenseTab() {
           {/* Bốn con số: một ô chính (theo khoảng đang chọn), ba ô bối cảnh. */}
           <section className="bg-[var(--color-surface)] rounded-2xl p-5 md:p-6 border border-[var(--color-border)] flex flex-col gap-4 min-w-0">
             <header>
-              <h4 className="c-h5 text-[var(--color-text)] text-balance">{paceHeadline}</h4>
+              <h4 className="c-h5 text-[var(--color-text)] text-balance">{t("Spending at a glance", "Chi tiêu trong một cái nhìn")}</h4>
               <p className="text-xs text-[var(--color-text-faint)] mt-1">
                 {isThisMonth
                   ? t(
@@ -428,18 +432,45 @@ export default function ExpenseTab() {
             {/* Theo nhóm: cột ngang xếp hạng thay cho bánh donut — so độ dài
                 thanh dễ hơn so góc lát bánh, và tên dài không phải chen vào
                 chú giải dưới đáy. */}
-            <ChartCard
-              title={categoryHeadline}
-              subtitle={t(`Spending by category · ${rangeText}`, `Chi theo nhóm · ${rangeText}`)}
-            >
-              {categoryRows.length === 0 ? (
-                <p className="text-sm text-[var(--color-text-faint)]">
-                  {t("No spending in this range yet.", "Khoảng này chưa có khoản chi nào.")}
+            <GlassCard>
+              <CardHead
+                icon={LayoutGrid}
+                tone="spend"
+                title={categoryHeadline}
+                subtitle={t(`Spending by category · ${rangeText}`, `Chi theo nhóm · ${rangeText}`)}
+                wrap
+              />
+              {ringRanked.length === 0 ? (
+                <p className="c-pace-cap" style={{ margin: "16px 0" }}>
+                  {t("No spending in this range yet. Add an expense and the groups appear here.", "Khoảng này chưa có khoản chi nào. Ghi một khoản chi, các nhóm sẽ hiện ở đây.")}
                 </p>
               ) : (
-                <RankList rows={categoryRows} format={formatVND} />
+                <div className="c-split stack">
+                  <SegRing
+                    small
+                    groups={ringRanked.map((g) => ({ key: g.key, name: g.name, value: g.value, color: g.color, icon: g.key === OTHER_KEY ? LayoutGrid : groupIcon(g.name) }))}
+                    total={ringSum}
+                    centerNum={ringBig?.value ?? "0"}
+                    centerUnit={ringUnit}
+                    caption={t("total spent", "tổng chi")}
+                    ariaLabel={
+                      t("Spending by category: ", "Chi theo nhóm: ") +
+                      ringRanked.map((g) => `${groupName(g.key)} ${Math.round((g.value / ringSum) * 100)}%`).join(", ")
+                    }
+                  />
+                  <div className="c-glist">
+                    {ringRanked.map((g) => (
+                      <div key={g.key} className="gr" style={{ ["--rg-c" as string]: `var(--rg-${g.color})` }}>
+                        <i />
+                        <span>{groupName(g.key)}</span>
+                        <span className="a">{formatVND(g.value)}</span>
+                        <span className="pc">{Math.round((g.value / ringSum) * 100)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
-            </ChartCard>
+            </GlassCard>
 
             {/* Từng ngày: cột xám, ngày chi nhiều nhất màu nhấn + ghi số;
                 đường trung bình ghi nhãn tại chỗ. Không trục Y, không lưới. */}

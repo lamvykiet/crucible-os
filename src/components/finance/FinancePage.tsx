@@ -31,8 +31,8 @@ export default function FinancePage() {
     // ".c-fin" ở globals.css. Modal render bên trong các tab nên cũng nằm trong
     // phạm vi này. Đệm đáy do `.c-main` lo, không chồng `pb-*` ở đây.
     <div className="c-fin max-w-7xl mx-auto space-y-6">
-      {/* Tổng quan tự vẽ đầu trang của nó (PageIntro); các tab con còn dùng bản cũ. */}
-      {activeTab !== "dashboard" && <FinanceScene />}
+      {/* Tổng quan, Thu nhập, Chi tiêu tự vẽ đầu trang (PageIntro); các tab còn lại tạm dùng bản cũ. */}
+      {!["dashboard", "income", "expense"].includes(activeTab) && <FinanceScene />}
 
       {/* Tab Content */}
       <div className="animate-in fade-in duration-300">

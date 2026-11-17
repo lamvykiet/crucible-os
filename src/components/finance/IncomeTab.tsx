@@ -20,6 +20,9 @@ import SectionHeader from "@/components/charts/SectionHeader";
 import { Bullet } from "@/components/charts/RankBar";
 import { monthAxis } from "./MonthAxisTick";
 import IncomeCareer from "./IncomeCareer";
+import { en } from "@/lib/plural";
+import PageIntro from "@/components/PageIntro";
+import { PageActions } from "@/components/Scene";
 
 // Toàn bộ số liệu đến từ /api/finance/income.
 // Trước đây tab này chạy trên 4 mảng hardcode và cả tên công ty ("SHINHAN
@@ -227,30 +230,39 @@ export default function IncomeTab() {
   }
 
   // Đầu tab + modal ghi thu nhập — dùng chung cho trạng thái trống và màn đủ.
+  const introM = mLabel(month || monthlySeries[monthlySeries.length - 1]?.name || "");
+  const introLede = !hasData
+    ? t("No income recorded yet — add the first one to see trends here.", "Chưa ghi khoản thu nào — ghi khoản đầu tiên để thấy xu hướng ở đây.")
+    : monthlyIncome <= 0
+      ? t(`No income recorded in ${introM} yet.`, `${introM} chưa ghi khoản thu nào.`)
+      : t(
+          `${introM} brought in ${money(monthlyIncome)}; ${year} so far ${money(yearTotal)}, about ${money(avgPerMonth)} a month.`,
+          `${introM} thu ${money(monthlyIncome)}; năm ${year} tới nay ${money(yearTotal)}, bình quân ${money(avgPerMonth)} mỗi tháng.`
+        );
   const header = (
     <>
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h2 className="c-h2 c-page-title text-[var(--color-text)]">
-            {t("Income", "Thu nhập")}
-          </h2>
-          <p className="text-[var(--color-text-muted)] text-sm mt-1">
-            {t("Income sources & trends", "Nguồn thu & xu hướng thu nhập")}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-          <button
-            onClick={() => setIsIncomeModalOpen(true)}
-            aria-label={t("Add Income", "Thêm thu nhập")}
-            title={t("Add Income", "Thêm thu nhập")}
-            className="c-btn c-btn-primary w-11 h-11 p-0! [&>svg]:shrink-0 md:w-auto md:h-auto md:px-5! md:py-2.5!"
-          >
-            <ArrowDownLeft size={16} /> <span className="hidden md:inline">{t("Add Income", "Thêm thu nhập")}</span>
-          </button>
-          <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
-        </div>
-      </div>
+      <PageIntro
+        title={t("Income", "Thu nhập")}
+        kicker={introM}
+        lede={introLede}
+        aside={
+          <>
+            <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+            <PendingReviewButton refreshKey={refreshKey} onProcessed={() => setRefreshKey(prev => prev + 1)} />
+          </>
+        }
+      />
+      <PageActions>
+        <button
+          type="button"
+          onClick={() => setIsIncomeModalOpen(true)}
+          aria-label={t("Add Income", "Thêm thu nhập")}
+          className="c-btn c-btn-primary"
+        >
+          <ArrowDownLeft size={18} />
+          <span className="c-tl">{t("Add Income", "Thêm thu nhập")}</span>
+        </button>
+      </PageActions>
 
       <TransactionModal
         isOpen={isIncomeModalOpen}
@@ -422,14 +434,7 @@ export default function IncomeTab() {
         <header>
           {/* Câu của CẢ NĂM, để không lặp tiêu đề thẻ "12 tháng" bên dưới
               (thẻ đó nói về tháng đang chọn). Hai số đều do API trả về. */}
-          <h4 className="c-h5 text-[var(--color-text)] text-balance">
-            {yearTotal > 0
-              ? t(
-                  `${year} so far: ${money(yearTotal)} in, about ${money(avgPerMonth)} a month`,
-                  `Năm ${year} tới nay thu ${money(yearTotal)}, bình quân ${money(avgPerMonth)} mỗi tháng`
-                )
-              : t(`No income recorded in ${year} yet`, `Năm ${year} chưa ghi khoản thu nào`)}
-          </h4>
+          <h4 className="c-h5 text-[var(--color-text)] text-balance">{t("Income at a glance", "Thu nhập trong một cái nhìn")}</h4>
           <p className="text-xs text-[var(--color-text-faint)] mt-1">
             {t(
               `income in ${selM}, next to the year so far`,
@@ -819,7 +824,7 @@ export default function IncomeTab() {
                           <span className="text-xs text-[var(--color-text-faint)] truncate">
                             {s.months > 0
                               ? t(
-                                  `paid in ${s.months} months · avg ${money(s.avgPerActiveMonth)}`,
+                                  `paid in ${en(s.months, "month")} · avg ${money(s.avgPerActiveMonth)}`,
                                   `có thu ${s.months} tháng · BQ ${money(s.avgPerActiveMonth)}`
                                 )
                               : null}
