@@ -172,8 +172,8 @@ biến thành hình tròn.
 
 **Vẽ hay sửa biểu đồ** → đọc `docs/bieu-do.md` trước (rút từ *Storytelling
 with Data*). Tóm tắt: tiêu đề là câu kết luận tính từ dữ liệu; XÁM là mặc
-định, màu nhấn `VIZ.accent` chỉ cho điểm câu chuyện nói tới; không pie/donut,
-không hai trục Y, không `<Legend>` dưới đáy, lưới chỉ ngang và nét liền. Dùng
+định, màu nhấn `VIZ.accent` chỉ cho điểm câu chuyện nói tới; cơ cấu theo nhóm dùng vòng cung rời
+(chủ dự án bỏ luật cấm biểu đồ tròn ngày 17/11/2026), không hai trục Y, không `<Legend>` dưới đáy, lưới chỉ ngang và nét liền. Dùng
 `src/lib/viz.tsx` + `src/components/charts/ChartCard.tsx`; mẫu chuẩn là
 `MonthBreakdown.tsx`. globals.css KHÔNG còn ép màu dữ liệu — các class
 `.c-chart-multi` / `.c-series-*` đã gỡ; mỗi `<Bar>/<Line>/<Area>` phải tự đặt
