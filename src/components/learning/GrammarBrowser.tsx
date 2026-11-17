@@ -295,155 +295,164 @@ export default function GrammarBrowser({ langCode }: { langCode: string }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,320px)_1fr] gap-6 items-start">
       {/* ── Cây chương trình ─────────────────────────────────────────────── */}
-      <aside className="c-card p-5 space-y-4 lg:sticky lg:top-6 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
-        <div>
-          {/* Không đặt tiêu đề "Ngữ pháp" ở đây: trang bao ngoài đã có h1 mang
-              tên thứ tiếng, thêm nữa là hai tiêu đề chồng lên nhau. */}
-          <p className="c-stat-label">
-            {t(`${viewedCount} of ${total} opened`, `Đã mở ${viewedCount}/${total} bài`)}
-          </p>
-        </div>
-
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" size={15} />
-          <input
-            className="c-input w-full pl-9!"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("Find a point...", "Tìm một điểm ngữ pháp...")}
-          />
-        </div>
-
-        {scale && (
-          <p className="c-stat-label">
-            {/* "Tự đặt" là chữ tiếng Việt, nhét thẳng vào câu tiếng Anh thì
-                thành nửa nọ nửa kia. CEFR, HSK, TOPIK vốn đã là tên riêng. */}
-            {scale === "Tự đặt"
-              ? t("Levels on this project's own scale", "Cấp độ theo thang tự đặt của dự án")
-              : t(`Levels on the ${scale} scale`, `Cấp độ theo thang ${scale}`)}
-          </p>
-        )}
-
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setLevel("all")}
-            className={`c-chip ${level === "all" ? "c-chip-solid" : "c-chip-outline"}`}
-          >
-            {t("All", "Tất cả")} ({total})
-          </button>
-          {levels.map((lv) => (
-            <button
-              key={lv}
-              onClick={() => setLevel(lv)}
-              className={`c-chip ${level === lv ? "c-chip-solid" : "c-chip-outline"}`}
-            >
-              {lv} ({byLevel[lv] ?? 0})
-            </button>
-          ))}
-        </div>
-
-        {!loadedSyllabus ? (
-          <div className="flex justify-center py-6 text-[var(--color-text-muted)]">
-            <Loader2 size={18} className="animate-spin" />
-          </div>
-        ) : visible.length === 0 ? (
-          <p className="c-card-body">{t("Nothing matches.", "Không có bài nào khớp.")}</p>
-        ) : (
-          <nav className="space-y-1">
-            {visible.map((family, fi) => {
-              const open = openFamilies.has(family.id) || search.trim().length > 0;
-              return (
-                <div key={family.id}>
-                  <button
-                    onClick={() => toggleFamily(family.id)}
-                    className="w-full flex items-center gap-2 py-2 text-left font-bold text-sm hover:text-[var(--color-accent)] transition-colors"
-                  >
-                    <span className="flex-1">
-                      {fi + 1}. {family.title}
-                    </span>
-                    {/* Họ do sách của người học mang vào, không thuộc khung của
-                        ứng dụng — nói rõ để không ai tưởng đây là khung chuẩn. */}
-                    {bookFamilies.has(family.id) && (
-                      <BookMarked
-                        size={13}
-                        className="flex-none text-[var(--color-text-faint)]"
-                        aria-label={t("from a book", "từ sách")}
-                      />
-                    )}
-                    <ChevronDown
-                      size={15}
-                      className={`flex-none transition-transform ${open ? "" : "-rotate-90"}`}
-                    />
-                  </button>
-
-                  {open && (
-                    <div className="pl-2 space-y-2 pb-2">
-                      {family.groups.map((group, gi) => (
-                        <div key={group.id}>
-                          <p className="c-stat-label py-1">
-                            {fi + 1}.{gi + 1}. {group.title}
-                          </p>
-                          <ul className="space-y-0.5">
-                            {group.points.map((point) => {
-                              const active = point.id === pointId;
-                              const seen = progress[point.id]?.viewed;
-                              return (
-                                <li key={point.id}>
-                                  <button
-                                    onClick={() => openPoint(point.id)}
-                                    className={`w-full flex items-start gap-2 px-2 py-1.5 rounded-lg text-left text-sm transition-colors ${
-                                      active
-                                        ? "bg-[var(--color-accent-tint)] text-[var(--color-accent)] font-bold"
-                                        : "hover:bg-[var(--color-surface-2)]"
-                                    }`}
-                                  >
-                                    <span className="flex-1 leading-snug">{point.title}</span>
-                                    {supplemented.has(point.id) && (
-                                      <BookMarked
-                                        size={13}
-                                        className="text-[var(--color-text-faint)] flex-none mt-0.5"
-                                        aria-label={t("has book notes", "có phần từ sách")}
-                                      />
-                                    )}
-                                    {seen && !active && (
-                                      <CircleCheck size={13} className="text-[var(--color-success)] flex-none mt-0.5" />
-                                    )}
-                                    <LevelBadge level={point.level} levels={levels} />
-                                  </button>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        )}
-        {references.length > 0 && (
-          <details className="c-card p-4">
-            <summary className="c-stat-label cursor-pointer">
-              {t("What this syllabus was built from", "Khung này dựa trên nguồn nào")}
-            </summary>
-            <ul className="mt-3 space-y-1.5">
-              {references.map((ref) => (
-                <li key={ref} className="c-help">
-                  {ref}
-                </li>
-              ))}
-            </ul>
-            <p className="c-help mt-3">
-              {t(
-                "The ordering and levels are this project's own. The books above were consulted for how topics are usually sequenced, not copied from.",
-                "Thứ tự và cấp độ là cách sắp của chính dự án. Những sách trên được tra để biết người ta thường dạy theo trình tự nào, không phải nguồn chép nội dung."
-              )}
+      {/* Thẻ KHÔNG được tự cuộn: nền kính của `.c-card` vẽ ở `::before`
+          (absolute, inset 0), mà trong một khung cuộn thì lớp đó trôi theo nội
+          dung — kéo xuống là nền chạy mất, chữ bên dưới lộ ra không có nền.
+          Nên thẻ đứng yên làm khung; phần đầu cố định, chỉ danh sách cuộn. */}
+      <aside className="c-card p-5 flex flex-col gap-4 lg:sticky lg:top-6 lg:max-h-[calc(100vh-6rem)]">
+        <div className="flex-none space-y-4">
+          <div>
+            {/* Không đặt tiêu đề "Ngữ pháp" ở đây: trang bao ngoài đã có h1 mang
+                tên thứ tiếng, thêm nữa là hai tiêu đề chồng lên nhau. */}
+            <p className="c-stat-label">
+              {t(`${viewedCount} of ${total} opened`, `Đã mở ${viewedCount}/${total} bài`)}
             </p>
-          </details>
-        )}
+          </div>
 
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-faint)]" size={15} />
+            <input
+              className="c-input w-full pl-9!"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("Find a point...", "Tìm một điểm ngữ pháp...")}
+            />
+          </div>
+
+          {scale && (
+            <p className="c-stat-label">
+              {/* "Tự đặt" là chữ tiếng Việt, nhét thẳng vào câu tiếng Anh thì
+                  thành nửa nọ nửa kia. CEFR, HSK, TOPIK vốn đã là tên riêng. */}
+              {scale === "Tự đặt"
+                ? t("Levels on this project's own scale", "Cấp độ theo thang tự đặt của dự án")
+                : t(`Levels on the ${scale} scale`, `Cấp độ theo thang ${scale}`)}
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setLevel("all")}
+              className={`c-chip ${level === "all" ? "c-chip-solid" : "c-chip-outline"}`}
+            >
+              {t("All", "Tất cả")} ({total})
+            </button>
+            {levels.map((lv) => (
+              <button
+                key={lv}
+                onClick={() => setLevel(lv)}
+                className={`c-chip ${level === lv ? "c-chip-solid" : "c-chip-outline"}`}
+              >
+                {lv} ({byLevel[lv] ?? 0})
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Vùng cuộn duy nhất của khung. `-mx-2 px-2` chừa chỗ cho viền nút
+            đang chọn khỏi bị cắt sát mép. */}
+        <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto -mx-2 px-2 space-y-4">
+          {!loadedSyllabus ? (
+            <div className="flex justify-center py-6 text-[var(--color-text-muted)]">
+              <Loader2 size={18} className="animate-spin" />
+            </div>
+          ) : visible.length === 0 ? (
+            <p className="c-card-body">{t("Nothing matches.", "Không có bài nào khớp.")}</p>
+          ) : (
+            <nav className="space-y-1">
+              {visible.map((family, fi) => {
+                const open = openFamilies.has(family.id) || search.trim().length > 0;
+                return (
+                  <div key={family.id}>
+                    <button
+                      onClick={() => toggleFamily(family.id)}
+                      className="w-full flex items-center gap-2 py-2 text-left font-bold text-sm hover:text-[var(--color-accent)] transition-colors"
+                    >
+                      <span className="flex-1">
+                        {fi + 1}. {family.title}
+                      </span>
+                      {/* Họ do sách của người học mang vào, không thuộc khung của
+                          ứng dụng — nói rõ để không ai tưởng đây là khung chuẩn. */}
+                      {bookFamilies.has(family.id) && (
+                        <BookMarked
+                          size={13}
+                          className="flex-none text-[var(--color-text-faint)]"
+                          aria-label={t("from a book", "từ sách")}
+                        />
+                      )}
+                      <ChevronDown
+                        size={15}
+                        className={`flex-none transition-transform ${open ? "" : "-rotate-90"}`}
+                      />
+                    </button>
+
+                    {open && (
+                      <div className="pl-2 space-y-2 pb-2">
+                        {family.groups.map((group, gi) => (
+                          <div key={group.id}>
+                            <p className="c-stat-label py-1">
+                              {fi + 1}.{gi + 1}. {group.title}
+                            </p>
+                            <ul className="space-y-0.5">
+                              {group.points.map((point) => {
+                                const active = point.id === pointId;
+                                const seen = progress[point.id]?.viewed;
+                                return (
+                                  <li key={point.id}>
+                                    <button
+                                      onClick={() => openPoint(point.id)}
+                                      className={`w-full flex items-start gap-2 px-2 py-1.5 rounded-lg text-left text-sm transition-colors ${
+                                        active
+                                          ? "bg-[var(--color-accent-tint)] text-[var(--color-accent)] font-bold"
+                                          : "hover:bg-[var(--color-surface-2)]"
+                                      }`}
+                                    >
+                                      <span className="flex-1 leading-snug">{point.title}</span>
+                                      {supplemented.has(point.id) && (
+                                        <BookMarked
+                                          size={13}
+                                          className="text-[var(--color-text-faint)] flex-none mt-0.5"
+                                          aria-label={t("has book notes", "có phần từ sách")}
+                                        />
+                                      )}
+                                      {seen && !active && (
+                                        <CircleCheck size={13} className="text-[var(--color-success)] flex-none mt-0.5" />
+                                      )}
+                                      <LevelBadge level={point.level} levels={levels} />
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </nav>
+          )}
+          {references.length > 0 && (
+            <details className="c-card p-4">
+              <summary className="c-stat-label cursor-pointer">
+                {t("What this syllabus was built from", "Khung này dựa trên nguồn nào")}
+              </summary>
+              <ul className="mt-3 space-y-1.5">
+                {references.map((ref) => (
+                  <li key={ref} className="c-help">
+                    {ref}
+                  </li>
+                ))}
+              </ul>
+              <p className="c-help mt-3">
+                {t(
+                  "The ordering and levels are this project's own. The books above were consulted for how topics are usually sequenced, not copied from.",
+                  "Thứ tự và cấp độ là cách sắp của chính dự án. Những sách trên được tra để biết người ta thường dạy theo trình tự nào, không phải nguồn chép nội dung."
+                )}
+              </p>
+            </details>
+          )}
+        </div>
       </aside>
 
       {/* ── Bài học ──────────────────────────────────────────────────────── */}
