@@ -1,9 +1,10 @@
 "use client";
 
-import { Activity, Beef, Droplets, Gauge } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { REMEASURE_DAYS, change, daysBetween } from "@/lib/health";
-import SceneSummary, { ddmm, num } from "@/components/SceneSummary";
+import { ddmm, num } from "@/components/SceneSummary";
+import { en } from "@/lib/plural";
+import PageIntro from "@/components/PageIntro";
 import type { Measurement, Workout } from "@/components/health/types";
 
 /**
@@ -24,67 +25,39 @@ export default function HealthScene({
 }) {
   const { t, language } = useLanguage();
   const vi = language === "vi";
-  const signed = (n: number, d: number) => `${n > 0 ? "+" : n < 0 ? "−" : "±"}${num(Math.abs(n), vi, d)}`;
 
   const weight = change("weightKg", prev, latest);
-  const score = change("bodyScore", prev, latest);
   const sinceDays = latest ? daysBetween(latest.measuredAt, new Date(now)) : null;
 
   const weekAgo = now - 7 * 86_400_000;
   const recent = workouts.filter((w) => new Date(w.startedAt).getTime() >= weekAgo);
   const lastWorkout = workouts[0] ?? null;
 
-  let title = t("Health", "Sức khoẻ");
-  if (!loading) {
-    if (!latest) title = t("No measurement yet", "Chưa có lần đo nào");
-    else if (sinceDays !== null && sinceDays > REMEASURE_DAYS) title = t(`${sinceDays} days since last check`, `${sinceDays} ngày chưa đo lại`);
-    else if (weight && Math.abs(weight.diff) >= 0.05)
-      title = weight.diff < 0
-        ? t(`Weight down ${num(-weight.diff, false, 1)} kg`, `Cân giảm ${num(-weight.diff, true, 1)} kg`)
-        : t(`Weight up ${num(weight.diff, false, 1)} kg`, `Cân tăng ${num(weight.diff, true, 1)} kg`);
-    else if (weight) title = t("Weight holding steady", "Cân giữ nguyên");
-    else if (latest.bodyScore != null) title = t(`Body score ${latest.bodyScore}`, `Điểm hình thể ${latest.bodyScore}`);
-  }
+  const lede = (() => {
+    if (loading) return undefined;
+    if (!latest) return t("No measurement yet — import a report or enter one by hand.", "Chưa có lần đo nào — nhập phiếu đo hoặc nhập tay lần đầu.");
+    if (sinceDays !== null && sinceDays > REMEASURE_DAYS) return t(`${sinceDays} days since the last check — time to measure again.`, `${sinceDays} ngày chưa đo lại — đến lúc đo tiếp.`);
+    if (weight && Math.abs(weight.diff) >= 0.05 && !weight.withinNoise)
+      return weight.diff < 0
+        ? t(`Weight is down ${num(-weight.diff, false, 1)} kg since the previous check.`, `Cân giảm ${num(-weight.diff, true, 1)} kg so với lần đo trước.`)
+        : t(`Weight is up ${num(weight.diff, false, 1)} kg since the previous check.`, `Cân tăng ${num(weight.diff, true, 1)} kg so với lần đo trước.`);
+    if (weight) return t("Weight is within the scale's noise of the last check — holding steady.", "Cân nằm trong sai số của máy so với lần trước — giữ nguyên.");
+    return latest.bodyScore != null ? t(`Body score ${latest.bodyScore}/100.`, `Điểm hình thể ${latest.bodyScore}/100.`) : undefined;
+  })();
 
-  const metric = (v: number | null | undefined, d: number, unit = "") =>
-    v == null ? "—" : `${num(v, vi, d)}${unit}`;
+  const workoutLine = loading
+    ? ""
+    : lastWorkout
+      ? " " + t(`${en(recent.length, "workout")} in the last 7 days (latest: ${lastWorkout.title}, ${ddmm(lastWorkout.startedAt)}).`, `${recent.length} buổi tập trong 7 ngày qua (gần nhất: ${lastWorkout.title}, ${ddmm(lastWorkout.startedAt)}).`)
+      : " " + t("No workout logged yet.", "Chưa ghi buổi tập nào.");
 
   return (
-    <SceneSummary
-      title={title}
-      main={{
-        title: latest ? t(`Check of ${ddmm(latest.measuredAt)}`, `Lần đo ${ddmm(latest.measuredAt)}`) : t("Latest check", "Lần đo mới nhất"),
-        subtitle: [name, prev ? t(`vs ${ddmm(prev.measuredAt)}`, `so lần ${ddmm(prev.measuredAt)}`) : null]
-          .filter(Boolean)
-          .join(" · ") || undefined,
-        pill: weight ? { text: `${signed(weight.diff, 1)} kg`, tone: "flat" } : null,
-        minis: [
-          { label: t("Body fat", "Tỷ lệ mỡ"), value: metric(latest?.pbf, 1, "%"), icon: Droplets },
-          { label: t("Skeletal muscle", "Cơ xương"), value: metric(latest?.smmKg, 1, " kg"), icon: Beef },
-          { label: t("Visceral fat", "Mỡ nội tạng"), value: metric(latest?.visceralFat, 0), icon: Gauge },
-          { label: t("Heart rate", "Nhịp tim"), value: metric(latest?.heartRate, 0, " bpm"), icon: Activity },
-        ],
-        big: latest?.weightKg != null ? { value: num(latest.weightKg, vi, 1), unit: "kg" } : null,
-      }}
-      rows={[
-        {
-          title: t("Body score", "Điểm hình thể"),
-          subtitle: score ? t(`was ${score.from}`, `lần trước ${score.from}`) : t("Out of 100", "Thang 100"),
-          pill: score
-            ? score.withinNoise || score.diff === 0
-              ? { text: t("within noise", "trong sai số"), tone: "flat" }
-              : { text: `${score.diff > 0 ? "▲" : "▼"} ${Math.abs(score.diff)}`, tone: score.diff > 0 ? "good" : "bad" }
-            : null,
-          big: latest?.bodyScore != null ? { value: String(latest.bodyScore), unit: "/100" } : null,
-        },
-        {
-          title: t("Workouts, last 7 days", "Buổi tập 7 ngày qua"),
-          subtitle: lastWorkout
-            ? `${lastWorkout.title} · ${ddmm(lastWorkout.startedAt)}`
-            : t("No workout logged yet", "Chưa ghi buổi tập nào"),
-          big: loading ? null : { value: String(recent.length), unit: t("sessions", "buổi") },
-        },
-      ]}
-    />
+    <>
+      <PageIntro
+        title={t("Health", "Sức khoẻ")}
+        kicker={[name, latest ? t(`check of ${ddmm(latest.measuredAt)}`, `lần đo ${ddmm(latest.measuredAt)}`) : null].filter(Boolean).join(" · ") || undefined}
+        lede={lede ? lede + workoutLine : undefined}
+      />
+    </>
   );
 }

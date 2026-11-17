@@ -8,6 +8,7 @@ import {
   type MetricKey,
 } from "@/lib/health";
 import { useHealth } from "@/components/health/HealthContext";
+import { en } from "@/lib/plural";
 import HealthShell from "@/components/health/HealthShell";
 import MeasurementModal from "@/components/health/MeasurementModal";
 import { MetricRow, StatusChip } from "@/components/health/parts";
@@ -29,13 +30,19 @@ export default function BodyHistory() {
 
   return (
     <HealthShell
+      intro={{
+        title: t("Body history", "Lịch sử số đo"),
+        lede: measurements === null ? undefined : list.length === 0
+          ? t("No measurement yet — import a report or enter one by hand.", "Chưa có lần đo nào — nhập phiếu đo hoặc nhập tay lần đầu.")
+          : t(`${en(list.length, "measurement")} on record, newest first.`, `Đã có ${list.length} lần đo, mới nhất ở trên.`),
+      }}
       actions={
         <>
-          <button type="button" onClick={() => setModal({ m: null, importing: false })} className="c-btn c-btn-secondary">
-            <Plus size={16} /> {t("Enter by hand", "Nhập tay")}
+          <button type="button" onClick={() => setModal({ m: null, importing: false })} className="c-btn c-btn-secondary" aria-label={t("Enter by hand", "Nhập tay")}>
+            <Plus size={16} /> <span className="c-tl">{t("Enter by hand", "Nhập tay")}</span>
           </button>
-          <button type="button" onClick={() => setModal({ m: null, importing: true })} className="c-btn c-btn-primary">
-            <FileUp size={16} /> {t("Import report", "Nhập phiếu đo")}
+          <button type="button" onClick={() => setModal({ m: null, importing: true })} className="c-btn c-btn-primary" aria-label={t("Import report", "Nhập phiếu đo")}>
+            <FileUp size={16} /> <span className="c-tl">{t("Import report", "Nhập phiếu đo")}</span>
           </button>
         </>
       }

@@ -8,6 +8,7 @@ import {
   type PrType, type SetPr,
 } from "@/lib/health";
 import { useHealth } from "@/components/health/HealthContext";
+import { en } from "@/lib/plural";
 import HealthShell from "@/components/health/HealthShell";
 import WorkoutModal, { newWorkoutDraft } from "@/components/health/WorkoutModal";
 import { fmtDate, sendJson, toLocalInput, type Workout, type WorkoutDraft } from "@/components/health/types";
@@ -90,14 +91,20 @@ export default function WorkoutsView() {
 
   return (
     <HealthShell
+      intro={{
+        title: t("Workouts", "Buổi tập"),
+        lede: workouts === null ? undefined : workouts.length === 0
+          ? t("No workouts yet — log one, or import screenshots from Hevy or Strong.", "Chưa có buổi tập nào — ghi một buổi, hoặc nhập ảnh chụp từ Hevy/Strong.")
+          : t(`${en(workouts.length, "workout")} logged, ${prs.length ? `${en(prs.length, "personal record")} in the list.` : "no personal records yet."}`, `Đã ghi ${workouts.length} buổi tập${prs.length ? `, có ${prs.length} kỷ lục cá nhân.` : "."}`),
+      }}
       actions={
         <>
           <button type="button" disabled={reading} onClick={() => fileRef.current?.click()} className="c-btn c-btn-secondary">
             {reading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
             {reading ? t("Reading…", "Đang đọc…") : t("From screenshots", "Từ ảnh chụp")}
           </button>
-          <button type="button" onClick={() => setEditing(newWorkoutDraft())} className="c-btn c-btn-primary">
-            <Plus size={16} /> {t("Log workout", "Ghi buổi tập")}
+          <button type="button" onClick={() => setEditing(newWorkoutDraft())} className="c-btn c-btn-primary" aria-label={t("Log workout", "Ghi buổi tập")}>
+            <Plus size={16} /> <span className="c-tl">{t("Log workout", "Ghi buổi tập")}</span>
           </button>
         </>
       }

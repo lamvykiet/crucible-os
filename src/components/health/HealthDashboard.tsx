@@ -67,11 +67,11 @@ export default function HealthDashboard() {
     <HealthShell
       actions={
         <>
-          <button type="button" onClick={() => setWorkoutDraft(newWorkoutDraft())} className="c-btn c-btn-secondary">
-            <Dumbbell size={16} /> {t("Log workout", "Ghi buổi tập")}
+          <button type="button" onClick={() => setWorkoutDraft(newWorkoutDraft())} className="c-btn c-btn-secondary" aria-label={t("Log workout", "Ghi buổi tập")}>
+            <Dumbbell size={16} /> <span className="c-tl">{t("Log workout", "Ghi buổi tập")}</span>
           </button>
-          <button type="button" onClick={() => setMeasureModal(true)} className="c-btn c-btn-primary">
-            <FileUp size={16} /> {t("Import report", "Nhập phiếu đo")}
+          <button type="button" onClick={() => setMeasureModal(true)} className="c-btn c-btn-primary" aria-label={t("Import report", "Nhập phiếu đo")}>
+            <FileUp size={16} /> <span className="c-tl">{t("Import report", "Nhập phiếu đo")}</span>
           </button>
         </>
       }

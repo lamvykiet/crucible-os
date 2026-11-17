@@ -5,6 +5,8 @@ import { AlertCircle, Loader2, Pencil, UserPlus } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useHealth } from "@/components/health/HealthContext";
 import ProfileModal from "@/components/health/ProfileModal";
+import PageIntro from "@/components/PageIntro";
+import { PageActions } from "@/components/Scene";
 import type { HealthProfile } from "@/components/health/types";
 
 /**
@@ -14,9 +16,12 @@ import type { HealthProfile } from "@/components/health/types";
  */
 export default function HealthShell({
   actions,
+  intro,
   children,
 }: {
   actions?: ReactNode;
+  /** Đầu trang cho màn không có HealthScene (lịch sử đo, buổi tập). */
+  intro?: { title: string; lede?: string };
   children: ReactNode;
 }) {
   const { t } = useLanguage();
@@ -27,9 +32,8 @@ export default function HealthShell({
     <div className="max-w-5xl mx-auto space-y-5 pb-28">
       {/* Tên function và tab con nằm trên thanh trên + phông cảnh; ở đây chỉ
           còn nút hành động. */}
-      {profile && actions && (
-        <div className="flex flex-wrap justify-end gap-2 [&>.c-btn]:flex-1 sm:[&>.c-btn]:flex-none">{actions}</div>
-      )}
+      {intro && <PageIntro title={intro.title} kicker={profile?.name} lede={intro.lede} />}
+      {profile && actions && <PageActions>{actions}</PageActions>}
 
       {error && (
         <div className="c-alert c-alert-error">
