@@ -18,6 +18,8 @@ export type SkillId =
   | "books"
   | "collocations"
   | "dictation"
+  | "typing"
+  | "translation"
   | "grammar"
   | "listening"
   | "reading"
@@ -76,6 +78,22 @@ export const SKILLS: Skill[] = [
     blurbEn: "Write down exactly what you hear, checked word by word.",
     blurbVi: "Chép lại đúng từng chữ nghe được, đối chiếu từng chữ một.",
     href: (id) => `/learning/languages/${id}/dictation`,
+  },
+  {
+    id: "typing",
+    en: "Sentence typing", vi: "Gõ câu",
+    blurbEn: "See the meaning, type the sentence: key words, then phrases, then the whole thing.",
+    blurbVi: "Nhìn nghĩa, gõ lại câu: từ khoá trước, rồi từng cụm, rồi cả câu.",
+    href: (id) => `/learning/languages/${id}/typing`,
+    onlyScripts: ["latin"],
+  },
+  {
+    id: "translation",
+    en: "Translation", vi: "Dịch câu",
+    blurbEn: "Translate Vietnamese into English; each correct word uncovers a box. AI checks free answers.",
+    blurbVi: "Dịch câu Việt sang Anh, gõ đúng chữ nào lật ô chữ đó. Dịch kiểu khác thì AI chấm.",
+    href: (id) => `/learning/languages/${id}/translation`,
+    onlyScripts: ["latin"],
   },
   {
     id: "listening",

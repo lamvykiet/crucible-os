@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { dictationFor, findSet, compareLine } from "@/lib/dictationSets";
+import { recordMistake, recordRight } from "@/lib/mistakes";
 
 export const dynamic = "force-dynamic";
 
@@ -177,6 +178,21 @@ export async function PATCH(req: Request) {
         lastDoneAt: new Date(),
       },
     });
+
+    // Sổ lỗi sai: chép sai thì vào sổ, chép đúng ngay lần đầu mới tính là đúng.
+    try {
+      const refKey = `${found.set.id}#${at}`;
+      if (!best.perfect) {
+        await recordMistake({
+          userId: user.id, languageId: id, langCode: code, source: "dictation", refKey,
+          prompt: line.meaning, answer: line.text, lastWrong: typed,
+        });
+      } else if (firstTry) {
+        await recordRight(user.id, "dictation", refKey);
+      }
+    } catch (mistakeError) {
+      console.error("Mistake book write failed:", mistakeError);
+    }
 
     if (id) {
       try {

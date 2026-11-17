@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   BookMarked, Feather, Headphones, BookOpen, PenLine, Mic, AudioLines, PenTool,
-  Keyboard, Link2, Library,
+  Keyboard, Link2, Library, Type, Languages,
   Loader2, AlertCircle, Lock,
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -28,6 +28,8 @@ const ICONS: Record<SkillId, typeof BookMarked> = {
   collocations: Link2,
   grammar: Feather,
   dictation: Keyboard,
+  typing: Type,
+  translation: Languages,
   listening: Headphones,
   reading: BookOpen,
   writing: PenLine,

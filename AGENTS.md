@@ -366,6 +366,15 @@ function chỉ từ menu logo — đừng gỡ hai lối đó.
 nghĩa một dòng trong ba bảng đó là đổi luôn số liệu và chuỗi ngày bên Thói quen,
 mà không có gì báo.
 
+**Sổ lỗi sai (`MistakeItem`, `src/lib/mistakes.ts`)** được ghi từ BỐN chỗ:
+`api/learning/sentences` (Gõ câu, Dịch câu), `api/learning/flashcards` (chấm
+"Quên" = sai, "Tốt"/"Dễ" = đúng — cả chế độ Ghép cặp), và `api/learning/dictation`.
+Thêm một màn luyện mới mà muốn câu sai hiện trong sổ thì gọi
+`recordMistake`/`recordRight` ở route chấm của nó, đừng dựng bảng lỗi riêng.
+Kho câu của Gõ câu/Dịch câu nằm ở `src/lib/sentences/` (soạn tay, có
+`scripts/test-sentences.mjs` soát) + `SentenceDeck` (AI soạn) + câu ví dụ trên
+thẻ; id bộ viết sẵn là khoá tiến độ — đừng đổi sau khi phát hành.
+
 **Tính chuỗi ngày / tỷ lệ hoàn thành** → chỉ có một chỗ: `src/lib/habits.ts`.
 Ba quy tắc cố ý và đã có test: ngày ngoài lịch bị bỏ qua, ngày đánh dấu nghỉ
 không phá chuỗi, kỳ hiện tại chưa đủ chỉ tiêu thì chưa tính là đứt. Đừng tính

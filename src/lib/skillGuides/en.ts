@@ -498,4 +498,105 @@ export const EN_GUIDES: SkillGuide[] = [
       },
     ],
   },
+  {
+    code: "en",
+    skill: "translation",
+    title: "Dịch câu Việt → Anh — sáu chỗ người Việt hay trượt",
+    intro:
+      "Dịch từng chữ từ tiếng Việt sang thường ra câu đúng nghĩa nhưng sai tiếng Anh. Sáu chỗ dưới đây chiếm phần lớn lỗi; để ý chúng khi gõ là ô chữ lật nhanh hơn hẳn.",
+    minutes: 6,
+    sections: [
+      {
+        id: "how",
+        title: "Cách luyện ở màn này",
+        blocks: [
+          {
+            kind: "steps",
+            items: [
+              "Đọc cả câu tiếng Việt, nghĩ ra câu tiếng Anh trong đầu trước khi gõ chữ đầu tiên.",
+              "Gõ đúng chữ nào, ô của chữ đó lật ra. Kẹt thì Ctrl+Space để hiện đúng một chữ kế tiếp — đừng xem cả đáp án.",
+              "Dịch theo cách khác bản mẫu mà bạn tin là đúng? Bấm “Chấm bằng AI”: AI nói đúng thì câu vẫn tính là qua.",
+              "Câu phải gợi ý hay xem đáp án sẽ vào Sổ lỗi sai và quay lại để ôn.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "traps",
+        title: "Sáu bẫy khi dịch",
+        blocks: [
+          {
+            kind: "table",
+            head: ["Tiếng Việt nói", "Tiếng Anh cần"],
+            rows: [
+              ["Không chia động từ: “hôm qua tôi đi”", "Chia thì: I went yesterday"],
+              ["Không có mạo từ", "Thêm a/an/the: a double room, the airport"],
+              ["Không có số nhiều: “ba đêm”", "Thêm -s: three nights"],
+              ["“Có” cho cả sở hữu lẫn tồn tại", "have (sở hữu) khác there is/are (tồn tại)"],
+              ["Tính từ đứng sau danh từ: “phòng đôi”", "Tính từ đứng trước: double room"],
+              ["Bỏ chủ ngữ: “đang làm ở nhà”", "Luôn có chủ ngữ: She is working from home"],
+            ],
+          },
+        ],
+      },
+      {
+        id: "examples",
+        title: "Sửa câu dịch từng chữ",
+        blocks: [
+          {
+            kind: "examples",
+            items: [
+              { bad: "Yesterday I go to airport.", good: "Yesterday I went to the airport.", note: "Thì quá khứ và mạo từ the." },
+              { bad: "In my house have three people.", good: "There are three people in my house.", note: "“Có” chỉ tồn tại → there are." },
+              { bad: "I very like this job.", good: "I really like this job.", note: "very không đứng trước động từ." },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    code: "en",
+    skill: "typing",
+    title: "Gõ câu — dựng câu từ mảnh nhỏ",
+    intro:
+      "Muốn nói và viết trôi, câu phải có sẵn trong tay chứ không phải ráp từng chữ lúc cần. Màn này bắt bạn gõ lại câu mẫu theo bậc, từ từ khoá lên cụm rồi cả câu, cho tới khi khuôn câu thành phản xạ.",
+    minutes: 4,
+    sections: [
+      {
+        id: "levels",
+        title: "Ba độ khó",
+        blocks: [
+          {
+            kind: "table",
+            head: ["Độ khó", "Gõ lần lượt"],
+            rows: [
+              ["Cơ bản", "Từ khoá → từng cụm → cả câu"],
+              ["Trung cấp", "Từ khoá → cả câu"],
+              ["Nâng cao", "Chỉ cả câu"],
+            ],
+          },
+          {
+            kind: "text",
+            body:
+              "Bắt đầu ở Cơ bản với bộ mới. Khi một bộ đã qua hết mà không cần gợi ý, làm lại ở Nâng cao để chắc là nhớ cả câu chứ không chỉ nhớ mảnh.",
+          },
+        ],
+      },
+      {
+        id: "modes",
+        title: "Ba chế độ",
+        blocks: [
+          {
+            kind: "steps",
+            items: [
+              "Nhìn nghĩa, gõ lại — luyện viết: từ ý tiếng Việt ra câu tiếng Anh.",
+              "Nghe rồi viết — nghĩa bị giấu, chỉ có tiếng; luyện tai bắt từng chữ.",
+              "Nghe & nói — nghe xong nói lại; máy nhận giọng nói ra chữ rồi so. Cần micro và trình duyệt Chrome, Dia, Edge hoặc Safari.",
+            ],
+          },
+        ],
+      },
+    ],
+  },
 ];

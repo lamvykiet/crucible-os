@@ -7,7 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --import ./scripts/register-ts.mjs --test scripts/test-budgets.mjs scripts/test-networth.mjs",
+    "test": "node --import ./scripts/register-ts.mjs --test scripts/test-budgets.mjs scripts/test-networth.mjs scripts/test-sentences.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

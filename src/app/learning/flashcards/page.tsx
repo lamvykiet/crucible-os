@@ -12,8 +12,12 @@ import type { DomainStat } from "@/lib/learningStats";
 import ExerciseCard, {
   seededShuffle, type StudyCard, type ExerciseMode,
 } from "@/components/learning/ExerciseCard";
+import MatchBoard, { type MatchResult } from "@/components/learning/MatchBoard";
 
-type Mode = "detail" | "quick" | "exercise";
+/** Số thẻ mỗi lượt ghép cặp: đủ để phải nhớ, ít để vừa màn điện thoại 375px. */
+const MATCH_SIZE = 5;
+
+type Mode = "detail" | "quick" | "exercise" | "match";
 
 /**
  * Chọn kiểu bài tập hợp với thẻ này.
@@ -185,6 +189,37 @@ function FlashcardSession() {
   const answerExercise = (correct: boolean) =>
     grade(correct ? 3 : 1, { mode: exercise ?? "exercise", correct });
 
+  /**
+   * Xong một lượt ghép cặp: chấm từng thẻ (đúng → Tốt, dính nhầm → Quên) rồi
+   * đưa thẻ dính nhầm về cuối hàng, như thẻ chấm "Quên" ở chế độ khác.
+   */
+  const finishMatch = async (results: MatchResult[]) => {
+    setGrading(true);
+    setError(null);
+    try {
+      for (const r of results) {
+        const res = await fetch("/api/learning/flashcards", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: r.id, grade: r.correct ? 3 : 1, mode: "match", correct: r.correct }),
+        });
+        const json = await res.json();
+        if (!json?.success) throw new Error(json?.error || "Không lưu được kết quả");
+      }
+      setReviewed((n) => n + results.length);
+      setCards((prev) => {
+        const done = new Set(results.map((r) => r.id));
+        const again = new Set(results.filter((r) => !r.correct).map((r) => r.id));
+        return [...prev.filter((c) => !done.has(c.id)), ...prev.filter((c) => again.has(c.id))];
+      });
+      setIndex(0);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setGrading(false);
+    }
+  };
+
   const removeCard = async () => {
     if (!current) return;
     if (!window.confirm(t("Delete this card permanently?", "Xoá vĩnh viễn thẻ này?"))) return;
@@ -195,7 +230,9 @@ function FlashcardSession() {
   };
 
   useEffect(() => {
-    if (mode === "exercise") return; // bài tập tự nhận phím trong ô nhập
+    // Bài tập tự nhận phím trong ô nhập; ghép cặp dùng chuột. Ghép cặp còn một
+    // thẻ thì không ghép được, màn rơi về thẻ lật nên vẫn cần phím.
+    if (mode === "exercise" || (mode === "match" && cards.length >= 2)) return;
     const onKey = (e: KeyboardEvent) => {
       if (!current) return;
       if (e.code === "Space") {
@@ -213,7 +250,7 @@ function FlashcardSession() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [current, flipped, grade, mode]);
+  }, [current, flipped, grade, mode, cards.length]);
 
   const buttons = [
     { g: 1 as const, label: t("Forgot", "Quên"), icon: X, color: "error" },
@@ -249,7 +286,7 @@ function FlashcardSession() {
           </div>
 
           <div className="c-seg">
-            {(["detail", "quick", "exercise"] as const).map((m) => (
+            {(["detail", "quick", "exercise", "match"] as const).map((m) => (
               <button
                 key={m}
                 className={`c-seg-opt ${mode === m ? "active" : ""}`}
@@ -258,6 +295,7 @@ function FlashcardSession() {
                 {m === "detail" && t("Detailed", "Chi tiết")}
                 {m === "quick" && t("Quick", "Nhanh")}
                 {m === "exercise" && t("Exercises", "Bài tập")}
+                {m === "match" && t("Match", "Ghép cặp")}
               </button>
             ))}
           </div>
@@ -346,6 +384,13 @@ function FlashcardSession() {
             )}
           </div>
         </div>
+      ) : mode === "match" && cards.length >= 2 ? (
+        <MatchBoard
+          key={cards.slice(0, MATCH_SIZE).map((c) => c.id).join("|")}
+          cards={cards.slice(0, MATCH_SIZE)}
+          onDone={(r) => void finishMatch(r)}
+          busy={grading}
+        />
       ) : mode === "exercise" && exercise ? (
         <ExerciseCard
           key={current.id}

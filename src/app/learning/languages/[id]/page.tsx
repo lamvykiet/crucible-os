@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, Music2, PenLine, ClipboardCheck, ArrowRight } from "lucide-react";
 import DeckManager from "@/components/learning/DeckManager";
 import SkillsBoard from "@/components/learning/SkillsBoard";
+import MistakeBookLink from "@/components/learning/MistakeBookLink";
 import { useLanguage } from "@/lib/LanguageContext";
 import {
   presetByCode, READING_LABEL, needsWritingPractice,
@@ -131,6 +132,8 @@ export default function LanguagePage({ params }: { params: Promise<{ id: string 
         </div>
         <ArrowRight size={18} className="flex-none text-[var(--color-text-faint)]" />
       </Link>
+
+      <MistakeBookLink languageId={lang.id} />
 
       <DeckManager languageId={lang.id} levels={levels} />
     </div>

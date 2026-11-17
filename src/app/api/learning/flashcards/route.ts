@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { recordMistake, recordRight } from "@/lib/mistakes";
 import { schedule, previewIntervals, STATE, type Grade, type CardState } from "@/lib/fsrs";
 
 export const dynamic = "force-dynamic";
@@ -198,6 +199,32 @@ export async function POST(req: Request) {
       });
     } catch (logError) {
       console.error("Review log write failed:", logError);
+    }
+
+    // Sổ lỗi sai: "Quên" là một lần sai, "Tốt"/"Dễ" là một lần đúng. "Khó" thì
+    // không tính bên nào — nhớ ra được, chỉ chậm.
+    try {
+      if (Number(grade) === 1) {
+        const lang = card.itemId
+          ? await prisma.dictionaryItem.findUnique({
+              where: { id: card.itemId },
+              select: { languageId: true, language: { select: { code: true } } },
+            })
+          : null;
+        await recordMistake({
+          userId: user.id,
+          languageId: lang?.languageId ?? null,
+          langCode: lang?.language?.code ?? "en",
+          source: "flashcard",
+          refKey: card.id,
+          prompt: card.back,
+          answer: card.front,
+        });
+      } else if (Number(grade) >= 3) {
+        await recordRight(user.id, "flashcard", card.id);
+      }
+    } catch (mistakeError) {
+      console.error("Mistake book write failed:", mistakeError);
     }
 
     return NextResponse.json({
