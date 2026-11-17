@@ -185,20 +185,35 @@ Vấn đề thấy trên ảnh (ghi kèm chỗ trong code khi đã tra):
 **Xong khi:** 12 mục trên xử lý hoặc ghi rõ lý do giữ; không số nào lặp trên
 màn; demo được duyệt; lint/tsc sạch.
 
-## P11 · `ScoreGauge` — đồng hồ điểm có câu trạng thái — `[ ]` (demo đã duyệt)
+## P11 · `ScoreGauge` — đồng hồ điểm có câu trạng thái — `[x]` c732aa2 (demo đã duyệt)
 
 File mới `src/components/charts/ScoreGauge.tsx`; áp vào `DashboardTab` (thẻ
 "Budget used"), widget phục hồi Sức khoẻ, tiến độ Học tập. Đặc tả: skill 7.4.
 **Xong khi:** ba trạng thái (bình thường, có ngưỡng/delta, chưa đủ dữ liệu)
 hiện đúng như demo; câu trạng thái tính từ dữ liệu có ngưỡng ghi trong code.
 
-## P12 · Toggle kính lỏng, mặt đồng hồ bấm giờ, vòng chia đoạn — `[ ]` (demo đã duyệt)
+> 17/11: đã áp vào thẻ "Ngân sách đã dùng" (ngưỡng = nhịp ngày, ±5 điểm % là
+> đúng nhịp; tháng đang chạy dưới 3 khoản hoặc dưới 3 ngày → chưa đủ dữ liệu).
+> **Chưa áp** Sức khoẻ — không có widget/điểm phục hồi nào trong
+> `src/components/health` (cần số liệu mới → đề xuất riêng). **Chưa áp** Học
+> tập — `ProgressBoard` chỉ có XP tuần, không có đích/thang tối đa; lấy "tuần
+> tốt nhất" làm max là tự đặt nghĩa mới, chờ chủ dự án quyết.
+
+## P12 · Toggle kính lỏng, mặt đồng hồ bấm giờ, vòng chia đoạn — `[x]` d04bc6a (demo đã duyệt; vòng chia đoạn chưa có chỗ áp)
 
 File: nút sáng/tối trong `Sidebar.tsx` + `MobileTopBar.tsx`; `src/app/habits/timer`,
 `src/app/learning/focus`; vòng 7 ngày ở Thói quen. Đặc tả: skill 7.5–7.7.
 Ghi ngoại lệ vòng chia đoạn vào `docs/bieu-do.md`.
 **Xong khi:** toggle đạt tương phản ≥ 3:1 ở cả hai theme; đồng hồ nằm trên phông
 cảnh; vòng chia đoạn chỉ dùng cho tiến độ.
+
+> 17/11: toggle bản nhỏ 44×26 (không chữ "Sáng/Tối" trong rãnh — cột sidebar
+> thu gọn chỉ 48px). Đồng hồ ở `habits/timer` và `learning/focus` nằm trong
+> `SceneSummary` (nhận `children`). Vòng chia đoạn **chưa áp**: dải 7 ngày ở
+> Thói quen là bộ chọn ngày, không mang trạng thái xong/chưa; ô tuần trong Báo
+> cáo có 5 trạng thái (ngoài lịch/chưa/dở/xong/nghỉ) — ép về 2 màu là mất tin.
+> Muốn có vòng "x/7 ngày làm đủ" thì cần quyết định cách đếm ngày (đề xuất ở
+> báo cáo). Ngoại lệ đã ghi vào `docs/bieu-do.md` §2 và `AGENTS.md`.
 
 ## P4 · Tài chính › các tab còn lại — `[ ]`
 
