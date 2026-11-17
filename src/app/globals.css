@@ -1510,6 +1510,10 @@ html { background: var(--bg); }
 .c-bud-row:first-child { padding-top: 0; }
 .c-bud-nm { font-weight: 500; }
 .c-bud-am { font: 400 13px/18px var(--font-fig); color: var(--muted); white-space: nowrap; }
+.c-hring { position: relative; width: 72px; height: 72px; flex: none; }
+.c-hring svg { width: 100%; height: 100%; }
+.c-hring .trk { stroke: var(--bar); }
+.c-hring b { position: absolute; inset: 0; display: grid; place-items: center; font: 500 17px/1 var(--font-fig); color: var(--ink); letter-spacing: -.02em; }
 .c-rg { display: flex; align-items: center; gap: 10px; }
 .c-rg > div { min-width: 76px; }
 .c-rg svg { width: 32px; height: 32px; flex: none; }

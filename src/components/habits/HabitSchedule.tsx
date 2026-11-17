@@ -5,6 +5,7 @@ import { Bell, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { WEEKDAY_LABELS, addDays, colorVar, dayKey, isScheduled, weekDays, weekdayOf } from "@/lib/habits";
 import type { HabitRow, TodayResponse } from "@/components/habits/types";
+import PageIntro from "@/components/PageIntro";
 
 const HOUR_PX = 56;
 
@@ -57,12 +58,7 @@ export default function HabitSchedule() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-5 pb-28">
-      <header className="pt-2">
-        <h1 className="c-h2">{t("Schedule", "Lịch tuần")}</h1>
-        <p className="c-card-body">
-          {t("Where each habit actually sits in the day.", "Mỗi thói quen nằm ở chỗ nào trong ngày.")}
-        </p>
-      </header>
+      <PageIntro title={t("Schedule", "Lịch tuần")} lede={t("Where each habit actually sits in the day.", "Mỗi thói quen nằm ở chỗ nào trong ngày.")} />
 
 
       <div className="flex items-center justify-between gap-2">

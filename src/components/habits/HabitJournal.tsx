@@ -5,6 +5,7 @@ import { Loader2, Search, Send, Trash2 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { colorVar, dayKey } from "@/lib/habits";
 import type { HabitRow, JournalItem, TodayResponse } from "@/components/habits/types";
+import PageIntro from "@/components/PageIntro";
 
 /** Năm mức tâm trạng. Số lưu xuống DB là 1..5, chữ chỉ để hiển thị. */
 const MOODS = [
@@ -82,12 +83,7 @@ export default function HabitJournalView() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-5 pb-28">
-      <header className="pt-2">
-        <h1 className="c-h2">{t("Journal", "Nhật ký")}</h1>
-        <p className="c-card-body">
-          {t("A line a day is enough to spot a pattern.", "Mỗi ngày một dòng là đủ để nhận ra quy luật.")}
-        </p>
-      </header>
+      <PageIntro title={t("Journal", "Nhật ký")} lede={t("A line a day is enough to spot a pattern.", "Mỗi ngày một dòng là đủ để nhận ra quy luật.")} />
 
 
       {/* Ô viết */}

@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle, ChevronLeft, ChevronRight, Flame, Loader2, Plus, RotateCcw, Check, Zap,
-  CircleDashed,
 } from "lucide-react";
-import SceneSummary from "@/components/SceneSummary";
+import PageIntro from "@/components/PageIntro";
+import { PageActions } from "@/components/Scene";
+import { CardHead, GlassCard } from "@/components/charts/GlassCard";
+import ProgressRing from "@/components/charts/ProgressRing";
+import { en } from "@/lib/plural";
 import { useLanguage } from "@/lib/LanguageContext";
 import {
   GROUPS, UNITS, WEEKDAY_LABELS, addDays, colorVar, dayKey, elapsedParts, tintVar, weekDays,
@@ -15,32 +18,6 @@ import HabitFormModal from "@/components/habits/HabitFormModal";
 import HabitDetailSheet from "@/components/habits/HabitDetailSheet";
 import TodoSection from "@/components/habits/TodoSection";
 import type { HabitRow, TodayResponse } from "@/components/habits/types";
-
-/** Vòng tròn phần trăm của ngày. Rãnh nhạt + phần đã xong màu nhấn, như mọi
- *  thanh tiến độ khác (docs/bieu-do.md §4): tiến độ là dữ liệu, không phải
- *  trạng thái tốt/xấu, nên không dùng --color-success. */
-function Ring({ percent }: { percent: number }) {
-  const r = 26;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-      <circle cx="32" cy="32" r={r} fill="none" stroke="var(--viz-ghost)" strokeWidth="6" />
-      <circle
-        cx="32" cy="32" r={r} fill="none"
-        stroke="var(--viz-accent)" strokeWidth="6" strokeLinecap="round"
-        strokeDasharray={`${(c * percent) / 100} ${c}`}
-        transform="rotate(-90 32 32)"
-        style={{ transition: "stroke-dasharray .35s" }}
-      />
-      <text
-        x="32" y="36" textAnchor="middle"
-        style={{ font: "700 15px var(--font-body)", fill: "var(--color-text)" }}
-      >
-        {percent}%
-      </text>
-    </svg>
-  );
-}
 
 /** Đồng hồ đã nhịn được của thói quen "bỏ", chạy từng giây. */
 function QuitClock({ since }: { since: string }) {
@@ -170,7 +147,7 @@ function Row({ habit, editable, onLog, onOpen, busy }: RowProps) {
  * chính mình.
  */
 export default function HabitsToday() {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
 
   const [date, setDate] = useState(() => dayKey());
   const [data, setData] = useState<TodayResponse | null>(null);
@@ -240,70 +217,27 @@ export default function HabitsToday() {
   const done = data?.doneCount ?? 0;
   const due = data?.dueCount ?? 0;
   const best = build.reduce<HabitRow | null>((m, h) => (h.streak > (m?.streak ?? 0) ? h : m), null);
-  const longestQuit = quit
-    .filter((h) => h.quitSince)
-    .reduce<HabitRow | null>((m, h) => (!m || h.quitSince! < m.quitSince! ? h : m), null);
-  const quitDays = longestQuit?.quitSince
-    ? Math.max(0, Math.floor((new Date(today).getTime() - new Date(longestQuit.quitSince.slice(0, 10)).getTime()) / 86_400_000))
-    : null;
   const [yy, mm, dd] = date.split("-");
 
-  let sceneTitle = t("Habits", "Thói quen");
+  // Câu kết luận đầu trang — đúng cả khi chưa có thói quen nào.
+  let lede: string = "";
   if (!loading) {
-    if (habits.length === 0) sceneTitle = t("No habits yet", "Chưa có thói quen nào");
-    else if (due === 0) sceneTitle = t("A rest day", "Hôm nay được nghỉ");
-    else if (done >= due) sceneTitle = t(`All ${due} habits done`, `Xong cả ${due} thói quen`);
-    else if (isToday) sceneTitle = t(`${due - done} habits left today`, `Còn ${due - done} thói quen hôm nay`);
-    else sceneTitle = t(`${done} of ${due} done that day`, `Ngày này xong ${done}/${due}`);
+    if (habits.length === 0) lede = t("No habits yet — start with one small enough that a bad day cannot break it.", "Chưa có thói quen nào — bắt đầu bằng một việc nhỏ tới mức ngày tệ cũng không phá được.");
+    else if (due === 0) lede = t("A rest day — nothing is scheduled.", "Hôm nay được nghỉ — không có thói quen nào tới lịch.");
+    else if (done >= due) lede = t(`All ${due} habits done${best && best.streak > 1 ? `; the longest streak is ${best.streak} days (${best.name}).` : "."}`, `Xong cả ${due} thói quen${best && best.streak > 1 ? `; chuỗi dài nhất ${best.streak} ngày (${best.name}).` : "."}`);
+    else if (isToday) lede = t(`${en(due - done, "habit")} left today (${done}/${due} done)${atRisk.length ? `, ${en(atRisk.length, "streak")} at risk.` : "."}`, `Còn ${due - done} thói quen hôm nay (xong ${done}/${due})${atRisk.length ? `, ${atRisk.length} chuỗi sắp đứt.` : "."}`);
+    else lede = t(`${done} of ${due} done that day.`, `Ngày này xong ${done}/${due}.`);
   }
 
   return (
     <div className="max-w-4xl mx-auto space-y-5 pb-28">
-      <SceneSummary
-        title={sceneTitle}
-        kicker={`${dd} · ${mm} · ${yy}`}
-        main={{
-          title: isToday ? t("Today", "Hôm nay") : t("That day", "Ngày đang xem"),
-          subtitle: loading ? undefined : t(`${done} of ${due} scheduled habits done`, `Xong ${done}/${due} thói quen tới lịch`),
-          minis: [
-            { label: t("Done", "Đã xong"), value: loading ? "—" : String(done), icon: Check },
-            { label: t("Left", "Còn lại"), value: loading ? "—" : String(Math.max(0, due - done)), icon: CircleDashed },
-            {
-              label: t("Best streak", "Chuỗi dài nhất"),
-              value: loading ? "—" : t(`${best?.streak ?? 0} days`, `${best?.streak ?? 0} ngày`),
-              icon: Flame,
-            },
-            { label: t("Streaks at risk", "Chuỗi sắp đứt"), value: loading ? "—" : String(atRisk.length), icon: Zap },
-          ],
-          big: loading || due === 0 ? null : { value: String(data?.percent ?? 0), unit: "%" },
-        }}
-        rows={[
-          {
-            title: t("Longest streak", "Chuỗi dài nhất"),
-            subtitle: best ? best.name : t("No streak yet", "Chưa có chuỗi nào"),
-            big: loading ? null : { value: String(best?.streak ?? 0), unit: t("days", "ngày") },
-          },
-          longestQuit
-            ? {
-                title: t("Quitting", "Đang cai"),
-                subtitle: longestQuit.name,
-                big: quitDays === null ? null : { value: String(quitDays), unit: t("days", "ngày") },
-              }
-            : {
-                title: t("Tracking", "Đang theo dõi"),
-                subtitle: language === "vi" ? "Thói quen đang xây" : "Habits being built",
-                big: loading ? null : { value: String(build.length) },
-              },
-        ]}
-      />
-
-      <header className="flex items-start justify-end gap-3">
-        <button onClick={() => setFormFor(null)} className="c-btn c-btn-primary c-btn-sm flex-none">
-          <Plus size={16} />
-          <span className="hidden sm:inline">{t("New habit", "Thói quen mới")}</span>
+      <PageIntro title={t("Habits", "Thói quen")} kicker={`${dd} · ${mm} · ${yy}`} lede={lede} />
+      <PageActions>
+        <button type="button" onClick={() => setFormFor(null)} className="c-btn c-btn-primary" aria-label={t("New habit", "Thói quen mới")}>
+          <Plus size={18} />
+          <span className="c-tl">{t("New habit", "Thói quen mới")}</span>
         </button>
-      </header>
-
+      </PageActions>
 
       {/* Dải bảy ngày */}
       <div className="flex items-center gap-1">
@@ -364,29 +298,32 @@ export default function HabitsToday() {
       ) : (
         <>
           {/* Tổng quan ngày */}
-          <section className="c-card flex items-center gap-4">
-            <Ring percent={data?.percent ?? 0} />
-            <div className="min-w-0">
-              <p className="c-card-kicker">
-                {date === today ? t("Today", "Hôm nay") : date}
-              </p>
-              <p className="text-sm">
-                {t(
-                  `${data?.doneCount ?? 0} of ${data?.dueCount ?? 0} habits done`,
-                  `Xong ${data?.doneCount ?? 0}/${data?.dueCount ?? 0} thói quen`
-                )}
-              </p>
-              {atRisk.length > 0 && (
-                <p className="text-xs text-[var(--color-warning)] mt-1">
-                  {t(
-                    `${atRisk.length} streak${atRisk.length > 1 ? "s" : ""} at risk today`,
-                    `${atRisk.length} chuỗi sắp đứt hôm nay`
+          <GlassCard>
+            <div className="flex items-center gap-5">
+              <div className="c-hring">
+                <ProgressRing
+                  fraction={(data?.percent ?? 0) / 100}
+                  tone={(data?.percent ?? 0) >= 100 ? "good" : "ok"}
+                  ariaLabel={t(`${data?.percent ?? 0}% of today's habits done`, `Xong ${data?.percent ?? 0}% thói quen`)}
+                />
+                <b>{data?.percent ?? 0}%</b>
+              </div>
+              <div className="min-w-0">
+                <CardHead
+                  title={t(
+                    `${data?.doneCount ?? 0} of ${data?.dueCount ?? 0} habits done`,
+                    `Xong ${data?.doneCount ?? 0}/${data?.dueCount ?? 0} thói quen`
                   )}
-                  : {atRisk.map((h) => h.name).join(", ")}
-                </p>
-              )}
+                  subtitle={date === today ? t("Today", "Hôm nay") : date}
+                />
+                {atRisk.length > 0 && (
+                  <p className="c-pace-cap" style={{ marginTop: 8 }}>
+                    ▲ {t(`${en(atRisk.length, "streak")} at risk today`, `${atRisk.length} chuỗi sắp đứt hôm nay`)}: {atRisk.map((h) => h.name).join(", ")}
+                  </p>
+                )}
+              </div>
             </div>
-          </section>
+          </GlassCard>
 
           <TodoSection date={date} />
 

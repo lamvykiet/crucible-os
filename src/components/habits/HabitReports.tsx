@@ -9,6 +9,7 @@ import {
   PERIODS, UNITS, WEEKDAY_LABELS, addDays, colorVar, dayKey, monthDays, tintVar, weekStart,
 } from "@/lib/habits";
 import type { ReportHabit } from "@/components/habits/types";
+import PageIntro from "@/components/PageIntro";
 
 interface Insights {
   percent: number;
@@ -195,12 +196,7 @@ export default function HabitReports() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-5 pb-28">
-      <header className="pt-2">
-        <h1 className="c-h2">{t("Habit reports", "Báo cáo thói quen")}</h1>
-        <p className="c-card-body">
-          {t("The shape of it, not just the number.", "Nhìn hình dạng, không chỉ nhìn con số.")}
-        </p>
-      </header>
+      <PageIntro title={t("Habit reports", "Báo cáo thói quen")} lede={t("The shape of it, not just the number.", "Nhìn hình dạng, không chỉ nhìn con số.")} />
 
 
       <div className="flex items-center gap-2">

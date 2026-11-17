@@ -5,6 +5,7 @@ import { Loader2, Pause, Play, Square } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { colorVar } from "@/lib/habits";
 import type { HabitRow, SessionItem, TodayResponse } from "@/components/habits/types";
+import PageIntro from "@/components/PageIntro";
 
 const PRESETS = [15, 25, 30, 45, 60];
 
@@ -155,12 +156,7 @@ export default function FocusTimer() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 pb-28">
-      <header className="pt-2">
-        <h1 className="c-h2">{t("Focus timer", "Bấm giờ tập trung")}</h1>
-        <p className="c-card-body">
-          {t("Minutes logged here feed the habits that count them.", "Số phút ở đây chảy thẳng vào thói quen đếm phút.")}
-        </p>
-      </header>
+      <PageIntro title={t("Focus timer", "Bấm giờ tập trung")} lede={t("Minutes logged here feed the habits that count them.", "Số phút ở đây chảy thẳng vào thói quen đếm phút.")} />
 
 
       <section className="c-card space-y-5">
