@@ -50,6 +50,10 @@ model User {
   SentenceLog        SentenceLog[]
   SentenceDeck       SentenceDeck[]
   MistakeItem        MistakeItem[]
+  LearningPath       LearningPath[]
+  LevelTest          LevelTest[]
+  ReadingText        ReadingText[]
+  VideoLesson        VideoLesson[]
   BookStepProgress   BookStepProgress[]
   BookLesson         BookLesson[]
   BookUnitContent    BookUnitContent[]
@@ -1646,6 +1650,8 @@ model SentenceDeck {
   topic      String
   /// JSON: [{ en, vi, chunks: [{en, vi}], keys: [{en, vi}] }]
   sentences  String
+  /// Điểm ngữ pháp mà bộ này luyện (bộ của Lộ trình). Null = bộ theo chủ đề.
+  pointId    String?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1653,6 +1659,7 @@ model SentenceDeck {
   createdAt DateTime @default(now())
 
   @@index([userId, langCode])
+  @@index([userId, pointId])
 }
 
 /// Sổ lỗi sai: mỗi câu/thẻ đã làm sai, gộp theo `refKey` để sai lại thì
@@ -1686,6 +1693,103 @@ model MistakeItem {
 
   @@unique([userId, source, refKey])
   @@index([userId, langCode, resolvedAt])
+}
+
+/// Lộ trình học của một thứ tiếng: đang ở cấp nào, nhắm tới đâu, mỗi ngày bao
+/// lâu. Tiến độ từng bài KHÔNG lưu ở đây — suy ra từ GrammarLesson.viewedAt và
+/// SentenceLog, để chỉ có một nguồn sự thật.
+model LearningPath {
+  id            String   @id @default(uuid())
+  languageId    String
+  langCode      String
+  /// Cấp CEFR đang học: A1..C1.
+  level         String
+  /// Band IELTS mục tiêu, ví dụ "6.5".
+  targetBand    String   @default("6.5")
+  minutesPerDay Int      @default(45)
+  startedAt     DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, languageId])
+}
+
+/// Một lượt kiểm tra lên cấp (khuôn AIO: 12 từ vựng + 12 ngữ pháp + 12 đọc).
+model LevelTest {
+  id         String  @id @default(uuid())
+  languageId String
+  langCode   String
+  level      String
+  /// JSON: { vocab: Q[], grammar: Q[], reading: { passages: [{title, text}], questions: Q[] } }
+  questions  String
+  /// JSON: number|null mỗi câu, theo thứ tự vocab → grammar → reading.
+  answers    String?
+  score      Int?
+  /// JSON: { vocab, grammar, reading }
+  sections   String?
+  passed     Boolean?
+
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, languageId, startedAt])
+}
+
+/// Bài Đọc & dịch song ngữ: văn bản người dùng dán, bài báo theo link, hoặc AI
+/// soạn — cắt thành đoạn, mỗi đoạn có bản dịch tham khảo; người học tự dịch
+/// từng đoạn và được AI chấm.
+model ReadingText {
+  id         String  @id @default(uuid())
+  languageId String?
+  langCode   String
+  title      String
+  /// paste | link | ai
+  source     String
+  url        String?
+  level      String?
+  topic      String?
+  /// JSON: [{ en, vi }]
+  paragraphs String
+  /// JSON: { [index]: { text, score, verdict, at } } — bản dịch của người học.
+  progress   String  @default("{}")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, langCode])
+}
+
+/// Video học tiếng: phụ đề có mốc thời gian (Gemini đọc thẳng link YouTube một
+/// lần rồi lưu), dùng cho xem song ngữ, chép chính tả và nói nhại từng câu.
+/// Tiến độ từng câu ghi ở SentenceLog với setId "video:<id>".
+model VideoLesson {
+  id         String  @id @default(uuid())
+  languageId String?
+  langCode   String
+  youtubeId  String
+  title      String
+  level      String?
+  /// JSON: [{ start, end, en, vi }] — giây.
+  segments   String
+  lastIndex  Int     @default(0)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, youtubeId])
+  @@index([userId, langCode])
 }
 
 /// Tiến độ đi trên đường học của một cuốn sách, ghi theo TỪNG BƯỚC.
