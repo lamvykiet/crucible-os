@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { DEBT_CATEGORY_GROUP } from "@/lib/debtTransactions";
+import { actualsByGroup } from "@/lib/budgets";
 
 // Mọi mốc thời gian đều tính bằng UTC.
 //
@@ -109,7 +110,7 @@ export async function GET(req: Request) {
         orderBy: { date: "asc" },
       }),
       prisma.budget.findMany({
-        where: { userId, period: month },
+        where: { userId, period: month, periodType: "monthly" },
       }),
       prisma.transaction.findFirst({
         where: { userId },
@@ -334,27 +335,27 @@ export async function GET(req: Request) {
       .filter((c) => c.amount > 0)
       .sort((a, b) => b.amount - a.amount);
 
-    // ---- Ngân sách vs Thực chi ----
+    // ---- Ngân sách vs Thực chi, mục tiêu thu vs Thực thu ----
+    // Công thức "thực tế theo nhóm" nằm ở `src/lib/budgets.ts`, dùng chung với
+    // `api/finance/budgets` — đừng tính lại ở đây. Chi: Expense trừ Refund cộng
+    // phần trả gốc nợ của nhóm đó (ngân sách nhóm nợ đặt bằng cả kỳ trả).
     // Bản cũ hoàn toàn không truy vấn bảng Budget nên ô BvA vĩnh viễn hiện "—".
-    const monthlyBudgets = budgets.filter(
-      (b) => b.periodType?.toLowerCase() === "monthly"
-    );
-    // Ngân sách đối chiếu với TIỀN RA của nhóm. Với nhóm nợ, ngân sách đặt
-    // bằng cả kỳ trả (gốc + lãi) nên nếu chỉ so với phần lãi thì tháng nào cũng
-    // báo dùng chưa tới một nửa hạn mức. Các nhóm khác không có dòng trả gốc
-    // nên `principalByCategory` bằng 0 và kết quả y như cũ.
-    const budgetVsActual = monthlyBudgets.map((b) => {
-      const actual =
-        (expenseByCategory.get(b.categoryGroup) || 0) +
-        (principalByCategory.get(b.categoryGroup) || 0);
-      return {
-        group: b.categoryGroup,
-        budget: b.amount,
-        actual,
-        remaining: b.amount - actual,
-      };
+    const expenseBudgets = budgets.filter((b) => b.kind === "expense");
+    const incomeBudgets = budgets.filter((b) => b.kind === "income");
+    const expenseActual = actualsByGroup(monthTx, "expense");
+    const incomeActual = actualsByGroup(monthTx, "income");
+    const budgetVsActual = expenseBudgets.map((b) => {
+      const actual = expenseActual.get(b.categoryGroup) || 0;
+      return { group: b.categoryGroup, budget: b.amount, actual, remaining: b.amount - actual };
     });
-    const totalBudget = monthlyBudgets.reduce((s, b) => s + b.amount, 0);
+    const totalBudget = expenseBudgets.reduce((s, b) => s + b.amount, 0);
+    // Mục tiêu thu — để Tổng quan bật được chế độ Doanh thu của PetalChart.
+    // `remaining` âm nghĩa là VƯỢT mục tiêu (tốt).
+    const incomeBudgetVsActual = incomeBudgets.map((b) => {
+      const actual = incomeActual.get(b.categoryGroup) || 0;
+      return { group: b.categoryGroup, budget: b.amount, actual, remaining: b.amount - actual };
+    });
+    const totalIncomeBudget = incomeBudgets.reduce((s, b) => s + b.amount, 0);
 
     return NextResponse.json({
       success: true,
@@ -383,6 +384,8 @@ export async function GET(req: Request) {
         categoryBreakdown,
         budgetVsActual,
         totalBudget,
+        incomeBudgetVsActual,
+        totalIncomeBudget,
         totalActualExpense: cashOut,
 
         // Bối cảnh để UI phân biệt "chưa có dữ liệu" với "thật sự bằng 0"
