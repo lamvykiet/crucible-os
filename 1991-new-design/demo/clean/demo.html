@@ -465,6 +465,77 @@ html[data-theme="dark"]{
   .bars,.xl{--gap:8px}
   .mock{left:auto;right:8px;bottom:8px}
 }
+
+/* =====================================================================
+   BIỂU ĐỒ CỘT KIỂU "VIÊN SỐ": cột rộng bo tròn sát nhau; cột thường nền rất nhạt
+   + gạch chéo mảnh; trên đỉnh có viên số nổi (trắng mờ, số đậm, đơn vị nhạt) chồng lên
+   đỉnh cột; ĐÚNG MỘT cột nhấn tô đặc màu nhấn nhạt + viên số đặc màu nhấn đậm. Đường
+   tham chiếu nét đứt màu đất-hồng, viên nhãn đặc nằm ở mép trái NGOÀI vùng cột nên không
+   đè viên số. Không kẻ lưới. ≤760px: cuộn ngang trong thẻ (mỗi cột ≥ 60px).
+   ===================================================================== */
+:root{--vb-fill:rgba(70,50,30,.07);--vb-hatch:rgba(70,50,30,.11);--vb-acc:#A9C58C;--vp-bg:rgba(255,255,255,.82);--vp-line:rgba(60,40,25,.08);
+  --ref:#B8434E;--ref-ink:#FFFFFF}
+html[data-theme="dark"]{--vb-fill:rgba(255,255,255,.07);--vb-hatch:rgba(255,255,255,.10);--vb-acc:rgba(163,196,127,.5);--vp-bg:rgba(62,54,48,.96);--vp-line:rgba(255,255,255,.10);
+  --ref:#E58A92;--ref-ink:#2B1416}
+.vbs{overflow-x:auto;scrollbar-width:thin;padding-top:30px;margin-top:-4px}
+.vb{position:relative;padding-left:var(--gut,120px)}
+.vb .plot{position:relative;height:var(--h,220px)}
+.vb .vcols{display:flex;gap:6px;height:100%;position:relative;z-index:2}
+.vb .vc{flex:1;min-width:0;position:relative}
+.vb .vbar{position:absolute;left:0;right:0;bottom:0;border-radius:14px;
+  background:repeating-linear-gradient(135deg,var(--vb-hatch) 0 1.5px,transparent 1.5px 9px),var(--vb-fill)}
+.vb .vbar.acc{background:var(--vb-acc)}
+.vb .vbar.part{box-shadow:inset 0 0 0 1.5px var(--dash)}
+.vb .vp{position:absolute;left:50%;transform:translateX(-50%);min-width:calc(100% - 8px);height:28px;padding:0 6px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;
+  background:var(--vp-bg);box-shadow:0 0 0 1px var(--vp-line),0 3px 10px -2px rgba(60,40,25,.16);color:var(--ink);font-size:13px;line-height:16px;font-family:var(--fig);font-variant-numeric:tabular-nums}
+.vb .vp b{font-weight:600}
+.vb .vp .u{font-size:13px}
+.vb .vp.acc{background:var(--acc);color:var(--acc-ink);box-shadow:0 4px 12px -2px rgba(40,60,30,.35)}
+.vb .vp.acc .u{color:inherit;opacity:.82}
+.vb .vp.nil{color:var(--muted)}
+.vb .vref{position:absolute;left:calc(-1 * var(--gut,120px) + 32px);right:0;height:0;border-top:1.5px dashed var(--ref);z-index:1}
+.vb .vrl{position:absolute;left:calc(-1 * var(--gut,120px) + 32px);transform:translateY(50%);height:24px;padding:0 10px;border-radius:12px;background:var(--ref);color:var(--ref-ink);font-size:13px;line-height:24px;font-weight:500;white-space:nowrap;z-index:3;font-family:var(--fig)}
+.vb .yl{position:absolute;left:calc(-1 * var(--gut,120px));width:26px;text-align:right;transform:translateY(50%);font-size:13px;line-height:16px;color:var(--muted);z-index:0}
+.vb .vx{display:flex;gap:6px;margin-top:10px}
+.vb .vx span{flex:1;min-width:0;text-align:center;color:var(--muted);font-size:13px;line-height:16px}
+.vb .vx span small{display:block;font-size:13px;color:var(--muted)}
+.vb .vx span.on{color:var(--acc);font-weight:600}
+.vb .vx span.on small{color:var(--acc);font-weight:400}
+.vb.noy{--gut:0px}
+.vb.noy .vref,.vb.noy .vrl{left:0}
+.vb.noy .vrl{height:22px;line-height:22px;padding:0 8px}
+.vb.noy .vcols,.vb.noy .vx{gap:4px}
+.vb.noy .vp{height:26px;padding:0 4px;min-width:calc(100% - 4px)}
+.hd.hs .sum{flex:none;text-align:right;font-size:28px;line-height:32px;font-weight:500;letter-spacing:-.02em;font-family:var(--fig);white-space:nowrap}
+.hd.hs .sum .u{font-size:13px;letter-spacing:0;margin-left:4px}
+.vbwrap{margin-top:auto;padding-top:20px}
+.vbhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.vbhead .cap{color:var(--ink2);font-size:13px}
+.vbhead .sum{font-size:20px;line-height:28px;font-weight:500;letter-spacing:-.02em;font-family:var(--fig);white-space:nowrap}
+.vbhead .sum .u{font-size:13px;letter-spacing:0;margin-left:4px}
+
+/* So với ngân sách: vòng nhỏ = TIẾN ĐỘ của một đại lượng (đã chi / ngân sách của từng nhóm),
+   không phải cơ cấu. Rãnh xám nhạt, phần đạt tô màu; vạch mực trên vòng = nhịp ngày. */
+.bud .brow{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.bud .brow:first-child{padding-top:0}
+.bud .nm{font-weight:500}
+.bud .am{font-size:13px;line-height:18px;color:var(--muted);font-family:var(--fig);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bud .rg{display:flex;align-items:center;gap:10px}
+.bud .rg svg{width:32px;height:32px;flex:none}
+.bud .rg .trk{stroke:var(--bar)}
+.bud .rg .pc{display:block;font-weight:500;line-height:18px;font-family:var(--fig);font-variant-numeric:tabular-nums}
+.bud .rg .st{display:flex;align-items:center;gap:6px;font-size:13px;line-height:16px;color:var(--muted);white-space:nowrap}
+.bud .rg .st i{width:6px;height:6px;border-radius:50%;flex:none;background:var(--acc)}
+.bud .rg .st.w{color:var(--warn-t)}.bud .rg .st.w i{background:var(--warn)}
+.bud .rg .st.x{color:var(--bad-t);font-weight:500}.bud .rg .st.x i{background:var(--bad)}
+.bud .rg>div{min-width:76px}
+@media (max-width:760px){
+  .vb{min-width:calc(var(--gut,120px) + var(--n) * 60px)}
+  .vb.noy{min-width:0}
+  .hd.hs{flex-wrap:wrap}
+  .hd.hs .sum{order:3;width:100%;text-align:left;font-size:24px}
+  .bud .rg{gap:8px}.bud .rg>div{min-width:72px}
+}
 </style>
 </head>
 <body>
@@ -548,8 +619,7 @@ html[data-theme="dark"]{
           <div style="display:flex;align-items:baseline;gap:8px"><span class="num" style="font-size:28px;line-height:36px;font-weight:500;letter-spacing:-.02em">12,4</span><span class="u">/ 20 triệu ₫</span></div>
           <div class="pace" style="margin-top:12px"><div class="fill" style="width:62%"></div><div class="tick" style="left:57%"></div></div>
           <div class="pace-cap"><span>Đã chi <b class="num">62%</b></span><span>Hôm nay: ngày 17/30</span></div>
-          <div class="days" id="days"></div>
-          <div class="note" style="text-align:center">Chi mỗi ngày tuần này</div>
+          <div class="vbwrap" id="days"></div>
         </a>
 
         <a class="card c7" href="#">
@@ -597,13 +667,13 @@ html[data-theme="dark"]{
         </a>
 
         <a class="card c7" href="#">
-          <div class="hd"><span class="gi spend"><svg data-i="bars"></svg></span><div class="grow"><div class="t">Tháng 9 chi nhiều nhất 6 tháng: 16,4 triệu<svg data-i="chev"></svg></div><div class="s">Cao hơn trung bình 5 tháng đủ (14,6 tr) khoảng 1,8 triệu</div></div></div>
-          <div id="sixM" style="margin-top:32px"></div>
+          <div class="hd hs"><span class="gi spend"><svg data-i="bars"></svg></span><div class="grow"><div class="t">Tháng 9 chi nhiều nhất 6 tháng: 16,4 triệu<svg data-i="chev"></svg></div><div class="s">Cao hơn trung bình 5 tháng đủ (14,6 tr) khoảng 1,8 triệu</div></div><div class="sum">14,6<span class="u">tr ₫ (TB 5 tháng)</span></div></div>
+          <div id="sixM" style="margin-top:8px"></div>
         </a>
 
-        <a class="card c5" href="#">
-          <div class="hd"><span class="gi spend"><svg data-i="cup"></svg></span><div class="grow"><div class="t">Ăn uống dẫn đầu: 34% chi tháng này<svg data-i="chev"></svg></div><div class="s">Theo nhóm chi, 1/11 – 17/11</div></div></div>
-          <div class="rank" id="rank"></div>
+        <a class="card c5 bud" href="#">
+          <div class="hd"><span class="gi spend"><svg data-i="target"></svg></span><div class="grow"><div class="t">So với ngân sách: Mua sắm vượt 14%, 2 nhóm quá nhịp<svg data-i="chev"></svg></div><div class="s">Đã chi / ngân sách tháng 11, theo nhóm chi</div></div></div>
+          <div id="budget"></div>
         </a>
 
         <div class="card c7">
@@ -647,8 +717,8 @@ html[data-theme="dark"]{
 
       <div class="grid">
         <a class="card c8" href="#">
-          <div class="hd"><span class="gi health"><svg data-i="bars"></svg></span><div class="grow"><div class="t">Tuần trước tập 170 phút, vượt mốc 150<svg data-i="chev"></svg></div><div class="s">Phút tập mỗi tuần, 8 tuần gần nhất</div></div></div>
-          <div id="weekBars" style="margin-top:32px"></div>
+          <div class="hd hs"><span class="gi health"><svg data-i="bars"></svg></span><div class="grow"><div class="t">Tuần trước tập 170 phút, vượt mốc 150<svg data-i="chev"></svg></div><div class="s">Phút tập mỗi tuần, 8 tuần gần nhất</div></div><div class="sum">146<span class="u">ph (TB 7 tuần đủ)</span></div></div>
+          <div id="weekBars" style="margin-top:8px"></div>
         </a>
         <div class="card c4">
           <div class="hd"><span class="gi health"><svg data-i="dumbbell"></svg></span><div class="grow"><div class="t">Chân thiếu 4 hiệp tuần này</div><div class="s">Hiệp mỗi nhóm cơ, 7 ngày qua · mốc 10</div></div></div>
@@ -761,39 +831,51 @@ document.getElementById('ledgerRows').innerHTML=ledger.map(t=>rowTx(t,S[t.st])).
  document.getElementById('nwX').innerHTML=m.map((x,i)=>`<span class="${i==11?'on':''}">${x}</span>`).join('');
 })();
 
-/* ===== Chi theo ngày tuần này (chỉ có ngày đã qua) ===== */
-(function(){
- const days=[['T2',420],['T3',65,1],['T4'],['T5'],['T6'],['T7'],['CN']];
- const max=480;
- document.getElementById('days').innerHTML=days.map(([d,v,on])=>{
-  if(v===undefined) return `<div class="d fut"><div class="st"><div class="b"></div></div><div class="lab">${d}</div></div>`;
-  const h=Math.max(4,Math.round(v/max*88));
-  return `<div class="d ${on?'on':''}"><div class="st"><div class="b" style="height:${h}px"></div><span class="val" style="bottom:${h+4}px">${v}k</span></div><div class="lab">${d}</div></div>`;
- }).join('');
-})();
-
-/* ===== Biểu đồ cột: xám mặc định, một cột nhấn, cột chưa đủ kỳ là viền đứt ===== */
-function bars(el,{data,max,ref,refLabel,unit,h=220,yt=[]}){
+/* ===== Biểu đồ cột kiểu viên số (dùng chung 3 chỗ) =====
+   d: {x, sx?, v|null, lab, k?: 'acc'|'part'}. Một cột 'acc' duy nhất. v=null → cột rỗng thấp + "–". */
+function vbars(el,{data,max,ref,refLabel,unit,h=220,yt=[],noy=false,head}){
  const y=v=>v/max*100;
- el.innerHTML=`<div class="bars" style="--h:${h}px">
-  ${yt.map(t=>`<div class="gridl" style="bottom:${y(t)}%"></div><span class="yl" style="bottom:${y(t)}%">${t}</span>`).join('')}
-  ${ref!=null?`<div class="ref" style="bottom:${y(ref)}%"></div><span class="reflab num" style="bottom:${y(ref)}%;transform:none">${refLabel}</span>`:''}
-  ${data.map(d=>`<div class="col"><div class="b ${d.k||''}" style="height:${y(d.v)}%"><span class="vlab ${d.k==='acc'?'on':''}">${d.lab}</span></div></div>`).join('')}
- </div><div class="xl">${data.map(d=>`<span class="${d.k==='acc'?'on':''}">${d.x}${d.sx?`<small>${d.sx}</small>`:''}</span>`).join('')}</div>`;
+ const col=d=>{
+  if(d.v==null) return `<div class="vc"><div class="vbar" style="height:8%"></div><span class="vp nil" style="bottom:calc(8% - 8px)">–</span></div>`;
+  const hh=Math.max(y(d.v),5);
+  return `<div class="vc"><div class="vbar ${d.k||''}" style="height:${hh}%"></div><span class="vp ${d.k==='acc'?'acc':''}" style="bottom:calc(${hh}% - 10px)"><b>${d.lab}</b>${unit?`<span class="u">${unit}</span>`:''}</span></div>`;};
+ el.innerHTML=`${head||''}<div class="vbs"><div class="vb ${noy?'noy':''}" style="--n:${data.length};--h:${h}px">
+  <div class="plot">
+   ${noy?'':yt.map(t=>`<span class="yl num" style="bottom:${y(t)}%">${t}</span>`).join('')}
+   ${ref!=null?`<i class="vref" style="bottom:${y(ref)}%"></i><span class="vrl" style="bottom:${y(ref)}%">${refLabel}</span>`:''}
+   <div class="vcols">${data.map(col).join('')}</div>
+  </div>
+  <div class="vx">${data.map(d=>`<span class="${d.k==='acc'?'on':''}">${d.x}${d.sx?`<small>${d.sx}</small>`:''}</span>`).join('')}</div>
+ </div></div>`;
 }
-bars(document.getElementById('sixM'),{max:20,ref:14.6,refLabel:'TB 14,6',h:220,yt:[5,10,20],data:[
+/* Chi mỗi ngày tuần này (Tổng quan): hôm nay T3 = cột nhấn; ngày chưa tới = cột rỗng + "–"; đường = nhịp ngân sách/ngày (20 tr / 30 ngày) */
+vbars(document.getElementById('days'),{noy:true,max:800,ref:667,refLabel:'Nhịp 667k',unit:'k',h:132,
+ head:'<div class="vbhead"><span class="cap">Chi mỗi ngày tuần này</span><span class="sum">485<span class="u">k ₫ tuần này</span></span></div>',
+ data:[{x:'T2',v:420,lab:'420'},{x:'T3',v:65,lab:'65',k:'acc'},{x:'T4',v:null},{x:'T5',v:null},{x:'T6',v:null},{x:'T7',v:null},{x:'CN',v:null}]});
+vbars(document.getElementById('sixM'),{max:20,ref:14.6,refLabel:'TB 14,6 tr',unit:'tr',h:230,yt:[5,10,20],data:[
  {x:'T6',v:14.1,lab:'14,1'},{x:'T7',v:15.8,lab:'15,8'},{x:'T8',v:13.2,lab:'13,2'},
- {x:'T9',v:16.4,lab:'16,4 tr',k:'acc'},{x:'T10',v:13.5,lab:'13,5'},{x:'T11',sx:'tới 17/11',v:12.4,lab:'12,4',k:'part'}]});
-bars(document.getElementById('weekBars'),{max:220,ref:150,refLabel:'Mốc 150',h:220,yt:[50,100,200],data:[
+ {x:'T9',v:16.4,lab:'16,4',k:'acc'},{x:'T10',v:13.5,lab:'13,5'},{x:'T11',sx:'tới 17/11',v:12.4,lab:'12,4',k:'part'}]});
+vbars(document.getElementById('weekBars'),{max:220,ref:150,refLabel:'Mốc 150',unit:'ph',h:230,yt:[50,100,200],data:[
  {x:'28/9',v:120,lab:'120'},{x:'5/10',v:165,lab:'165'},{x:'12/10',v:140,lab:'140'},{x:'19/10',v:95,lab:'95'},
- {x:'26/10',v:180,lab:'180'},{x:'2/11',v:150,lab:'150'},{x:'9/11',sx:'tuần trước',v:170,lab:'170 ph',k:'acc'},{x:'16/11',sx:'đang chạy',v:48,lab:'48',k:'part'}]});
+ {x:'26/10',v:180,lab:'180'},{x:'2/11',v:150,lab:'150'},{x:'9/11',sx:'tuần rồi',v:170,lab:'170',k:'acc'},{x:'16/11',sx:'tuần này',v:48,lab:'48',k:'part'}]});
 
-/* ===== Xếp hạng nhóm chi ===== */
+/* ===== So với ngân sách: vòng tiến độ từng nhóm (dữ liệu mẫu theo bảng Budget: categoryGroup, amount) =====
+   Dưới nhịp ngày = màu nhấn · vượt nhịp = cảnh báo · vượt 100% = --bad, vòng đầy + "Vượt n%". Vạch mực = nhịp ngày 17/30. */
 (function(){
- const r=[['Ăn uống',4200000],['Nhà cửa',3100000],['Đi lại',1650000],['Mua sắm',1480000],['Khác',1970000,1]];
- const tot=12400000,max=4200000;
- document.getElementById('rank').innerHTML=r.map(([n,v,o],i)=>`<div class="row"><span>${n}</span><span class="amt">${vnd(v)} ₫<small>${Math.round(v/tot*100)}%</small></span><div><div class="bar ${i==0?'acc':(o?'o':'')}" style="width:${v/max*100}%"></div></div></div>`).join('')
-  +`<div class="note" style="margin-top:0">“Khác” gộp 6 nhóm nhỏ: Sức khoẻ, Giải trí, Quà tặng…</div>`;
+ const PACE=17/30, C=2*Math.PI*13;
+ const fm=n=>(n/1e6).toLocaleString('vi-VN',{minimumFractionDigits:1,maximumFractionDigits:2});
+ const r=[['Ăn uống','cup',4200000,5000000],['Nhà cửa','home',3100000,6000000],['Đi lại','car',1650000,2400000],['Mua sắm','bag',1480000,1300000],['Khác','grid',1970000,5300000]];
+ document.getElementById('budget').innerHTML=r.map(([n,i,sp,bd])=>{
+  const p=sp/bd, pc=Math.round(p*100);
+  const cls=p>1?'x':(p>PACE?'w':''), col=p>1?'var(--bad)':(p>PACE?'var(--warn)':'var(--acc)');
+  const st=p>1?`Vượt ${pc-100}%`:(p>PACE?'Quá nhịp':'Trong nhịp');
+  const d=Math.min(p,1)*C;
+  return `<div class="brow"><span class="gi spend">${ic(i)}</span><div><div class="nm">${n}</div><div class="am">${fm(sp)} / ${fm(bd)} tr ₫</div></div>
+  <div class="rg"><svg viewBox="0 0 32 32" role="img" aria-label="${n}: ${pc}% ngân sách"><circle class="trk" cx="16" cy="16" r="13" fill="none" stroke-width="4"/>
+   <circle cx="16" cy="16" r="13" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="${p>=1?'butt':'round'}" stroke-dasharray="${d} ${C}" transform="rotate(-90 16 16)"/>
+   <line x1="16" y1="0.5" x2="16" y2="7.5" stroke="var(--ink)" stroke-width="1.75" transform="rotate(${PACE*360} 16 16)"/></svg>
+   <div><span class="pc">${pc}%</span><span class="st ${cls}"><i></i>${st}</span></div></div></div>`;}).join('')
+  +`<div class="note" style="margin-top:4px">Vạch đen trên vòng là nhịp ngày 17/30. “Khác” gộp 6 nhóm nhỏ. Dữ liệu mẫu.</div>`;
 })();
 
 /* ===== Sức khoẻ ===== */
