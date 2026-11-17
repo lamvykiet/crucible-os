@@ -565,6 +565,36 @@ html[data-theme="dark"]{--rg-1:#B8923F;--rg-2:#9E927C;--rg-3:#7E8C5C;--rg-4:#A87
   .hd.hs .sum{order:3;width:100%;text-align:left;font-size:24px}
   .bud .rg{gap:8px}.bud .rg>div{min-width:72px}
 }
+
+/* Biểu đồ "cánh hoa" (ảnh 28.png): mỗi nhóm một cánh quạt góc bằng nhau. Lớp ngoài mờ = 100% ngân sách/mục tiêu;
+   lớp trong đậm mọc từ tâm, bán kính r = r0 + (R − r0)·√f nên DIỆN TÍCH tỷ lệ với %. Màu = --rg-* như vòng cung rời;
+   chữ luôn là --ink (đạt ≥4.5:1 trên cả lớp mờ lẫn lớp đậm), riêng cánh đỏ/xanh dùng chữ tương phản của --bad/--good. */
+:root{--pt-mix:100%;--pt-tint:.32;--on-bad:#fff;--on-good:#fff}
+html[data-theme="dark"]{--pt-mix:64%;--pt-tint:.2;--on-bad:#16100B;--on-good:#16100B}
+.psplit{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:40px;align-items:center;margin-top:16px}
+.petal{position:relative;width:100%;max-width:340px;aspect-ratio:1;margin:0 auto}
+.petal svg{display:block;width:100%;height:100%;overflow:visible}
+.petal .pt{fill:var(--rg-c);stroke:var(--rg-c);opacity:var(--pt-tint)} /* opacity (không phải fill/stroke-opacity) để nét viền và nền hoà một lớp, không lộ vành đậm */
+.petal .pd{fill:color-mix(in srgb,var(--rg-c) var(--pt-mix),#000);stroke:color-mix(in srgb,var(--rg-c) var(--pt-mix),#000)}
+.petal .pd.over{fill:var(--bad);stroke:var(--bad)}
+.petal .pd.over.good{fill:var(--good);stroke:var(--good)}
+.petal.empty svg{opacity:.75}
+.petal .pl{position:absolute;transform:translate(-50%,-50%);text-align:center;color:var(--ink);pointer-events:none;line-height:1.15;max-width:25%}
+.petal .pl .n{display:block;font-family:var(--fig);font-variant-numeric:tabular-nums;font-size:24px;font-weight:500;letter-spacing:-.03em;line-height:26px}
+.petal .pl .n small{font-size:13px;letter-spacing:0;margin-left:1px}
+.petal .pl .g{display:block;font-size:13px;line-height:16px;white-space:nowrap}
+.petal .pl .o{display:block;font-size:13px;line-height:16px;font-weight:600;white-space:nowrap}
+.petal .pl.over{color:var(--on-bad)}.petal .pl.over.good{color:var(--on-good)}
+.petal.empty .pl{color:var(--ink2)}
+.hd.hs .segs{display:flex;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.bud .empty-box{text-align:left}
+.bud .empty-box .eh{font-size:20px;line-height:28px;font-weight:500;letter-spacing:-.02em}
+.bud .empty-box .ed{color:var(--ink2);margin-top:6px;max-width:44ch}
+.bud .empty-box .btn{margin-top:16px;height:44px;padding:0 24px;border-radius:999px;background:var(--btn);color:var(--btn-ink);font-weight:500;display:inline-flex;align-items:center;gap:8px}
+.bud .empty-box .btn svg{width:18px;height:18px}
+.bud .rg .st.g{color:var(--good-t);font-weight:500}.bud .rg .st.g i{background:var(--good)}
+@media (max-width:760px){.psplit{grid-template-columns:1fr;gap:20px}.hd.hs .segs{order:3;width:100%}.hd.hs .segs .seg{flex:1 1 auto}.hd.hs .segs .seg button{flex:1}
+ .petal .pl .n{font-size:22px;line-height:24px}}
 </style>
 </head>
 <body>
@@ -699,16 +729,18 @@ html[data-theme="dark"]{--rg-1:#B8923F;--rg-2:#9E927C;--rg-3:#7E8C5C;--rg-4:#A87
           <div id="sixM" style="margin-top:8px"></div>
         </a>
 
-        <div class="card c7 fillcol">
+        <div class="card c12 fillcol">
           <div class="hd hs"><span class="gi spend"><svg data-i="grid"></svg></span><div class="grow"><div class="t" id="gTitle"></div><div class="s num" id="gSub"></div></div>
             <div class="seg" role="group" aria-label="Kỳ xem" id="gSeg"><button type="button" data-p="w">Tuần</button><button type="button" data-p="m" class="on" aria-pressed="true">Tháng</button><button type="button" data-p="y">Năm</button></div></div>
           <div class="split"><div class="ringbox sm" id="grpRing"></div><div class="glist" id="grpList"></div></div>
         </div>
 
-        <a class="card c5 bud" href="#">
-          <div class="hd"><span class="gi spend"><svg data-i="target"></svg></span><div class="grow"><div class="t">So với ngân sách: Mua sắm vượt 14%, 2 nhóm quá nhịp<svg data-i="chev"></svg></div><div class="s">Đã chi / ngân sách tháng 11, theo nhóm chi</div></div></div>
-          <div id="budget"></div>
-        </a>
+        <div class="card c12 bud" id="budCard">
+          <div class="hd hs"><span class="gi spend" id="bGi"><svg data-i="target"></svg></span><div class="grow"><div class="t" id="bTitle"></div><div class="s num" id="bSub"></div></div>
+            <div class="segs"><div class="seg" role="group" aria-label="Chế độ xem" id="bMode"><button type="button" data-m="chi">Chi phí</button><button type="button" data-m="thu">Doanh thu</button></div>
+            <div class="seg" role="group" aria-label="Kỳ xem" id="bPer"><button type="button" data-p="11">Tháng 11</button><button type="button" data-p="12">Tháng 12</button></div></div></div>
+          <div class="psplit"><div class="petal" id="petal"></div><div id="budget"></div></div>
+        </div>
 
         <div class="card c12">
           <div class="hd"><div class="grow"><div class="t">3 hoá đơn đang chờ duyệt</div><div class="s">Đã quét và lưu nháp, chưa vào sổ</div></div><button class="btn">Duyệt 3 hoá đơn</button></div>
@@ -935,23 +967,89 @@ vbars(document.getElementById('weekBars'),{max:220,ref:150,refLabel:'Mốc 150',
  {x:'28/9',v:120,lab:'120'},{x:'5/10',v:165,lab:'165'},{x:'12/10',v:140,lab:'140'},{x:'19/10',v:95,lab:'95'},
  {x:'26/10',v:180,lab:'180'},{x:'2/11',v:150,lab:'150'},{x:'9/11',sx:'tuần rồi',v:170,lab:'170',k:'acc'},{x:'16/11',sx:'tuần này',v:48,lab:'48',k:'part'}]});
 
-/* ===== So với ngân sách: vòng tiến độ từng nhóm (dữ liệu mẫu theo bảng Budget: categoryGroup, amount) =====
-   Dưới nhịp ngày = màu nhấn · vượt nhịp = cảnh báo · vượt 100% = --bad, vòng đầy + "Vượt n%". Vạch mực = nhịp ngày 17/30. */
+/* ===== So với ngân sách: cánh hoa + vòng tiến độ từng nhóm (dữ liệu mẫu theo bảng Budget: categoryGroup, amount) =====
+   Chi phí: dưới nhịp ngày = màu nhấn · vượt nhịp = cảnh báo · vượt 100% = --bad. Vạch mực = nhịp ngày 17/30.
+   Doanh thu: vượt mục tiêu là TỐT nên dùng --good, không phải đỏ (quyết định tạm, chờ chủ dự án xác nhận). */
 (function(){
  const PACE=17/30, C=2*Math.PI*13, SW=5;
  const fm=n=>(n/1e6).toLocaleString('vi-VN',{minimumFractionDigits:1,maximumFractionDigits:2});
- const r=[['Ăn uống','cup',4200000,5000000],['Nhà cửa','home',3100000,6000000],['Đi lại','car',1650000,2400000],['Mua sắm','bag',1480000,1300000],['Khác','grid',1970000,5300000]];
- document.getElementById('budget').innerHTML=r.map(([n,i,sp,bd])=>{
-  const p=sp/bd, pc=Math.round(p*100);
-  const cls=p>1?'x':(p>PACE?'w':''), col=p>1?'var(--bad)':(p>PACE?'var(--warn)':'var(--acc)');
-  const st=p>1?`Vượt ${pc-100}%`:(p>PACE?'Quá nhịp':'Trong nhịp');
-  const full=p>=1, d=full?C:Math.max(p*C-SW,.1), off=full?0:-SW/2;
-  return `<div class="brow"><span class="gi spend">${ic(i)}</span><div><div class="nm">${n}</div><div class="am">${fm(sp)} / ${fm(bd)} tr ₫</div></div>
-  <div class="rg"><svg viewBox="0 0 32 32" role="img" aria-label="${n}: ${pc}% ngân sách"><circle class="trk" cx="16" cy="16" r="13" fill="none" stroke-width="5"/>
-   <circle cx="16" cy="16" r="13" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${d} ${C}" stroke-dashoffset="${off}" transform="rotate(-90 16 16)"/>
-   <line x1="16" y1="0.5" x2="16" y2="7.5" stroke="var(--ink)" stroke-width="1.75" transform="rotate(${PACE*360} 16 16)"/></svg>
-   <div><span class="pc">${pc}%</span><span class="st ${cls}"><i></i>${st}</span></div></div></div>`;}).join('')
-  +`<div class="note" style="margin-top:4px">Vạch đen trên vòng là nhịp ngày 17/30. “Khác” gộp 6 nhóm nhỏ. Dữ liệu mẫu.</div>`;
+ const fs=n=>(n/1e6).toLocaleString('vi-VN',{maximumFractionDigits:1})+'tr';
+ /* [tên, icon, màu --rg-k, đã có, ngân sách/mục tiêu] — tổng chi 12,4 tr / 20 tr khớp thẻ Chi tiêu; tổng thu 18,6 tr khớp "Thu nhập" */
+ const DATA={
+  chi:{gi:'spend',empty:'Thêm khoản chi',rows:[['Ăn uống','cup',1,4200000,5000000],['Nhà cửa','home',2,3100000,6000000],['Đi lại','car',3,1650000,2400000],['Mua sắm','bag',4,1480000,1300000],['Sức khoẻ','heart',6,780000,1500000],['Khác','grid',5,1190000,3800000]]},
+  thu:{gi:'fin',empty:'Thêm khoản thu',rows:[['Lương','cash',3,15000000,15000000],['Thưởng','trophy',1,1500000,3000000],['Dự án','folder',2,1620000,1500000],['Đầu tư','trend',6,380000,1000000],['Khác','grid',5,100000,500000]]}};
+ const VB=340,CX=170,R=158,R0=22,CR=12,GAP=6,PAD=4;
+ const f2=n=>n.toFixed(2);
+ /* Một cánh quạt bo góc: dựng hình quạt THU VÀO cr rồi tô + vẽ viền dày 2·cr (linejoin round) ⇒ mọi góc bo bán kính cr,
+    khe giữa hai cánh luôn rộng gap, lỗ tâm bán kính R0. Toạ độ cục bộ: trục x = đường phân giác của cánh. */
+ function wedge(th,rOut,gap,cr){
+  const d=gap/2+cr, ri=R0+cr, ro=Math.max(rOut-cr,ri+1), c=Math.cos(th), s=Math.sin(th);
+  const pt=(rho,sg)=>{const t=Math.sqrt(Math.max(rho*rho-d*d,0));return [d*s+t*c, sg*(-d*c+t*s)]}; /* giao đường biên dời d với đường tròn bán kính rho */
+  const [a,b]=pt(ri,-1),[e,f]=pt(ro,-1),[g,h]=pt(ro,1),[i,j]=pt(ri,1);
+  return `M${f2(a)} ${f2(b)}L${f2(e)} ${f2(f)}A${f2(ro)} ${f2(ro)} 0 0 1 ${f2(g)} ${f2(h)}L${f2(i)} ${f2(j)}A${f2(ri)} ${f2(ri)} 0 0 0 ${f2(a)} ${f2(b)}Z`;
+ }
+ function petal(rows,mode,empty){
+  const N=rows.length, th=Math.PI/N, pk=mode==='thu';
+  let sh='',lb='';
+  rows.forEach(([n,ic_,k,sp,bd],idx)=>{
+   const f=empty?0:sp/bd, rot=-90+(idx+.5)*360/N, over=f>1;
+   const t=`transform="translate(${CX} ${CX}) rotate(${f2(rot)})"`;
+   sh+=`<g style="--rg-c:var(--rg-${k})"><path class="pt" ${t} d="${wedge(th,R,GAP,CR)}" stroke-width="${2*CR}" stroke-linejoin="round"/>`;
+   if(f>0){
+    /* r = r0 + (R − r0)·√f  ⇒ diện tích lớp trong ∝ f (căn bậc hai bù cho việc diện tích tăng theo r²). f>1: nhô ra ngoài mép tối đa 6px */
+    const r=f<=1?R0+(R-R0)*Math.sqrt(f):R+Math.min(6,(f-1)*40);
+    const op=over?1:.6+.4*Math.min(f,1); /* độ đậm tăng theo % */
+    sh+=`<path class="pd${over?' over'+(pk?' good':''):''}" ${t} d="${wedge(th,r,GAP+PAD*2,CR)}" stroke-width="${2*CR}" stroke-linejoin="round" opacity="${f2(op)}"/>`;}
+   sh+='</g>';
+   const a=rot*Math.PI/180, rho=empty?112:102, x=(CX+rho*Math.cos(a))/VB*100, y=(CX+rho*Math.sin(a))/VB*100, pc=Math.round(f*100);
+   lb+=`<div class="pl${over?' over'+(pk?' good':''):''}" style="left:${f2(x)}%;top:${f2(y)}%">`+
+    (empty?`<span class="n" style="font-size:18px;line-height:22px">${fs(bd)}</span><span class="g">${n}</span>`
+     :`<span class="n">${pc}<small>%</small></span><span class="g">${n}</span>${over?`<span class="o">▲ Vượt ${pc-100}%</span>`:''}`)+`</div>`;
+  });
+  return `<svg viewBox="0 0 ${VB} ${VB}" role="img" aria-label="${empty?'Chưa có số liệu: ':''}${rows.map(([n,,,sp,bd])=>`${n} ${empty?'ngân sách '+fs(bd):Math.round(sp/bd*100)+'%'}`).join(', ')}">${sh}</svg>${lb}`;
+ }
+ function draw(mode,per){
+  const D=DATA[mode], thu=mode==='thu', empty=per==='12', rows=D.rows;
+  const tot=rows.reduce((x,r)=>x+r[3],0), bud=rows.reduce((x,r)=>x+r[4],0);
+  const pet=document.getElementById('petal');
+  pet.className='petal'+(empty?' empty':'');
+  pet.innerHTML=petal(rows,mode,empty);
+  document.getElementById('bGi').className='gi '+D.gi;
+  const T=document.getElementById('bTitle'), S=document.getElementById('bSub');
+  const overs=rows.filter(r=>r[3]>r[4]);
+  if(empty){
+   T.innerHTML=thu?'Tháng 12 chưa ghi khoản thu nào':'Tháng 12 chưa ghi khoản chi nào';
+   S.textContent=`Mục tiêu thu ${fm(bud)} triệu ₫`.replace('Mục tiêu thu',thu?'Mục tiêu thu':'Ngân sách')+` · ${rows.length} nhóm`;
+   document.getElementById('budget').innerHTML=`<div class="empty-box"><div class="eh">${thu?'Chưa ghi khoản thu nào tháng 12':'Chưa ghi khoản nào tháng 12'}</div>
+    <div class="ed">${thu?'Mục tiêu thu':'Ngân sách'} ${fm(bud)} triệu ₫ đã đặt cho ${rows.length} nhóm. Cánh sẽ đậm dần khi bạn ghi ${thu?'thu nhập':'chi tiêu'}.</div>
+    <button type="button" class="btn">${ic('plus')}${D.empty}</button></div>`;
+  }else{
+   const pc=Math.round(tot/bud*100);
+   if(thu){const o=overs[0], full=rows.filter(r=>r[3]===r[4]);
+    T.innerHTML=`Thu đạt ${pc}% mục tiêu: ${o?`${o[0]} vượt ${Math.round((o[3]/o[4]-1)*100)}%`:''}${full.length?`${o?', ':''}${full[0][0]} đã đủ`:''}`;}
+   else{const o=overs[0], q2=rows.filter(r=>r[3]<=r[4]&&r[3]/r[4]>PACE).length;
+    T.innerHTML=`${o[0]} vượt ${Math.round((o[3]/o[4]-1)*100)}%, ${q2} nhóm khác quá nhịp`.replace(/^/,'So với ngân sách: ');}
+   S.textContent=thu?`Đã thu / mục tiêu thu tháng 11 · ${fm(tot)} / ${fm(bud)} triệu ₫`:`Đã chi / ngân sách tháng 11 · ${fm(tot)} / ${fm(bud)} triệu ₫`;
+   document.getElementById('budget').innerHTML=rows.map(([n,i,k,sp,bd])=>{
+    const p=sp/bd, pcn=Math.round(p*100);
+    const cls=thu?(p>=1?'g':''):(p>1?'x':(p>PACE?'w':'')), col=thu?(p>=1?'var(--good)':'var(--acc)'):(p>1?'var(--bad)':(p>PACE?'var(--warn)':'var(--acc)'));
+    const st=p>1?`Vượt ${pcn-100}%`:(thu?(p>=1?'Đạt mục tiêu':'Đang tiến tới'):(p>PACE?'Quá nhịp':'Trong nhịp'));
+    const full=p>=1, d=full?C:Math.max(p*C-SW,.1), off=full?0:-SW/2;
+    return `<div class="brow"><span class="gi ${D.gi}">${ic(i)}</span><div><div class="nm">${n}</div><div class="am">${fm(sp)} / ${fm(bd)} tr ₫</div></div>
+    <div class="rg"><svg viewBox="0 0 32 32" role="img" aria-label="${n}: ${pcn}% ${thu?'mục tiêu':'ngân sách'}"><circle class="trk" cx="16" cy="16" r="13" fill="none" stroke-width="5"/>
+     <circle cx="16" cy="16" r="13" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${d} ${C}" stroke-dashoffset="${off}" transform="rotate(-90 16 16)"/>
+     ${thu?'':`<line x1="16" y1="0.5" x2="16" y2="7.5" stroke="var(--ink)" stroke-width="1.75" transform="rotate(${PACE*360} 16 16)"/>`}</svg>
+     <div><span class="pc">${pcn}%</span><span class="st ${cls}"><i></i>${st}</span></div></div></div>`;}).join('')
+    +`<div class="note" style="margin-top:4px">${thu?'Vượt mục tiêu thu là tốt nên tô xanh.':'Vạch đen trên vòng là nhịp ngày 17/30. “Khác” gộp các nhóm nhỏ.'} Cánh hoa: diện tích lớp đậm tỷ lệ với %, lớp mờ là 100%. Dữ liệu mẫu.</div>`;
+  }
+  document.querySelectorAll('#bMode button').forEach(b=>{const on=b.dataset.m===mode;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});
+  document.querySelectorAll('#bPer button').forEach(b=>{const on=b.dataset.p===per;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});
+  cur={mode,per};
+ }
+ let cur={mode:'chi',per:'11'};
+ document.querySelectorAll('#bMode button').forEach(b=>b.onclick=()=>draw(b.dataset.m,cur.per));
+ document.querySelectorAll('#bPer button').forEach(b=>b.onclick=()=>draw(cur.mode,b.dataset.p));
+ window.drawBud=draw; draw('chi','11');
 })();
 
 /* ===== Sức khoẻ ===== */
@@ -998,6 +1096,7 @@ document.querySelectorAll('.nav[data-view]').forEach(b=>b.onclick=()=>show(b.dat
 document.getElementById('themeBtn').onclick=()=>theme(root.dataset.theme==='dark'?'light':'dark');
 document.getElementById('pinBtn').onclick=()=>pin(!side.classList.contains('pinned'));
 document.querySelectorAll('a.card').forEach(a=>a.onclick=e=>e.preventDefault());
+if(q.get('mode')||q.get('per'))drawBud(q.get('mode')==='thu'?'thu':'chi',q.get('per')==='12'?'12':'11');
 show(q.get('v')||'tongquan');theme(q.get('theme')||'light');
 let saved='';try{saved=localStorage.getItem('crucible-pin')||''}catch(e){}
 pin(q.get('side')==='pin'||(!q.get('side')&&!!saved));
