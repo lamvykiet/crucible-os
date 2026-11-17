@@ -19,6 +19,7 @@ import ProjectModal, { emptyProject, type ProjectDraft } from "./ProjectModal";
 import AttachTransactionsModal from "./AttachTransactionsModal";
 import { CostPanel, LedgerPanel, CogsTransferModal, type CogsData, type LedgerView } from "./ProjectCostPanels";
 import { costCategoryOf } from "@/lib/projectCost";
+import { en } from "@/lib/plural";
 
 // Hiệu quả dự án: đã bỏ vào bao nhiêu, thu về bao nhiêu, bao giờ hoà vốn.
 //
@@ -458,7 +459,7 @@ function ProjectBody({
       ? { value: "—", note: t("nothing invested yet", "chưa bỏ vốn") }
       : breakEven.monthsToGo
         ? {
-            value: t(`~${breakEven.monthsToGo} months`, `~${breakEven.monthsToGo} tháng nữa`),
+            value: t(`~${en(breakEven.monthsToGo, "month")}`, `~${breakEven.monthsToGo} tháng nữa`),
             note: t(
               `around ${monthAfter(breakEven.monthsToGo)}, at the last ${breakEven.paceMonths} months' pace (${money(breakEven.avgMonthlyProfit)}/mo)`,
               `khoảng ${monthAfter(breakEven.monthsToGo)}, nếu giữ nhịp lãi ${breakEven.paceMonths} tháng gần nhất (${money(breakEven.avgMonthlyProfit)}/tháng)`
@@ -623,7 +624,7 @@ function ProjectBody({
             note={
               totals.budget && totals.budgetUsedPct !== null
                 ? t(
-                    `${totals.budgetUsedPct}% of the ${money(totals.budget)} plan · ${totals.costCount} items`,
+                    `${totals.budgetUsedPct}% of the ${money(totals.budget)} plan · ${en(totals.costCount, "item")}`,
                     `${totals.budgetUsedPct}% của ${money(totals.budget)} dự định · ${totals.costCount} khoản chi`
                   )
                 : t(`${totals.costCount} spending ${totals.costCount === 1 ? "entry" : "entries"}`, `${totals.costCount} khoản chi`)

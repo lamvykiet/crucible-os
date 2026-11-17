@@ -10,7 +10,7 @@ import { QUICK_ACTIONS, useQuickActions, type QuickKey } from "@/components/Quic
  * Dock thao tác nhanh + menu "+" (demo `.dock` / `.qmenu`, quyết định 17/11/2026
  * — thay quyết định gỡ dock đáy 23/10/2026).
  *
- *   - Máy tính: dock kính giữa đáy, luôn hiện. Bấm "+" mở popover có keycap.
+ *   - Máy tính: dock kính giữa đáy, cũng tự ẩn khi lướt xuống như điện thoại. Bấm "+" mở popover có keycap.
  *   - Điện thoại (≤ 767px): dock thu gọn (bỏ vạch ngăn và nút Hỏi), TỰ ẨN khi
  *     lướt xuống, hiện lại khi lướt lên / dừng 600ms / chạm cuối trang. Bấm "+"
  *     mở sheet từ đáy.
@@ -74,9 +74,8 @@ export default function QuickDock() {
     return () => document.removeEventListener("keydown", onKey);
   }, [menuOpen, run]);
 
-  // Tự ẩn khi lướt xuống (chỉ ≤ 767px). Một listener scroll passive + rAF.
+  // Tự ẩn khi lướt xuống (cả máy tính lẫn điện thoại — dock cố định đè nội dung). Một listener scroll passive + rAF.
   useEffect(() => {
-    const mm = window.matchMedia("(max-width: 767px)");
     let lastY = window.scrollY;
     let ticking = false;
     let idle: ReturnType<typeof setTimeout> | undefined;
@@ -85,10 +84,6 @@ export default function QuickDock() {
       ticking = true;
       requestAnimationFrame(() => {
         ticking = false;
-        if (!mm.matches) {
-          setHidden(false);
-          return;
-        }
         const y = window.scrollY;
         const d = y - lastY;
         const end = window.innerHeight + y >= document.documentElement.scrollHeight - 4;

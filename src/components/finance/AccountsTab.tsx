@@ -11,6 +11,7 @@ import { todayLocalIso } from "@/lib/localDate";
 import AccountModal, { emptyAccount, type AccountDraft } from "./AccountModal";
 import MetricCard from "@/components/charts/MetricCard";
 import SectionHeader from "@/components/charts/SectionHeader";
+import { en } from "@/lib/plural";
 
 // Báo cáo số dư từng tài khoản tính tới HÔM NAY.
 //
@@ -184,7 +185,7 @@ export default function AccountsTab() {
               <AlertCircle size={18} className="flex-none text-[var(--color-warning)]" aria-hidden />
               <p className="min-w-0 flex-1 basis-56 text-sm text-[var(--color-text)]">
                 {t(
-                  `${unlinked} transactions are not linked to any account yet, so they are not counted in the balances below.`,
+                  `${en(unlinked, "transaction")} ${unlinked === 1 ? "is" : "are"} not linked to any account yet, so ${unlinked === 1 ? "it is" : "they are"} not counted in the balances below.`,
                   `Còn ${unlinked} giao dịch chưa gắn tài khoản nên chưa được tính vào số dư bên dưới.`
                 )}
               </p>
@@ -280,7 +281,7 @@ export default function AccountsTab() {
                       <p className="text-xs text-[var(--color-text-muted)] mt-1">
                         {a.txCount > 0
                           ? t(
-                              `${a.txCount} transactions · last ${a.lastTxDate}`,
+                              `${en(a.txCount, "transaction")} · last ${a.lastTxDate}`,
                               `${a.txCount} giao dịch · gần nhất ${a.lastTxDate}`
                             )
                           : a.openingDate

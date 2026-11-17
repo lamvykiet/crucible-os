@@ -19,6 +19,7 @@ import PageIntro from "@/components/PageIntro";
 import { CardHead, GlassCard } from "@/components/charts/GlassCard";
 import SegRing from "@/components/charts/SegRing";
 import AreaLine from "@/components/charts/AreaLine";
+import { en } from "@/lib/plural";
 
 /**
  * Tổng quan — theo demo `demo/clean/demo.html` (hệ Kính, 17/11/2026).
@@ -187,7 +188,7 @@ export default function Home() {
     ? null
     : dash.transactionCount < 5
       ? t(
-          `Only ${dash.transactionCount} entries recorded in month ${mNo} — not enough to judge the month yet. `,
+          `Only ${en(dash.transactionCount, "entry", "entries")} recorded in month ${mNo} — not enough to judge the month yet. `,
           `Mới ghi ${dash.transactionCount} khoản trong tháng ${mNo} — chưa đủ để nhận xét cả tháng. `
         )
       : usedPct !== null
@@ -214,9 +215,9 @@ export default function Home() {
     : habitsLeft > 0 || (learn?.dueCount ?? 0) > 0 ? (
         <>
           {t("Today ", "Hôm nay còn ")}
-          {habitsLeft > 0 && <b>{t(`${habitsLeft} tasks`, `${habitsLeft} việc`)}</b>}
+          {habitsLeft > 0 && <b>{t(en(habitsLeft, "task"), `${habitsLeft} việc`)}</b>}
           {habitsLeft > 0 && (learn?.dueCount ?? 0) > 0 && t(" and ", " và ")}
-          {(learn?.dueCount ?? 0) > 0 && <b>{t(`${learn?.dueCount} cards`, `${learn?.dueCount} thẻ`)}</b>}
+          {(learn?.dueCount ?? 0) > 0 && <b>{t(en(learn?.dueCount ?? 0, "card"), `${learn?.dueCount} thẻ`)}</b>}
           {t(" left to do.", " cần làm.")}
         </>
       ) : (
@@ -273,7 +274,7 @@ export default function Home() {
   if (attn.pending > 0)
     attention.push({
       key: "pending", icon: Receipt, tone: "spend",
-      title: t(`${attn.pending} receipts waiting for review`, `${attn.pending} hoá đơn chờ duyệt`),
+      title: t(`${en(attn.pending, "receipt")} waiting for review`, `${attn.pending} hoá đơn chờ duyệt`),
       sub: t("Scanned and saved as drafts, not in the ledger yet", "Đã quét và lưu nháp, chưa vào sổ"), href: "/finance",
     });
   if (attn.staleDocs > 0)
@@ -537,10 +538,10 @@ export default function Home() {
                   <span className={`c-stx ${d.days < 0 ? "late" : ""}`}>
                     <i />
                     {d.days < 0
-                      ? t(`${-d.days} days overdue`, `Quá hạn ${-d.days} ngày`)
+                      ? t(`${en(-d.days, "day")} overdue`, `Quá hạn ${-d.days} ngày`)
                       : d.days === 0
                         ? t("Due today", "Hôm nay")
-                        : t(`${d.days} days left`, `Còn ${d.days} ngày`)}
+                        : t(`${en(d.days, "day")} left`, `Còn ${d.days} ngày`)}
                   </span>
                 </div>
               ))}

@@ -36,6 +36,13 @@ function wedge(th: number, rOut: number, gap: number, cr: number) {
   return `M${f2(a)} ${f2(b)}L${f2(e)} ${f2(f)}A${f2(ro)} ${f2(ro)} 0 0 1 ${f2(g)} ${f2(h)}L${f2(i)} ${f2(j)}A${f2(ri)} ${f2(ri)} 0 0 0 ${f2(a)} ${f2(b)}Z`;
 }
 
+// Tên cánh: lấy vế đầu trước "&" ("Food & Dining" → "Food", "Ăn uống & Nhà hàng" →
+// "Ăn uống") vì cánh hẹp (ngân sách thật có tới 8 nhóm). Tên đầy đủ nằm ở `title`.
+const shortName = (full: string) => {
+  const head = full.split(/\s*[&/]\s*/)[0].trim();
+  return head || full;
+};
+
 export default function PetalChart({
   rows,
   mode = "cost",
@@ -71,7 +78,7 @@ export default function PetalChart({
           return (
             <g key={r.key} style={{ ["--rg-c" as string]: `var(--rg-${r.color})` }}>
               <path className="pt" transform={tf} d={wedge(th, R, GAP, CR)} strokeWidth={2 * CR} strokeLinejoin="round" />
-              {f > 0 && (
+              {f >= 0.005 && (
                 <path
                   className={`pd ${over ? `over${good ? " good" : ""}` : ""}`}
                   transform={tf}
@@ -88,7 +95,11 @@ export default function PetalChart({
       {rows.map((r, idx) => {
         const f = empty || r.budget <= 0 ? 0 : r.spent / r.budget;
         const a = ((-90 + ((idx + 0.5) * 360) / N) * Math.PI) / 180;
-        const rho = empty ? 112 : 102;
+        const rho = empty ? 112 : N >= 7 ? 108 : 102;
+        // Bề ngang nhãn theo cung của cánh tại bán kính đặt nhãn.
+        const wPct = Math.min(30, ((2 * Math.PI * rho) / N) * 0.9 / VB * 100);
+        const full = label(r);
+        const nm = shortName(full);
         const x = ((CX + rho * Math.cos(a)) / VB) * 100;
         const y = ((CX + rho * Math.sin(a)) / VB) * 100;
         const pc = Math.round(f * 100);
@@ -97,18 +108,18 @@ export default function PetalChart({
           <div
             key={r.key}
             className={`pl ${over ? `over${good ? " good" : ""}` : ""}`}
-            style={{ left: `${f2(x)}%`, top: `${f2(y)}%` }}
+            style={{ left: `${f2(x)}%`, top: `${f2(y)}%`, maxWidth: `${f2(wPct)}%` }}
             aria-hidden
           >
             {empty ? (
               <>
                 {r.budget > 0 && <span className="n" style={{ fontSize: 18, lineHeight: "22px" }}>{money(r.budget)}</span>}
-                <span className="g">{label(r)}</span>
+                <span className={`g ${nm.length > 10 ? "sm" : ""} ${nm.includes(" ") ? "" : "one"}`} title={full}>{nm}</span>
               </>
             ) : (
               <>
                 <span className="n">{pc}<small>%</small></span>
-                <span className="g">{label(r)}</span>
+                <span className={`g ${nm.length > 10 ? "sm" : ""} ${nm.includes(" ") ? "" : "one"}`} title={full}>{nm}</span>
                 {over && <span className="o">{good ? `▲ +${pc - 100}%` : `▲ ${t("Over", "Vượt")} ${pc - 100}%`}</span>}
               </>
             )}

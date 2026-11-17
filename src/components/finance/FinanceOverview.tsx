@@ -16,6 +16,7 @@ import PillBars, { type PillBar } from "@/components/charts/PillBars";
 import SegRing from "@/components/charts/SegRing";
 import PetalChart, { type Petal } from "@/components/charts/PetalChart";
 import ProgressRing, { type RingTone } from "@/components/charts/ProgressRing";
+import { en } from "@/lib/plural";
 
 /**
  * Phần đầu của Tài chính › Tổng quan theo demo `demo/clean/demo.html`:
@@ -189,14 +190,14 @@ export default function FinanceOverview({
           );
   const lede = few ? (
     t(
-      `Only ${data.transactionCount} entries recorded in month ${mNo} — not enough to compare or forecast yet.`,
+      `Only ${en(data.transactionCount, "entry", "entries")} recorded in month ${mNo} — not enough to compare or forecast yet.`,
       `Mới ghi ${data.transactionCount} khoản trong tháng ${mNo} — chưa đủ để so sánh hay dự báo.`
     )
   ) : (
     <>
       {t("Spent ", "Chi ")}
       <b>{wordMoney(data.monthlyExpense, vi)}</b>{" "}
-      {isCurrentMonth ? t(`in the first ${el} days`, `trong ${el} ngày đầu tháng`) : t(`in month ${mNo}`, `trong tháng ${mNo}`)}
+      {isCurrentMonth ? t(`in the first ${en(el, "day")}`, `trong ${el} ngày đầu tháng`) : t(`in month ${mNo}`, `trong tháng ${mNo}`)}
       {cmpText ? `, ${cmpText}` : ""}.
       {topCat && topShare >= 20 && data.categoryBreakdown.length > 1 && (
         <> {t(`${catLabel(topCat.group)} is ${topShare}% of it.`, `${catLabel(topCat.group)} chiếm ${topShare}%.`)}</>
@@ -593,14 +594,14 @@ export default function FinanceOverview({
               </div>
               <div className="c-hd-grow">
                 <div style={{ font: "500 20px/28px var(--font-sans)", letterSpacing: "-.02em" }}>
-                  {t(`${drafts.length} receipts waiting for review`, `${drafts.length} hoá đơn đang chờ duyệt`)}
+                  {t(`${en(drafts.length, "receipt")} waiting for review`, `${drafts.length} hoá đơn đang chờ duyệt`)}
                 </div>
                 <div className="c-hd-s" style={{ fontFamily: "var(--font-sans)" }}>
                   {t("Scanned and saved as drafts, not in the ledger yet", "Đã quét và lưu nháp, chưa vào sổ")}
                 </div>
               </div>
               <button type="button" className="c-btn c-btn-primary" onClick={onReview}>
-                {t(`Review ${drafts.length} receipts`, `Duyệt ${drafts.length} hoá đơn`)}
+                {t(`Review ${en(drafts.length, "receipt")}`, `Duyệt ${drafts.length} hoá đơn`)}
               </button>
             </div>
             <div>

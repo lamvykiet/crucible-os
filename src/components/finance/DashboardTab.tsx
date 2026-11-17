@@ -33,6 +33,7 @@ import { VIZ, GRID, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, xAxis, yAxis, l
 import ChartCard from "@/components/charts/ChartCard";
 import MetricCard, { type MetricTone } from "@/components/charts/MetricCard";
 import SectionHeader from "@/components/charts/SectionHeader";
+import { en } from "@/lib/plural";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,
@@ -585,7 +586,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
             `Cả ${completedMonths.length} tháng đã trọn đều tự trả nổi`
           )
         : t(
-            `Cash out beat income in ${overspentMonths} of the last ${completedMonths.length} months`,
+            `Cash out beat income in ${overspentMonths} of the last ${en(completedMonths.length, "month")}`,
             `${overspentMonths}/${completedMonths.length} tháng gần nhất tiền ra vượt thu nhập`
           );
 
