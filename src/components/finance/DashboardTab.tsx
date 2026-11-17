@@ -4,7 +4,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import {
   Calendar, Receipt, DollarSign, CreditCard, ArrowLeftRight, Target,
   PiggyBank, AlertCircle, TrendingUp, CalendarX, ListChecks, CalendarDays,
-  Banknote, CalendarClock, Scale, RefreshCw, CheckCircle2,
+  Banknote, CalendarClock, Scale, RefreshCw, CheckCircle2, Plus, ScanLine,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -14,12 +14,15 @@ import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
 import TransactionModal from "./TransactionModal";
 import ScanInvoiceModal from "./ScanInvoiceModal";
-import PendingReviewButton from "./PendingReviewButton";
+import ReviewQueueModal from "./ReviewQueueModal";
+import FinanceOverview from "./FinanceOverview";
+import PageIntro from "@/components/PageIntro";
+import { PageActions } from "@/components/Scene";
 import DayTransactionsCard from "./DayTransactionsCard";
 import TodaySpendingShare from "./TodaySpendingShare";
 import IncompleteDataModal from "./IncompleteDataModal";
 import PeriodComparison from "./PeriodComparison";
-import { ArrowDownLeft, ArrowUpRight, Store } from "lucide-react";
+import { ArrowUpRight, Store } from "lucide-react";
 import MonthBreakdown from "./MonthBreakdown";
 import { thisMonthLocalIso, todayLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
@@ -30,7 +33,6 @@ import { VIZ, GRID, BAR, STACK_GAP, LINE, TOOLTIP, TOOLTIP_LINE, xAxis, yAxis, l
 import ChartCard from "@/components/charts/ChartCard";
 import MetricCard, { type MetricTone } from "@/components/charts/MetricCard";
 import SectionHeader from "@/components/charts/SectionHeader";
-import RankBar, { RankList } from "@/components/charts/RankBar";
 
 // Mọi con số trên trang này đến từ /api/finance/dashboard.
 // Trước đây `dailyData` và `ytdData` là hai mảng hardcode nuôi 2 biểu đồ chính,
@@ -158,6 +160,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
   const [data, setData] = useState<DashboardData>(EMPTY);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [scannedData, setScannedData] = useState<any>(null);
   const [transactionType, setTransactionType] = useState<"Expense" | "Income" | "Transfer">("Expense");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -255,8 +258,8 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
     monthlyIncome, monthlyExpense, cashOut, debtPrincipal, debtService,
     debtServiceRatio, netCashFlow, savingsRate,
     dailyIncome, dailyExpense, dailyCashFlow, avgDailyExpense, eomForecast,
-    dailySeries, ytdSeries, categoryBreakdown, budgetVsActual,
-    totalBudget, hasData, latestMonthWithData, elapsedDays, daysInMonth,
+    dailySeries, ytdSeries, budgetVsActual,
+    hasData, latestMonthWithData, elapsedDays, daysInMonth,
     daysWithData, upcoming, unclassified,
   } = data;
 
@@ -411,59 +414,25 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
   const bump = () => setRefreshKey((prev) => prev + 1);
   const monthTag = mLabel(selectedMonth || data.month);
 
-  // Điện thoại: hai hàng CÓ CHỦ Ý — chọn tháng + hàng chờ duyệt ở trên, ba nút
-  // hành động chia đều bề ngang ở dưới, có chữ. Bản trước là năm nút icon trong
-  // một hàng `flex-wrap`: nút chờ duyệt rớt xuống hàng riêng, và không nút nào
-  // là nút chính. Dấu `!` trên padding là bắt buộc — `.c-btn` nằm ngoài @layer.
-  const actionBtn = "c-btn h-11 min-w-0 px-2! [&>svg]:shrink-0 md:h-auto md:px-5! md:py-2.5!";
-  const pageHeader = (
-    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-      <div className="min-w-0">
-        <h2 className="c-h2 c-page-title text-[var(--color-text)]">{t("Overview", "Tổng quan")}</h2>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1">
-          {t(
-            "Today, this week, this month — and where you stand",
-            "Hôm nay, tuần này, tháng này — và mình đang đứng ở đâu"
-          )}
-        </p>
-      </div>
-      <div className="grid grid-cols-3 gap-2 md:flex md:flex-wrap md:items-center md:gap-3">
-        <div className="col-span-2 min-w-0">
-          <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-        </div>
-        <div className="flex justify-end md:order-last">
-          <PendingReviewButton refreshKey={refreshKey} onProcessed={bump} />
-        </div>
-        <button
-          onClick={() => openAdd("Expense")}
-          title={t("Add expense", "Thêm chi phí")}
-          className={`${actionBtn} c-btn-primary`}
-        >
-          <ArrowUpRight size={16} />
-          <span className="md:hidden">{t("Expense", "Chi phí")}</span>
-          <span className="hidden md:inline">{t("Add expense", "Thêm chi phí")}</span>
-        </button>
-        <button
-          onClick={() => openAdd("Income")}
-          title={t("Add income", "Thêm thu nhập")}
-          className={`${actionBtn} c-btn-secondary`}
-        >
-          <ArrowDownLeft size={16} />
-          <span className="md:hidden">{t("Income", "Thu nhập")}</span>
-          <span className="hidden md:inline">{t("Add income", "Thêm thu nhập")}</span>
-        </button>
-        <button
-          onClick={() => setIsScanModalOpen(true)}
-          title={t("Scan a receipt", "Quét hoá đơn")}
-          className={`${actionBtn} c-btn-secondary`}
-        >
-          <Receipt size={16} />
-          <span className="md:hidden">{t("Scan", "Quét")}</span>
-          <span className="hidden md:inline">{t("Scan a receipt", "Quét hoá đơn")}</span>
-        </button>
-      </div>
-    </div>
+  // Nút hành động của trang nằm ở khe `<PageActions>` bên phải dải tab (và dock
+  // ở đáy màn hình lo phần còn lại); chọn tháng nằm cạnh tiêu đề. Từ 768px trở
+  // xuống `.c-facts` thu nút về icon 48px — chữ bọc trong `.c-tl` để CSS ẩn đi.
+  // "Thêm thu nhập" không còn nút riêng: hộp thoại có sẵn công tắc loại giao dịch
+  // và dock có hàng "Thêm thu nhập".
+  const monthPicker = <CustomMonthPicker value={selectedMonth} onChange={setSelectedMonth} />;
+  const actions = (
+    <PageActions>
+      <button type="button" onClick={() => setIsScanModalOpen(true)} className="c-btn c-btn-secondary" aria-label={t("Scan a receipt", "Quét hoá đơn")}>
+        <ScanLine size={18} />
+        <span className="c-tl">{t("Scan a receipt", "Quét hoá đơn")}</span>
+      </button>
+      <button type="button" onClick={() => openAdd("Expense")} className="c-btn c-btn-primary" aria-label={t("Add transaction", "Thêm giao dịch")}>
+        <Plus size={18} />
+        <span className="c-tl">{t("Add transaction", "Thêm giao dịch")}</span>
+      </button>
+    </PageActions>
   );
+  const introMonth = mLabel(selectedMonth || data.month);
 
   const modals = (
     <>
@@ -477,6 +446,13 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
         defaultType={transactionType}
         initialData={scannedData}
       />
+      <ReviewQueueModal
+        isOpen={isReviewOpen}
+        onClose={() => {
+          setIsReviewOpen(false);
+          bump();
+        }}
+      />
       <ScanInvoiceModal
         isOpen={isScanModalOpen}
         onClose={() => setIsScanModalOpen(false)}
@@ -488,17 +464,31 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
     </>
   );
 
+  const intro = (lede?: ReactNode) => (
+    <PageIntro
+      title={t("Finance", "Tài chính")}
+      kicker={t(`Month ${introMonth}`, `Tháng ${introMonth}`)}
+      lede={lede}
+      aside={monthPicker}
+    />
+  );
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center gap-3 h-64 text-sm text-[var(--color-text-muted)]">
-        <RefreshCw size={18} className="animate-spin" aria-hidden />
-        {t("Loading data...", "Đang tải dữ liệu...")}
-      </div>
+      <>
+        {intro()}
+        <div className="flex justify-center items-center gap-3 h-64 text-sm text-[var(--color-text-muted)]">
+          <RefreshCw size={18} className="animate-spin" aria-hidden />
+          {t("Loading data...", "Đang tải dữ liệu...")}
+        </div>
+      </>
     );
   }
 
   if (errorCode) {
     return (
+      <>
+      {intro()}
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
         <AlertCircle size={28} className="text-[var(--color-error)]" aria-hidden />
         <p className="text-sm font-bold text-[var(--color-text)]">
@@ -511,13 +501,15 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
           <RefreshCw size={14} /> {t("Try again", "Thử lại")}
         </button>
       </div>
+      </>
     );
   }
 
   if (!hasData) {
     return (
       <div className="space-y-8 animate-in fade-in">
-        {pageHeader}
+        {intro(t("Nothing recorded yet. Add the first entry or scan a receipt.", "Chưa có giao dịch nào. Ghi khoản đầu tiên hoặc quét một hoá đơn."))}
+        {actions}
         {modals}
 
         <div className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] flex flex-col items-center gap-4 py-12! text-center">
@@ -531,7 +523,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
             <p className="text-sm text-[var(--color-text-muted)] mt-1">
               {t(
                 "Add the first one or scan a receipt with the buttons above.",
-                "Ghi khoản đầu tiên hoặc quét một hoá đơn bằng các nút phía trên."
+                "Ghi khoản đầu tiên hoặc quét một hoá đơn bằng hai nút phía trên."
               )}
             </p>
           </div>
@@ -547,13 +539,6 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
       </div>
     );
   }
-
-  // Đối chiếu ngân sách với TIỀN RA, không phải chi tiêu: ngân sách nhóm nợ đặt
-  // bằng cả kỳ trả (gốc + lãi) nên so với riêng phần lãi thì tháng nào cũng báo
-  // dùng chưa tới một nửa hạn mức.
-  const budgetUsedPct =
-    totalBudget > 0 ? Math.round((cashOut / totalBudget) * 100) : null;
-  const maxCategory = categoryBreakdown[0]?.amount || 1;
 
   // Heatmap theo thứ trong tuần, dựng từ chính dailySeries (dữ liệu thật).
   const [yearStr, monthStr] = (selectedMonth || data.month).split("-");
@@ -643,35 +628,6 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
         ? t(`Over 12 months, income ran ${money(cumGap)} ahead of spending`, `12 tháng qua thu vượt chi ${money(cumGap)}`)
         : t(`Over 12 months, spending ran ${money(-cumGap)} ahead of income`, `12 tháng qua chi vượt thu ${money(-cumGap)}`);
 
-  // Phân bổ chi tiêu: nhóm lớn nhất và tỷ trọng của nó.
-  const catTotal = categoryBreakdown.reduce((sum, c) => sum + c.amount, 0);
-  const catShare = (n: number) => (catTotal > 0 ? Math.round((n / catTotal) * 100) : 0);
-  const topCat = categoryBreakdown[0];
-  const catHeadline = topCat
-    ? t(
-        `${topCat.group} is ${catShare(topCat.amount)}% of ${monthTag} spending`,
-        `${topCat.group} chiếm ${catShare(topCat.amount)}% chi tiêu ${monthTag}`
-      )
-    : t("Expense distribution", "Phân bổ chi tiêu");
-
-  // Ngân sách: nhóm vượt nhiều nhất lên đầu, rồi tới nhóm dùng gần hết.
-  const budgetRows = [...budgetVsActual].sort(
-    (a, b) => (b.budget > 0 ? b.actual / b.budget : 0) - (a.budget > 0 ? a.actual / a.budget : 0)
-  );
-  const worstOver = [...overBudget].sort((a, b) => a.remaining - b.remaining)[0];
-  const budgetHeadline =
-    budgetVsActual.length === 0
-      ? t("Budget tracking", "Theo dõi ngân sách")
-      : worstOver
-        ? t(
-            `${overBudget.length} group${overBudget.length > 1 ? "s" : ""} over budget — ${worstOver.group} by ${money(-worstOver.remaining)}`,
-            `${overBudget.length} nhóm vượt ngân sách — nặng nhất ${worstOver.group}, vượt ${money(-worstOver.remaining)}`
-          )
-        : t(
-            `All ${budgetVsActual.length} budgeted groups are within limits`,
-            `Cả ${budgetVsActual.length} nhóm có ngân sách đều còn trong hạn mức`
-          );
-
   // --- Màu của con số (luật v3) ----------------------------------------------
   // Số MỨC (thu, chi, dư nợ, giá trị) là màu mực. Đỏ/xanh chỉ khi con số TỰ NÓ
   // là tin xấu/tốt: dòng tiền âm, vượt ngân sách, giá trị ròng âm. Bản trước tô
@@ -728,12 +684,25 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
 
   return (
     <div className="space-y-8 animate-in fade-in">
-      {pageHeader}
+      {actions}
       {modals}
       <IncompleteDataModal
         isOpen={isIncompleteOpen}
         onClose={() => setIsIncompleteOpen(false)}
         onSaved={bump}
+      />
+
+      {/* Phần đầu theo demo hệ Kính: đầu trang, Chi tiêu tháng, cột 6 tháng,
+          Chi theo nhóm, So với ngân sách, hoá đơn chờ duyệt, sổ gần đây. */}
+      <FinanceOverview
+        data={data}
+        month={selectedMonth || data.month}
+        isCurrentMonth={isCurrentMonth}
+        focusDate={focusDate}
+        refreshKey={refreshKey}
+        monthPicker={monthPicker}
+        onNavigate={onNavigate}
+        onReview={() => setIsReviewOpen(true)}
       />
 
       {/* Mục đầu tiên: hôm nay chi gì (trái) và tỷ trọng theo nhóm (phải).
@@ -792,22 +761,10 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
             dòng tiền ròng chiếm hai cột, nên vẫn không thẻ nào mồ côi. Bản trước
             là 5 thẻ trong lưới 4 cột cộng 1 thẻ ở lưới riêng: hai thẻ lẻ hàng. */}
         <div className={`grid grid-cols-2 gap-4 ${showDebtRatio ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-          <MetricCard
-            className="@container"
-            icon={<DollarSign size={18} />}
-            label={t("Income", "Thu nhập")}
-            value={<Fit>{formatVND(monthlyIncome)}</Fit>}
-          />
-          <MetricCard
-            className="@container"
-            icon={<CreditCard size={18} />}
-            label={t("Spending", "Chi tiêu")}
-            value={<Fit>{formatVND(monthlyExpense)}</Fit>}
-          />
           {/* Nói rõ dòng tiền đã trừ cả trả gốc — trước đây thẻ này lấy thu trừ
               chi tiêu rồi gọi là dòng tiền, bỏ sót nguyên phần gốc. */}
           <MetricCard
-            className={`@container ${showDebtRatio ? "col-span-2" : ""}`}
+            className="@container"
             icon={<ArrowLeftRight size={18} />}
             label={t("Net cash flow", "Dòng tiền ròng")}
             tone={badIf(netCashFlow < 0)}
@@ -831,31 +788,6 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
               </span>
             }
           />
-          <MetricCard
-            className="@container"
-            icon={<Target size={18} />}
-            label={t("Budget used", "Ngân sách đã dùng")}
-            tone={budgetUsedPct === null ? "faint" : badIf(budgetUsedPct > 100)}
-            value={budgetUsedPct === null ? "—" : `${budgetUsedPct}%`}
-            note={
-              budgetUsedPct === null ? (
-                t("no budget set for this month", "chưa đặt ngân sách tháng")
-              ) : (
-                <span className="tabular-nums">
-                  {money(cashOut)} / {money(totalBudget)}
-                </span>
-              )
-            }
-          >
-            {budgetUsedPct !== null && (
-              <RankBar
-                value={cashOut}
-                scale={Math.max(cashOut, totalBudget)}
-                mark={totalBudget}
-                color={budgetUsedPct > 100 ? VIZ.accent : VIZ.muted}
-              />
-            )}
-          </MetricCard>
           {/* Không kẹp về 0 — tháng bội chi phải nhìn thấy được. Chưa ghi đồng
               thu nhập nào thì tỷ lệ không tính được: hiện "0%" đọc như "tiêu
               sạch những gì kiếm được", trong khi sự thật là chưa có gì để chia. */}
@@ -1380,37 +1312,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
           </div>
         </ChartCard>
 
-        <ChartCard
-          title={catHeadline}
-          subtitle={
-            categoryBreakdown.length > 0
-              ? t(`Spending by category, ${monthTag} · total ${formatVND(catTotal)}`, `Chi theo nhóm, ${monthTag} · tổng ${formatVND(catTotal)}`)
-              : t(`Spending by category, ${monthTag}`, `Chi theo nhóm, ${monthTag}`)
-          }
-        >
-          {categoryBreakdown.length === 0 ? (
-            <p className={EMPTY_NOTE}>{t("No expenses this month", "Chưa có chi tiêu trong tháng")}</p>
-          ) : (
-            <div className="max-h-72 overflow-y-auto pr-2">
-              <RankList
-                format={formatVND}
-                scale={maxCategory}
-                rows={categoryBreakdown.map((c, i) => ({
-                  key: c.group,
-                  name: c.group,
-                  amount: c.amount,
-                  note: `${catShare(c.amount)}%`,
-                  strong: i === 0,
-                  color: i === 0 ? VIZ.accent : VIZ.muted,
-                }))}
-              />
-            </div>
-          )}
-        </ChartCard>
-      </div>
-
-      {/* Cảnh báo + ngân sách */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Cảnh báo */}
         <ChartCard title={alertHeadline} subtitle={t("Alerts & insights", "Cảnh báo & gợi ý")}>
           <ul className="divide-y divide-[var(--color-border)]">
             {/* Trả nợ vượt thu nhập: phần chênh phải lấy từ tiết kiệm hoặc vay
@@ -1467,62 +1369,6 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
               </AlertRow>
             )}
           </ul>
-        </ChartCard>
-
-        {/* Kiểu bullet: thanh = đã chi, vạch = hạn mức, mỗi dòng một thước
-            riêng (hạn mức các nhóm chênh nhau cả chục lần). Thanh xám; nhóm
-            vượt hạn mức mang màu nhấn và ghi rõ vượt bao nhiêu bằng chữ. */}
-        <ChartCard
-          title={budgetHeadline}
-          subtitle={t(
-            `Spent per budgeted group, ${monthTag} · tick = budget`,
-            `Đã chi theo nhóm có ngân sách, ${monthTag} · vạch = hạn mức`
-          )}
-          keys={
-            budgetVsActual.length > 0
-              ? [
-                  { label: t("Spent", "Đã chi"), color: VIZ.muted, shape: "bar" },
-                  ...(overBudget.length > 0
-                    ? [{ label: t("Over budget", "Vượt hạn mức"), color: VIZ.accent, shape: "bar" as const }]
-                    : []),
-                  { label: t("Budget", "Hạn mức"), color: VIZ.ink, shape: "tick" },
-                ]
-              : undefined
-          }
-        >
-          {budgetVsActual.length === 0 ? (
-            <p className={EMPTY_NOTE}>{t("No monthly budget set.", "Chưa đặt ngân sách cho tháng này.")}</p>
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {budgetRows.map((b) => {
-                const over = b.remaining < 0;
-                return (
-                  <li key={b.group} className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-baseline justify-between gap-3 text-sm">
-                      <span className={`min-w-0 truncate text-[var(--color-text)] ${over ? "font-bold" : ""}`} title={b.group}>
-                        {b.group}
-                      </span>
-                      <span className="flex-none text-right tabular-nums whitespace-nowrap">
-                        <span className="font-bold text-[var(--color-text)]">{formatVND(b.actual)}</span>
-                        <span className="text-xs text-[var(--color-text-faint)]"> / {money(b.budget)}</span>
-                      </span>
-                    </div>
-                    <RankBar
-                      value={b.actual}
-                      scale={Math.max(1, b.actual, b.budget)}
-                      color={over ? VIZ.accent : VIZ.muted}
-                      mark={b.budget}
-                    />
-                    <span className={`text-xs tabular-nums ${over ? "font-bold text-[var(--color-error)]" : "text-[var(--color-text-faint)]"}`}>
-                      {over
-                        ? t(`over by ${money(-b.remaining)}`, `vượt ${money(-b.remaining)}`)
-                        : t(`${money(b.remaining)} left`, `còn ${money(b.remaining)}`)}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
         </ChartCard>
       </div>
     </div>
