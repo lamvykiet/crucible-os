@@ -1,5 +1,25 @@
 # Hướng thiết kế — rà soát 26/09/2026
 
+> **Cập nhật 17/11/2026 — hệ "Kính" (một lớp) thay v3.** Quyết định của chủ dự án,
+> nguồn sự thật DUY NHẤT: `1991-new-design/demo/clean/demo.html` (commit 55a9223)
+> cùng các ảnh cạnh nó. Hai ghi chú bên dưới (v3 19/10 và rà soát 26/09) giữ lại
+> để biết vì sao từng chọn khác; khi lệch nhau thì ghi chú này và demo đúng.
+>
+> | v3 "Mật ong & Bạch đàn" (19/10) | Hệ Kính (17/11) |
+> |---|---|
+> | Hai tầng: phông cảnh hoàng hôn + tấm nền kem soft UI | MỘT lớp: gradient ấm cố định (đất nung, mật ong, rêu), không ảnh; mọi thứ nằm thẳng trên nền |
+> | Soft UI trên tấm nền (bóng kép, ô nhập lõm) | Thẻ là KÍNH trong (trắng ~35% sáng / ~7% tối, blur ở `::before`, viền sáng); khối con là tint phẳng; điều khiển nhỏ là Liquid Glass |
+> | Mật ong `#542a08` hành động + Bạch đàn pastel | Một màu nhấn xanh ô-liu `#3d6b2e`; nút chính và tab đang chọn là viên mực `#1c1b19` |
+> | Bricolage Grotesque viết hoa + Playfair | MỘT family Be Vietnam Pro (số mượn Inter để có tabular-nums); không serif, không viết hoa giãn chữ |
+> | Sidebar kính cao hết màn, tab con nằm trong sidebar | Sidebar nổi dạng rail 64px (rê bung, ghim, ô tìm, cây hoá đơn chờ duyệt); tab con lên đầu nội dung; thanh trên có ô "Hỏi Crucible…" |
+> | KHÔNG dock dưới (gỡ 23/10/2026) | CÓ dock thao tác nhanh giữa đáy (điện thoại tự ẩn khi lướt) + menu "+" nối modal thật |
+> | Tốt = xanh lá, xấu = đỏ | Giữ; thêm bản chữ đậm `--good-t`/`--bad-t` cho chữ trên kính |
+> | Cấm biểu đồ tròn | Bỏ luật cấm (17/11): vòng cung rời, vòng tiến độ, cánh hoa, cột "Heart rate" — xem `docs/bieu-do.md` mục 8 |
+>
+> Việc nằm lại cho đợt B: dựng lại Tổng quan, Tài chính (thẻ số có `GlassIcon`,
+> các biểu đồ mới, đưa nút Quét/Thêm giao dịch của `DashboardTab` lên dải tab qua
+> `<PageActions>`); các function còn lại tự ăn token nhưng chưa dựng lại bố cục.
+
 > **Đã thay bằng v3 "Mật ong & Bạch đàn" — quyết định của chủ dự án ngày
 > 19/10/2026**, sau 3 vòng demo. Nguồn sự thật: skill `1991-new-design/SKILL.md`
 > (demo `1991-new-design/demo/index.html`, công thức `crucible-v3.css`).

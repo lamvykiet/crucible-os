@@ -1,8 +1,10 @@
 # Biểu đồ trong Crucible — quy tắc
 
 Rút từ *Storytelling with Data* (Cole Nussbaumer Knaflic) và bộ kiểm dataviz,
-áp vào hệ v3 "Mật ong & Bạch đàn" (tấm nền kem, một màu hành động nâu mật ong
-`--action`). Đọc hết trước khi vẽ hay sửa biểu đồ.
+áp vào hệ **Kính** (quyết định 17/11/2026 của chủ dự án — nguồn
+`1991-new-design/demo/clean/demo.html`): biểu đồ nằm trong thẻ kính trong, một màu
+nhấn xanh ô-liu `--acc`. Đọc hết trước khi vẽ hay sửa biểu đồ; mục 8 là các kiểu
+biểu đồ mới của demo.
 
 Bộ công cụ: `src/lib/viz.tsx` (màu, trục, lưới, cột, đường, tooltip, nhãn một
 điểm), `src/components/charts/ChartCard.tsx` (khung thẻ, chú giải, `Delta`,
@@ -49,8 +51,8 @@ Ngày 17/11/2026 chủ dự án bỏ luật cấm biểu đồ tròn: cơ cấu 
 
 ## 4. Màu: xám là mặc định, nhấn là ngoại lệ
 
-- `VIZ.muted` (xám ấm) cho mọi dữ liệu nền. `VIZ.accent` (nâu mật ong `--action`;
-  giao diện tối là mật ong nhạt) cho ĐÚNG
+- `VIZ.muted` (xám ấm) cho mọi dữ liệu nền. `VIZ.accent` (xanh ô-liu `--acc`
+  `#3d6b2e`; giao diện tối `#a3c47f`) cho ĐÚNG
   điểm câu chuyện nói tới: tháng đang xem, hôm nay, mục tăng mạnh nhất.
   Một biểu đồ thường chỉ có MỘT chỗ màu nhấn.
 - Kỳ so sánh (tháng trước, năm trước): `VIZ.ghost` hoặc vạch mốc `VIZ.ink`.
@@ -61,9 +63,9 @@ Ngày 17/11/2026 chủ dự án bỏ luật cấm biểu đồ tròn: cơ cấu 
 - Màu trạng thái (`--color-success/error`) chỉ cho tốt/xấu, và luôn đi kèm
   mũi tên hay chữ (`Delta` — viên `.c-delta`). Chi tăng là xấu, thu tăng là tốt.
   SỐ MỨC (thu, chi, dư nợ, giá trị) là màu mực: thu nhập không tự nó "xanh",
-  chi tiêu không tự nó "cam". `VIZ.ink` và `VIZ.accent` gần cùng tông nâu trên
-  nền v3 — đừng dùng cặp đó cho hai đường cần phân biệt; một đường `VIZ.muted`,
-  một đường `VIZ.accent`, ghi nhãn ở điểm cuối.
+  chi tiêu không tự nó "cam". Màu nhấn (`--acc`) KHÔNG phải màu tốt (`--good`):
+  nhấn chỉ chỉ điểm câu chuyện, không bao giờ tô số tốt/xấu. Hai đường cần phân
+  biệt: một đường `VIZ.muted`, một đường `VIZ.accent`, ghi nhãn ở điểm cuối.
 - Chữ không bao giờ mang màu của chuỗi — chữ dùng màu chữ; ô màu bên cạnh
   mới mang danh tính.
 
@@ -103,6 +105,43 @@ kiểu tiêu đề mục, bốn bản thanh ngang). Nay dùng chung, đừng vi�
 
 **Cỡ chữ trong Finance.** Div gốc của `FinancePage` mang class `c-fin`
 (globals.css): `text-xs` bên trong là 13px, cỡ viết cứng 9–11px lên 12px, nhãn
-VIẾT HOA lên 11px. Viết chữ phụ mới thì dùng `text-xs`, đừng viết
+`uppercase` của JSX nay là chữ thường (hệ Kính không viết hoa giãn chữ). Viết chữ phụ mới thì dùng `text-xs`, đừng viết
 `text-[10px]`/`text-[11px]`. Chỗ thật sự phải giữ cỡ gốc (số trong ô tròn 16px)
 thêm class `c-micro`.
+
+## 8. Kiểu biểu đồ của hệ Kính (từ demo 17/11/2026)
+
+Bốn kiểu dưới đây lấy nguyên từ `demo/clean/demo.html` (CSS ở các khối "BIỂU ĐỒ CỘT
+KIỂU VIÊN SỐ", "Vòng ngân sách", "So với ngân sách", "cánh hoa"). Token đã nằm sẵn
+trong `globals.css`: `--rg-1..6` (bảng màu mảng/nhóm — mật ong, be đá, xô thơm,
+hồng đất, đất nung, xanh tro; tối hạ sáng), `--ref`/`--ref-ink` (đường tham chiếu),
+`--vb-fill/-hatch/-acc`, `--vp-bg/-line` (viên số), `--pt-mix/-tint`, `--on-bad/--on-good`.
+Số trong biểu đồ dùng `--font-fig` (Inter, tabular-nums). Demo vẽ bằng div/SVG;
+sang recharts thì dùng `shape` tuỳ biến, đừng bắt recharts vẽ thứ nó không giỏi.
+
+**Cột "Heart rate" (viên số).** Cột rộng bo 14px, sát nhau (khe 6px). Cột thường
+nền `--vb-fill` + gạch chéo 135° `--vb-hatch`; ĐÚNG MỘT cột nhấn tô `--vb-acc`.
+Trên đỉnh mỗi cột có **viên số** nổi (`--vp-bg`, cao 28px, bo 14px, số đậm 600,
+đơn vị nhạt) chồng lên đỉnh; viên của cột nhấn đặc `--acc` chữ `--acc-ink`. Đường
+tham chiếu (ngân sách ngày, trung bình): nét đứt 1,5px `--ref`, viên nhãn đặc
+`--ref` chữ `--ref-ink` nằm ở mép trái NGOÀI vùng cột để không đè viên số. Không
+kẻ lưới; nhãn trục 13px. Cột kỳ chưa trọn: không tô, chỉ viền đứt `--dash`. Từ
+767px trở xuống cuộn ngang trong thẻ, mỗi cột ≥ 60px.
+
+**Vòng cung rời (cơ cấu).** 100% vòng = ngân sách (hoặc tổng) của kỳ; mỗi cung =
+phần của một nhóm, đầu bo tròn, có khe; phần chưa dùng chỉ còn rãnh `--bar2`. Màu
+cung theo `--rg-*` (≤ 5 nhóm + "Khác"), bong bóng icon ở mỗi cung, số % lớn ở giữa
+(`28cqw`, Inter). Cạnh hoặc dưới vòng là danh sách: chấm màu · tên · số tiền · %.
+
+**Vòng tiến độ nhỏ (So với ngân sách).** Vòng 32px = tiến độ MỘT đại lượng (đã chi
+/ ngân sách của nhóm), không phải cơ cấu. Rãnh `--bar`, phần đạt tô màu nhóm, vạch
+mực = nhịp ngày. Bên cạnh là `%` đậm và trạng thái có chấm 6px: bình thường xám,
+gần ngưỡng `--warn-t`, vượt `--bad-t` đậm kèm chữ "vượt" (không dựa riêng vào màu).
+
+**Cánh hoa (ngân sách / mục tiêu theo nhóm).** Mỗi nhóm một cánh quạt góc bằng nhau.
+Lớp ngoài mờ (`opacity: var(--pt-tint)`) = 100% ngân sách/mục tiêu; lớp trong đậm
+mọc từ tâm với bán kính `r = r0 + (R − r0)·√f`, nên DIỆN TÍCH tỷ lệ với %, không
+phải bán kính. Chữ luôn `--ink` (≥ 4.5:1 trên cả lớp mờ và lớp đậm); riêng cánh
+vượt ngân sách chi tô `--bad`, vượt mục tiêu thu tô `--good`, chữ lúc đó là
+`--on-bad` / `--on-good`. Có công tắc Chi phí / Doanh thu. Chưa có số liệu: cánh mờ
++ một câu nói việc tiếp theo + một nút — không số 0 làm nội dung chính.

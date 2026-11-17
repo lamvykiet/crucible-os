@@ -1358,3 +1358,6 @@ html { background: var(--bg); }
   *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
 }
 
+/* Rail thu gọn: nút ghim không chiếm chỗ (còn 40px cho logo). */
+.c-side:not(:is(.open, .pinned, :has(:focus-visible))) .c-side-pin { display: none; }
+.c-side:not(:is(.open, .pinned, :has(:focus-visible))) .c-navrow .c-side-item { padding-right: 11px; }

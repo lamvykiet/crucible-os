@@ -47,7 +47,7 @@ là thứ duy nhất cả năm phiên cùng đọc. Trước khi sửa bất c�
 | Video | `api/video/{fetch,queue,resolve}` (trình duyệt), `api/video/{upload,pending}` (Shortcut iOS) và `api/video/share/*` + trang `src/app/video-share/` (Shortcut ở nút Chia sẻ); logic chung ở `src/lib/{videoQueue,videoShare}.ts` |
 | Thói quen | `src/app/habits/`, `src/components/habits/`, `api/habits/`, `src/lib/habits.ts` |
 | Sức khoẻ | `src/app/health/`, `src/components/health/`, `api/health/`, `src/lib/{health,healthServer,healthImport,exercises}.ts` |
-| Vỏ giao diện | `MainLayoutWrapper`, `Scene` (`SceneHero`), `Sidebar`, `MobileTopBar`, `ModuleTabs`, `src/app/globals.css` |
+| Vỏ giao diện | `MainLayoutWrapper`, `Sidebar`, `TopBar`, `MobileTopBar`, `ModuleTabs`, `QuickActions` + `QuickDock`, `Scene` (`SceneHero`, `PageActions`), `GlassIcon`, `src/app/globals.css` |
 
 ## Đổi cái này thì kéo theo cái kia
 
@@ -69,51 +69,72 @@ Tạo danh mục NGAY TRONG một modal đang mở (như "+ Tạo nhóm phụ m�
 `SubGroupSelect`) thì phải `await reloadCategories()` — nó tải lại và báo cho
 mọi hook đang mở; `invalidateCategories()` chỉ có tác dụng với modal mở sau.
 
-**Trước khi đổi giao diện** → đọc skill `1991-new-design/SKILL.md` (kèm demo
-`demo/index.html` và `crucible-v3.css`; demo và skill lệch nhau thì DEMO đúng)
-rồi `docs/huong-thiet-ke-2026.md`. Ngày 19/10/2026 chủ dự án chốt hướng **v3
-"Mật ong & Bạch đàn"** sau 3 vòng demo, thay HẲN hướng "Function · Kính" (kính
-trong 17% trên nền ambient, serif nghiêng, một màu đất nung) — đừng trả lại
-hướng cũ khi chưa hỏi. Đổi gì về giao diện: làm demo cho chủ dự án duyệt TRƯỚC.
+**Trước khi đổi giao diện** → nguồn sự thật DUY NHẤT là demo
+`1991-new-design/demo/clean/demo.html` (commit 55a9223) cùng các ảnh cạnh nó —
+**quyết định 17/11/2026 của chủ dự án**. Mở demo, chép đúng giá trị màu, độ đục
+kính, bo góc, cỡ chữ, khoảng cách; đừng tự suy. Rồi đọc ghi chú trong
+`docs/huong-thiet-ke-2026.md`. Các hướng trước — v3 "Mật ong & Bạch đàn" (hai
+tầng phông cảnh + tấm nền kem, soft UI, Bricolage/Playfair), "Sương sớm", và
+"Function · Kính" 17% — đều ĐÃ THAY; đừng trả lại khi chưa hỏi. Đổi gì về giao
+diện: làm demo cho chủ dự án duyệt TRƯỚC.
 
-**Design system v3 có hai tầng.** Đầu trang là PHÔNG CẢNH hoàng hôn
-(`.c-scene`, `--sky`) với widget KÍNH chữ trắng; trang đặt tiêu đề + widget lên
-phông bằng `<SceneHero>` (`src/components/Scene.tsx` — portal vào khe của
-`MainLayoutWrapper`). Phần dưới là TẤM NỀN kem `.c-main` (`--sheet`) bo 36px
-trườn lên 80px che phông. Trên tấm nền là **soft UI**: thẻ cùng màu nền, nổi
-bằng bóng kép `--neu-raised`, không viền, không gradient; ô nhập, rãnh tab, rãnh
-cột biểu đồ LÕM (`--neu-inset`); thẻ lồng trong thẻ chỉ là dải tint phẳng. Ô
-pastel `.c-tile-{fin,health,learn,habit}`, mỗi hàng đúng MỘT ô tối
-(`.c-tile.dark`). Màu hành động duy nhất là nâu mật ong `--action` `#542a08`
-(đảo thành `#ecc494` ở theme tối): nút chính, tab đang chọn, switch, cột nhấn.
-Kính CHỈ trên phông cảnh, sidebar, thanh điều hướng, tooltip/menu nổi — không bao
-giờ trên tấm nền kem. Thứ gì đè lên nội dung khác (modal, lịch chọn ngày, menu
-thả, tooltip, cột dính) dùng `--glass-solid` ĐẶC hẳn — globals.css tự bắt chúng
-theo class vị trí (`fixed/absolute/md:absolute/sticky` hoặc `shadow-xl`) + nền
-`--color-surface*`; lớp nổi viết kiểu khác thì phải tự đặt
-`bg-[var(--glass-solid)]`, nếu không chữ hai lớp đọc chồng lên nhau.
+**Design system "Kính" — MỘT lớp** (nguồn: `demo/clean/demo.html`).
+- **Nền**: gradient ấm có quầng đất nung / mật ong / rêu, CỐ ĐỊNH, KHÔNG ảnh
+  (`--sky`, vẽ ở `.c-shell::before` — `<body>` phải trong suốt). Không phông cảnh,
+  không tấm nền kem, không soft UI, không cửa sổ bao ngoài.
+- **Thẻ** là kính trong MỘT lớp: trắng ~35% (sáng) / ~7% (tối) — `--card-a` —,
+  blur 22px ở `::before`, viền sáng, một bóng rộng mềm; bo `--radius-card` 16px.
+  Trong `.c-main`, mọi `rounded-2xl border` / `.c-card` tự thành thẻ kính (xem
+  globals.css). **Khối con trong thẻ** (ô mini, viên trạng thái, chip, hàng) là
+  TINT PHẲNG `--tint`, không blur lần hai.
+- **Kính "tab"** (sidebar, dải tab con, segmented, dock, thanh trên điện thoại)
+  đục hơn: `--glass` trắng 62%. **Liquid Glass** cho điều khiển nhỏ (nút sáng/tối,
+  chuông — `.c-round`): trắng 30% + viền khúc xạ pastel ≤ 50% alpha (`--lg-*`).
+- **Lớp nổi** (modal, menu thả, lịch chọn ngày, tooltip, cột dính) dùng nền ĐẶC
+  `--glass-solid` — globals.css tự bắt chúng theo class vị trí
+  (`fixed/absolute/md:absolute/sticky` hoặc `shadow-xl`) + nền `--color-surface*`;
+  lớp nổi viết kiểu khác thì phải tự đặt `bg-[var(--glass-solid)]`, nếu không chữ
+  hai lớp đọc chồng lên nhau.
+- **Một màu nhấn**: xanh ô-liu `--acc` (`#3d6b2e`, tối `#a3c47f`). Nút chính và
+  tab đang chọn là viên MỰC `--btn` (`#1c1b19`, tối `#edeae4`). Nhấn không tô số
+  tốt/xấu; tốt/xấu không tô nền thẻ hay nút.
+- **Icon kính nhiều lớp** `<GlassIcon icon tone size>` (`.c-gi`): khối màu sau-phải
+  + tấm kính mờ trước + icon nét; MỘT màu đất trầm theo mảng — `fin` Tài chính,
+  `spend` chi tiêu, `learn` Học tập, `habit` Thói quen, `health` Sức khoẻ.
+- **Bảng màu mảng/nhóm cho biểu đồ** `--rg-1..6` (+ `--ref`, `--vb-*`, `--pt-*`)
+  đã nằm sẵn trong globals.css cho các biểu đồ mới (xem `docs/bieu-do.md`).
 
-**Kính đặt lớp mờ ở `::before`, không trên chính phần tử** (`.c-glass`,
-`.c-side`, `.c-mtopbar`). Giống `transform`,
+**Kính đặt lớp mờ ở `::before`, không trên chính phần tử** (thẻ trong `.c-main`,
+`.c-card`, `.c-glass`, `.c-side`, `.c-ftabs`, `.c-round`, `.c-dock`, `.c-mtopbar`). Giống `transform`,
 `backdrop-filter` biến phần tử thành KHỐI CHỨA của `position: fixed` — modal
 render bên trong sẽ co vào nó. Đừng gắn `backdrop-filter` thẳng lên thẻ hay tấm
 modal.
 
-**`.c-main` KHÔNG được có `z-index`.** Nó là tấm nền phủ lên phông nhờ
-`position: relative` + đứng sau phông trong DOM. Thêm z-index là tạo stacking
-context, mọi modal `z-50` bên trong rơi xuống DƯỚI thanh điều hướng `z-40`.
+**`.c-main` KHÔNG được có `z-index`.** Tạo stacking context là mọi modal `z-50`
+bên trong rơi xuống DƯỚI sidebar `z-45` và dock `z-32`. `position: relative` +
+đứng sau trong DOM là đủ. Cũng đừng gắn `position: relative` lên phần tử
+`absolute/fixed/sticky` để "cho đủ bộ" — quy tắc thẻ kính đã loại chúng ra.
 
-**Chữ hai giọng, không chữ nghiêng.** Tiêu đề lớn (`.c-display`,
-`.c-page-title`, tên trang trên thanh điện thoại, logo) là Bricolage Grotesque
-800 hẹp 85% VIẾT HOA bằng CSS; mọi chữ và SỐ còn lại là Playfair (`next/font`,
-có trục opsz). `.c-italic` còn đó để JSX cũ không vỡ nhưng không nghiêng nữa.
-Chữ phụ không nhỏ hơn 13px.
+**Một family chữ, không chữ nghiêng, không viết hoa giãn chữ.** Be Vietnam Pro
+cho TOÀN BỘ chữ (`next/font/google`, subset `vietnamese` + `latin` — thiếu
+`latin` là mất chữ Latin cơ bản; chỉ nạp 400/500/600). CHỮ SỐ mượn Inter để có
+`tabular-nums` (Be Vietnam Pro trên Google Fonts không có): file
+`src/app/fonts/Inter-so.woff2` nạp bằng `next/font/local` với
+`declarations: [{ prop: "unicode-range", value: "U+0030-0039" }]` — tương đương
+`@font-face "So"` của demo — và `--font-fig` = `var(--font-so-src), var(--font-sans)`.
+`.num`, `.tabular-nums`, `.c-stat-value`, `.c-metric-value*` và nhãn trục biểu đồ
+dùng `--font-fig`. `font-mono` (JetBrains Mono) CHỈ cho IPA/mã trong JSX cũ, không
+cho giao diện. Thang: thân 14/20, tiêu đề trang 40/48 · 500 (`-.025em`), tiêu đề
+thẻ 16/24 · 500, số thẻ 28/36 · 500; chữ phụ ≥ 13px. `.c-italic` còn để JSX cũ
+không vỡ nhưng không nghiêng; nhãn `uppercase` của JSX bị CSS trả về chữ thường.
 
-**Màu số liệu: tốt = xanh lá `--good`, xấu = đỏ `--bad`, luôn kèm ▲/▼ hoặc
-+/−.** Thu, tiết kiệm, streak tăng → xanh ▲; chi, nợ, vượt ngân sách tăng → đỏ
-▲; chi GIẢM → xanh ▼. Chênh lệch trong sai số → xám "trong sai số". Viên delta
-là `.c-delta.good/.bad` trên tấm nền, `.c-pill.good/.bad` trên kính. Không màu
-nào khác mang nghĩa tốt/xấu, và hai màu này không bao giờ tô nền thẻ hay nút.
+**Màu số liệu: tốt = xanh `--good`/`--good-t`, xấu = đỏ `--bad`/`--bad-t`, luôn
+kèm ▲/▼ hoặc +/−** (dấu âm là "−" U+2212). Bản `-t` ("text") đậm hơn, dùng khi
+CHỮ nằm trên kính; `--good`/`--bad` cho chấm, icon, thanh. `--color-success/
+error/warning` trong JSX đã trỏ vào bản `-t`. Thu, tiết kiệm, streak tăng →
+xanh ▲; chi, nợ, vượt ngân sách tăng → đỏ ▲; chi GIẢM → xanh ▼. Chênh lệch trong
+sai số → xám "trong sai số". Viên delta: `.c-delta.good/.bad`, `.c-pill.good/.bad`.
+Không màu nào khác mang nghĩa tốt/xấu; hai màu này không tô nền thẻ hay nút.
 
 **Animation có `transform` biến phần tử thành KHỐI CHỨA của `position: fixed`.**
 `animate-in` nằm trên chính div bọc nội dung tab, mà modal render bên trong div
@@ -137,38 +158,54 @@ lần cuối. Đừng bỏ hai thứ đó.
 **Sáng là mặc định, không theo hệ điều hành.** Bảng sáng nằm thẳng trên
 `:root`; bảng tối chỉ áp khi người dùng bấm nút (`[data-theme="dark"]`).
 
-**Điều hướng web là `Sidebar` kính bên trái** (từ 13/11/2026 theo mẫu "Glassy
-Dashboard" chủ dự án chọn — thay thanh trên `TopNav`, đã gỡ). Thu gọn là cột
-icon 68px; rê chuột / Tab tới thì bung thành panel 248px ĐÈ lên nội dung; nút
-‹ › ghim mở thì nội dung dịch sang nhường chỗ (`.c-shell:has(.c-side.pinned)`).
-Nhóm: Function (Tài chính có số hoá đơn chờ duyệt) · tab con của function đang
-mở · Hệ thống (cài đặt, ngôn ngữ, sáng/tối) · thẻ người dùng (`/api/me`). Phía
-sau là phông trời CỐ ĐỊNH (`.c-shell::before`), nên `<body>` phải trong suốt —
-cho nền vào body là phông biến mất. Điện thoại không có sidebar: `MobileTopBar`
-là tấm kính hai hàng — hàng trên logo (chạm để xổ menu function) + tên function
-+ cài đặt/ngôn ngữ/sáng-tối; hàng dưới là tab con (chỉ icon, tab chọn hiện
-chữ). KHÔNG có dock dưới: gỡ ngày 23/10/2026 theo yêu cầu chủ dự án vì nó chỉ
-lặp menu logo — đừng thêm lại. Dải tab của cả hai khổ là MỘT component
-`ModuleTabs` (`side` / `rail`) — đừng viết lại dải tab trong từng trang.
+**Vỏ giao diện** (`MainLayoutWrapper` — quyết định 17/11/2026):
+- **`Sidebar` nổi** (từ 768px): rail 64px bo tròn, cách mép 24px, chỉ cao bằng nội
+  dung. Rê chuột nhanh → tooltip; DỪNG ~300ms → bung 248px ĐÈ lên nội dung; nút
+  ghim giữ mở và đẩy nội dung (`.c-shell:has(.c-side.pinned)`, nhớ trong
+  localStorage `crucible.sidebar.pinned`). Ô tìm trang ở đầu; mục Tài chính có cây
+  trạng thái hoá đơn (hiện chỉ "Chờ duyệt N" — số từ `/api/drive/pending-count`,
+  bấm mở `ReviewQueueModal`; "Đã ghi sổ"/"Trùng lặp" chờ có API trả số). KHÔNG còn
+  tab con trong sidebar. Bung bằng `width` và `overflow: hidden` Ở TỪNG HÀNG chứ
+  không ở `<aside>`, để bóng của `::before` không bị cắt.
+- **`TopBar`** (máy tính): ngữ cảnh trái, ô "Hỏi Crucible…" giữa (chỉ là ô nhập —
+  dự án chưa có trợ lý chung), nút sáng/tối + chuông phải. **`MobileTopBar`**
+  (điện thoại): logo ▾ chọn function (+ đổi ngôn ngữ), chuông, sáng/tối, Cài đặt —
+  đường DUY NHẤT tới `/settings` trên điện thoại, đừng gỡ.
+- **`ModuleTabs`** = dải tab con ở ĐẦU nội dung: kính trắng đục, icon + chữ, tab
+  chọn là viên mực; bên phải là khe `.c-facts` cho nút hành động của trang —
+  trang đặt nút vào đó bằng `<PageActions>` (`Scene.tsx`). Điện thoại: cuộn ngang,
+  chỉ tab chọn hiện chữ. Đừng viết lại dải tab trong từng trang.
+- **`QuickDock`** (thay quyết định "không dock đáy" 23/10/2026): dock kính giữa
+  đáy, nút "+" mở menu ghi nhanh (popover có keycap trên máy tính, sheet từ đáy
+  trên điện thoại). Điện thoại: dock thu gọn, TỰ ẨN khi lướt xuống. Hành động nối
+  vào modal THẬT qua `QuickActionsProvider` (`TransactionModal` Expense/Income,
+  `ScanInvoiceModal`, `ReviewQueueModal`) render bằng portal vào `<body>` — dock và
+  menu có `transform` nên modal nằm trong chúng sẽ co lại. Ghi xong thì
+  `<main key={version}>` dựng lại trang để tải số mới. Keycap ⌘N/⌘I/⌘U/⌘H/⌘M chỉ là
+  NHÃN (đụng phím trình duyệt); gõ chữ cái khi menu đang mở thì chạy hàng đó. Khác
+  `MobileNav` cũ, dock KHÔNG phải "thanh năm mục điều hướng": đổi function ở
+  logo ▾ (điện thoại) / sidebar (máy tính).
+- Nhịp dọc: `.c-top` (đệm 40) → `.c-fbar` → `.c-scene` (phần tóm tắt, ẩn khi
+  rỗng) → `.c-main`; cột trái chừa 120px (rail 24 + 64 + 32), ghim mở 304px.
+  `.c-shell::before` là nền cố định — `<body>` PHẢI trong suốt.
 
-**Danh sách function và tab con chỉ nằm ở `src/lib/modules.tsx`** — menu logo,
-dải tab trên `TopNav`, menu và tab của `MobileTopBar` và tên
-function to trên phông cảnh đều đọc từ đó. Tab trong cùng một trang (Tài chính,
-Knowledge) đi bằng `?tab=` trên URL, không bằng state: trang đọc
-`useSearchParams()`, nên `page.tsx` của nó phải bọc `<Suspense>` (thiếu là Next
-bắt cả trang render phía client), và `Sidebar` / `MobileTopBar` cũng bọc
-`ModuleTabs` trong Suspense.
+**Danh sách function và tab con chỉ nằm ở `src/lib/modules.tsx`** — menu logo và
+Sidebar (function), dải tab `ModuleTabs`, `MobileTopBar` và tên function trong
+`SceneSummary` đều đọc từ đó. Tab trong cùng một trang (Tài chính, Knowledge) đi
+bằng `?tab=` trên URL, không bằng state: trang đọc `useSearchParams()`, nên
+`page.tsx` của nó phải bọc `<Suspense>` (thiếu là Next bắt cả trang render phía
+client), và `MainLayoutWrapper` cũng bọc `ModuleTabs` trong Suspense.
 
 **Bán kính `--radius-sm/md/lg/xl/2xl` TRÙNG TÊN với thang của Tailwind v4** ⇒
-đổi chúng là đổi luôn mọi `rounded-*` trong JSX. Bo của hệ v3 đặt TÊN RIÊNG:
-`--radius-card` 28px, `--radius-tile` 26px, `--radius-sheet` 36px,
-`--radius-btn` 16px, `--radius-field` 18px. Đã có tiền lệ: đặt
-`--radius-md: 16px` cho ô nhập làm mọi ô `rounded-md` 31px của bản đồ nhiệt
-biến thành hình tròn.
+đổi chúng là đổi luôn mọi `rounded-*` trong JSX. Bo của hệ Kính đặt TÊN RIÊNG:
+`--radius-card` 16px, `--radius-tile` 12px (khối con), `--radius-sheet` 20px
+(panel), `--radius-btn`/`--radius-field` 12px, `--radius-ctl` 10px,
+`--radius-row` 8px. Đã có tiền lệ: đặt `--radius-md: 16px` cho ô nhập làm mọi ô
+`rounded-md` 31px của bản đồ nhiệt biến thành hình tròn.
 
 **Nhịp trang do `.c-main` quy định**, không phải từng trang tự đặt: khung
-1180px, 22px giữa các khối, 24px đệm thẻ (18px điện thoại). Đừng chồng
-`max-w-*` hay `py-*` lên `<main>`.
+1240px, 32px giữa các khối lớn (`space-y-8`), 20px (`space-y-6`), 16px giữa thẻ,
+24px đệm thẻ (20px điện thoại). Đừng chồng `max-w-*` hay `py-*` lên `<main>`.
 
 **Vẽ hay sửa biểu đồ** → đọc `docs/bieu-do.md` trước (rút từ *Storytelling
 with Data*). Tóm tắt: tiêu đề là câu kết luận tính từ dữ liệu; XÁM là mặc
@@ -192,7 +229,7 @@ tháng về số, nên đừng truyền `tick` khác đè lên.
 Tailwind cho heading. Mặc định thẻ nằm trong `@layer base`, thang chữ nằm trong
 `@layer components`. Viết mặc định thẻ **ngoài** mọi `@layer` sẽ nuốt sạch utility
 — đã từng làm 83 heading và 58 thẻ `<p>` mất tác dụng, không linter nào báo.
-Ngoại lệ có chủ ý: `.c-side`, `.c-mtopbar` và khối nhịp trang (`.c-main`)
+Ngoại lệ có chủ ý: `.c-side`, `.c-mtopbar`, `.c-dock` và khối nhịp trang (`.c-main`)
 cố tình nằm ngoài mọi layer để thắng utility viết thẳng trong JSX —
 `hidden md:flex`, `space-y-8`, `p-5`, `gap-6`. Có media query ở cuối
 `globals.css` lo phần ẩn/hiện theo bề ngang; bỏ nó đi là thanh trên của điện
