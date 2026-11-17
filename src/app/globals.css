@@ -1472,10 +1472,13 @@ html { background: var(--bg); }
 .c-vb-rl { position: absolute; left: calc(-1 * var(--gut, 120px) + 32px); transform: translateY(50%); height: 24px; padding: 0 10px; border-radius: 12px; background: var(--ref); color: var(--ref-ink); font: 500 13px/24px var(--font-fig); white-space: nowrap; z-index: 3; }
 .c-vb-yl { position: absolute; left: calc(-1 * var(--gut, 120px)); width: 26px; text-align: right; transform: translateY(50%); font: 400 13px/16px var(--font-fig); color: var(--muted); z-index: 0; }
 .c-vb-x { display: flex; gap: 6px; margin-top: 10px; }
+/* Ít cột (≤ 4): giữ cột gọn, không giãn hết khổ thẻ */
+.c-vb.few .c-vb-cols, .c-vb.few .c-vb-x { max-width: calc(var(--n) * 150px); }
 .c-vb-x span { flex: 1; min-width: 0; text-align: center; color: var(--muted); font: 400 13px/16px var(--font-sans); }
 .c-vb-x span small { display: block; font-size: 13px; }
 .c-vb-x span.on { color: var(--acc); font-weight: 600; }
 .c-vb.noy .c-vb-ref, .c-vb.noy .c-vb-rl { left: 0; }
+.c-vb.noy .c-vb-rl { transform: translateY(calc(100% + 2px)); }
 @media (max-width: 760px) { .c-vb { min-width: calc(var(--gut, 120px) + var(--n) * 60px); } .c-vb.noy { min-width: 0; } }
 
 /* ---- SegRing: vòng cung rời ---- */

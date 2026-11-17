@@ -20,6 +20,8 @@ export interface PillBar {
   lab: string;
   accent?: boolean;
   partial?: boolean;
+  /** Cột dày (31 ngày): chỉ vẽ cột, không viên số — viên số chỉ giữ ở cột nhấn. */
+  bare?: boolean;
 }
 
 export default function PillBars({
@@ -45,7 +47,7 @@ export default function PillBars({
   return (
     <div className="c-vbs">
       <div
-        className={`c-vb ${noY ? "noy" : ""}`}
+        className={`c-vb ${noY ? "noy" : ""} ${data.length <= 4 ? "few" : ""}`}
         style={{ ["--n" as string]: data.length, ["--h" as string]: `${height}px` }}
         role="img"
         aria-label={ariaLabel}
@@ -71,7 +73,7 @@ export default function PillBars({
                 return (
                   <div key={d.key} className="c-vb-col">
                     <div className="c-vb-bar" style={{ height: "8%" }} />
-                    <span className="c-vb-pill nil" style={{ bottom: "calc(8% - 8px)" }}>–</span>
+                    {!d.bare && <span className="c-vb-pill nil" style={{ bottom: "calc(8% - 8px)" }}>–</span>}
                   </div>
                 );
               }
@@ -79,10 +81,12 @@ export default function PillBars({
               return (
                 <div key={d.key} className="c-vb-col">
                   <div className={`c-vb-bar ${d.accent ? "acc" : ""} ${d.partial ? "part" : ""}`} style={{ height: `${h}%` }} />
-                  <span className={`c-vb-pill ${d.accent ? "acc" : ""}`} style={{ bottom: `calc(${h}% - 10px)` }}>
-                    <b>{d.lab}</b>
-                    {unit && <span>{unit}</span>}
-                  </span>
+                  {!d.bare && (
+                    <span className={`c-vb-pill ${d.accent ? "acc" : ""}`} style={{ bottom: `calc(${h}% - 10px)` }}>
+                      <b>{d.lab}</b>
+                      {unit && <span>{unit}</span>}
+                    </span>
+                  )}
                 </div>
               );
             })}

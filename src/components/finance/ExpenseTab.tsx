@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutGrid, Plus, Calendar, Receipt, ChevronDown, AlertCircle, ListChecks } from "lucide-react";
-import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useCategories } from "@/lib/useCategories";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
@@ -19,7 +19,7 @@ import StackedMonthTooltip from "./StackedMonthTooltip";
 import { thisMonthLocalIso } from "@/lib/localDate";
 import { compactMoney } from "@/lib/formatMoney";
 import { formatVND } from "@/lib/formatMoney";
-import { VIZ, GRID, yAxis, xAxis, BAR, STACK_GAP, TOOLTIP, pctChange, catColor, refLabel, barLabelAt, drawnIndex, stackTotalAt } from "@/lib/viz";
+import { VIZ, GRID, yAxis, BAR, STACK_GAP, TOOLTIP, pctChange, catColor, drawnIndex, stackTotalAt } from "@/lib/viz";
 import ChartCard, { StatTile } from "@/components/charts/ChartCard";
 import SectionHeader from "@/components/charts/SectionHeader";
 import { RankList, type RankRow } from "@/components/charts/RankBar";
@@ -28,6 +28,8 @@ import { en } from "@/lib/plural";
 import PageIntro from "@/components/PageIntro";
 import { CardHead, GlassCard } from "@/components/charts/GlassCard";
 import SegRing from "@/components/charts/SegRing";
+import PillBars from "@/components/charts/PillBars";
+import { pillSeries } from "@/components/charts/pillSeries";
 import { moneyBig } from "@/components/SceneSummary";
 import { groupIcon, rankGroups } from "@/lib/groupViz";
 import { PageActions } from "@/components/Scene";
@@ -307,6 +309,12 @@ export default function ExpenseTab() {
           )
       : t(`${ly.name}: ${money(ly.amount)} spent`, `Năm ${ly.name} chi ${money(ly.amount)}`);
 
+  // --- Dữ liệu cột viên (PillBars) -------------------------------------------
+  const dailyPills = pillSeries(dailySeries, (d) => d.amount, money, { accent: peakDay, xLabel: (d) => dayTick(d.name) });
+  const countPills = pillSeries(dailySeries, (d) => d.count, (v) => String(v), { accent: peakCount, xLabel: (d) => dayTick(d.name) });
+  const domPills = pillSeries(dayOfMonth, (d) => d.amount, money, { accent: peakDom, xLabel: (d) => dayTick(d.name) });
+  const yearPills = pillSeries(yearlySeries, (d) => d.amount, money, { accent: lastYearIdx, labelAll: true, partialLast: !!running });
+
   // --- Nơi chi -------------------------------------------------------------------
   const merchantTop = topMerchants[0];
   const merchantHeadline = merchantTop
@@ -474,43 +482,26 @@ export default function ExpenseTab() {
 
             {/* Từng ngày: cột xám, ngày chi nhiều nhất màu nhấn + ghi số;
                 đường trung bình ghi nhãn tại chỗ. Không trục Y, không lưới. */}
-            <ChartCard
-              className="md:col-span-2"
-              title={dailyHeadline}
-              subtitle={t(`Spending per day, ${mm}/${year} · dashed line = daily average`, `Chi mỗi ngày, ${mm}/${year} · nét đứt = trung bình một ngày`)}
-            >
+            <GlassCard className="md:col-span-2">
+              <CardHead
+                icon={CalendarDays}
+                tone="spend"
+                title={dailyHeadline}
+                subtitle={t(`Spending per day, ${mm}/${year} · dashed line = daily average`, `Chi mỗi ngày, ${mm}/${year} · nét đứt = trung bình một ngày`)}
+                wrap
+              />
               {dailySeries.length === 0 ? (
-                <p className="text-sm text-[var(--color-text-faint)]">
-                  {t("No days to show yet.", "Chưa có ngày nào để hiện.")}
-                </p>
+                <p className="c-pace-cap" style={{ margin: "16px 0" }}>{t("No days to show yet.", "Chưa có ngày nào để hiện.")}</p>
               ) : (
-                <div className="h-56 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={dailySeries} margin={{ top: 18, right: 4, left: 4, bottom: 0 }}>
-                      <XAxis dataKey="name" {...xAxis} interval={0} tickFormatter={dayTick} />
-                      <Tooltip
-                        {...TOOLTIP}
-                        formatter={(v) => [formatVND(Number(v) || 0), t("Spent", "Đã chi")]}
-                        labelFormatter={(d) => t(`Day ${Number(d)}`, `Ngày ${Number(d)}`)}
-                      />
-                      {avgDailyExpense > 0 && (
-                        <ReferenceLine
-                          y={avgDailyExpense}
-                          stroke={VIZ.muted}
-                          strokeDasharray="4 3"
-                          label={refLabel(`${t("avg", "TB")} ${money(avgDailyExpense)}`)}
-                        />
-                      )}
-                      <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={barLabelAt(dailySeries, "amount", peakDay, money)}>
-                        {dailySeries.map((d, i) => (
-                          <Cell key={d.name} fill={i === peakDay ? VIZ.accent : VIZ.muted} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                <PillBars
+                  data={dailyPills.data}
+                  max={dailyPills.max}
+                  refLine={avgDailyExpense > 0 ? { value: avgDailyExpense, label: `${t("Avg", "TB")} ${money(avgDailyExpense)}` } : undefined}
+                  height={300}
+                  ariaLabel={t(`Spending per day in ${mm}/${year}`, `Chi mỗi ngày ${mm}/${year}`) + (peakDay >= 0 ? `: ${t("peak", "cao nhất")} ${t("day", "ngày")} ${Number(dailySeries[peakDay].name)} ${money(dailySeries[peakDay].amount)}` : "")}
+                />
               )}
-            </ChartCard>
+            </GlassCard>
           </div>
 
           {/* Bảng so sánh kỳ xuống dưới hai biểu đồ: hai biểu đồ là thứ nhìn
@@ -587,67 +578,43 @@ export default function ExpenseTab() {
             </div>
 
             {/* Ba lát cắt về NHỊP: theo ngày, theo ngày trong tháng, theo năm. */}
-            <ChartCard
-              title={countHeadline}
-              subtitle={t(
-                `Transactions per day, ${mm}/${year} · spending alone cannot tell one big purchase from twenty small ones`,
-                `Số giao dịch mỗi ngày, ${mm}/${year} · chỉ nhìn số tiền thì không phân biệt được một khoản lớn với hai mươi khoản nhỏ`
-              )}
-            >
-              <div className="h-48 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dailySeries} margin={{ top: 18, right: 4, left: 4, bottom: 0 }}>
-                    <XAxis dataKey="name" {...xAxis} interval={0} tickFormatter={dayTick} />
-                    <Tooltip
-                      {...TOOLTIP}
-                      formatter={(v, n, item) => [
-                        `${v} ${t("transactions", "giao dịch")} · ${formatVND(
-                          Number((item?.payload as { amount?: number })?.amount) || 0
-                        )}`,
-                        t("Count", "Số giao dịch"),
-                      ]}
-                      labelFormatter={(d) => t(`Day ${Number(d)}`, `Ngày ${Number(d)}`)}
-                    />
-                    <Bar dataKey="count" {...BAR} fill={VIZ.muted} label={barLabelAt(dailySeries, "count", peakCount, (v) => String(v))}>
-                      {dailySeries.map((d, i) => (
-                        <Cell key={d.name} fill={i === peakCount ? VIZ.accent : VIZ.muted} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </ChartCard>
+            <GlassCard>
+              <CardHead
+                icon={Receipt}
+                tone="spend"
+                title={countHeadline}
+                subtitle={t(
+                  `Transactions per day, ${mm}/${year} · spending alone cannot tell one big purchase from twenty small ones`,
+                  `Số giao dịch mỗi ngày, ${mm}/${year} · chỉ nhìn số tiền thì không phân biệt được một khoản lớn với hai mươi khoản nhỏ`
+                )}
+                wrap
+              />
+              <PillBars
+                data={countPills.data}
+                max={countPills.max}
+                height={190}
+                ariaLabel={t(`Transactions per day in ${mm}/${year}`, `Số giao dịch mỗi ngày ${mm}/${year}`) + (peakCount >= 0 ? `: ${t("busiest day", "đông nhất ngày")} ${Number(dailySeries[peakCount].name)}, ${dailySeries[peakCount].count}` : "")}
+              />
+            </GlassCard>
 
-            <ChartCard
-              title={domHeadline}
-              subtitle={t(
-                "Spending by day of the month, last 12 months stacked — fixed-date bills show up as spikes",
-                "Chi theo ngày trong tháng, cộng dồn 12 tháng — khoản rơi vào ngày cố định sẽ nhô lên thành cột"
-              )}
-            >
-              <div className="h-48 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dayOfMonth} margin={{ top: 18, right: 4, left: 4, bottom: 0 }}>
-                    <XAxis dataKey="name" {...xAxis} interval={0} tickFormatter={dayTick} />
-                    <Tooltip
-                      {...TOOLTIP}
-                      formatter={(v, n, item) => [
-                        `${formatVND(Number(v) || 0)} · ${
-                          (item?.payload as { count?: number })?.count || 0
-                        } ${t("transactions", "giao dịch")}`,
-                        t("Spending", "Số tiền"),
-                      ]}
-                      labelFormatter={(d) => t(`Day ${Number(d)}`, `Ngày ${Number(d)}`)}
-                    />
-                    <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={barLabelAt(dayOfMonth, "amount", peakDom, money)}>
-                      {dayOfMonth.map((d, i) => (
-                        <Cell key={d.name} fill={i === peakDom ? VIZ.accent : VIZ.muted} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </ChartCard>
+            <GlassCard>
+              <CardHead
+                icon={CalendarRange}
+                tone="spend"
+                title={domHeadline}
+                subtitle={t(
+                  "Spending by day of the month, last 12 months stacked — fixed-date bills show up as spikes",
+                  "Chi theo ngày trong tháng, cộng dồn 12 tháng — khoản rơi vào ngày cố định sẽ nhô lên thành cột"
+                )}
+                wrap
+              />
+              <PillBars
+                data={domPills.data}
+                max={domPills.max}
+                height={190}
+                ariaLabel={t("Spending by day of the month, last 12 months", "Chi theo ngày trong tháng, 12 tháng qua") + (peakDom >= 0 ? `: ${t("peak", "cao nhất")} ${t("day", "ngày")} ${Number(dayOfMonth[peakDom].name)} ${money(dayOfMonth[peakDom].amount)}` : "")}
+              />
+            </GlassCard>
           </div>
 
           <div className="flex flex-col gap-5">
@@ -710,41 +677,28 @@ export default function ExpenseTab() {
           <div className="flex flex-col gap-5">
             <SectionHeader icon={<CalendarCheck size={20} />} title={t("By year", "Theo năm")} />
 
-            <ChartCard
-              title={yearlyHeadline}
-              subtitle={t(
-                "Total spending per year, every year on record · the current year is still running",
-                "Tổng chi mỗi năm, mọi năm đã có dữ liệu · năm nay vẫn đang chạy nên chưa trọn"
-              )}
-            >
+            <GlassCard>
+              <CardHead
+                icon={CalendarCheck}
+                tone="spend"
+                title={yearlyHeadline}
+                subtitle={t(
+                  "Total spending per year, every year on record · the current year is still running",
+                  "Tổng chi mỗi năm, mọi năm đã có dữ liệu · năm nay vẫn đang chạy nên chưa trọn"
+                )}
+                wrap
+              />
               {yearlySeries.length === 0 ? (
-                <p className="text-sm text-[var(--color-text-muted)]">
-                  {t("No spending recorded yet.", "Chưa ghi khoản chi nào.")}
-                </p>
+                <p className="c-pace-cap" style={{ margin: "16px 0" }}>{t("No spending recorded yet.", "Chưa ghi khoản chi nào.")}</p>
               ) : (
-                <div className="h-48 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={yearlySeries} margin={{ top: 18, right: 4, left: 4, bottom: 0 }}>
-                      <XAxis dataKey="name" {...xAxis} />
-                      <Tooltip
-                        {...TOOLTIP}
-                        formatter={(v, n, item) => [
-                          `${formatVND(Number(v) || 0)} · ${
-                            (item?.payload as { count?: number })?.count || 0
-                          } ${t("transactions", "giao dịch")}`,
-                          t("Spending", "Số tiền"),
-                        ]}
-                      />
-                      <Bar dataKey="amount" {...BAR} fill={VIZ.muted} label={barLabelAt(yearlySeries, "amount", lastYearIdx, money)}>
-                        {yearlySeries.map((y, i) => (
-                          <Cell key={y.name} fill={i === lastYearIdx ? VIZ.accent : VIZ.muted} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                <PillBars
+                  data={yearPills.data}
+                  max={yearPills.max}
+                  height={190}
+                  ariaLabel={t("Spending per year: ", "Chi mỗi năm: ") + yearlySeries.map((y) => `${y.name} ${money(y.amount)}`).join(", ")}
+                />
               )}
-            </ChartCard>
+            </GlassCard>
           </div>
 
           <ExpenseGroupAnalysis refreshKey={refreshKey} preferredGroup={topSlice?.name} />

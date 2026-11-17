@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowDownLeft, AlertCircle, Briefcase, CalendarX, PieChart as PieChartIcon, TrendingUp } from "lucide-react";
+import { ArrowDownLeft, AlertCircle, Briefcase, CalendarX, PieChart as PieChartIcon, TrendingUp, CalendarRange, CalendarCheck } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, Cell, ReferenceLine,
+  LineChart, Line,
 } from "recharts";
 import { useLanguage } from "@/lib/LanguageContext";
 import CustomMonthPicker from "@/components/ui/CustomMonthPicker";
@@ -14,7 +14,7 @@ import { thisMonthLocalIso } from "@/lib/localDate";
 import PeriodComparison from "./PeriodComparison";
 import StackedMonthTooltip from "./StackedMonthTooltip";
 import { compactMoney, formatVND } from "@/lib/formatMoney";
-import { VIZ, GRID, yAxis, xAxis, BAR, LINE, STACK_GAP, TOOLTIP, TOOLTIP_LINE, pctChange, refLabel, barLabelAt } from "@/lib/viz";
+import { VIZ, GRID, yAxis, xAxis, BAR, LINE, STACK_GAP, TOOLTIP, TOOLTIP_LINE, pctChange } from "@/lib/viz";
 import ChartCard, { SeriesKey, Delta, StatTile } from "@/components/charts/ChartCard";
 import SectionHeader from "@/components/charts/SectionHeader";
 import { Bullet } from "@/components/charts/RankBar";
@@ -23,6 +23,9 @@ import IncomeCareer from "./IncomeCareer";
 import { en } from "@/lib/plural";
 import PageIntro from "@/components/PageIntro";
 import { PageActions } from "@/components/Scene";
+import PillBars from "@/components/charts/PillBars";
+import { pillSeries } from "@/components/charts/pillSeries";
+import { CardHead, GlassCard } from "@/components/charts/GlassCard";
 
 // Toàn bộ số liệu đến từ /api/finance/income.
 // Trước đây tab này chạy trên 4 mảng hardcode và cả tên công ty ("SHINHAN
@@ -111,29 +114,6 @@ const calMonth = (mm: string | number, vi: boolean) => {
   const n = Number(mm);
   return vi ? `tháng ${n}` : MONTHS_EN[n - 1] ?? String(mm);
 };
-
-/** Nhãn số trên MỌI cột — chỉ dùng cho biểu đồ ít cột (theo năm), nơi nhãn
- *  thay được trục Y. Cột `strong` in đậm, còn lại chữ nhạt. */
-function barLabels(format: (v: number) => string, strong: number) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const render = (props: any) => {
-    if (props.value === undefined || props.value === null || !Number(props.value)) return null;
-    const x = Number(props.x) + Number(props.width || 0) / 2;
-    return (
-      <text
-        x={x}
-        y={Number(props.y) - 8}
-        textAnchor="middle"
-        fontSize={11}
-        fontWeight={props.index === strong ? 700 : 500}
-        fill={props.index === strong ? "var(--color-text)" : "var(--color-text-muted)"}
-      >
-        {format(Number(props.value))}
-      </text>
-    );
-  };
-  return render;
-}
 
 /** Nhãn ở đầu mút một đường, thay cho chú giải: "2026 · 120tr". Đặt trên hoặc
  *  dưới điểm cuối để hai đường kết thúc gần nhau không đè nhãn lên nhau. */
@@ -321,6 +301,15 @@ export default function IncomeTab() {
           ? t(`${selM} brought in ${money(monthlyIncome)} — ${vsAvg}% above the 12-month average`, `${selM} thu ${money(monthlyIncome)} — cao hơn trung bình 12 tháng ${vsAvg}%`)
           : t(`${selM} brought in ${money(monthlyIncome)} — ${Math.abs(vsAvg)}% below the 12-month average`, `${selM} thu ${money(monthlyIncome)} — thấp hơn trung bình 12 tháng ${Math.abs(vsAvg)}%`);
 
+  // --- Cột viên (PillBars) --------------------------------------------------
+  const monthTick = (k: string) => (vi ? `T${Number(k.slice(5, 7))}` : MONTHS_EN[Number(k.slice(5, 7)) - 1] ?? k);
+  const trendPills = pillSeries(monthlySeries, (d) => d.amount, money, {
+    accent: curIdx,
+    labelAll: true,
+    xLabel: (d) => monthTick(d.name),
+    sxLabel: (d, i) => (i === 0 || d.name.slice(5, 7) === "01" ? d.name.slice(0, 4) : undefined),
+  });
+
   // --- Theo năm: năm nào thu nhiều nhất ------------------------------------
   const bestYearIdx = annualTotals.reduce((b, p, i, arr) => (p.amount > (arr[b]?.amount ?? -Infinity) ? i : b), 0);
   const bestYear = annualTotals[bestYearIdx];
@@ -330,8 +319,7 @@ export default function IncomeTab() {
       : bestYear.name === String(year)
         ? t(`${year} is already your best year — ${money(bestYear.amount)}`, `${year} đã là năm thu nhiều nhất — ${money(bestYear.amount)}`)
         : t(`${bestYear.name} is still your best year — ${money(bestYear.amount)}`, `${bestYear.name} vẫn là năm thu nhiều nhất — ${money(bestYear.amount)}`);
-  // Ít cột thì ghi số lên từng cột và bỏ trục Y; nhiều cột thì để trục.
-  const labelEveryYear = annualTotals.length <= 8;
+  const annualPills = pillSeries(annualTotals, (d) => d.amount, money, { accent: bestYearIdx, labelAll: true, partialLast: annualTotals[annualTotals.length - 1]?.name === String(year) });
 
   // --- Luỹ kế: năm nay đang đi nhanh hay chậm hơn năm ngoái -----------------
   const cumIdx = cumulative.reduce((acc, p, i) => (p.thisYear !== null ? i : acc), -1);
@@ -370,6 +358,7 @@ export default function IncomeTab() {
   const seasonTopIdx = seasonality.reduce((b, p, i, arr) => (p.avg > (arr[b]?.avg ?? -Infinity) ? i : b), 0);
   const seasonTop = seasonality[seasonTopIdx];
   const seasonYears = Math.max(0, ...seasonality.map((s) => s.years));
+  const seasonPills = pillSeries(seasonality, (d) => d.avg, money, { accent: seasonTop && seasonTop.avg > 0 ? seasonTopIdx : -1, labelAll: true, xLabel: (d) => monthTick(`0000-${String(Number(d.name)).padStart(2, "0")}`) });
   const seasonRatio = seasonTop && seasonMean > 0 ? seasonTop.avg / seasonMean : 0;
   const ratioText = seasonRatio.toLocaleString(vi ? "vi-VN" : "en-US", { maximumFractionDigits: 1 });
   const seasonHeadline =
@@ -530,75 +519,46 @@ export default function IncomeTab() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 12 tháng: cột xám, tháng đang chọn màu nhấn + ghi số; đường trung
               bình 12 tháng nét đứt ghi nhãn tại chỗ. */}
-          <ChartCard
-            title={trendHeadline}
-            subtitle={t(
-              `Income per month, 12 months to ${selM} · dashed line = 12-month average`,
-              `Thu nhập mỗi tháng, 12 tháng tới ${selM} · nét đứt = trung bình 12 tháng`
-            )}
-          >
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlySeries} margin={{ top: 20, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid {...GRID} />
-                  <XAxis dataKey="name" {...monthAxis(monthlySeries.map((d) => d.name))} />
-                  <YAxis {...yAxis(money)} />
-                  <Tooltip
-                    {...TOOLTIP}
-                    formatter={(v) => [formatVND(Number(v) || 0), t("Income", "Thu nhập")]}
-                    labelFormatter={(l) => mLabel(String(l))}
-                  />
-                  {avg12 > 0 && (
-                    <ReferenceLine
-                      y={avg12}
-                      stroke={VIZ.muted}
-                      strokeDasharray="4 3"
-                      label={refLabel(`${t("avg", "TB")} ${money(avg12)}`)}
-                    />
-                  )}
-                  <Bar dataKey="amount" fill={VIZ.muted} {...BAR} label={barLabelAt(monthlySeries, "amount", curIdx, money)}>
-                    {monthlySeries.map((p, i) => (
-                      <Cell key={p.name} fill={i === curIdx ? VIZ.accent : VIZ.muted} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
+          <GlassCard className="lg:col-span-2">
+            <CardHead
+              icon={TrendingUp}
+              tone="fin"
+              title={trendHeadline}
+              subtitle={t(
+                `Income per month, 12 months to ${selM} · dashed line = 12-month average`,
+                `Thu nhập mỗi tháng, 12 tháng tới ${selM} · nét đứt = trung bình 12 tháng`
+              )}
+              wrap
+            />
+            <PillBars
+              data={trendPills.data}
+              max={trendPills.max}
+              refLine={avg12 > 0 ? { value: avg12, label: `${t("Avg", "TB")} ${money(avg12)}` } : undefined}
+              height={230}
+              ariaLabel={t("Income per month: ", "Thu nhập từng tháng: ") + monthlySeries.map((p) => `${mLabel(p.name)} ${money(p.amount)}`).join(", ")}
+            />
+          </GlassCard>
 
           {/* Theo năm: năm thu nhiều nhất mang màu nhấn; ít cột nên ghi số lên
               từng cột và bỏ trục Y. */}
-          <ChartCard
-            title={annualHeadline}
-            subtitle={t(
-              `Total income per calendar year${annualTotals.some((p) => p.name === String(year)) ? ` · ${year} is year to date` : ""}`,
-              `Tổng thu nhập mỗi năm${annualTotals.some((p) => p.name === String(year)) ? ` · ${year} tính tới hiện tại` : ""}`
-            )}
-          >
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={annualTotals} margin={{ top: 20, right: 4, left: labelEveryYear ? 4 : 0, bottom: 0 }}>
-                  {!labelEveryYear && <CartesianGrid {...GRID} />}
-                  <XAxis dataKey="name" {...xAxis} interval={0} />
-                  {!labelEveryYear && <YAxis {...yAxis(money)} />}
-                  <Tooltip
-                    {...TOOLTIP}
-                    formatter={(v) => [formatVND(Number(v) || 0), t("Income", "Thu nhập")]}
-                  />
-                  <Bar
-                    dataKey="amount"
-                    fill={VIZ.muted}
-                    {...BAR}
-                    label={labelEveryYear ? barLabels(money, bestYearIdx) : barLabelAt(annualTotals, "amount", bestYearIdx, money)}
-                  >
-                    {annualTotals.map((p, i) => (
-                      <Cell key={p.name} fill={i === bestYearIdx ? VIZ.accent : VIZ.muted} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
+          <GlassCard>
+            <CardHead
+              icon={CalendarRange}
+              tone="fin"
+              title={annualHeadline}
+              subtitle={t(
+                `Total income per calendar year${annualTotals.some((p) => p.name === String(year)) ? ` · ${year} is year to date` : ""}`,
+                `Tổng thu nhập mỗi năm${annualTotals.some((p) => p.name === String(year)) ? ` · ${year} tính tới hiện tại` : ""}`
+              )}
+              wrap
+            />
+            <PillBars
+              data={annualPills.data}
+              max={annualPills.max}
+              height={210}
+              ariaLabel={t("Income per year: ", "Thu nhập từng năm: ") + annualTotals.map((p) => `${p.name} ${money(p.amount)}`).join(", ")}
+            />
+          </GlassCard>
 
           {/* Luỹ kế năm nay đặt cạnh năm ngoái. Tổng năm chỉ nói kết quả khi đã
               hết năm; đường luỹ kế nói đang đi nhanh hay chậm hơn ngay từ giữa
@@ -654,46 +614,31 @@ export default function IncomeTab() {
           {/* Thưởng Tết và thưởng cuối năm rơi vào tháng cố định. Nhìn một năm thì
               chúng chỉ là cột vọt lên bất thường; gộp mọi năm mới thành quy luật
               — và quy luật đó mới là thứ lập kế hoạch được. */}
-          <ChartCard
-            title={seasonHeadline}
-            subtitle={
-              seasonYears >= 2
-                ? t(
-                    `Average income for each calendar month, ${seasonYears} years of data`,
-                    `Trung bình thu nhập từng tháng trong năm, gộp ${seasonYears} năm dữ liệu`
-                  )
-                : t(
-                    "Average income for each calendar month · only one year of data, not yet a pattern",
-                    "Trung bình thu nhập từng tháng trong năm · mới có một năm dữ liệu, chưa thành quy luật"
-                  )
-            }
-          >
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={seasonality} margin={{ top: 20, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid {...GRID} />
-                  <XAxis dataKey="name" {...xAxis} interval={0} tickFormatter={(v) => String(Number(v))} />
-                  <YAxis {...yAxis(money)} />
-                  <Tooltip
-                    {...TOOLTIP}
-                    formatter={(v) => [formatVND(Number(v) || 0), t("Average", "Trung bình")]}
-                    labelFormatter={(l) => calMonth(String(l), vi)}
-                  />
-                  <Bar
-                    dataKey="avg"
-                    name={t("Average", "Trung bình")}
-                    fill={VIZ.muted}
-                    {...BAR}
-                    label={seasonTop && seasonTop.avg > 0 ? barLabelAt(seasonality, "avg", seasonTopIdx, money) : undefined}
-                  >
-                    {seasonality.map((p, i) => (
-                      <Cell key={p.name} fill={i === seasonTopIdx && p.avg > 0 ? VIZ.accent : VIZ.muted} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
+          <GlassCard className="lg:col-span-2">
+            <CardHead
+              icon={CalendarCheck}
+              tone="fin"
+              title={seasonHeadline}
+              subtitle={
+                seasonYears >= 2
+                  ? t(
+                      `Average income for each calendar month, ${seasonYears} years of data`,
+                      `Trung bình thu nhập từng tháng trong năm, gộp ${seasonYears} năm dữ liệu`
+                    )
+                  : t(
+                      "Average income for each calendar month · only one year of data, not yet a pattern",
+                      "Trung bình thu nhập từng tháng trong năm · mới có một năm dữ liệu, chưa thành quy luật"
+                    )
+              }
+              wrap
+            />
+            <PillBars
+              data={seasonPills.data}
+              max={seasonPills.max}
+              height={210}
+              ariaLabel={t("Average income per calendar month: ", "Thu nhập trung bình từng tháng trong năm: ") + seasonality.map((p) => `${calMonth(p.name, vi)} ${money(p.avg)}`).join(", ")}
+            />
+          </GlassCard>
 
           {/* Cơ cấu nguồn thu theo tháng — trả lời "tháng đó tiền về từ đâu",
               thứ mà một cột tổng không nói được. Nguồn lớn nhất mang màu nhấn
