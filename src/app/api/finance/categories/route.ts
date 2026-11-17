@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { budgetKindOfCategory } from "@/lib/budgets";
+import { moveBudgets } from "@/lib/budgetsServer";
 
 export const dynamic = "force-dynamic";
 
@@ -173,9 +175,9 @@ export async function PATCH(req: Request) {
         await tx.transaction.updateMany({
           where: { userId: user.id, categoryGroup: from }, data: { categoryGroup: newName },
         });
-        await tx.budget.updateMany({
-          where: { userId: user.id, categoryGroup: from }, data: { categoryGroup: newName },
-        });
+        // Ngân sách: lọc theo `kind` (tên nhóm chi và nhóm thu có thể trùng nhau)
+        // và cộng dồn nếu tháng đó nhóm đích đã có dòng — bảng có ràng buộc duy nhất.
+        await moveBudgets(tx, user.id, current.kind, from, newName!);
         await tx.vendor.updateMany({
           where: { defaultCategoryGroup: from }, data: { defaultCategoryGroup: newName },
         });
@@ -231,7 +233,14 @@ export async function DELETE(req: Request) {
     const [children, transactions, budgets] = await Promise.all([
       prisma.category.count({ where: { parentId: id } }),
       prisma.transaction.count({ where: { userId: user.id, categoryGroup: category.name } }),
-      prisma.budget.count({ where: { userId: user.id, categoryGroup: category.name } }),
+      prisma.budget.count({
+        where: {
+          userId: user.id,
+          categoryGroup: category.name,
+          // Chỉ ngân sách CÙNG loại; "Other" thu và "Other" chi là hai nhóm khác nhau.
+          ...(budgetKindOfCategory(category.kind) ? { kind: budgetKindOfCategory(category.kind)! } : {}),
+        },
+      }),
     ]);
 
     if (children > 0) {

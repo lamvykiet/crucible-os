@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { moveBudgets } from "@/lib/budgetsServer";
 
 // Gộp hai danh mục làm một.
 //
@@ -76,12 +77,9 @@ export async function POST(req: Request) {
             data: { categoryGroup: into.name },
           })
         ).count;
-        budgets = (
-          await tx.budget.updateMany({
-            where: { userId: user.id, categoryGroup: from.name },
-            data: { categoryGroup: into.name },
-          })
-        ).count;
+        // Ngân sách: dời theo `kind` và cộng dồn nếu hai nhóm cùng đặt cho một
+        // tháng — bảng Budget có ràng buộc duy nhất, `updateMany` sẽ nổ ở đó.
+        budgets = await moveBudgets(tx, user.id, from.kind, from.name, into.name);
         vendors = (
           await tx.vendor.updateMany({
             where: { defaultCategoryGroup: from.name },
@@ -103,27 +101,6 @@ export async function POST(req: Request) {
             data: { categoryGroup: into.name },
           })
         ).count;
-
-        // Hai nhóm cùng đặt ngân sách cho một kỳ thì sau khi gộp thành hai dòng
-        // cho cùng một nhóm — bảng Budget không có ràng buộc duy nhất nên DB
-        // không chặn, nhưng mọi phép tính ngân sách sẽ cộng đôi. Cộng chúng lại
-        // thành một dòng.
-        const after = await tx.budget.findMany({
-          where: { userId: user.id, categoryGroup: into.name },
-        });
-        const byPeriod = new Map<string, typeof after>();
-        for (const b of after) {
-          const key = `${b.periodType}|${b.period}`;
-          byPeriod.set(key, [...(byPeriod.get(key) || []), b]);
-        }
-        for (const rows of byPeriod.values()) {
-          if (rows.length < 2) continue;
-          const total = rows.reduce((sum, b) => sum + b.amount, 0);
-          await tx.budget.update({ where: { id: rows[0].id }, data: { amount: total } });
-          await tx.budget.deleteMany({
-            where: { id: { in: rows.slice(1).map((b) => b.id) } },
-          });
-        }
 
         // Danh mục con của nhóm bị gộp chuyển sang nhóm đích. Trùng tên với một
         // danh mục con sẵn có thì bỏ bản thừa đi — giao dịch khớp `subGroup`
