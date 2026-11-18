@@ -97,7 +97,7 @@ async function generate(level: string, code: string): Promise<TestContent> {
   const syllabus = syllabusFor(code);
   const points = syllabus?.families.flatMap((f) => f.groups.flatMap((g) => g.points)).filter((p) => p.level === level) ?? [];
   const brief = bandBrief(level);
-  const sys = `Bạn ra đề kiểm tra lên cấp ${level} (CEFR) cho người Việt học tiếng Anh. Mỗi câu trắc nghiệm có đúng 4 phương án, chỉ một phương án đúng, phương án nhiễu hợp lý. Giải thích bằng tiếng Việt.\n\n${brief}`;
+  const sys = `Bạn ra đề kiểm tra lên cấp ${level} (CEFR) cho người Việt học tiếng Anh. Mỗi câu trắc nghiệm có đúng 4 phương án, chỉ một phương án đúng, phương án nhiễu hợp lý. Đề phải có chỗ trống "____" cần điền hoặc một câu hỏi rõ ràng, và TUYỆT ĐỐI không chép sẵn đáp án đúng vào đề. Không đánh A/B/C/D trước phương án. Giải thích bằng tiếng Việt.\n\n${brief}`;
 
   const call = (schema: Schema, prompt: string) =>
     generateWithRetry(
