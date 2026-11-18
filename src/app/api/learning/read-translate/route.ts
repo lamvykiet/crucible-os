@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { modelsWithFallback, GEMINI_GRADING_MODEL } from "@/lib/gemini";
+import { modelsWithFallback } from "@/lib/gemini";
+import { FAST_MODEL, FAST_FALLBACKS } from "@/lib/fastModels";
 import { generateWithRetry, aiErrorMessage, isTransientAiError } from "@/lib/aiRetry";
 import { bandBrief, cefrOf } from "@/lib/bookBand";
 import { fetchArticle, ArticleError } from "@/lib/articleText";
@@ -84,7 +85,7 @@ async function translateParagraphs(paragraphs: string[], title: string) {
     generationConfig: { responseMimeType: "application/json", responseSchema: TRANSLATE_SCHEMA, temperature: 0.3 },
     systemInstruction:
       "Bạn dịch bài tiếng Anh sang tiếng Việt cho người Việt học tiếng Anh. Dịch từng đoạn, tự nhiên nhưng sát nghĩa, giữ đúng số đoạn và thứ tự. Không gộp, không tách, không bỏ đoạn.",
-  });
+  }, FAST_MODEL, FAST_FALLBACKS);
   const prompt = `Tiêu đề: ${title || "(không có)"}\nSố đoạn: ${paragraphs.length}\n\n${paragraphs.map((p, i) => `[${i + 1}] ${p}`).join("\n\n")}`;
   const r = await generateWithRetry(model, prompt, { timeoutMs: 50_000, totalBudgetMs: 55_000 });
   const out = JSON.parse(r.response.text()) as { titleVi?: string; translations?: string[] };
@@ -167,7 +168,7 @@ export async function POST(req: Request) {
       const model = modelsWithFallback({
         generationConfig: { responseMimeType: "application/json", responseSchema: WRITE_SCHEMA, temperature: 0.8 },
         systemInstruction: `Bạn viết bài đọc tiếng Anh cho người Việt luyện đọc và dịch.\n\n${bandBrief(level)}\n\nViết 4–5 đoạn, tổng 220–320 từ, giọng như bài báo hoặc blog thật, có thông tin cụ thể. Mỗi đoạn kèm bản dịch tiếng Việt tự nhiên. Tiêu đề tiếng Anh ngắn.`,
-      });
+      }, FAST_MODEL, FAST_FALLBACKS);
       const r = await generateWithRetry(model, `Chủ đề: ${topic}`, { timeoutMs: 45_000, totalBudgetMs: 55_000 });
       const out = JSON.parse(r.response.text()) as { title?: string; paragraphs?: Para[] };
       paras = (out.paragraphs ?? []).filter((p) => p.en?.trim() && p.vi?.trim()).map((p) => ({ en: p.en.trim(), vi: p.vi.trim() }));
@@ -222,7 +223,8 @@ Chấm Ý NGHĨA, ĐỦ Ý và ĐỘ TỰ NHIÊN; bản tham khảo chỉ để 
 - wrong (0–4): sai nghĩa, thiếu nhiều ý.
 "corrected": bản của người học sửa ít nhất có thể. "issues": từng lỗi cụ thể, giải thích bằng tiếng Việt. "summary": một câu nhận xét tiếng Việt.`,
       },
-      GEMINI_GRADING_MODEL
+      FAST_MODEL,
+      FAST_FALLBACKS
     );
     const r = await generateWithRetry(model, `Đoạn gốc (${from}):\n${src}\n\nBản tham khảo (${to}):\n${ref}\n\nBản dịch của người học:\n${answer}`, { timeoutMs: 25_000, totalBudgetMs: 30_000 });
     const g = JSON.parse(r.response.text()) as { score?: number; verdict?: string; corrected?: string; summary?: string; issues?: { wrong: string; right: string; why: string }[] };

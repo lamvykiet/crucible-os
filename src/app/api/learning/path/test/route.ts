@@ -3,6 +3,7 @@ import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { modelsWithFallback } from "@/lib/gemini";
+import { FAST_MODEL, FAST_FALLBACKS } from "@/lib/fastModels";
 import { generateWithRetry, aiErrorMessage, isTransientAiError } from "@/lib/aiRetry";
 import { bandBrief } from "@/lib/bookBand";
 import { syllabusFor } from "@/lib/grammarSyllabus";
@@ -100,7 +101,7 @@ async function generate(level: string, code: string): Promise<TestContent> {
 
   const call = (schema: Schema, prompt: string) =>
     generateWithRetry(
-      modelsWithFallback({ generationConfig: { responseMimeType: "application/json", responseSchema: schema, temperature: 0.7 }, systemInstruction: sys }),
+      modelsWithFallback({ generationConfig: { responseMimeType: "application/json", responseSchema: schema, temperature: 0.7 }, systemInstruction: sys }, FAST_MODEL, FAST_FALLBACKS),
       prompt,
       { timeoutMs: 45_000, totalBudgetMs: 52_000 }
     ).then((r) => JSON.parse(r.response.text()));

@@ -3,10 +3,7 @@ import { SchemaType, type Schema, type Part } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { modelsWithFallback } from "@/lib/gemini";
-
-/** Model chính cho video: đã đo 2 phút ≈ 18 giây. Dự phòng xếp theo tốc độ. */
-const VIDEO_MODEL = process.env.GEMINI_VIDEO_MODEL || "gemini-2.5-flash";
-const VIDEO_FALLBACKS = ["gemini-2.5-flash-lite", "gemini-3.6-flash"];
+import { FAST_MODEL as VIDEO_MODEL, FAST_FALLBACKS as VIDEO_FALLBACKS } from "@/lib/fastModels";
 import { generateWithRetry, aiErrorMessage, isTransientAiError } from "@/lib/aiRetry";
 import { parseYouTubeId, parseStore, mergeChunk, CHUNK_SECONDS, type Segment, type SegmentStore } from "@/lib/videoLesson";
 import { recordMistake, recordRight } from "@/lib/mistakes";

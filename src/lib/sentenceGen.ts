@@ -1,6 +1,7 @@
 import { SchemaType, type Schema } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { modelsWithFallback } from "@/lib/gemini";
+import { FAST_MODEL, FAST_FALLBACKS } from "@/lib/fastModels";
 import { generateWithRetry } from "@/lib/aiRetry";
 import { bandBrief, cefrOf } from "@/lib/bookBand";
 import { parseDeckSentences } from "@/lib/sentenceSources";
@@ -94,7 +95,7 @@ Yêu cầu cho từng câu:
 - "chunks": cắt câu thành 2–4 cụm theo nhịp ngữ nghĩa. Nối các cụm bằng một dấu cách phải ra ĐÚNG câu "en", giữ nguyên dấu câu. Mỗi cụm kèm nghĩa tiếng Việt.
 - "keys": 1–2 từ hoặc cụm từ đáng học nhất trong câu, chép NGUYÊN VĂN (cùng dạng chia) từ câu "en", kèm nghĩa ngắn.
 - Các câu phải khác nhau về nội dung, không lặp một khuôn.`,
-  });
+  }, FAST_MODEL, FAST_FALLBACKS);
 
   const prompt = `Chủ đề: ${args.topic}
 Soạn đúng ${args.count} câu.${avoid.length ? `\nĐừng lặp lại các câu đã có:\n${avoid.map((s) => `- ${s}`).join("\n")}` : ""}`;
