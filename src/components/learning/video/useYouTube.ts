@@ -13,6 +13,7 @@ interface YTPlayer {
   playVideo(): void;
   pauseVideo(): void;
   getCurrentTime(): number;
+  getDuration(): number;
   setPlaybackRate(rate: number): void;
   destroy(): void;
 }
@@ -49,6 +50,7 @@ export function useYouTube(videoId: string) {
   const stopAtRef = useRef<number | null>(null);
   const [ready, setReady] = useState(false);
   const [time, setTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +86,8 @@ export function useYouTube(videoId: string) {
       if (!p) return;
       const now = p.getCurrentTime();
       setTime(now);
+      const d = p.getDuration();
+      if (d > 0) setDuration(d);
       if (stopAtRef.current !== null && now >= stopAtRef.current) {
         stopAtRef.current = null;
         p.pauseVideo();
@@ -106,5 +110,5 @@ export function useYouTube(videoId: string) {
     playerRef.current?.pauseVideo();
   }, []);
 
-  return { hostRef, ready, time, playRange, pause };
+  return { hostRef, ready, time, duration, playRange, pause };
 }

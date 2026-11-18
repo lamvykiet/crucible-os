@@ -89,7 +89,10 @@ async function transcribe(youtubeId: string, prev: SegmentStore): Promise<Segmen
   if (from > 0 && raw.length && raw.every((s) => Number(s.start) < CHUNK_SECONDS + 5) && raw.some((s) => Number(s.start) < from - 5)) {
     raw = raw.map((s) => ({ ...s, start: Number(s.start) + from, end: Number(s.end) + from }));
   }
-  return mergeChunk(prev, raw, from, to, Boolean(out.ended));
+  // KHÔNG tin cờ `ended` của AI: 19/11 nó báo hết video ngay đoạn đầu của một
+  // video 5 phút. Hết video = một lượt không còn câu nào (mergeChunk tự biết);
+  // giao diện còn biết độ dài thật từ trình phát YouTube để ẩn nút tải thêm.
+  return mergeChunk(prev, raw, from, to, false);
 }
 
 async function langOf(userId: string, languageId: unknown) {

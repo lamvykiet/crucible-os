@@ -164,7 +164,10 @@ export default function VideoStudy({ languageId, langCode }: { languageId: strin
 function Study({ initial, langCode, onBack, reload }: { initial: Full; langCode: string; onBack: () => void; reload: () => Promise<void> }) {
   const { t } = useLanguage();
   const v = initial;
-  const { hostRef, ready, time, playRange, pause } = useYouTube(v.youtubeId);
+  const { hostRef, ready, time, duration, playRange, pause } = useYouTube(v.youtubeId);
+  // Còn phần chưa chép: máy chủ chưa gặp đoạn rỗng VÀ (chưa biết độ dài, hoặc
+  // chép chưa tới cuối video theo trình phát).
+  const hasMore = !v.complete && (duration === 0 || v.until < duration - 3);
   const [mode, setMode] = useState<Mode>("watch");
   const [showVi, setShowVi] = useState(true);
   const [at, setAt] = useState(Math.min(v.lastIndex, Math.max(0, v.items.length - 1)));
@@ -379,7 +382,7 @@ function Study({ initial, langCode, onBack, reload }: { initial: Full; langCode:
             </>
           ) : null}
 
-          {!v.complete && (
+          {hasMore && (
             <button onClick={() => void loadMore()} disabled={loadingMore} className="c-btn c-btn-secondary w-full">
               {loadingMore ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
               {loadingMore ? t("Transcribing the next 2 minutes…", "Đang chép 2 phút tiếp…") : t("Load the next 2 minutes", "Tải thêm 2 phút")}
