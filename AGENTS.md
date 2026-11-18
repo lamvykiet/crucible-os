@@ -381,6 +381,16 @@ Kho câu của Gõ câu/Dịch câu nằm ở `src/lib/sentences/` (soạn tay, 
 `scripts/test-sentences.mjs` soát) + `SentenceDeck` (AI soạn) + câu ví dụ trên
 thẻ; id bộ viết sẵn là khoá tiến độ — đừng đổi sau khi phát hành.
 
+**Lộ trình tiếng Anh (`src/lib/learningPath.ts` thuần + `src/lib/pathServer.ts`)**
+KHÔNG có bảng tiến độ riêng: bài Ngữ pháp xong = `GrammarLesson.viewedAt`, bài
+Gõ/Dịch câu xong = số câu `cleared` trong `SentenceLog` của `SentenceDeck` có
+`pointId` của điểm đó. Đổi ý nghĩa `viewedAt` hay `SentenceLog.cleared` là đổi
+luôn % lộ trình. Kế hoạch hôm nay đọc thêm `SkillProgress.lastPracticedAt`
+(nghe/đọc/nói/viết), `ReadingText.updatedAt`, `SentenceLog` có setId `video:*`.
+Video (`api/learning/video`) chép phụ đề bằng Gemini đọc thẳng link YouTube, từng
+đoạn 2 phút (`CHUNK_SECONDS`) để vừa 60 giây của Vercel — đừng gộp cả video
+vào một lượt. Đọc & dịch cắt đoạn bằng code (`readingSplit.ts`), AI chỉ dịch.
+
 **Tính chuỗi ngày / tỷ lệ hoàn thành** → chỉ có một chỗ: `src/lib/habits.ts`.
 Ba quy tắc cố ý và đã có test: ngày ngoài lịch bị bỏ qua, ngày đánh dấu nghỉ
 không phá chuỗi, kỳ hiện tại chưa đủ chỉ tiêu thì chưa tính là đứt. Đừng tính

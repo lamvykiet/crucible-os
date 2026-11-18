@@ -8,7 +8,11 @@
  * sau bắt đầu lại từ đầu câu đó.
  */
 
-export const CHUNK_SECONDS = 180;
+/**
+ * Đo 18/11: 2 phút video mất ~18 giây với gemini-2.5-flash ở máy, nhưng đoạn 3
+ * phút trên Vercel bị ngắt ở giây 56 — nên giữ đoạn ngắn cho chắc vừa 60 giây.
+ */
+export const CHUNK_SECONDS = 120;
 
 export interface Segment {
   start: number;

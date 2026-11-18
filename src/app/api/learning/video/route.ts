@@ -3,6 +3,10 @@ import { SchemaType, type Schema, type Part } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { modelsWithFallback } from "@/lib/gemini";
+
+/** Model chính cho video: đã đo 2 phút ≈ 18 giây. Dự phòng xếp theo tốc độ. */
+const VIDEO_MODEL = process.env.GEMINI_VIDEO_MODEL || "gemini-2.5-flash";
+const VIDEO_FALLBACKS = ["gemini-2.5-flash-lite", "gemini-3.6-flash"];
 import { generateWithRetry, aiErrorMessage, isTransientAiError } from "@/lib/aiRetry";
 import { parseYouTubeId, parseStore, mergeChunk, CHUNK_SECONDS, type Segment, type SegmentStore } from "@/lib/videoLesson";
 import { recordMistake, recordRight } from "@/lib/mistakes";
@@ -15,7 +19,7 @@ export const maxDuration = 60;
  * chính tả, nói nhại từng câu).
  *
  * Phụ đề: Gemini đọc thẳng link YouTube công khai — tính năng chính thức của
- * API, không cào trang, không giả trình duyệt. Mỗi lần xử lý một đoạn 3 phút
+ * API, không cào trang, không giả trình duyệt. Mỗi lần xử lý một đoạn 2 phút
  * (đo 18/11: 2 phút mất ~18 giây, ~12 nghìn token ở độ phân giải thấp) để vừa
  * giới hạn 60 giây của hàm Vercel. Tiêu đề lấy qua oEmbed công khai của YouTube.
  */
@@ -65,7 +69,7 @@ async function transcribe(youtubeId: string, prev: SegmentStore): Promise<Segmen
       temperature: 0.1,
       mediaResolution: "MEDIA_RESOLUTION_LOW",
     } as Record<string, unknown>,
-  });
+  }, VIDEO_MODEL, VIDEO_FALLBACKS);
   const videoPart = {
     fileData: { mimeType: "video/mp4", fileUri: `https://www.youtube.com/watch?v=${youtubeId}` },
     videoMetadata: { startOffset: `${from}s`, endOffset: `${to}s` },
@@ -141,7 +145,7 @@ export async function GET(req: Request) {
   }
 }
 
-/** Thêm video theo link: lấy tiêu đề, rồi chép 3 phút đầu. */
+/** Thêm video theo link: lấy tiêu đề, rồi chép đoạn đầu. */
 export async function POST(req: Request) {
   const { user, response } = await requireUser();
   if (!user) return response;
@@ -158,7 +162,7 @@ export async function POST(req: Request) {
     const meta = await oembed(youtubeId);
     const store = await transcribe(youtubeId, { until: 0, complete: false, items: [] });
     if (store.items.length === 0) {
-      return NextResponse.json({ success: false, error: "Không nghe ra lời nói tiếng Anh trong 3 phút đầu video." }, { status: 422 });
+      return NextResponse.json({ success: false, error: "Không nghe ra lời nói tiếng Anh trong 2 phút đầu video." }, { status: 422 });
     }
     const v = await prisma.videoLesson.create({
       data: {
@@ -177,7 +181,7 @@ export async function POST(req: Request) {
 }
 
 /**
- * action = "more": chép thêm 3 phút.
+ * action = "more": chép thêm một đoạn.
  * action = "result": ghi một câu chép chính tả / nói nhại.
  */
 export async function PATCH(req: Request) {

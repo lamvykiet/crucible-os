@@ -120,8 +120,8 @@ export default function VideoStudy({ languageId, langCode }: { languageId: strin
         </div>
         <p className="c-help">
           {adding
-            ? t("AI is transcribing the first 3 minutes — about 25 seconds.", "AI đang chép phụ đề 3 phút đầu — khoảng 25 giây.")
-            : t("Public videos only. Subtitles come 3 minutes at a time; load more as you go.", "Chỉ video công khai. Phụ đề được chép từng 3 phút một; học tới đâu tải thêm tới đó.")}
+            ? t("AI is transcribing the first 2 minutes — about 20–30 seconds.", "AI đang chép phụ đề 2 phút đầu — khoảng 20–30 giây.")
+            : t("Public videos only. Subtitles come 2 minutes at a time; load more as you go.", "Chỉ video công khai. Phụ đề được chép từng 2 phút một; học tới đâu tải thêm tới đó.")}
         </p>
       </div>
 
@@ -382,7 +382,7 @@ function Study({ initial, langCode, onBack, reload }: { initial: Full; langCode:
           {!v.complete && (
             <button onClick={() => void loadMore()} disabled={loadingMore} className="c-btn c-btn-secondary w-full">
               {loadingMore ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-              {loadingMore ? t("Transcribing the next 3 minutes…", "Đang chép 3 phút tiếp…") : t("Load the next 3 minutes", "Tải thêm 3 phút")}
+              {loadingMore ? t("Transcribing the next 2 minutes…", "Đang chép 2 phút tiếp…") : t("Load the next 2 minutes", "Tải thêm 2 phút")}
             </button>
           )}
           {error && <div className="c-alert c-alert-error"><AlertCircle size={18} className="icon" /><p className="flex-1">{error}</p></div>}
