@@ -40,8 +40,9 @@ const SEG_SCHEMA: Schema = {
         required: ["start", "end", "en", "vi"],
       },
     },
+    ended: { type: SchemaType.BOOLEAN, description: "true nếu video gốc KẾT THÚC trong đoạn này" },
   },
-  required: ["segments"],
+  required: ["segments", "ended"],
 };
 
 async function oembed(youtubeId: string) {
@@ -78,17 +79,17 @@ async function transcribe(youtubeId: string, prev: SegmentStore): Promise<Segmen
     model,
     [
       videoPart,
-      `Chép lại NGUYÊN VĂN lời nói tiếng Anh trong đoạn video này (từ giây ${from} tới giây ${to} của video gốc), mỗi câu một mục, kèm thời điểm bắt đầu và kết thúc tính bằng GIÂY TÍNH TỪ ĐẦU VIDEO GỐC, và bản dịch tiếng Việt tự nhiên của từng câu. Câu quá dài (trên ~25 từ) thì tách ở chỗ ngắt tự nhiên. Không thêm lời bình, không chép chữ trên màn hình.`,
+      `Chép lại NGUYÊN VĂN lời nói tiếng Anh trong đoạn video này (từ giây ${from} tới giây ${to} của video gốc), mỗi câu một mục, kèm thời điểm bắt đầu và kết thúc tính bằng GIÂY TÍNH TỪ ĐẦU VIDEO GỐC, và bản dịch tiếng Việt tự nhiên của từng câu. Câu quá dài (trên ~25 từ) thì tách ở chỗ ngắt tự nhiên. Chép TRỌN đoạn tới giây ${to}, đừng dừng giữa chừng. Không thêm lời bình, không chép chữ trên màn hình. "ended" = true chỉ khi video gốc kết thúc trước giây ${to}.`,
     ],
     { timeoutMs: 50_000, totalBudgetMs: 55_000 }
   );
-  const out = JSON.parse(r.response.text()) as { segments?: Partial<Segment>[] };
+  const out = JSON.parse(r.response.text()) as { segments?: Partial<Segment>[]; ended?: boolean };
   let raw = out.segments ?? [];
   // Có model trả thời gian tính từ đầu ĐOẠN thay vì đầu video — dời lại.
   if (from > 0 && raw.length && raw.every((s) => Number(s.start) < CHUNK_SECONDS + 5) && raw.some((s) => Number(s.start) < from - 5)) {
     raw = raw.map((s) => ({ ...s, start: Number(s.start) + from, end: Number(s.end) + from }));
   }
-  return mergeChunk(prev, raw, from, to);
+  return mergeChunk(prev, raw, from, to, Boolean(out.ended));
 }
 
 async function langOf(userId: string, languageId: unknown) {

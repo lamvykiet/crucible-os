@@ -72,22 +72,36 @@ const clean = (s: Partial<Segment>): Segment | null => {
  * - Bỏ câu nằm trước `chunkStart` (trùng với đoạn trước).
  * - Câu cuối kết thúc sát ranh giới đoạn bị coi là cắt dở: bỏ, và lượt sau bắt
  *   đầu từ `start` của nó.
- * - Đoạn không trả câu nào mới ⇒ hết video.
+ * - AI dừng sớm giữa đoạn mà KHÔNG báo hết video (`ended`) ⇒ lượt sau bắt đầu
+ *   từ chỗ nó dừng, để không bỏ sót câu nào. Đã gặp 19/11: đoạn 121–241 giây
+ *   chỉ chép tới ~170 giây, đoán "hết video" theo khoảng trống là sai.
+ * - Chỉ coi là hết video khi AI báo `ended`, hoặc đoạn không còn câu nào.
  */
-export function mergeChunk(prev: SegmentStore, raw: Partial<Segment>[], chunkStart: number, chunkEnd: number): SegmentStore {
+export function mergeChunk(
+  prev: SegmentStore,
+  raw: Partial<Segment>[],
+  chunkStart: number,
+  chunkEnd: number,
+  ended = false
+): SegmentStore {
   const items = raw
     .map(clean)
     .filter((s): s is Segment => s !== null && s.start >= chunkStart - 0.5)
     .sort((a, b) => a.start - b.start);
 
-  if (items.length === 0) return { ...prev, until: Math.max(prev.until, chunkStart), complete: true };
+  if (items.length === 0) return { ...prev, until: Math.max(prev.until, chunkEnd), complete: true };
 
-  let until = chunkEnd;
   const last = items[items.length - 1];
-  if (items.length > 1 && last.end >= chunkEnd - 1.5) {
+  let until: number;
+  if (items.length > 1 && last.end >= chunkEnd - 1.5 && !ended) {
     items.pop();
     until = last.start;
+  } else if (ended) {
+    until = last.end;
+  } else {
+    until = Math.min(chunkEnd, last.end);
   }
-  const complete = last.end < chunkEnd - 8; // video dừng hẳn trước khi hết đoạn
-  return { until, complete, items: [...prev.items, ...items] };
+  // Không tiến được chút nào thì nhảy qua hết đoạn, kẻo bấm "tải thêm" lặp mãi một chỗ.
+  if (until <= chunkStart + 1) until = chunkEnd;
+  return { until, complete: ended, items: [...prev.items, ...items] };
 }
